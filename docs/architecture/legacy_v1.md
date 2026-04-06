@@ -1,4 +1,4 @@
-# Arhitectura MacroTrackAPP
+# Arhitectura TableTogheter
 
 ## Ce exista acum (real)
 

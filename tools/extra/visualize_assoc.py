@@ -22,10 +22,10 @@ def heatmap(df, title, out_png):
 
 def load_assoc_matrix(rules: dict) -> pd.DataFrame:
     """
-    Suportă două formate:
+    Suporta doua formate:
       A) rules['assoc_buckets']                        # protein_bucket -> {carb_bucket: score}
       B) rules['priors']['pairwise_compat']['protein_bucket']  # idem
-    Returnează un DataFrame (protein_bucket x carb_bucket) cu valori în [0,1].
+    Returneaza un DataFrame (protein_bucket x carb_bucket) cu valori in [0,1].
     """
     AB = rules.get("assoc_buckets", None)
     if isinstance(AB, dict) and AB:

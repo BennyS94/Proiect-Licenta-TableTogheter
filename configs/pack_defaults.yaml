@@ -21,7 +21,7 @@ tags_to_packs:
     typical_sizes: [400, 800]
     shelf_stable_days: 365
 
-  # Lactate lichide (lapte, kefir, iaurt de baut) – detectate si ca "tag_drink" in dairy
+  # Lactate lichide (lapte, kefir, iaurt de baut) - detectate si ca "tag_drink" in dairy
   - when:
       any_tags: ["tag_drink"]
       main_group_regex: "(dairy|milk|yogurt|kefir)"

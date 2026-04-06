@@ -1,4 +1,4 @@
-# Contract API (planned) — MacroTrackAPP
+# Contract API (planned) — TableTogheter
 
 Acest document defineste un contract propus pentru un backend API peste pipeline-ul ML existent.
 Nu descrie implementarea (inca nu exista), doar interfata.

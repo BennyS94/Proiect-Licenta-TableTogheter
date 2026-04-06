@@ -38,7 +38,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-# --- aceleași split-uri ca în generator ---
+# --- aceleasi split-uri ca in generator ---
 ###########################################################################
 # meal_split
 # Ce face: genereaza lista de mese + procente kcal (aceeasi logica ca in generator)
@@ -108,7 +108,7 @@ def fmt_macros(d):
 # Legaturi: plan_v2.csv
 
 def _alts_from_row(row: pd.Series, prefix: str, K: int = 5):  # alternative alt_* (swap similar) daca exista in plan_v2.csv
-    """Colectează alternativele din coloane de tip alt_<prefix>_{i}_name/_sim."""
+    """Colecteaza alternativele din coloane de tip alt_<prefix>_{i}_name/_sim."""
     out = []
     for i in range(1, K + 1):
         n = str(row.get(f"{prefix}_{i}_name", "") or "").strip()
@@ -142,12 +142,12 @@ def main():
         raise SystemExit(f"Nu găsesc {plan_p}")
     df_plan = pd.read_csv(plan_p)
 
-    # profil → procentele țintă
+    # profil -> procentele tinta
     prof = json.loads(Path(args.profile).read_text(encoding="utf-8"))
     names, split = meal_split(prof.get("meals_per_day",3), bool(prof.get("include_snacks", False)))
     split_map = {n: f for n, f in zip(names, split)}  # map: nume_masa -> procent_kcal (pentru afisare)
 
-    # încărcăm foods (parquet sau fallback CSV)
+    # incarcam foods (parquet sau fallback CSV)
     if foods_p.exists():
         df_foods = read_foods(foods_p)
     else:
@@ -156,7 +156,7 @@ def main():
             raise SystemExit(f"Nu găsesc {foods_p} sau fallback {fb}")
         df_foods = read_foods(fb)
 
-    # index pentru lookup rapid după uid
+    # index pentru lookup rapid dupa uid
     idx = df_foods.set_index("uid", drop=False)  # index rapid uid -> rand (lookup constant)
 
     # total kcal plan real (din plan)
@@ -188,7 +188,7 @@ def main():
         sc_mac = macros_for_row(sc_row, sc_g) if not sc_row.empty else dict(kcal=0,P=0,C=0,F=0)
         ve_mac = macros_for_row(ve_row, ve_g) if not ve_row.empty else dict(kcal=0,P=0,C=0,F=0)
 
-        # total masă
+        # total masa
         tot_g = ps_g + sc_g + ve_g
         tot = dict(
             kcal = ps_mac["kcal"] + sc_mac["kcal"] + ve_mac["kcal"],
@@ -205,12 +205,12 @@ def main():
         if ve_name:
             lines.append(f"  Ve -> {ve_name}; {ve_g:.1f} g; {fmt_macros(ve_mac)}")
         lines.append(f"  Total: {tot_g:.1f} g; {fmt_macros(tot)}")
-        lines.append("")  # linie goală între mese
+        lines.append("")  # linie goala intre mese
 
-        # --- ALTERNATIVE (dacă există în CSV) ---
+        # --- ALTERNATIVE (daca exista in CSV) ---
         aps = _alts_from_row(r, "alt_protein", K=5)  # alternative alt_* (swap similar) daca exista in plan_v2.csv
         acs = _alts_from_row(r, "alt_carb",    K=5)  # alternative alt_* (swap similar) daca exista in plan_v2.csv
-        avs = _alts_from_row(r, "alt_veg",     K=5)  # va rămâne gol dacă n-ai adăugat alt_veg în generator  # alternative alt_* (swap similar) daca exista in plan_v2.csv
+        avs = _alts_from_row(r, "alt_veg",     K=5)  # va ramane gol daca n-ai adaugat alt_veg in generator  # alternative alt_* (swap similar) daca exista in plan_v2.csv
 
         if aps:
             lines.append("  Alt protein: " + " | ".join(aps))
@@ -233,7 +233,7 @@ def main():
     lines.append(f"  kcal: {total_kcal_real:.0f}")  # kcal total din plan (suma kcal_meal din CSV)
     lines.append(f"  P: {kcalP/4:.1f} g ({pctP:.1f}% kcal) | C: {kcalC/4:.1f} g ({pctC:.1f}%) | F: {kcalF/9:.1f} g ({pctF:.1f}%)")
 
-    # scrie fișierul
+    # scrie fisierul
     out_p.parent.mkdir(parents=True, exist_ok=True)
     Path(out_p).write_text("\n".join(lines), encoding="utf-8")  # scriere fisier readable (outputs/plan_v2_readable.txt)
     print(f"OK (written): {out_p}")

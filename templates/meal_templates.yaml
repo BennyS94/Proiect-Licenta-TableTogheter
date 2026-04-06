@@ -140,7 +140,7 @@ snack:
       - role: protein
         require_bucket: [eggs]
         include_name: ["egg"]
-        portion_g_range: [55, 110]    # 1-2 ouă
+        portion_g_range: [55, 110]    # 1-2 oua
       - role: side_veg
         require_bucket: [salad_like]
         include_name: ["carrot","cucumber","pepper","tomato"]

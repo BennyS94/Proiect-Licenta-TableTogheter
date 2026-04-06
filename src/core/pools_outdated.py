@@ -9,9 +9,9 @@ def _allowed_for_meal(row, meal_id: str) -> bool:
 
 def build_pool(df: pd.DataFrame, meal_id: str, role: str, rules: dict) -> pd.DataFrame:
     """
-    Returnează subsetul de candidați pentru rolul {protein|side_carb|side_veg},
-    deja filtrați la nivel de "puritate" pentru producție.
-    Presupune că df este deja filtrat global (bans/dietary).
+    Returneaza subsetul de candidati pentru rolul {protein|side_carb|side_veg},
+    deja filtrati la nivel de "puritate" pentru productie.
+    Presupune ca df este deja filtrat global (bans/dietary).
     """
     role = role.lower()
     role_col = {"protein":"role_protein","side_carb":"role_side_carb","side_veg":"role_side_veg"}[role]
@@ -27,10 +27,10 @@ def build_pool(df: pd.DataFrame, meal_id: str, role: str, rules: dict) -> pd.Dat
         pool = pool[~name.str.contains(bad_veg_terms, regex=True, na=False)]
         # cere un veg_bucket valid
         pool = pool[pool["veg_bucket"].fillna("").ne("")]
-        # legumele ca side au densitate kcal mai scăzută
+        # legumele ca side au densitate kcal mai scazuta
         pool["kcal100"] = pd.to_numeric(pool.get("kcal_sanitized"), errors="coerce").fillna(0.0)
         pool = pool[pool["kcal100"] <= 120]
-        # la mic dejun, evităm supele ca "side"
+        # la mic dejun, evitam supele ca "side"
         if meal_id == "breakfast":
             n2 = pool["name_core"].fillna("").str.lower()
             pool = pool.loc[~n2.str.contains(r"\bsoup\b", regex=True, na=False)]
@@ -38,26 +38,26 @@ def build_pool(df: pd.DataFrame, meal_id: str, role: str, rules: dict) -> pd.Dat
         # scoatem ingrediente/grasimi/crisps/fried etc.
         bad_side_terms = r"\b(?:raw|flour|powder|mix|crisps|chips|oil|butter|margarine|lard|fried|deep[- ]?fried|croquette|dauphine|dried|semolina|grits|uncooked|pre[- ]?cooked)\b"
         pool = pool[~name.str.contains(bad_side_terms, regex=True, na=False)]
-        # să aibă carbo reali
+        # sa aiba carbo reali
         pool["carb100"] = pd.to_numeric(pool.get("carbohydrate_g_100g_ml"), errors="coerce").fillna(0.0)
         pool = pool[pool["carb100"] >= 10]
-        # să nu fie "de fapt proteic" (ex. carne pane)
+        # sa nu fie "de fapt proteic" (ex. carne pane)
         pool = pool[pool["role_protein"] != 1]
-        # limită grăsime/100g pentru garnitură
+        # limita grasime/100g pentru garnitura
         fat_max = float(rules.get("soft_limits", {}).get("side_carb_fat_g_per100g_max", 8.0))
         pool["fat100"] = pd.to_numeric(pool.get("fat_g_100g_ml"), errors="coerce").fillna(0.0)
         pool = pool[pool["fat100"] <= fat_max]
 
     else:  # protein
-        # nimic agresiv aici; selecția finală se face din scor (lean etc.)
+        # nimic agresiv aici; selectia finala se face din scor (lean etc.)
         n2 = pool["name_core"].fillna("").str.lower()
-        # la mic dejun evităm proteine crude/uscat/pudră/semolina
+        # la mic dejun evitam proteine crude/uscat/pudra/semolina
         if meal_id == "breakfast":
             pool = pool.loc[
                 ~n2.str.contains(r"\b(?:dried|raw|powder|flour|semolina|uncooked|pre[- ]?cooked)\b", regex=True,
                                  na=False)]
 
-        # preferă variante gătite
+        # prefera variante gatite
         pool["is_cooked"] = pool["name_core"].fillna("").str.contains(
             r"\b(?:cooked|boiled|steamed|baked|roasted|grilled|pan[- ]?fried|sautéed|sauteed)\b",
             case=False, regex=True, na=False

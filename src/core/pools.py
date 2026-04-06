@@ -4,7 +4,7 @@
 # SCOP
 #   Construieste pool-urile de candidati (DataFrame-uri filtrate) pentru
 #   fiecare rol de masa: protein / side_carb / side_veg. Filtrele sunt
-#   „purete” de productie, adica scoatem item-urile care nu se potrivesc
+#   "purete" de productie, adica scoatem item-urile care nu se potrivesc
 #   rolului (ingrediente, pulberi, preparate complete pentru rolul de legume,
 #   garnituri fara carbo reali etc.).
 #

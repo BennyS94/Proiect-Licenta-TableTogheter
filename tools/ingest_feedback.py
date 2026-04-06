@@ -78,7 +78,7 @@ def main():
     df = pd.read_csv(plan)  # citim planul; utilizatorul poate edita manual coloane in CSV/Excel
 
     # optional columns to annotate in Excel:
-    # user_decision ∈ {ate, skipped, like, dislike}, swap_applied ∈ {0,1}, rating ∈ {1..5}, notes (str)
+    # user_decision in {ate, skipped, like, dislike}, swap_applied in {0,1}, rating in {1..5}, notes (str)
     # if they do not exist, create empties
     for col in ["user_decision","swap_applied","rating","notes"]:  # coloane optionale pe care le poti completa manual
         if col not in df.columns:

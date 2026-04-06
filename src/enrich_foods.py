@@ -264,7 +264,7 @@ def dietary_from_macros(macro: Optional[str], rules: Dict) -> Dict[str, int]:
 ###########################################################################
 # quality_gates
 # Ce face: mic filtru de consistenta pentru tag-uri care pot fi conflictuale,
-#          ex: daca e wholegrain sau fibra mare, nu marcăm refined_carb.
+#          ex: daca e wholegrain sau fibra mare, nu marcam refined_carb.
 # Legaturi: se foloseste dupa ce am setat tag-urile.
 ###########################################################################
 def quality_gates(row: pd.Series) -> Dict[str, int]:
@@ -505,7 +505,7 @@ def main():
     audit_p.parent.mkdir(parents=True, exist_ok=True)
     audit_p.write_text(audit_txt, encoding="utf-8")
 
-    # IMPORTANT: pastram compatibilitatea — nu eliminam coloane existente
+    # IMPORTANT: pastram compatibilitatea - nu eliminam coloane existente
     out_p.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out_p, index=False)
     print("[OK] Enrich complet. Audit la:", audit_p)

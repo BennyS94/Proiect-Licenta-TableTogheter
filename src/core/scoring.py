@@ -16,7 +16,7 @@
 #   - rules: reguli din YAML (scoring_weights, priors, per_meal_macros, etc.)
 #   - used_buckets: set cu bucket-uri folosite in ziua curenta (pt varietate)
 #   - tax: structura taxonomica (optional; pt tree_distance)
-#   - prefs: dict preferinte (user_prefs.json) — influenta mica, la final
+#   - prefs: dict preferinte (user_prefs.json) - influenta mica, la final
 #
 # LEGATURI
 #   - src/ontology.py: node_for_food(), tree_distance() pentru fallback si cost
@@ -75,7 +75,7 @@ def _priors_key(row, role_key: str, tax_node: Optional[str]) -> str:
 
 
 ###########################################################################
-# preferinte utilizator (feedback agregat) — transformate in delta mic de scor
+# preferinte utilizator (feedback agregat) - transformate in delta mic de scor
 ###########################################################################
 
 def _pref_weights_from_rules(rules):
@@ -220,7 +220,7 @@ def _apply_user_prefs_delta(rp, rc, rv, meal_id, rules, prefs):
 
 
 ###########################################################################
-# SCORING — functia principala (lower = better)
+# SCORING - functia principala (lower = better)
 ###########################################################################
 
 def score_combo(
@@ -312,7 +312,7 @@ def score_combo(
     score += w_pair * (1.0 - compat)
     if compat < 0.5: reasons.append(f"low_pair:{pkey}+{ckey}={compat:.2f}")
 
-    # 4) ingredientness — descurajam pulberi, mixuri, pre-fried
+    # 4) ingredientness - descurajam pulberi, mixuri, pre-fried
     def ingr_cost(row):
         txt = (str(row.get("name_core","")) + " " + str(row.get("main_group",""))).lower()
         bad_terms = ["powder","dehydrated","mix","pre-fried"]  # ideal: muta in YAML
@@ -435,7 +435,7 @@ def score_combo(
         score -= w_assoc * s
         reasons.append(f"assoc+{pb}-{cb}:{s:.2f}")
     else:
-        # penalizare mica daca perechea nu are suport — evita combinatii ciudate
+        # penalizare mica daca perechea nu are suport - evita combinatii ciudate
         score += w_assoc * 0.2
         reasons.append(f"assoc0 {pb}-{cb}")
 

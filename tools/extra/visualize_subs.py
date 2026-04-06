@@ -71,14 +71,14 @@ def main():
     if missing:
         raise SystemExit(f"foods missing columns: {missing}")
 
-    # 1) coverage per src (câte alternative are fiecare)
+    # 1) coverage per src (cate alternative are fiecare)
     cov = subs.groupby("src_uid", as_index=False).agg(n_alts=("dst_uid","count"), sim_mean=("sim","mean"))
     cov = cov.merge(foods[["uid","name_core","protein_bucket","carb_bucket","veg_bucket","role_protein","role_side_carb","role_side_veg"]],
                     left_on="src_uid", right_on="uid", how="left").drop(columns=["uid"])
     cov_out = outdir / "subs_coverage.csv"
     cov.to_csv(cov_out, index=False)
 
-    # 2) bucket→bucket mean(sim) per rol (heatmap)
+    # 2) bucket->bucket mean(sim) per rol (heatmap)
     roles = [args.role] if args.role else ["protein","side_carb","side_veg"]
     for role in roles:
         rcol, bcol = role_cols(role)
@@ -90,7 +90,7 @@ def main():
         mat.to_csv(outdir / f"subs_bucket_matrix_{role}.csv")
         heatmap(mat, f"Substitutions mean(sim) — {role}", outdir / f"subs_bucket_heatmap_{role}.png")
 
-    # 3) histogram număr alternative pe item (pentru QA rapid)
+    # 3) histogram numar alternative pe item (pentru QA rapid)
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(6,4))
     ax.hist(cov["n_alts"], bins=30)
@@ -98,7 +98,7 @@ def main():
     ax.set_xlabel("#alts"); ax.set_ylabel("count")
     fig.tight_layout(); fig.savefig(outdir / "subs_n_alts_hist.png", dpi=150); plt.close(fig)
 
-    # 4) dacă s-a dat --uid: bar chart cu alternativele lui
+    # 4) daca s-a dat --uid: bar chart cu alternativele lui
     if args.uid:
         ok = bar_alternatives(subs, foods, args.uid, outdir / f"subs_alts_{args.uid}.png")
         if not ok:

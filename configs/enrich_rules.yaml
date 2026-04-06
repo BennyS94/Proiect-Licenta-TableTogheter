@@ -229,7 +229,7 @@ potatoes:
     - micro: potato_wedges
       name_hints: ["potato wedges"]
     - micro: fries_like
-      name_hints: [fries, chips, crisps]  # notăm, chiar dacă există tag 'fried_or_chips'
+      name_hints: [fries, chips, crisps]  # notam, chiar daca exista tag 'fried_or_chips'
 
 breakfast_cereal_whole:
     - micro: oats_like

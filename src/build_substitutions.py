@@ -34,10 +34,10 @@ from pathlib import Path
 FEATZ = ["z_protein_g_100kcal","z_carb_g_100kcal","z_fat_g_100kcal",  # feature-uri standardizate (z_*) pe baza la 100 kcal
          "z_fibres_g_100kcal","z_sugars_g_100kcal","z_salt_g_100kcal"]
 
-# topk per rol (poți mări ulterior)
+# topk per rol (poti mari ulterior)
 ROLE_TOPK = {"protein": 25, "side_carb": 40, "side_veg": 25}  # topk default per rol (override prin CLI)
 
-# familii de bucket (extinde după nevoie)
+# familii de bucket (extinde dupa nevoie)
 FAMILIES = {  # familii de bucket-uri: extindem cautarea cand bucket-ul e prea mic
     "protein": {
         "poultry": ["poultry"],
@@ -81,7 +81,7 @@ def mask_clean(df):
         col = f"tag_{t}" if f"tag_{t}" in df.columns else t
         if col in df.columns:
             m &= (df[col].fillna(0).astype(int) == 0)
-    # exclude globale (dacă ai o coloană 'exclude')
+    # exclude globale (daca ai o coloana 'exclude')
     if "exclude" in df.columns:
         m &= (df["exclude"].fillna(0).astype(int) == 0)
     return m
@@ -92,7 +92,7 @@ def mask_clean(df):
 # Legaturi: FAMILIES; *_bucket
 
 def subgraph(df, role, bucket, min_size=2):
-    """Ia grupul primar (same-bucket), apoi lărgește cu 'siblings' dacă e prea mic."""
+    """Ia grupul primar (same-bucket), apoi largeste cu 'siblings' daca e prea mic."""
     if role == "protein":
         bc = "protein_bucket"
         rc = "role_protein"

@@ -103,7 +103,7 @@ assoc_buckets:
   w_side_fat100_max: 0.6
   w_side_fat_pct_kcal: 0.3
   w_breakfast_cheese_penalty: 0.6
-  w_tree_dist: 0.8   # penalizare per nivel de distanță în arbore
+  w_tree_dist: 0.8   # penalizare per nivel de distanta in arbore
 
 per_meal_macros:
   breakfast: { carb_g_min: 25, fat_g_max: 25, fibre_g_min: 5 }
@@ -118,7 +118,7 @@ per_meal_protein_min_g:
   lunch: 35
   dinner: 30
 
-# Soft priors by meal (0..1). Poți ajusta cifrele după 2–3 rulari.
+# Soft priors by meal (0..1). Poti ajusta cifrele dupa 2-3 rulari.
 priors:
   meal_role_priors:
     breakfast:
@@ -177,7 +177,7 @@ priors:
         breakfast_cereal: 0.0
     default: 0.5
 
-# --- nume indezirabile (penalizări soft) ---
+# --- nume indezirabile (penalizari soft) ---
 name_penalties:
   contains:
     "croissant": 1.0
@@ -200,7 +200,7 @@ tag_penalties:
   sugary_breakfast_cereal: 0.8
   fried_or_chips: 0.8
   trans_risk: 1.0
-  dessert_like: 2.0         # niciodată ca “main”; rămâne și în meal_hard_bans dacă vrei
+  dessert_like: 2.0         # niciodata ca "main"; ramane si in meal_hard_bans daca vrei
 
 tag_bonuses:
   healthy_fat_source: 0.2

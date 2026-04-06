@@ -6,7 +6,7 @@ from pathlib import Path
 
 FILE_HEADER = '''"""
 ========================================================================
-TableTogetherAPP — generator_v2.py (annotat)
+TableTogetherAPP - generator_v2.py (annotat)
 
 Scop: Creeaza planuri zilnice/multi-zi pe baza profilului utilizatorului,
 a regulilor culinare si a sabloanelor (templates), cu ajustari la nivel

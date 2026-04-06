@@ -9,18 +9,9 @@ env/
 
 .idea/
 
-outputs/*
-!outputs/.gitkeep
-
-outputs/logs/
-outputs/user_prefs.json
-outputs/plan_v2.csv
-outputs/plan_v2_summary.txt
-outputs/plan_v2_readable.txt
-outputs/grocery_list.txt
-outputs/plan_v2_prefs.csv
-outputs/plan_v2_summary_prefs.txt
-outputs/plan_v2_readable_prefs.txt
+outputs/
+AGENTS.md
+.local_context/
 
 .pytest_cache/
 .mypy_cache/
@@ -31,3 +22,4 @@ outputs/plan_v2_readable_prefs.txt
 Thumbs.db
 *.log
 *.tmp
+zzzzzz_my_commands/

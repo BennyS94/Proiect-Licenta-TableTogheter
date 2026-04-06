@@ -48,7 +48,7 @@ tree:
 # Map your existing role-buckets to taxonomy node IDs
 bucket_to_node:
   protein_bucket:
-    # --- din datasetul tău ---
+    # --- din datasetul tau ---
     poultry:      "proteins/animal/poultry"
     lean_red:     "proteins/animal/red_meat"
     fish:         "proteins/animal/fish"
@@ -62,13 +62,13 @@ bucket_to_node:
     eggs:         "proteins/eggs"
     animal_lean: "proteins/animal"            # lean animal (generic: pui/curcan/porc slab/vita slaba)
     animal_fatty: "proteins/animal"           # animal gras (generic)
-    processed_meat: "proteins/processed"      # sunca salam, crenvurști etc.
+    processed_meat: "proteins/processed"      # sunca salam, crenvursti etc.
     fish_white: proteins/animal/fish/white_fish
     fish_fatty: proteins/animal/fish/oily_fish
     dairy_fresh: proteins/dairy/fresh_dairy # sinonim cu fresh_dairy (mentinut pentru consistenta)
 
   carb_bucket:
-    # --- din datasetul tău ---
+    # --- din datasetul tau ---
     grains:        "carbs/grains"
     pasta_noodles: "carbs/pasta_noodles"
     potatoes:      "carbs/potatoes"
@@ -84,7 +84,7 @@ bucket_to_node:
     rice_white: "carbs/grains/rice"
 
   veg_bucket:
-    # --- din datasetul tău ---
+    # --- din datasetul tau ---
     cooked:       "vegetables/cooked_veg"
     salad_like:   "vegetables/fresh_salad"
     # --- aliasuri / compat pentru viitor ---
@@ -96,7 +96,7 @@ bucket_to_node:
     root_veg: "vegetables/roots"
 
 
-# Optional name-based hints (regex) – folosite ca fallback când bucket e gol
+# Optional name-based hints (regex) - folosite ca fallback cand bucket e gol
 name_hints:
   # proteine
   hard_cheese: ["\\bcheese\\b","brie","camembert","emmental","maasdam","parmesan","gouda","cheddar"]

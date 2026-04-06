@@ -68,7 +68,7 @@ class Taxonomy:
     def distance(self, a: str, b: str) -> int:
         """Tree distance as edges count between nodes (via LCA)."""
         if not a or not b or a==b:
-            return 0 if a==b else 3  # unknowns → small constant  # daca lipsesc noduri: penalizare mica constanta
+            return 0 if a==b else 3  # unknowns -> small constant  # daca lipsesc noduri: penalizare mica constanta
         la = self.path_to_root(a)
         lb = self.path_to_root(b)
         sa = set(la)

@@ -1,5 +1,5 @@
 ###########################################################################
-# TableTogetherAPP — generator_v2.py (annotat)
+# TableTogetherAPP - generator_v2.py (annotat)
 #
 # Scop: creeaza planuri zilnice/multi-zi pe baza profilului, a regulilor culinare
 # si a sabloanelor (templates). Include:
@@ -7,7 +7,7 @@
 #  - scoring pe reguli (scoring.py),
 #  - reguli zilnice (daily_rules) pentru carbo dimineata si min. 2 portii legume/zi,
 #  - propuneri de inlocuire (swap similar) pe baza matricei de similaritate,
-#  - scriere CSV + sumar TXT + „readable” TXT.
+#  - scriere CSV + sumar TXT + "readable" TXT.
 #
 # Cum se ruleaza (ex. PowerShell):
 #   python src\\generator_v2.py ^
@@ -61,7 +61,7 @@ except Exception:
 ###########################################################################
 # soft_pick_from_topk
 # Ce face: alege un element din top-k prin softmax(-score/temperature)
-# Legaturi: folosit pentru sampling „soft” (viitorul modul de diversitate)
+# Legaturi: folosit pentru sampling "soft" (viitorul modul de diversitate)
 ###########################################################################
 def soft_pick_from_topk(candidates, scores, k=3, temperature=0.7, rng=None):
     """
@@ -99,7 +99,7 @@ RULES_PATH = pathlib.Path("configs/culinary_rules.yaml")
 TEMPLATES_PATH = pathlib.Path("templates/meal_templates.yaml")  # templates separate de rules
 
 def _has_slots(obj):
-    # detecteaza daca YAML gresit mai contine „slots” in rules
+    # detecteaza daca YAML gresit mai contine "slots" in rules
     if isinstance(obj, list):
         return any(isinstance(x, dict) and "slots" in x for x in obj)
     if isinstance(obj, dict):
@@ -273,7 +273,7 @@ def filter_slot(pool, meal_id, slot):
         # evitam amidonuri/ingrediente (starch powders)
         if "tag_starch_powder" in df.columns:
             df = df[col("tag_starch_powder") != 1]
-        # la pranz/cina evitam cereale micul-dejun si „breakfasty”
+        # la pranz/cina evitam cereale micul-dejun si "breakfasty"
         if str(meal_id).lower() in ("lunch","dinner"):
             for tcol in ("tag_sugary_breakfast_cereal","tag_breakfasty"):
                 if tcol in df.columns:
@@ -330,7 +330,7 @@ def pick_meal_from_template(df_pool, meal_name, kcal_target, protein_min_g, temp
         if role=="protein":
             cand["prot100"]  = pd.to_numeric(cand["protein_g_100g_ml"], errors="coerce").fillna(0.0)
             cand["kcal100"]  = pd.to_numeric(cand["kcal_sanitized"], errors="coerce").fillna(1.0)
-            cand["prot_per_100kcal"] = np.where(cand["kcal100"]>0, cand["prot100"]/cand["kcal100"]*100.0, 0.0)  # proteine „lean”
+            cand["prot_per_100kcal"] = np.where(cand["kcal100"]>0, cand["prot100"]/cand["kcal100"]*100.0, 0.0)  # proteine "lean"
             cand = cand.sort_values(["prot_per_100kcal","prot100"], ascending=[False,False]).head(30)
         elif role=="side_carb":
             cand["kcal100"] = pd.to_numeric(cand["kcal_sanitized"], errors="coerce").fillna(0.0)
@@ -567,7 +567,7 @@ def pick_meal(df, meal_name, kcal_target, protein_min_g, blueprint,
     if used_carb_uids:
         cand_carb = cand_carb[~cand_carb["uid"].isin(used_carb_uids)]
 
-    # 1) eliminam „ingredient-like”/snacks in garnituri
+    # 1) eliminam "ingredient-like"/snacks in garnituri
     bad_side_terms = r"\b(?:raw|flour|powder|mix|crisps|chips|oil|butter|margarine|lard)\b"
     mask_bad = cand_carb["name_core"].fillna("").str.contains(
         bad_side_terms, case=False, regex=True, na=False
@@ -577,13 +577,13 @@ def pick_meal(df, meal_name, kcal_target, protein_min_g, blueprint,
     # 2) side_carb nu trebuie sa fie proteina (ex. carne pane)
     cand_carb = cand_carb[cand_carb["role_protein"] != 1]
 
-    # 3) praguri „sanity” pentru carbo si grasimi (per 100g)
+    # 3) praguri "sanity" pentru carbo si grasimi (per 100g)
     cand_carb["carb100"] = pd.to_numeric(cand_carb.get("carbohydrate_g_100g_ml"), errors="coerce").fillna(0.0)
     cand_carb["fat100"] = pd.to_numeric(cand_carb.get("fat_g_100g_ml"), errors="coerce").fillna(0.0)
     cand_carb = cand_carb[cand_carb["carb100"] >= 8]  # minim carbo reali
     # grasimea la Sc este penalizata in scoring; aici nu taiem, doar lasam pragul carbo
 
-    # 4) preferam „gatit” si, la pranz/cina, il cerem obligatoriu
+    # 4) preferam "gatit" si, la pranz/cina, il cerem obligatoriu
     cand_carb["kcal100"] = pd.to_numeric(cand_carb["kcal_sanitized"], errors="coerce").fillna(0.0)
     pattern_cooked = r"\b(?:cooked|boiled|steamed|baked|roasted)\b"
     cand_carb["is_cooked"] = cand_carb["name_core"].fillna("").str.contains(
@@ -613,7 +613,7 @@ def pick_meal(df, meal_name, kcal_target, protein_min_g, blueprint,
         mask_soup = ncore2.str.contains(r"\bsoup\b", regex=True, na=False)
         cand_veg = cand_veg.loc[~mask_soup]
 
-    # 7) preferam proteine „lean”: proteine per 100 kcal ridicat
+    # 7) preferam proteine "lean": proteine per 100 kcal ridicat
     cand_pro["prot100"] = pd.to_numeric(cand_pro["protein_g_100g_ml"], errors="coerce").fillna(0.0)
     cand_pro["kcal100"] = pd.to_numeric(cand_pro["kcal_sanitized"], errors="coerce").fillna(0.0)
     cand_pro["prot_per_100kcal"] = np.where(cand_pro["kcal100"] > 0,
@@ -792,7 +792,7 @@ def generate(foods_path, rules_path, profile_path, out_csv, out_txt,
             if pick is not None and "template_used" not in pick:
                 pick["template_used"] = ""
 
-        # 3) propuneri de „swap similar” (daca exista matrice)
+        # 3) propuneri de "swap similar" (daca exista matrice)
         meal_id = key
         if pick:
             pu = pick.get("protein_uid")
@@ -819,7 +819,7 @@ def generate(foods_path, rules_path, profile_path, out_csv, out_txt,
                     pick[f"alt_veg_{i}_name"] = aname
                     pick[f"alt_veg_{i}_sim"] = round(asim, 3)
 
-        # 4) append si actualizare „variety” pe zi
+        # 4) append si actualizare "variety" pe zi
         if pick is None:
             rows.append({"meal": name, "error": "no_candidate", "template_used": ""})
         else:
@@ -1004,7 +1004,7 @@ def alt_candidates(uid, role_col, meal_id, subs_map, foods_by_uid, k=3):
 
 ###########################################################################
 # write_readable
-# Ce face: ruleaza analyze_plan.py ca proces separat si scrie TXT „readable”
+# Ce face: ruleaza analyze_plan.py ca proces separat si scrie TXT "readable"
 # Legaturi: src/analyze_plan.py
 ###########################################################################
 def write_readable(plan_csv: str, foods_path: str, profile_path: str, out_path: str,

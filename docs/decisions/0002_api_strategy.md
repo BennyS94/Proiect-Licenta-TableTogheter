@@ -2,6 +2,7 @@
 
 Data: 2026-02-25
 Status: Accepted (planned)
+New Note: restructurare in progres
 
 ## Context
 Pipeline-ul ML/inference exista deja in repo (generator_v2 + core/*) si produce meniuri in `outputs/`.
