@@ -1,0 +1,112 @@
+tree:
+  root:
+    proteins:
+      animal:
+        fish:
+          oily_fish: {}
+          white_fish: {}
+        poultry: {}
+        red_meat: {}
+      dairy:
+        fresh_dairy: {}
+        hard_cheese: {}
+      eggs: {}
+      veg_protein: {}
+      processed: {}
+
+    carbs:
+      bread:
+        white_bread: {}
+        wholegrain_bread: {}
+      breakfast_cereal: {}
+      grains:
+        bulgur: {}
+        couscous: {}
+        oats: {}
+        quinoa: {}
+        rice: {}
+      pasta_noodles: {}
+      potatoes: {}
+      bakery: {}
+
+    vegetables:
+      cooked_veg:
+        broccoli: {}
+        cauliflower: {}
+        green_beans: {}
+        mixed_veg: {}
+      fresh_salad:
+        cucumber: {}
+        lettuce: {}
+        pepper: {}
+        tomato: {}
+      roots:
+        beetroot: {}
+        carrot: {}
+      cruciferous: {}
+
+# Map your existing role-buckets to taxonomy node IDs
+bucket_to_node:
+  protein_bucket:
+    # --- din datasetul tău ---
+    poultry:      "proteins/animal/poultry"
+    lean_red:     "proteins/animal/red_meat"
+    fish:         "proteins/animal/fish"
+    veggie:       "proteins/veg_protein"
+    # --- aliasuri / compat pentru viitor ---
+    red_meat:     "proteins/animal/red_meat"
+    veg_protein:  "proteins/veg_protein"
+    legumes:      "proteins/veg_protein"
+    fresh_dairy:  "proteins/dairy/fresh_dairy"
+    hard_cheese:  "proteins/dairy/hard_cheese"
+    eggs:         "proteins/eggs"
+    animal_lean: "proteins/animal"            # lean animal (generic: pui/curcan/porc slab/vita slaba)
+    animal_fatty: "proteins/animal"           # animal gras (generic)
+    processed_meat: "proteins/processed"      # sunca salam, crenvurști etc.
+    fish_white: proteins/animal/fish/white_fish
+    fish_fatty: proteins/animal/fish/oily_fish
+    dairy_fresh: proteins/dairy/fresh_dairy # sinonim cu fresh_dairy (mentinut pentru consistenta)
+
+  carb_bucket:
+    # --- din datasetul tău ---
+    grains:        "carbs/grains"
+    pasta_noodles: "carbs/pasta_noodles"
+    potatoes:      "carbs/potatoes"
+    # --- aliasuri / compat pentru viitor ---
+    breakfast_cereal: "carbs/breakfast_cereal"
+    bread:            "carbs/bread"
+    rice:             "carbs/grains/rice"
+    grains_whole: "carbs/grains"              # brown rice, quinoa, bulgur etc.
+    grains_refined: "carbs/grains"            # couscous, semolina, white grains
+    breakfast_cereal_whole: "carbs/breakfast_cereal"
+    breakfast_cereal_sugary: "carbs/breakfast_cereal"
+    bakery: "carbs/bakery"                    # patiserie/cookies/tarte
+    rice_white: "carbs/grains/rice"
+
+  veg_bucket:
+    # --- din datasetul tău ---
+    cooked:       "vegetables/cooked_veg"
+    salad_like:   "vegetables/fresh_salad"
+    # --- aliasuri / compat pentru viitor ---
+    salads:       "vegetables/fresh_salad"
+    cooked_veg:   "vegetables/cooked_veg"
+    mixed_veg:    "vegetables/mixed_veg"
+    leafy_salad: "vegetables/fresh_salad"
+    cruciferous: "vegetables/cruciferous"
+    root_veg: "vegetables/roots"
+
+
+# Optional name-based hints (regex) – folosite ca fallback când bucket e gol
+name_hints:
+  # proteine
+  hard_cheese: ["\\bcheese\\b","brie","camembert","emmental","maasdam","parmesan","gouda","cheddar"]
+  fresh_dairy: ["yogurt","yoghurt","skyr","quark","fresh cheese","cottage"]
+  eggs:        ["\\begg\\b","\\beggs\\b","\\bou\\b","\\bouă\\b"]
+
+  poultry:     ["chicken","turkey","pui","curcan","poulet","dinde"]
+  fish:        ["cod","tuna","salmon","hake","pollock","mackerel","sardine","sole","trout"]
+
+  # legume (veg)
+  tomato:      ["\\btomato\\b","\\brosii?\\b"]
+  cucumber:    ["\\bcucumber\\b","\\bcastravet[ei]\\b"]
+  carrot:      ["\\bcarrot\\b","\\bmorcov\\b"]

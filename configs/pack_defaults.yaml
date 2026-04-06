@@ -1,0 +1,97 @@
+# configs/pack_defaults.yaml
+tags_to_packs:
+  # Cereale mic-dejun
+  - when:
+      any_tags: ["tag_breakfast_cereal"]
+    unit: g
+    typical_sizes: [375, 500]
+    shelf_stable_days: 365
+
+  # Uleiuri de gatit
+  - when:
+      name_regex: "(^|\\b)(oil|ulei)\\b"
+    unit: ml
+    typical_sizes: [500, 1000]
+    shelf_stable_days: 365
+
+  # Conserve
+  - when:
+      any_tags: ["tag_canned"]
+    unit: g
+    typical_sizes: [400, 800]
+    shelf_stable_days: 365
+
+  # Lactate lichide (lapte, kefir, iaurt de baut) – detectate si ca "tag_drink" in dairy
+  - when:
+      any_tags: ["tag_drink"]
+      main_group_regex: "(dairy|milk|yogurt|kefir)"
+    unit: ml
+    typical_sizes: [1000]
+    shelf_stable_days: 10
+
+  # Iaurturi mici / lactate fermentate portii
+  - when:
+      name_regex: "(yogurt|iaurt|kefir|petit|sana|buttermilk)"
+    unit: g
+    typical_sizes: [125, 150]
+    units_per_pack_default: 6
+    shelf_stable_days: 7
+
+  # Branza bloc / felii
+  - when:
+      main_group_regex: "(cheese)"
+    unit: g
+    typical_sizes: [200, 400]
+    shelf_stable_days: 14
+
+  # Grains & pasta & rice (in lipsa unui tag specific)
+  - when:
+      main_group_regex: "(grain|pasta|rice)"
+    unit: g
+    typical_sizes: [500, 1000, 3000]
+    shelf_stable_days: 365
+
+  # Frozen
+  - when:
+      main_group_regex: "(frozen)"
+    unit: g
+    typical_sizes: [400, 1000]
+    shelf_stable_days: 120
+
+  # Snacks / dulciuri
+  - when:
+      any_tags: ["tag_snack_like", "tag_dessert_like"]
+    unit: g
+    typical_sizes: [100, 200, 400]
+    shelf_stable_days: 120
+
+  # Legume frunzoase
+  - when:
+      veg_bucket_in: ["leafy"]
+    unit: g
+    typical_sizes: [250, 500]
+    shelf_stable_days: 3
+
+  # Legume radacinoase
+  - when:
+      veg_bucket_in: ["root"]
+    unit: g
+    typical_sizes: [500, 1000]
+    shelf_stable_days: 10
+
+  # Carne / peste proaspat
+  - when:
+      main_group_regex: "(meat|fish)"
+    unit: g
+    typical_sizes: [400, 600, 1000]
+    shelf_stable_days: 3
+
+fallback:
+  solids:
+    unit: g
+    typical_sizes: [500, 1000]
+    shelf_stable_days: 30
+  liquids:
+    unit: ml
+    typical_sizes: [1000]
+    shelf_stable_days: 30

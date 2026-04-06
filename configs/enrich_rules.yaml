@@ -1,0 +1,310 @@
+schema_version: 1
+
+macro_buckets:
+  protein:
+    - macro: animal_lean
+      name_hints: [chicken, turkey, "pork loin", "beef sirloin", rabbit]
+    - macro: animal_fatty
+      name_hints: [bacon, "pork belly", "beef rib", "duck", "lamb shoulder"]
+    - macro: processed_meat
+      name_hints: [salami, sausage, "hot dog", frankfurter, ham, pastrami, mortadella, pepperoni]
+    - macro: fish_white
+      name_hints: [cod, pollock, haddock, hake, tilapia, panga, "white fish"]
+    - macro: fish_fatty
+      name_hints: [salmon, mackerel, herring, sardine, trout, tuna]
+    - macro: dairy_fresh
+      name_hints: [yogurt, yoghurt, "greek yogurt", skyr, quark, "cottage cheese", kefir]
+    - macro: hard_cheese
+      name_hints: [cheddar, gouda, parmesan, parmegiano, pecorino, emmental, gruyere]
+    - macro: veg_pulses
+      name_hints: [lentil, chickpea, "kidney bean", "black bean", "white bean", pea, "split pea", hummus]
+    - macro: veg_soylike
+      name_hints: [tofu, tempeh, seitan, "soy mince", "soy chunks"]
+
+
+  side_carb:
+    - macro: grains_whole
+      name_hints: [ bulgur, quinoa, "brown rice", "wild rice", "wholegrain couscous", buckwheat, barley, spelt, farro, "oat groats" ]
+    - macro: grains_refined
+      name_hints: [ "white rice", rice, couscous, semolina, polenta, maize, "corn grits" ]
+    - macro: pasta_noodles
+      name_hints: [ pasta, spaghetti, penne, fusilli, macaroni, noodle, ramen, udon, soba, gnocchi ]
+    - macro: bread
+      name_hints: [ bread, baguette, ciabatta, focaccia, pita, tortilla, chapati, naan, rye, lavash, flatbread, wrap, bun, roll, bagel ]
+    - macro: potatoes
+      name_hints: [ potato, potatoes, "potato wedges", "mashed potato", "baked potato", "new potatoes" ]
+    - macro: breakfast_cereal_whole
+      name_hints: [ oat, oatmeal, porridge, muesli, bran, "wheat bran", granola_plain, "rolled oats", "steel cut oats" ]
+    - macro: breakfast_cereal_sugary
+      name_hints: [ cornflakes, "choco", "honey rings", "frosted", "cocoa puffs", "sugary cereal", "chocolate cereal" ]
+    - macro: bakery
+      name_hints: [ croissant, donut, muffin, cookie, biscuit, pastry, pie, tart, cake, strudel, "puff pastry" ]
+
+
+  side_veg:
+    - macro: leafy_salad
+      name_hints: [lettuce, romaine, iceberg, salad, arugula, rocket, spinach, kale, chard, lambslettuce, endive, radicchio]
+    - macro: cruciferous
+      name_hints: [broccoli, cauliflower, cabbage, "brussels sprout", bokchoy, "bok choy", "pak choi"]
+    - macro: root_veg
+      name_hints: [carrot, beet, beetroot, turnip, parsnip, radish, "celeriac", swede, rutabaga]
+    - macro: cooked_veg
+      name_hints: [zucchini, courgette, eggplant, aubergine, pepper, "bell pepper", capsicum, tomato, onion, leek, celery, mushroom, asparagus, "green bean", "runner bean", "snow pea", "sugar snap", okra, "sweetcorn", "corn kernels"]
+    - macro: mixed_veg
+      name_hints: ["mixed vegetables", "vegetable mix", "frozen vegetables", "medley", "ratatouille", "stir fry mix"]
+
+micro_buckets:
+  bread:
+    - micro: bread_wholegrain
+      name_hints: [wholegrain, wholemeal, multigrain, seeded, rye, "brown bread"]
+    - micro: bread_white
+      name_hints: [white, "white bread", baguette, ciabatta]
+
+  dairy_fresh:
+    - micro: yogurt_plain
+      name_hints: ["plain yogurt", "natural yogurt", "greek yogurt plain", skyr, quark]
+    - micro: yogurt_sweetened
+      name_hints: ["fruit yogurt", sweetened, flavoured, flavored]
+    - micro: cottage
+      name_hints: ["cottage cheese"]
+
+  veg_pulses:
+    - micro: lentil
+      name_hints: [lentil]
+    - micro: chickpea
+      name_hints: [chickpea, hummus]
+    - micro: bean_mixed
+      name_hints: ["mixed beans", "bean mix", "three-bean"]
+
+nutri_thresholds:
+  high_salt_g_per_100g: 1.2
+  very_high_salt_g_per_100g: 1.5
+  high_sugars_g_per_100g: 12
+  high_sat_fat_g_per_100g: 5
+  low_fibre_g_per_100g: 2
+  high_fibre_g_per_100g: 6
+  high_energy_density_kcal_per_100g: 250
+
+process_cues:
+  fried: [fried, "deep fried", "pan fried", breaded]
+  grilled: [grilled]
+  roasted: [roasted]
+  boiled: [boiled, steamed, poached]
+  sauce_rich: [cream, cheesy, butter, "four cheese", alfredo, carbonara, mayo, aioli]
+  ultra_processed_hint: [emulsifier, stabiliser, stabilizer, hydrogenated, shortening, flavour, flavor, "E1", "E2", "E3"]
+  starch_powder: [ starch, "potato starch", "rice starch", "cornstarch", "corn starch" ]
+  composite_dish_hint: [ pie, stew, casserole, gratin, bake, lasagna, shepherd, cottage ]
+  drink: [ milkshake, smoothie, juice, soda, cola, "soft drink", lemonade, "ice tea", "iced tea", kefir-drink ]
+  dairy_dessert_hint: [ icecream, "ice cream", sundae, mousse, pudding, flan, custard ]
+
+context_cues:
+  breakfasty: [breakfast, oatmeal, porridge, cereal, granola, muesli]
+  dessert_like: [dessert, cake, brownie, tart, donut, "ice cream", mousse, pudding]
+  snackable: [snack, cracker, chips, crisps, bar, bites]
+  salad_like: [salad, "side salad"]
+
+dietary_flags:
+  vegetarian_safe_from_macros: [dairy_fresh, hard_cheese, veg_pulses, veg_soylike, grains_whole, grains_refined, pasta_noodles, bread, potatoes, breakfast_cereal_whole, breakfast_cereal_sugary, bakery, leafy_salad, cruciferous, root_veg, cooked_veg, mixed_veg]
+  vegan_safe_from_macros: [veg_pulses, veg_soylike, grains_whole, grains_refined, pasta_noodles, bread, potatoes, breakfast_cereal_whole, breakfast_cereal_sugary, leafy_salad, cruciferous, root_veg, cooked_veg, mixed_veg]
+animal_lean:
+    - micro: chicken_breast
+      name_hints: [chicken, "chicken breast", "chicken fillet"]
+    - micro: turkey_breast
+      name_hints: [turkey, "turkey breast"]
+    - micro: lean_beef
+      name_hints: ["beef sirloin", "beef round", "topside", "rump"]
+    - micro: lean_pork
+      name_hints: ["pork loin", "pork tenderloin"]
+
+animal_fatty:
+    - micro: pork_belly_like
+      name_hints: ["pork belly"]
+    - micro: fatty_beef
+      name_hints: ["beef rib", "ribeye"]
+    - micro: duck_like
+      name_hints: [duck]
+
+processed_meat:
+    - micro: ham_like
+      name_hints: [ham, prosciutto]
+    - micro: salami_like
+      name_hints: [salami, pepperoni, mortadella]
+    - micro: sausage_like
+      name_hints: [sausage, frankfurter, "hot dog"]
+
+fish_white:
+    - micro: cod_like
+      name_hints: [cod, pollock, haddock, hake]
+    - micro: tilapia_like
+      name_hints: [tilapia, panga]
+
+fish_fatty:
+    - micro: salmon_like
+      name_hints: [salmon]
+    - micro: mackerel_like
+      name_hints: [mackerel]
+    - micro: tuna_like
+      name_hints: [tuna]
+    - micro: herring_sardine
+      name_hints: [herring, sardine]
+
+dairy_fresh:
+    - micro: yogurt_plain
+      name_hints: ["plain yogurt", "natural yogurt", "greek yogurt", skyr, quark]
+    - micro: yogurt_sweetened
+      name_hints: ["fruit yogurt", sweetened, flavoured, flavored]
+    - micro: cottage
+      name_hints: ["cottage cheese"]
+    - micro: kefir_like
+      name_hints: [kefir]
+
+hard_cheese:
+    - micro: cheddar_like
+      name_hints: [cheddar]
+    - micro: parmesan_like
+      name_hints: [parmesan, parmigiano, pecorino]
+    - micro: gouda_like
+      name_hints: [gouda, emmental, gruyere]
+
+veg_pulses:
+    - micro: lentil
+      name_hints: [lentil]
+    - micro: chickpea
+      name_hints: [chickpea, hummus]
+    - micro: bean_mixed
+      name_hints: ["mixed beans", "bean mix", "three-bean"]
+    - micro: pea_like
+      name_hints: [pea, "split pea"]
+
+veg_soylike:
+    - micro: tofu_like
+      name_hints: [tofu]
+    - micro: tempeh_like
+      name_hints: [tempeh]
+    - micro: seitan_like
+      name_hints: [seitan]
+
+# --- CARB ---
+bread:
+    - micro: bread_wholegrain
+      name_hints: [wholegrain, wholemeal, multigrain, seeded, rye, "brown bread"]
+    - micro: bread_white
+      name_hints: [white, "white bread", baguette, ciabatta, focaccia]
+    - micro: flatbread_like
+      name_hints: [pita, tortilla, chapati, naan]
+
+pasta_noodles:
+    - micro: pasta_refined
+      name_hints: [pasta, spaghetti, penne, fusilli, macaroni]
+    - micro: pasta_wholewheat
+      name_hints: ["wholewheat pasta", "wholegrain pasta"]
+    - micro: noodles_wheat
+      name_hints: [noodle, ramen, udon]
+    - micro: noodles_rice
+      name_hints: ["rice noodle", vermicelli]
+
+grains_whole:
+    - micro: bulgur_like
+      name_hints: [bulgur]
+    - micro: quinoa_like
+      name_hints: [quinoa]
+    - micro: brown_rice_like
+      name_hints: ["brown rice", "wild rice", "black rice"]
+    - micro: buckwheat_like
+      name_hints: [buckwheat]
+    - micro: whole_couscous_like
+      name_hints: ["wholegrain couscous"]
+
+grains_refined:
+    - micro: couscous_like
+      name_hints: [couscous, semolina, polenta]
+    - micro: white_rice_like
+      name_hints: ["white rice"]
+
+potatoes:
+    - micro: mashed_potato
+      name_hints: ["mashed potato", mash]
+    - micro: baked_potato
+      name_hints: ["baked potato", jacket]
+    - micro: potato_wedges
+      name_hints: ["potato wedges"]
+    - micro: fries_like
+      name_hints: [fries, chips, crisps]  # notăm, chiar dacă există tag 'fried_or_chips'
+
+breakfast_cereal_whole:
+    - micro: oats_like
+      name_hints: [oat, oatmeal, porridge]
+    - micro: muesli_like
+      name_hints: [muesli, granola_plain, bran]
+
+breakfast_cereal_sugary:
+    - micro: cornflakes_like
+      name_hints: [cornflakes]
+    - micro: choco_cereal_like
+      name_hints: ["choco", cocoa, "frosted", "honey rings"]
+
+# --- VEG ---
+leafy_salad:
+    - micro: lettuce_like
+      name_hints: [lettuce, salad]
+    - micro: arugula_like
+      name_hints: [arugula, rocket]
+    - micro: spinach_like
+      name_hints: [spinach]
+    - micro: kale_like
+      name_hints: [kale, lambslettuce]
+
+cruciferous:
+    - micro: broccoli_like
+      name_hints: [broccoli]
+    - micro: cauliflower_like
+      name_hints: [cauliflower]
+    - micro: cabbage_like
+      name_hints: [cabbage, bokchoy, "brussels sprout"]
+
+root_veg:
+    - micro: carrot_like
+      name_hints: [carrot]
+    - micro: beet_like
+      name_hints: [beet, beetroot]
+    - micro: parsnip_turnip_like
+      name_hints: [parsnip, turnip]
+
+cooked_veg:
+    - micro: courgette_like
+      name_hints: [zucchini, courgette]
+    - micro: eggplant_like
+      name_hints: [eggplant, aubergine]
+    - micro: pepper_like
+      name_hints: [pepper, capsicum]
+    - micro: tomato_like
+      name_hints: [tomato]
+    - micro: onion_like
+      name_hints: [onion]
+    - micro: mushroom_like
+      name_hints: [mushroom]
+
+mixed_veg:
+    - micro: veg_mix_generic
+      name_hints: ["mixed vegetables", "vegetable mix", "frozen vegetables"]
+
+micronutrient_thresholds:
+  # per 100 g
+  iron_mg:
+    good: 1.4     # ~10% din 14 mg
+    high: 2.8     # ~20%
+  calcium_mg:
+    good: 120     # ~15% din 800 mg
+    high: 240
+  magnesium_mg:
+    good: 60      # ~16% din 375 mg
+    high: 120
+  potassium_mg:
+    good: 300     # ~15% din 2000 mg (valoare rotunjita pentru 'good')
+    high: 600
+  vit_c_mg:
+    good: 12      # ~15% din 80 mg
+    high: 24
+  vit_b12_ug:
+    good: 0.3     # ~12% din 2.5 ug
+    high: 0.6

@@ -1,0 +1,207 @@
+meal_blueprints:
+  breakfast:
+    items:
+      - role: protein
+        portion_g_range: [80, 200]
+      - role: side_carb
+        portion_g_range: [50, 120]
+      - role: side_veg
+        portion_g_range: [0, 150]
+  default:
+    items:
+      - role: protein
+        portion_g_range: [120, 300]
+      - role: side_carb
+        portion_g_range: [100, 250]
+      - role: side_veg
+        portion_g_range: [80, 250]
+
+
+global_hard_bans:
+  disallow_flags:
+    - exclude
+  disallow_name_contains: ["baby", "infant", "oil", "butter", "lard", "margarine",
+ "crisps", "chips", "flour", "raw", "dehydrated", "powder"]
+
+meal_hard_bans:
+  breakfast:
+    disallow_tags: ["dessert_like"]
+  lunch:
+    disallow_pairs:
+      - ["breakfast_cereal","milk"]
+  dinner:
+    disallow_pairs:
+      - ["breakfast_cereal","milk"]
+
+preferred_pairs:
+  chicken: ["rice","potato","quinoa","bulgur","couscous"]
+  fish:    ["rice","potato","bulgur"]
+  veggie_protein: ["rice","quinoa","pasta","bulgur","couscous"]
+
+soft_limits:
+  salt_g_max_per_meal: 2.0
+  fibre_g_min_per_day: 25
+  sugars_high_penalty_meals: ["lunch","dinner"]
+  side_fat_pct_kcal_cap: 45
+
+side_soft_limits:
+  breakfast: { carb_g_100g_min: 20, fat_g_100g_max: 8 }
+  lunch:     { carb_g_100g_min: 15, fat_g_100g_max: 12 }
+  dinner:    { carb_g_100g_min: 15, fat_g_100g_max: 12 }
+
+side_bucket_overrides:
+  pasta_noodles:     { fat_g_100g_max: 14 }
+  potatoes:          { fat_g_100g_max: 10 }
+  grains:            { fat_g_100g_max: 8 }
+  breakfast_cereal:  { carb_g_100g_min: 60, fat_g_100g_max: 10 }
+
+scoring_weights:
+  w_kcal_abs: 1.0
+  w_protein_gap: 0.6
+  w_rule_penalty: 1.2
+  w_carb_floor: 0.9
+  w_fat_ceiling: 1.2
+  w_prior: 0.8
+  w_pair: 0.8
+  w_ingredientness: 0.9
+  w_tree_dist: 0.4
+  w_sc_fat100: 0.6
+  w_assoc: 0.5
+
+assoc_buckets:
+  poultry:
+    grains: 0.9
+    potatoes: 0.8
+    pasta_noodles: 0.7
+    bakery: 0.6
+  fish_white:
+    potatoes: 0.9
+    grains: 0.8
+  fish_fatty:
+    grains: 0.8
+    potatoes: 0.7
+  eggs:
+    bakery: 0.8
+    grains: 0.7
+  veggie:        # proteine vegetale/leguminoase
+    grains: 0.8
+    pasta_noodles: 0.8
+    potatoes: 0.7
+
+  w_kcal_abs: 1.0
+  w_protein_gap: 0.5
+  w_rule_penalty: 1.0
+  w_variety_bonus: 0.2
+  w_carb_floor: 0.7
+  w_fat_ceiling: 0.7
+  w_name_penalty: 0.8
+  w_tag_penalty: 0.9
+  w_prior: 1.2
+  w_pair: 1.0
+  w_ingredientness: 0.6
+  w_side_carb100_min: 0.4
+  w_side_fat100_max: 0.6
+  w_side_fat_pct_kcal: 0.3
+  w_breakfast_cheese_penalty: 0.6
+  w_tree_dist: 0.8   # penalizare per nivel de distanță în arbore
+
+per_meal_macros:
+  breakfast: { carb_g_min: 25, fat_g_max: 25, fibre_g_min: 5 }
+  lunch: { carb_g_min: 40, fat_g_max: 35, fibre_g_min: 7 }
+  dinner_lowcarb: { carb_g_min: 10, fat_g_max: 30, fibre_g_min: 6 }
+  dinner_carb: { carb_g_min: 35, fat_g_max: 30, fibre_g_min: 6 }
+  snack: { kcal_max: 220, protein_g_min: 10, carb_g_min: 10, fibre_g_min: 3, fat_g_max: 12 }
+
+
+per_meal_protein_min_g:
+  breakfast: 25
+  lunch: 35
+  dinner: 30
+
+# Soft priors by meal (0..1). Poți ajusta cifrele după 2–3 rulari.
+priors:
+  meal_role_priors:
+    breakfast:
+      protein_bucket:
+        eggs: 0.95
+        fresh_dairy: 0.85       # ex. skyr/cottage/iaurt
+        veg_protein: 0.70      # tofu/tempeh
+        fish: 0.20
+        poultry: 0.35
+        legumes: 0.5
+        hard_cheese: 0.02
+        red_meat: 0.02
+      carb_bucket:
+        breakfast_cereal: 0.5
+        bread: 0.8
+        grains: 0.6
+        potatoes: 0.2
+        pasta_noodles: 0.05
+    lunch:
+      protein_bucket:
+        poultry: 0.8
+        fish: 0.7
+        legumes: 0.7
+        red_meat: 0.6
+        hard_cheese: 0.3
+      carb_bucket:
+        grains: 0.8
+        pasta_noodles: 0.7
+        potatoes: 0.7
+        breakfast_cereal: 0.05
+    dinner:
+      protein_bucket:
+        fish: 0.8
+        poultry: 0.7
+        legumes: 0.6
+        red_meat: 0.6
+        hard_cheese: 0.3
+      carb_bucket:
+        grains: 0.7
+        potatoes: 0.7
+        pasta_noodles: 0.6
+        breakfast_cereal: 0.05
+
+  pairwise_compat:
+    protein_bucket:
+      hard_cheese:
+        breakfast_cereal: 0.0
+        pasta_noodles: 0.8
+      fish:
+        grains: 0.8
+        pasta_noodles: 0.7
+        breakfast_cereal: 0.0
+      red_meat:
+        potatoes: 0.85
+        pasta_noodles: 0.6
+        breakfast_cereal: 0.0
+    default: 0.5
+
+# --- nume indezirabile (penalizări soft) ---
+name_penalties:
+  contains:
+    "croissant": 1.0
+    "pastry": 1.0
+    "margarine": 1.0
+    "fried": 0.8
+    "chips": 0.8
+    "smoked": 0.5
+    "cake": 1.2
+    "shortbread": 1.2
+    "tart": 1.0
+    "duchesse": 0.8
+    "heart": 1.0
+    "liver": 1.0
+
+# --- tag penalties/bonuses (folosesc noile coloane din enrichment) ---
+tag_penalties:
+  refined_carb: 0.7
+  heavy_sauce: 1.2
+  sugary_breakfast_cereal: 0.8
+  fried_or_chips: 0.8
+  trans_risk: 1.0
+  dessert_like: 2.0         # niciodată ca “main”; rămâne și în meal_hard_bans dacă vrei
+
+tag_bonuses:
+  healthy_fat_source: 0.2
+  high_fibre_choice: 0.2

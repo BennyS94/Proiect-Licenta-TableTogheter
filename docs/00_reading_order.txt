@@ -1,0 +1,139 @@
+TableTogetherAPP — Ordine recomandata de citire (human-readable)
+================================================================================
+
+Scopul acestui fisier
+---------------------
+Sa te ajute (pe tine sau pe un chat nou / un coleg) sa inteleaga proiectul "file by file",
+fara sa fie nevoie sa ghiceasca arhitectura. Ordinea este gandita astfel incat:
+1) intelegi intai ce intra si ce iese (I/O),
+2) apoi logica de scoring si selectie,
+3) apoi infrastructura de date (enrich, index, substitutii),
+4) apoi utilitarele (readable, feedback, grocery list).
+
+Regula de aur (mentala)
+-----------------------
+- Generatorul (inference) NU antreneaza nimic. El selecteaza combinatii pe baza de reguli + scor.
+- Enrich/index/substitutions sunt pre-procese care pregatesc datele pentru generator.
+- Tools sunt un strat de "UX" pentru faza fara aplicatie (feedback si lista cumparaturi).
+
+I. Incepe cu "ce exista real" (I/O + rulare)
+--------------------------------------------
+1) profiles/user_profile_sample.json
+   - De ce: vezi cum arata input-ul real (profil utilizator).
+   - Ce sa cauti: meal split, preferinte dietetice, obiectiv, seed/days (daca exista).
+
+2) templates/meal_templates.yaml
+   - De ce: defineste structura meselor (slots), filtre si portion_g_range.
+   - Ce sa cauti: roluri (protein/side_carb/side_veg), require_bucket, include/exclude name.
+
+3) configs/culinary_rules.yaml
+   - De ce: tot ce tine de scor si reguli culinare.
+   - Ce sa cauti: scoring_weights, per_meal_macros, priors (meal_role_priors, pairwise_compat),
+     tag_penalties/tag_bonuses, name_penalties, soft_limits, daily rules (daca sunt acolo).
+
+4) outputs/plan_v2.csv + outputs/plan_v2_summary.txt + outputs/plan_v2_readable.txt (un sample real)
+   - De ce: vezi schema reala a rezultatului (CSV) si cum arata pentru un om (readable).
+   - Ce sa cauti: coloanele protein_*, side_carb_*, side_veg_*, alt_*, kcal/protein/carb/fat.
+
+II. Inima proiectului (inference / generator)
+---------------------------------------------
+5) src/generator_v2.py
+   - De ce: orchestratorul. Citeste profile+rules+templates+foods+taxonomy+subs si produce planul.
+   - Ce sa intelegi:
+     a) flux: load -> pool -> template -> fallback -> scoring -> daily_rules -> write outputs
+     b) cum se formeaza "day_meals" si cum se rescriu portiile dupa daily rules
+     c) cum se adauga alt_* (swap similar) din substitution_edges
+
+6) src/core/scoring.py
+   - De ce: defineste "ce inseamna un plan bun" (scorul combo-ului).
+   - Ce sa intelegi:
+     a) tinta kcal / gap proteina
+     b) per_meal_macros (carb_min, fat_max, fibre_min, snack limits)
+     c) priors + pairwise compat + taxonomy dist
+     d) tag penalties/bonuses + name penalties
+     e) (optional) preferinte din user_prefs.json (feedback)
+
+7) src/core/pools.py
+   - De ce: reduce candidatii prosti inainte de scor (purity filter).
+   - Ce sa intelegi: ce exclude la protein vs side_carb vs side_veg si de ce.
+
+8) src/core/daily_rules.py
+   - De ce: reguli la nivel de zi (carb mai mult devreme, min legume/zi).
+   - Ce sa intelegi: compute_day_metrics + adjust_day_portions_in_place (nudges in limite).
+
+III. Date pipeline (enrich -> index -> substitutii)
+---------------------------------------------------
+9) src/enrich_foods.py
+   - De ce: adauga bucket-uri si tag-uri, fara de care scoring/pools devin slabe.
+   - Ce sa intelegi:
+     a) macro_buckets / micro_buckets (name hints)
+     b) cue tags (procesare/context) si nutri tags
+     c) overrides pentru pack info (daca exista)
+
+10) src/build_item_index.py
+   - De ce: transforma macro-urile in features per 100 kcal si le standardizeaza (z_*).
+   - Ce sa intelegi:
+     a) per100g -> per100kcal (factor 100/kcal)
+     b) z-score (mu/sigma) si de ce influenteaza substitutiile.
+
+11) src/build_substitutions.py
+   - De ce: calculeaza cosine similarity pe z_* si face top-K edges (src->dst).
+   - Ce sa intelegi:
+     a) directionat top-K
+     b) min_sim
+     c) bucket families si filtrarea de curatenie
+
+12) data/substitution_edges.csv.gz (sample)
+   - De ce: e output-ul real consumat de generator pentru alt_*.
+   - Ce sa cauti: coloane src_uid, dst_uid, sim.
+
+IV. Taxonomie si debug/inspectie
+--------------------------------
+13) src/ontology.py
+   - De ce: fallback semantic pentru scor (tree_distance) si mapare bucket->node.
+   - Ce sa intelegi: load_taxonomy, node_for_food, tree_distance.
+
+14) src/analyze_plan.py
+   - De ce: produce "readable" + totaluri pe zi; util pentru validare manuala.
+   - Ce sa intelegi: mapping plan_v2.csv -> foods lookup -> macros -> text.
+
+15) src/visualize_assoc.py / src/visualize_subs.py (optional)
+   - De ce: vizualizari pentru debugging (nu sunt necesare pentru pipeline).
+   - Cand: dupa ce intelegi substitutions si priors.
+
+V. Tools (fara aplicatie/UI)
+----------------------------
+16) tools/ingest_feedback.py
+   - De ce: log de evenimente + agregare preferinte in user_prefs.json (barebones).
+   - Ce sa intelegi: schema events.jsonl, cum se actualizeaza preferintele.
+
+17) tools/grocery_list.py
+   - De ce: lista de cumparaturi orientativa (pack rounding).
+   - Ce sa intelegi: pack_defaults.yaml + overrides + rotunjire pachete.
+
+VI. Cum rulezi pipeline-ul cap-coada (comenzi)
+---------------------------------------------
+1) enrich (daca ai schimbat rules/taguri):
+   python -m src.enrich_foods --in_parquet data/foods_enriched.parquet --out_parquet data/foods_enriched.parquet --rules configs/enrich_rules.yaml --taxonomy configs/taxonomy.yaml --audit_out outputs/enrich_audit.txt
+
+2) build item index:
+   python -m src.build_item_index --in data/foods_enriched_min.csv.gz --out data/item_index.parquet
+
+3) build substitutions:
+   python -m src.build_substitutions --index data/item_index.parquet --out data/substitution_edges.csv.gz --topk 30 --min_sim 0.30
+
+4) generate plan:
+   python -m src.generator_v2 --profile profiles/user_profile_sample.json --rules configs/culinary_rules.yaml --templates templates/meal_templates.yaml --foods data/foods_enriched.parquet --taxonomy configs/taxonomy.yaml --subs data/substitution_edges.csv.gz --out_csv outputs/plan_v2.csv --out_txt outputs/plan_v2_summary.txt --out_readable outputs/plan_v2_readable.txt
+
+5) (optional) grocery list:
+   python tools/grocery_list.py --plan outputs/plan_v2.csv --foods data/foods_enriched.parquet --out outputs/grocery_list.txt --group_by main_group --pack_defaults configs/pack_defaults.yaml
+
+6) (optional) feedback ingest:
+   python tools/ingest_feedback.py --plan outputs/plan_v2.csv --events outputs/logs/events.jsonl --prefs outputs/user_prefs.json
+
+Nota finala
+----------
+Cand continui proiectul cu API (planned), citeste intai:
+- docs/01_architecture.md
+- docs/02_api_contract.md
+- docs/decisions/0002_api_strategy.md

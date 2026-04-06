@@ -1,0 +1,187 @@
+# templates/meal_templates.yaml
+version: 1
+
+breakfast:
+  - id: bf_eggs_toast_veg
+    name: "Ouă + pâine integrală + legume crude"
+    slots:
+      - role: protein
+        require_bucket: [eggs, dairy_light, veggie]
+        include_name: ["egg","omlet","omelette","scrambled","quark","cottage","skyr","yogurt","tofu"]
+        portion_g_range: [90, 180]
+      - role: side_carb # ramane de adugat laptelept optiunea de cereale muesli
+        require_bucket: [bakery, grains, breakfast_cereal]
+        include_name: ["whole","integral","oat","oats","muesli","granola","bread"]
+        portion_g_range: [40, 100]
+      - role: side_veg
+        require_bucket: [salad_like]
+        include_name: ["tomato","cucumber","pepper","salad"]
+        portion_g_range: [60, 150]
+  - id: bf_yogurt_oats_fruit
+    name: "Iaurt grecesc + ovăz + fructe"
+    slots:
+      - role: protein
+        require_bucket: [dairy_light]
+        include_name: ["yogurt","skyr","quark","cottage"]
+        portion_g_range: [120, 250]
+      - role: side_carb
+        require_bucket: [grains, breakfast_cereal]
+        include_name: ["oat","oats","muesli","granola","porridge"]
+        portion_g_range: [30, 80]
+      - role: side_veg
+        require_bucket: [salad_like]
+        include_name: ["banana","berries","apple","blueberry","strawberry"]
+        portion_g_range: [60, 150]
+
+lunch:
+  - id: ln_chicken_rice_salad
+    name: "Piept de pui + orez + salată"
+    slots:
+      - role: protein
+        require_bucket: [poultry, veggie]
+        include_name: ["chicken","pui","turkey","tofu","tempeh"]
+        portion_g_range: [140, 240]
+      - role: side_carb
+        require_bucket: [grains, potatoes]
+        include_name: ["rice","quinoa","bulgur","couscous","potato"]
+        portion_g_range: [120, 220]
+      - role: side_veg
+        require_bucket: [salad_like, cooked]
+        include_name: ["salad","broccoli","zucchini","carrot","spinach","tomato","cucumber"]
+        portion_g_range: [80, 200]
+  - id: ln_fishwhite_potato_veg
+    name: "Pește alb + cartofi + legume"
+    slots:
+      - role: protein
+        require_bucket: [fish_white, veggie]
+        exclude_name: ["salted","dried","smoked"]
+        include_name: ["cod","hake","pollock","trout","white fish","tofu"]
+        portion_g_range: [150, 250]
+      - role: side_carb
+        require_bucket: [potatoes, grains]
+        include_name: ["potato","sweet potato","rice"]
+        portion_g_range: [120, 220]
+      - role: side_veg
+        require_bucket: [cooked, salad_like]
+        include_name: ["broccoli","carrot","spinach","zucchini","salad"]
+        portion_g_range: [80, 200]
+
+dinner:
+  - id: dn_turkey_potato_veg
+    name: "Curcan/pui + cartof + legume"
+    slots:
+      - role: protein
+        require_bucket: [poultry, veggie]
+        include_name: ["turkey","chicken","pui","tofu"]
+        portion_g_range: [140, 220]
+      - role: side_carb
+        require_bucket: [potatoes, grains]
+        include_name: ["potato","sweet potato","rice"]
+        portion_g_range: [100, 200]
+      - role: side_veg
+        require_bucket: [salad_like, cooked]
+        include_name: ["salad","broccoli","zucchini","tomato","cucumber","spinach"]
+        portion_g_range: [80, 200]
+  - id: dn_fish_rice_salad
+    name: "Pește + orez + salată"
+    slots:
+      - role: protein
+        require_bucket: [fish_white, fish_fatty, veggie]
+        exclude_name: ["smoked","salted"]
+        include_name: ["salmon","cod","hake","pollock","trout","tofu"]
+        portion_g_range: [120, 220]
+      - role: side_carb
+        require_bucket: [grains]
+        include_name: ["rice","quinoa","bulgur"]
+        portion_g_range: [100, 200]
+      - role: side_veg
+        require_bucket: [salad_like, cooked]
+        include_name: ["salad","broccoli","spinach","pepper"]
+        portion_g_range: [80, 180]
+
+snack:
+  - id: sn_yogurt_fruit
+    name: "Iaurt + fruct"
+    slots:
+      - role: protein
+        require_bucket: [dairy_light]
+        include_name: ["yogurt","skyr","quark","cottage"]
+        portion_g_range: [120, 220]
+      - role: side_veg
+        require_bucket: [salad_like]
+        include_name: ["banana","apple","berries"]
+        portion_g_range: [60, 150]
+  - id: sn_cottage_crackers
+    name: "Brânză slabă + crackers integrali"
+    slots:
+      - role: protein
+        require_bucket: [dairy_light]
+        include_name: ["cottage","quark","skyr"]
+        portion_g_range: [100, 200]
+      - role: side_carb
+        require_bucket: [bakery]
+        include_name: ["cracker","whole","integral","bread"]
+        portion_g_range: [20, 60]
+  - id: sn_shake_banana
+    name: "Shake proteic + banană"
+    slots:
+      - role: protein
+        require_bucket: [dairy_light, veggie]
+        include_name: ["whey","protein", "yogurt", "skyr"]
+        portion_g_range: [200, 300]   # ml/g pentru shake/iaurt
+      - role: side_veg
+        require_bucket: [salad_like]
+        include_name: ["banana"]
+        portion_g_range: [80, 120]
+
+  - id: sn_egg_veg
+    name: "Ou fiert + legume crude"
+    slots:
+      - role: protein
+        require_bucket: [eggs]
+        include_name: ["egg"]
+        portion_g_range: [55, 110]    # 1-2 ouă
+      - role: side_veg
+        require_bucket: [salad_like]
+        include_name: ["carrot","cucumber","pepper","tomato"]
+        portion_g_range: [80, 150]
+
+  - id: sn_hummus_carrots
+    name: "Hummus + bastonașe de morcov"
+    slots:
+      - role: protein
+        require_bucket: [veggie]
+        include_name: ["hummus","chickpea","linte","lentil"]
+        portion_g_range: [60, 100]
+      - role: side_veg
+        require_bucket: [salad_like]
+        include_name: ["carrot"]
+        portion_g_range: [80, 150]
+
+  - id: sn_cottage_crackers_whole
+    name: "Brânză slabă + crackers integrali"
+    slots:
+      - role: protein
+        require_bucket: [dairy_light]
+        include_name: ["cottage","quark","skyr"]
+        portion_g_range: [100, 200]
+      - role: side_carb
+        require_bucket: [bakery]
+        include_name: ["cracker","whole","integral","bread"]
+        portion_g_range: [20, 50]
+
+  - id: sn_yogurt_berries_nuts
+    name: "Iaurt + fructe de pădure + nuci (mică)"
+    slots:
+      - role: protein
+        require_bucket: [dairy_light]
+        include_name: ["yogurt","skyr","quark"]
+        portion_g_range: [120, 180]
+      - role: side_veg
+        require_bucket: [salad_like]
+        include_name: ["berries","blueberry","strawberry"]
+        portion_g_range: [60, 100]
+      - role: side_carb
+        require_bucket: [bakery, grains]
+        include_name: ["nuts","almond","walnut","avocado","seed"]
+        portion_g_range: [10, 20]

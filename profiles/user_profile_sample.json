@@ -1,0 +1,23 @@
+{
+  "age": 22,
+  "sex": "male",
+  "weight_kg": 67.0,
+  "height_cm": 176.0,
+  "activity_level": "moderately_active",
+  "training_per_week": 3,
+  "training_type": "weights",
+  "bf_profile": "normal",
+  "meals_per_day": 3,
+  "include_snacks": true,
+  "goal": "maintain",
+  "progress_speed": "moderate",
+  "dietary_preferences": {
+    "no_beef": false,
+    "no_chicken": false,
+    "no_fish": false,
+    "no_dairy": false,
+    "vegetarian": false,
+    "vegan": false,
+    "gluten_free": false
+  }
+}
