@@ -1,0 +1,31 @@
+name_before,drop_reason_before,drop_reason_after
+Desert (average),aggregate_average_item,aggregate_average_item
+"Mushroom, all types, raw",aggregate_all_types_item,aggregate_all_types_item
+"Mixed vegetables, frozen, raw",mixed_multi_item,mixed_multi_item
+"Squash, all types, raw",aggregate_all_types_item,aggregate_all_types_item
+"Mixed vegetables for soups, frozen, raw",mixed_multi_item,mixed_multi_item
+"Mixed vegetables for ratatouille, frozen",mixed_multi_item,mixed_multi_item
+"Mixed vegetables for couscous, frozen, raw",mixed_multi_item,mixed_multi_item
+"Mushroom, all types, canned, drained",aggregate_all_types_item,aggregate_all_types_item
+"Diced mixed vegetables, canned, drained",mixed_multi_item,mixed_multi_item
+"Mixed diced vegetables, raw, frozen",mixed_multi_item,mixed_multi_item
+"Mixed vegetables for couscous, cooked",mixed_multi_item,mixed_multi_item
+"Vegetable, cooked (average)",aggregate_average_item,aggregate_average_item
+Mashed potatoes (average),aggregate_average_item,aggregate_average_item
+"Legume, cooked (average)",aggregate_average_item,aggregate_average_item
+Fruit (average),aggregate_average_item,aggregate_average_item
+"Fruits dessert, all types (fruits dessert's sugar content is less than fruits compote but more than fruits compote reduced sugar)",aggregate_all_types_item,aggregate_all_types_item
+"Tropical fruit mix, sweetened, for snack, dried",mixed_multi_item,mixed_multi_item
+Mix of salted grains/nuts and raisins,mixed_multi_item,mixed_multi_item
+Mix of unsalted grains/nuts and dried fruit,mixed_multi_item,mixed_multi_item
+Mix of unsalted grains/nuts and raisins,mixed_multi_item,mixed_multi_item
+"Gnocchi, cooked (average)",aggregate_average_item,aggregate_average_item
+"Rice, mix of species (white, wholegrain, wild, red,etc.), raw",mixed_multi_item,mixed_multi_item
+"Mix of cereals and legumes, raw",mixed_multi_item,mixed_multi_item
+Bread (average),aggregate_average_item,aggregate_average_item
+"white meat, cooked (average)",aggregate_average_item,aggregate_average_item
+"Red meat, cooked (average)",aggregate_average_item,aggregate_average_item
+"Meat, cooked (average)",aggregate_average_item,aggregate_average_item
+"Poultry, cooked (average)",aggregate_average_item,aggregate_average_item
+"Beef, ground, cooked (average)",aggregate_average_item,aggregate_average_item
+"Veal, meat, cooked (average)",aggregate_average_item,aggregate_average_item

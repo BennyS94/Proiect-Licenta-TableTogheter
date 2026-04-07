@@ -1,0 +1,11 @@
+Focused post-calibration audit
+
+Counts by requested drop reason:
+- name_keyword:ready-to-drink: 12
+- name_keyword:soft drink: 21
+- name_keyword:ice cream: 11
+- name_keyword:sorbet: 4
+- name_keyword:quenelle: 7
+- name_keyword:in sauce: 0
+
+Remaining review rows: 27

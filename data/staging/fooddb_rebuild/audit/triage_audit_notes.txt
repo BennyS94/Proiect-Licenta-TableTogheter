@@ -1,0 +1,15 @@
+Audit notes for foods triage outputs
+
+Potential false positives among kept rows:
+- packaged soft drinks and ready-to-drink beverages remain kept as semi_atomic
+- ice cream / sorbet package-form rows remain kept as semi_atomic
+- a few composite products remain kept: omelette, cordon bleu, quenelle in sauce, burger variants
+
+Potential false negatives among dropped/review rows:
+- bread products with sandwich keyword are dropped even when they are plain bread forms
+- pizza bases and pizza sauces are dropped because of pizza keyword even though they may be ingredient-like
+- swedish toast / rusks are dropped because of toast keyword
+
+Suggested calibration directions:
+- narrow broad recipe keywords: sandwich, pizza, toast
+- consider expanding composite/product keywords for kept rows: omelette, cordon bleu, in sauce, ready-to-drink, soft drink, ice cream, sorbet

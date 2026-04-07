@@ -1,0 +1,31 @@
+name,canonical_name_guess,main_group,sub_group,sub_sub_group,name_tags,entity_level_guess,keep_for_food_db,review_flag,drop_reason
+"Prepared mixed tuna and vegetable salad, canned",mixed tuna and vegetable salad,starters and dishes,mixed salads,,canned;prepared,recipe_like,False,False,tag_salad_like
+"Prepared mixed meat/fish canned, salad","mixed meat / fish canned, salad",starters and dishes,mixed salads,,canned;prepared,recipe_like,False,False,tag_salad_like
+"Greek-style marinated mushrooms, prepacked",greek-style marinated mushrooms,starters and dishes,mixed salads,,style:greek;prepacked,recipe_like,False,False,main_group:starters and dishes
+"Prepared potatoes salad, home-made","potatoes salad, home-made",starters and dishes,mixed salads,,prepared,recipe_like,False,False,tag_salad_like
+"Tabbouleh, prepacked",tabbouleh,starters and dishes,mixed salads,,prepacked,recipe_like,False,False,main_group:starters and dishes
+"Potato salad, piémontaise-style, prepacked","potato salad, piemontaise-style",starters and dishes,mixed salads,,style:piemontaise;prepacked,recipe_like,False,False,tag_salad_like
+"Prepared rice salad, canned",rice salad,starters and dishes,mixed salads,,canned;prepared,recipe_like,False,False,tag_salad_like
+"Prepared pasta salad, vegetarian","pasta salad, vegetarian",starters and dishes,mixed salads,,vegetarian;prepared,recipe_like,False,False,tag_salad_like
+"Salad, vegetable, without dressing (average)","salad, vegetable",starters and dishes,mixed salads,,without_dressing;note:average,recipe_like,False,False,tag_salad_like
+"Prepared pasta salad, with vegetable, meat or fish, prepacked","pasta salad, meat or fish",starters and dishes,mixed salads,,with_vegetable;prepacked;prepared,recipe_like,False,False,tag_salad_like
+"Mixed diced vegetables salad, w sauce, prepacked",mixed diced vegetables salad,starters and dishes,mixed salads,,with_sauce;prepacked,recipe_like,False,False,tag_salad_like
+"Caesar's salad (salad, chicken, croûtons, sauce), prepacked",caesar's salad,starters and dishes,mixed salads,,chicken;croutons;sauce;prepacked,recipe_like,False,False,tag_salad_like
+"Salad, veggie, bulgur and/or quinoa-based, with vegetables, prepacked","salad, veggie, bulgur and / or quinoa-based",starters and dishes,mixed salads,,with_vegetables;prepacked,recipe_like,False,False,tag_salad_like
+"Grated carrots, w sauce, prepacked",grated carrots,starters and dishes,mixed salads,,with_sauce;prepacked,recipe_like,False,False,main_group:starters and dishes
+"Beetroot salad, w sauce, prepacked",beetroot salad,starters and dishes,mixed salads,,with_sauce;prepacked,recipe_like,False,False,tag_salad_like
+"Coleslaw, w sauce, prepacked",coleslaw,starters and dishes,mixed salads,,with_sauce;prepacked,recipe_like,False,False,main_group:starters and dishes
+"Cucumber salad, w fresh cream cheese sauce, prepacked","cucumber salad, w fresh cream cheese sauce",starters and dishes,mixed salads,,prepacked,recipe_like,False,False,tag_salad_like
+"Lentil salad w smoked sausage, prepacked",lentil salad w smoked sausage,starters and dishes,mixed salads,,prepacked,recipe_like,False,False,tag_salad_like
+"Greec salad, w sauce, prepacked",greec salad,starters and dishes,mixed salads,,with_sauce;prepacked,recipe_like,False,False,tag_salad_like
+"Rice salad, nicoise style, w sauce, prepacked","rice salad, nicoise style",starters and dishes,mixed salads,,with_sauce;prepacked,recipe_like,False,False,tag_salad_like
+"Tabbouleh with chicken, prepacked",tabbouleh with chicken,starters and dishes,mixed salads,,with_chicken;prepacked,recipe_like,False,False,main_group:starters and dishes
+"Soup, lentils, prepacked, to be reheated","soup, lentils",starters and dishes,soups,,prepacked,recipe_like,False,False,main_group:starters and dishes
+"Soup, chicken and vegetables, prepacked, to be reheated","soup, chicken and vegetables",starters and dishes,soups,,prepacked,recipe_like,False,False,main_group:starters and dishes
+"Soup, mixed vegetables, prepacked, to be reheated","soup, mixed vegetables",starters and dishes,soups,,prepacked,recipe_like,False,False,main_group:starters and dishes
+"Soup, fish and/or crustacean, prepacked, to be reheated","soup, fish and / or crustacean",starters and dishes,soups,,prepacked,recipe_like,False,False,main_group:starters and dishes
+"Soup, mixed vegetables, dehydrated and reconstituted","soup, mixed vegetables",starters and dishes,soups,,,recipe_like,False,False,main_group:starters and dishes
+"Soup, leek and potato, prepacked, to be reheated","soup, leek and potato",starters and dishes,soups,,prepacked,recipe_like,False,False,main_group:starters and dishes
+"Soup, chicken and vermicelli, prepacked, to be reheated","soup, chicken and vermicelli",starters and dishes,soups,,prepacked,recipe_like,False,False,main_group:starters and dishes
+"Broth, stock or bouillon, meat and vegetables, dehydrated and reconstituted","broth, stock or bouillon, meat and vegetables",starters and dishes,soups,,,recipe_like,False,False,main_group:starters and dishes
+"Soup, onions, prepacked, to be reheated","soup, onions",starters and dishes,soups,,prepacked,recipe_like,False,False,main_group:starters and dishes

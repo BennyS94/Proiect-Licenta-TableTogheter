@@ -1,0 +1,31 @@
+name,canonical_name_guess,main_group,sub_group,sub_sub_group,entity_level_guess
+"Soft drink, carbonated, without fruit juice, without sugar and with artificial sweetener(s)","soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Still soft drink with tea extract, with sugar and artificial sweetener(s)",still soft drink with tea extract,beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, carbonated (10-50% of fruit juice), with sugar","fruit soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, still (less than 10% of fruit juice), without sugar and with artificial sweetener(s)","fruit soft drink, still",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, still (less than 10% of fruit juice), with sugar","fruit soft drink, still",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Soft drink, carbonated, without fruit juice, with sugar","soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, carbonated (less than 10% of fruit juice), with sugar and artificial sweetener(s)","fruit soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, carbonated (fruit juice content unknown), with sugar","fruit soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, carbonated (less than 10% of fruit juice), with sugar","fruit soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, carbonated (10-50% of fruit juice), without sugar and with artificial sweetener(s)","fruit soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Still soft drink with tea extract, flavoured, reduced sugar",still soft drink with tea extract,beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Still soft drink with tea extract, flavoured, without sugar and with artificial sweeteners",still soft drink with tea extract,beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Still soft drink with tea extract, flavoured, with sugar",still soft drink with tea extract,beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Soft drink, carbonated, without fruit juice, with sugar and artificial sweetener(s)","soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, still (10-50% of fruit juice), reduced sugar","fruit soft drink, still",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, still (fruit juice content unspecified), with sugar","fruit soft drink, still",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, still (10-50% of fruit juice), with sugar","fruit soft drink, still",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, carbonated (less than 10% of fruit juice), without sugar and with artificial sweetener(s)","fruit soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, carbonated (less than 10% of fruit juice), without sugar and artificial sweetener(s)","fruit soft drink, carbonated",beverages,non-alcoholic beverages,soft drinks,semi_atomic
+"Fruit soft drink, still (10-50% of fruit juice), without sugar and with artificial sweetener(s)","fruit soft drink, still",beverages,non-alcoholic beverages,plant-based drinks,semi_atomic
+"Not instant coffee, without sugar, ready-to-drink","not instant coffee, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Decaffeinated not instant coffee, without sugar, ready-to-drink","decaffeinated not instant coffee, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Espresso coffee, not instant coffee, without sugar, ready-to-drink","espresso coffee, not instant coffee, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Decaffeinated instant coffee, without sugar, ready-to-drink","decaffeinated instant coffee, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Instant coffee, without sugar, ready-to-drink","instant coffee, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Instant cocoa or chocolate beverage, with sugar, ready-to-drink (reconstituted with standard semi-skimmed milk)","instant cocoa or chocolate beverage, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Instant cocoa or chocolate beverage, with sugar, fortified with vitamins and chemical elements, ready-to-drink (reconstituted with standard semi-skimm","instant cocoa or chocolate beverage, fortified with vitamins and chemical elements, ready-to-drink reconstituted with standard semi-skimm",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Coffee with milk or white coffee or cappuccino, instant coffee or not, without sugar, ready-to-drink","coffee with milk or white coffee or cappuccino, instant coffee or not, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Instant chicory, without sugar and artificial sweeteners, ready-to-drink (reconstituted with standard semi-skimmed milk)","instant chicory, ready-to-drink",beverages,non-alcoholic beverages,"coffee, tea, cocoa beverages, etc. ready to drink",semi_atomic
+"Meal replacement low calorie, ready-to-drink","meal replacement low calorie, ready-to-drink",miscellaneous,foods for particular nutritional uses,,semi_atomic

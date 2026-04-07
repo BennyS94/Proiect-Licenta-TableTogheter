@@ -1,0 +1,31 @@
+name,canonical_name_guess,main_group,sub_group,sub_sub_group,name_tags,entity_level_guess,keep_for_food_db,review_flag,drop_reason
+Desert (average),desert,,,,note:average,unclear,False,True,aggregate_average_item
+"Mushroom, all types, raw","mushroom, all types","fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",,unclear,False,True,aggregate_all_types_item
+"Mixed vegetables, frozen, raw",mixed vegetables,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",frozen,unclear,False,True,mixed_multi_item
+"Squash, all types, raw","squash, all types","fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",,unclear,False,True,aggregate_all_types_item
+"Mixed vegetables for soups, frozen, raw",mixed vegetables for soups,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",frozen,unclear,False,True,mixed_multi_item
+"Mixed vegetables for ratatouille, frozen",mixed vegetables for ratatouille,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",frozen,unclear,False,True,mixed_multi_item
+"Mesclun or salads, mix of baby leaves","mesclun or salads, mix of baby leaves","fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",,unclear,False,True,source_exclude_flag
+"Mixed vegetables for couscous, frozen, raw",mixed vegetables for couscous,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",frozen,unclear,False,True,mixed_multi_item
+"Mushroom, all types, canned, drained","mushroom, all types","fruits, vegetables, legumes and nuts",vegetables,"vegetables, cooked",canned,unclear,False,True,aggregate_all_types_item
+"Diced mixed vegetables, canned, drained",diced mixed vegetables,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, cooked",canned,unclear,False,True,mixed_multi_item
+"Mixed diced vegetables, raw, frozen",mixed diced vegetables,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, cooked",frozen,unclear,False,True,mixed_multi_item
+"Mixed vegetables for couscous, cooked",mixed vegetables for couscous,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, cooked",,unclear,False,True,mixed_multi_item
+"Vegetable, cooked (average)",vegetable,"fruits, vegetables, legumes and nuts",vegetables,"vegetables, cooked",note:average,unclear,False,True,aggregate_average_item
+Mashed potatoes (average),mashed potatoes,"fruits, vegetables, legumes and nuts",potatoes and other tubers,,note:average,unclear,False,True,aggregate_average_item
+"Legume, cooked (average)",legume,"fruits, vegetables, legumes and nuts",legumes,"legumes, cooked",note:average,unclear,False,True,aggregate_average_item
+Fruit (average),fruit,"fruits, vegetables, legumes and nuts",fruits,fresh fruits,note:average,unclear,False,True,aggregate_average_item
+"Fruits dessert, all types (fruits dessert's sugar content is less than fruits compote but more than fruits compote reduced sugar)","fruits dessert, all types","fruits, vegetables, legumes and nuts",fruits,puréed fruits,,unclear,False,True,aggregate_all_types_item
+"Tropical fruit mix, sweetened, for snack, dried",tropical fruit mix,"fruits, vegetables, legumes and nuts",fruits,dried fruits,,unclear,False,True,mixed_multi_item
+Mix of salted grains/nuts and raisins,mix of salted grains / nuts and raisins,"fruits, vegetables, legumes and nuts",nuts and seeds,,,unclear,False,True,mixed_multi_item
+Mix of unsalted grains/nuts and dried fruit,mix of unsalted grains / nuts and dried fruit,"fruits, vegetables, legumes and nuts",nuts and seeds,,,unclear,False,True,mixed_multi_item
+Mix of unsalted grains/nuts and raisins,mix of unsalted grains / nuts and raisins,"fruits, vegetables, legumes and nuts",nuts and seeds,,,unclear,False,True,mixed_multi_item
+"Gnocchi, cooked (average)",gnocchi,cereal products,"pasta, rice and grains","pasta, rice and grains, cooked",note:average,unclear,False,True,aggregate_average_item
+"Rice, mix of species (white, wholegrain, wild, red,etc.), raw","rice, mix of species",cereal products,"pasta, rice and grains","pasta, rice and grains, raw",white;wholegrain;wild;red;etc,unclear,False,True,mixed_multi_item
+"Mix of cereals and legumes, raw",mix of cereals and legumes,cereal products,"pasta, rice and grains","pasta, rice and grains, raw",,unclear,False,True,mixed_multi_item
+Bread (average),bread,cereal products,breads and similar,breads,note:average,unclear,False,True,aggregate_average_item
+"white meat, cooked (average)",white meat,"meat, egg and fish",cooked meat,,note:average,unclear,False,True,aggregate_average_item
+"Red meat, cooked (average)",red meat,"meat, egg and fish",cooked meat,,note:average,unclear,False,True,aggregate_average_item
+"Meat, cooked (average)",meat,"meat, egg and fish",cooked meat,,note:average,unclear,False,True,aggregate_average_item
+"Poultry, cooked (average)",poultry,"meat, egg and fish",cooked meat,,note:average,unclear,False,True,aggregate_average_item
+"Beef, ground, cooked (average)","beef, ground","meat, egg and fish",cooked meat,beef and veal,note:average,unclear,False,True,aggregate_average_item

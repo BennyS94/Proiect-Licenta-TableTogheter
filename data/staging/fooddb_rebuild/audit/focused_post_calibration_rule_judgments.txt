@@ -1,0 +1,31 @@
+Focused post-calibration audit verdicts
+
+Requested drop reasons:
+- name_keyword:ready-to-drink = 12
+  verdict: slightly too strict
+  note: most rows are packaged RTD beverages and look out-of-scope, but plain RTD coffee/chicory may be borderline semi_atomic products depending on Food_DB scope.
+
+- name_keyword:soft drink = 21
+  verdict: looks good
+  note: rows are clearly soft drinks / sweetened beverage products rather than canonical Food_DB items.
+
+- name_keyword:ice cream = 11
+  verdict: looks good
+  note: rows are serving/package forms of ice cream, not canonical ingredient-like foods.
+
+- name_keyword:sorbet = 4
+  verdict: looks good
+  note: rows are serving/package forms of sorbet, aligned with out-of-scope drop.
+
+- name_keyword:quenelle = 7
+  verdict: slightly too strict
+  note: quenelle in sauce looks fine to drop, but plain/raw quenelle may be closer to a standalone processed food product than to a recipe-like dish.
+
+- name_keyword:in sauce = 0
+  verdict: looks good
+  note: currently inactive in the regenerated outputs; other rules are catching the observed cases first.
+
+Remaining review rows:
+- count = 27
+- all current review rows are source_exclude_flag items
+- review queue now looks coherent and narrow

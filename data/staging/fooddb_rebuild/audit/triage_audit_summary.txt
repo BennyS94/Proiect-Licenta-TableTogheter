@@ -1,0 +1,25 @@
+top_drop_reason_counts
+- main_group:starters and dishes: 293
+- aggregate_average_item: 86
+- mixed_multi_item: 32
+- tag_composite_dish_hint: 31
+- tag_salad_like: 30
+- source_exclude_flag: 27
+- sub_group:baby dishes: 13
+- sub_group:frozen desserts: 12
+- name_keyword:tart: 10
+- aggregate_all_types_item: 7
+- name_keyword:sandwich: 7
+- name_keyword:pizza: 6
+- name_keyword:toast: 5
+- name_keyword:omelette: 5
+- name_keyword:profiteroles: 1
+
+top_entity_level_guess_counts
+- semi_atomic: 1791
+- atomic: 830
+- recipe_like: 413
+- unclear: 152
+
+review_rows_total: 152
+dropped_rows_total: 413

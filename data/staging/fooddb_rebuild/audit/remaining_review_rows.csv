@@ -1,0 +1,28 @@
+name,canonical_name_guess,main_group,sub_group,sub_sub_group,entity_level_guess,keep_for_food_db,review_flag,drop_reason
+"Mesclun or salads, mix of baby leaves","mesclun or salads, mix of baby leaves","fruits, vegetables, legumes and nuts",vegetables,"vegetables, raw",unclear,False,True,source_exclude_flag
+"Baby milk, first age, powder","baby milk, first age",baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+"Baby milk, second age, powder","baby milk, second age",baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Fruit-based beverage for baby from 4/6 months,fruit-based beverage for baby from 4 / 6 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Plant-based beverage for baby,plant-based beverage for baby,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Dairy cereal-based beverage with vegetables for baby's dinner from 4/6 months,dairy cereal-based beverage with vegetables for baby's dinner from 4 / 6 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Dairy cereal-based beverage with fruits for baby's snack from 4/6 months,dairy cereal-based beverage with fruits for baby's snack from 4 / 6 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Dairy cereal-based beverage for baby's breakfast from 4/6 months,dairy cereal-based beverage for baby's breakfast from 4 / 6 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Dairy cereal-based beverage for baby's breakfast from 8/9 months,dairy cereal-based beverage for baby's breakfast from 8 / 9 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Dairy cereal-based beverage for baby's breakfast from 12 months,dairy cereal-based beverage for baby's breakfast from 12 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Milky beverage w fruits (without cereals) for baby's snack from 4/6 months,milky beverage w fruits for baby's snack from 4 / 6 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Milky cereal-based beverage w vegetables for baby's dinner from 4/6 months,milky cereal-based beverage w vegetables for baby's dinner from 4 / 6 months,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Dairy cereal-based beverage for baby's breakfast,dairy cereal-based beverage for baby's breakfast,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Milky cereal-based beverage(average),milky cereal-based beverage,baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+"Baby milk, growing up milk, ready to feed","baby milk, growing up milk, ready to feed",baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+"Baby milk, first milk, ready to feed","baby milk, first milk, ready to feed",baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+"Baby milk, follow on milk, ready to feed","baby milk, follow on milk, ready to feed",baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+"Baby milk, for premature infant, ready to feed","baby milk, for premature infant, ready to feed",baby food,baby milk and beverages,,unclear,False,True,source_exclude_flag
+Baby food jar with banana,baby food jar with banana,baby food,baby deserts,,unclear,False,True,source_exclude_flag
+Baby food jar without banana,baby food jar without banana,baby food,baby deserts,,unclear,False,True,source_exclude_flag
+"Dairy dessert for baby, custard type","dairy dessert for baby, custard type",baby food,baby deserts,,unclear,False,True,source_exclude_flag
+"Dairy dessert for baby, with rice or semolina",dairy dessert for baby,baby food,baby deserts,,unclear,False,True,source_exclude_flag
+"Dairy dessert for baby, plain with sugar or with fruits",dairy dessert for baby,baby food,baby deserts,,unclear,False,True,source_exclude_flag
+Instant cereal (powder to be reconstituted) for baby from 4/6 months,instant cereal for baby from 4 / 6 months,baby food,baby biscuits and cereals,,unclear,False,True,source_exclude_flag
+Instant cereal (powder to be reconstituted) for baby from 6 months,instant cereal for baby from 6 months,baby food,baby biscuits and cereals,,unclear,False,True,source_exclude_flag
+Biscuit for baby,biscuit for baby,baby food,baby biscuits and cereals,,unclear,False,True,source_exclude_flag
+Cocoa powder for baby beverage,cocoa powder for baby beverage,baby food,baby biscuits and cereals,,unclear,False,True,source_exclude_flag

@@ -1,0 +1,11 @@
+name,canonical_name_guess,main_group,sub_group,sub_sub_group,entity_level_guess,keep_for_food_db,review_flag,drop_reason
+"Ice cream or sorbet or ice pop, flavoured (average)",ice cream or sorbet or ice pop,ice cream and sorbet,,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, chocolate coated","ice cream, chocolate coated",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream on stick, with chocolate coating",ice cream on stick,ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, cone (normal size)","ice cream, cone",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, in box","ice cream, in box",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, luxury, in box","ice cream, luxury, in box",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, luxury, in cup","ice cream, luxury, in cup",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, cone, mini","ice cream, cone, mini",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, in individual cup","ice cream, in individual cup",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream
+"Ice cream, box or cup (average)","ice cream, box or cup",ice cream and sorbet,ice cream,,recipe_like,False,False,name_keyword:ice cream

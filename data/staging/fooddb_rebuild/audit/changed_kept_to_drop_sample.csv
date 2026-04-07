@@ -1,0 +1,31 @@
+name_before,drop_reason_before,drop_reason_after
+"Veal quenelle, in sauce",,name_keyword:quenelle
+"Poultry quenelle, raw",,name_keyword:quenelle
+"Poultry quenelle, in sauce",,name_keyword:quenelle
+"Fish quenelle, in sauce",,name_keyword:quenelle
+"Fish quenelle, raw",,name_keyword:quenelle
+"Quenelle, fish, cooked",,name_keyword:quenelle
+"Quenelle, plain, raw",,name_keyword:quenelle
+"Veal escalope cordon bleu (topped with a ham slice and Gruyere sauce), prepacked",,name_keyword:cordon bleu
+"Soft drink, carbonated, without fruit juice, without sugar and with artificial sweetener(s)",,name_keyword:soft drink
+"Still soft drink with tea extract, with sugar and artificial sweetener(s)",,name_keyword:soft drink
+"Fruit soft drink, carbonated (10-50% of fruit juice), with sugar",,name_keyword:soft drink
+"Fruit soft drink, still (less than 10% of fruit juice), without sugar and with artificial sweetener(s)",,name_keyword:soft drink
+"Fruit soft drink, still (less than 10% of fruit juice), with sugar",,name_keyword:soft drink
+"Soft drink, carbonated, without fruit juice, with sugar",,name_keyword:soft drink
+"Fruit soft drink, carbonated (less than 10% of fruit juice), with sugar and artificial sweetener(s)",,name_keyword:soft drink
+"Fruit soft drink, carbonated (fruit juice content unknown), with sugar",,name_keyword:soft drink
+"Fruit soft drink, carbonated (less than 10% of fruit juice), with sugar",,name_keyword:soft drink
+"Fruit soft drink, carbonated (10-50% of fruit juice), without sugar and with artificial sweetener(s)",,name_keyword:soft drink
+"Still soft drink with tea extract, flavoured, reduced sugar",,name_keyword:soft drink
+"Still soft drink with tea extract, flavoured, without sugar and with artificial sweeteners",,name_keyword:soft drink
+"Still soft drink with tea extract, flavoured, with sugar",,name_keyword:soft drink
+"Soft drink, carbonated, without fruit juice, with sugar and artificial sweetener(s)",,name_keyword:soft drink
+"Fruit soft drink, still (10-50% of fruit juice), reduced sugar",,name_keyword:soft drink
+"Fruit soft drink, still (fruit juice content unspecified), with sugar",,name_keyword:soft drink
+"Fruit soft drink, still (10-50% of fruit juice), with sugar",,name_keyword:soft drink
+"Fruit soft drink, carbonated (less than 10% of fruit juice), without sugar and with artificial sweetener(s)",,name_keyword:soft drink
+"Fruit soft drink, carbonated (less than 10% of fruit juice), without sugar and artificial sweetener(s)",,name_keyword:soft drink
+"Fruit soft drink, still (10-50% of fruit juice), without sugar and with artificial sweetener(s)",,name_keyword:soft drink
+"Not instant coffee, without sugar, ready-to-drink",,name_keyword:ready-to-drink
+"Decaffeinated not instant coffee, without sugar, ready-to-drink",,name_keyword:ready-to-drink

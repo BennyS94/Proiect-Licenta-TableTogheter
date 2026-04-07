@@ -1,0 +1,5 @@
+name,canonical_name_guess,main_group,sub_group,sub_sub_group,entity_level_guess,keep_for_food_db,review_flag,drop_reason
+"Sorbet, on stick","sorbet, on stick",ice cream and sorbet,sorbet,,recipe_like,False,False,name_keyword:sorbet
+"Sorbet, in box","sorbet, in box",ice cream and sorbet,sorbet,,recipe_like,False,False,name_keyword:sorbet
+"Sorbet, cup","sorbet, cup",ice cream and sorbet,sorbet,,recipe_like,False,False,name_keyword:sorbet
+"Sorbet, cone","sorbet, cone",ice cream and sorbet,sorbet,,recipe_like,False,False,name_keyword:sorbet

@@ -1,0 +1,8 @@
+name,canonical_name_guess,main_group,sub_group,sub_sub_group,entity_level_guess,keep_for_food_db,review_flag,drop_reason
+"Veal quenelle, in sauce","veal quenelle, in sauce","meat, egg and fish",delicatessen meat and similar,quenelles,recipe_like,False,False,name_keyword:quenelle
+"Poultry quenelle, raw",poultry quenelle,"meat, egg and fish",delicatessen meat and similar,quenelles,recipe_like,False,False,name_keyword:quenelle
+"Poultry quenelle, in sauce","poultry quenelle, in sauce","meat, egg and fish",delicatessen meat and similar,quenelles,recipe_like,False,False,name_keyword:quenelle
+"Fish quenelle, in sauce","fish quenelle, in sauce","meat, egg and fish",delicatessen meat and similar,quenelles,recipe_like,False,False,name_keyword:quenelle
+"Fish quenelle, raw",fish quenelle,"meat, egg and fish",delicatessen meat and similar,quenelles,recipe_like,False,False,name_keyword:quenelle
+"Quenelle, fish, cooked","quenelle, fish","meat, egg and fish",delicatessen meat and similar,quenelles,recipe_like,False,False,name_keyword:quenelle
+"Quenelle, plain, raw",quenelle,"meat, egg and fish",delicatessen meat and similar,quenelles,recipe_like,False,False,name_keyword:quenelle
