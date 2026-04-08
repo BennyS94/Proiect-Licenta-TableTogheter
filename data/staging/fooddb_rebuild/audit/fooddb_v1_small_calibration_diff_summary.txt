@@ -1,0 +1,22 @@
+Food_DB v1 small calibration diff
+
+old_core_rows=1577
+new_core_rows=1537
+old_scope_review_rows=512
+new_scope_review_rows=549
+old_merge_review_rows=8
+new_merge_review_rows=9
+
+old_suspicious_core_count=235
+new_suspicious_core_count=216
+suspicious_core_delta=-19
+
+new_qc_scope_status_counts:
+- review_non_ingredient_first=497
+- review_missing_taxonomy=44
+- drop_from_fooddb_scope=8
+
+new_core_qc_canonicalization_status_counts:
+- normalized_from_source_name=1528
+- collapsed_mineral_water_brand=8
+- collapsed_duplicate_canonical_name=1

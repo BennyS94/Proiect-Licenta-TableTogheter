@@ -1,0 +1,13 @@
+﻿display_name,food_group,food_subgroup,food_subgroup_detail,helper_use_as_protein,helper_use_as_carb_side,helper_use_as_veg_side,helper_is_sweet,helper_is_salty,helper_is_drink,helper_is_vegetarian,helper_is_vegan,helper_protein_bucket,helper_carb_bucket,helper_veg_bucket,helper_issue
+"Drained soft fresh cheese, 0% fat",milk and milk products,dairy products and similar,fromages blanc,True,False,False,False,False,True,,,,,,helper_is_drink=true pe branza proaspata
+"Drained soft fresh cheese, around 6% fat",milk and milk products,dairy products and similar,fromages blanc,True,False,False,False,False,True,,,eggs,,,helper_is_drink=true si protein_bucket=eggs pe produs lactat
+"Egg, soft-boiled","meat, egg and fish",eggs,"eggs, cooked",True,False,False,False,False,True,,,fish_white,,,helper_is_drink=true si protein_bucket=fish_white pe ou
+"Common mandarin juice, pure juice, filtered, sampled in the island of La Martinique","fruits, vegetables, legumes and nuts",fruits,fruits from Martinique and their products,True,False,True,False,False,True,,,veggie,,,juice marcat simultan protein si veg_side; protein_bucket=veggie
+"European pilchard or sardine, in tomato sauce, canned, drained","meat, egg and fish",fish products,,True,False,True,False,False,,,,fish_fatty,,cooked_veg,helper_use_as_veg_side=true pe peste in sos
+"Meal replacement low calorie, in powder, reconstituted with skimmed milk, milkshake type",miscellaneous,foods for particular nutritional uses,,True,False,False,False,False,True,,,fish_white,,,helper_is_drink=true si protein_bucket=fish_white pe produs functional
+"Mineral water, Mont-Roucous, bottled, very lightly mineralized",beverages,water,,True,False,False,False,False,True,,,eggs,,,helper_use_as_protein=true si protein_bucket=eggs pe apa
+Pâté w green pepper,"meat, egg and fish",delicatessen meat and similar,pâtés and terrines,True,False,True,False,False,,,,fish_white,,cooked_veg,helper_use_as_veg_side=true si protein_bucket=fish_white pe pate
+"Pineapple, in pineapple juice, canned, drained","fruits, vegetables, legumes and nuts",fruits,canned fruits,True,False,True,True,False,True,,,veggie,,,helper_is_drink=true si helper_use_as_protein=true pe fruct conservat
+"Spanish-style tortilla with onions, omelette with potatoes and onions, prepacked","meat, egg and fish",eggs,omelettes and other egg products,True,True,True,False,False,,,,fish_white,bread,,multiple helper roles simultan pe produs compus
+Seitan,"meat, egg and fish",meat substitute,,True,False,False,False,False,,True,True,veg_soylike,,,control util: aici helper-ele par rezonabile
+"Tofu, plain","meat, egg and fish",meat substitute,,True,False,False,False,False,,True,True,veg_soylike,,,control util: helper proteic/vegan pare rezonabil

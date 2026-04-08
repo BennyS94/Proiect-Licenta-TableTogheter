@@ -1,0 +1,30 @@
+Food_DB v1 focused audit
+
+Scope review main categories:
+- review_non_ingredient_first | sugar and confectionery row is not ingredient-first enough = 264
+- review_non_ingredient_first | non-water beverages are deferred from Food_DB v1 core = 146
+- review_missing_taxonomy | missing food_group or food_subgroup = 44
+- review_non_ingredient_first | sub_sub_group out of scope: dairy desserts = 26
+- review_non_ingredient_first | subgroup out of scope: savoury biscuits = 18
+- review_non_ingredient_first | sub_sub_group out of scope: other desserts = 12
+- review_non_ingredient_first | ice cream and sorbet is out of Food_DB v1 scope = 2
+
+Representative scope audit sample saved to fooddb_v1_scope_review_audit_sample_40.csv
+Representative core suspicious sample saved to fooddb_v1_core_suspicious_spotcheck_40.csv
+Naming audit saved to fooddb_v1_naming_audit_20.csv
+Helper sample saved to fooddb_v1_helper_field_sanity_sample.csv
+
+Merge review summary:
+- mineral_water_collapses = 7
+- other_duplicate_collapses = 1
+- merge_status collapsed_mineral_water_brand = 7
+- merge_status collapsed_duplicate_canonical_name = 1
+
+Helper sanity quick stats:
+- helper_is_drink_true_total = 34
+- helper_is_drink_true_non_beverages = 18
+- helper_use_as_veg_side_true_in_meat_fish = 10
+- helper_protein_bucket_eggs_outside_eggs = 84
+
+High-level recommendation: needs one more calibration pass first
+- main reasons: prea multe sosuri si produse compuse raman in accepted_core; colapsarea apelor nu este inca completa; helper fields au zgomot clar

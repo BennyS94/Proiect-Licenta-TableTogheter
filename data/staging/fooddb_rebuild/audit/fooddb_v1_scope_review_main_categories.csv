@@ -1,0 +1,8 @@
+﻿qc_scope_status,qc_notes,row_count
+review_non_ingredient_first,sugar and confectionery row is not ingredient-first enough,264
+review_non_ingredient_first,non-water beverages are deferred from Food_DB v1 core,146
+review_missing_taxonomy,missing food_group or food_subgroup,44
+review_non_ingredient_first,sub_sub_group out of scope: dairy desserts,26
+review_non_ingredient_first,subgroup out of scope: savoury biscuits,18
+review_non_ingredient_first,sub_sub_group out of scope: other desserts,12
+review_non_ingredient_first,ice cream and sorbet is out of Food_DB v1 scope,2
