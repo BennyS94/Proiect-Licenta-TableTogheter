@@ -6,10 +6,10 @@ from pathlib import Path
 import pandas as pd
 
 
-DEFAULT_INPUT = Path("data/staging/fooddb_rebuild/foods_enriched_snapshot.parquet")
-DEFAULT_TRIAGED = Path("data/staging/fooddb_rebuild/foods_triaged.csv")
-DEFAULT_CANDIDATES = Path("data/staging/fooddb_rebuild/foods_fooddb_candidates.csv")
-DEFAULT_REJECTED = Path("data/staging/fooddb_rebuild/foods_recipe_like_or_rejected.csv")
+DEFAULT_INPUT = Path("data/fooddb/snapshot/foods_enriched_snapshot.parquet")
+DEFAULT_TRIAGED = Path("data/fooddb/triage/foods_triaged.csv")
+DEFAULT_CANDIDATES = Path("data/fooddb/triage/foods_fooddb_candidates.csv")
+DEFAULT_REJECTED = Path("data/fooddb/triage/foods_recipe_like_or_rejected.csv")
 
 NAME_COLUMN_CANDIDATES = [
     "name_core",
