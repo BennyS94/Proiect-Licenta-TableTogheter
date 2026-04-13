@@ -6,13 +6,13 @@ from pathlib import Path
 import pandas as pd
 
 
-DEFAULT_INPUT = Path("data/staging/fooddb_rebuild/foods_fooddb_candidates.csv")
-DEFAULT_CORE_OUT = Path("data/staging/fooddb_rebuild/fooddb_v1_core_master_draft.csv")
+DEFAULT_INPUT = Path("data/fooddb/triage/foods_fooddb_candidates.csv")
+DEFAULT_CORE_OUT = Path("data/fooddb/draft/fooddb_v1_core_master_draft.csv")
 DEFAULT_MISSING_MACROS_OUT = Path(
-    "data/staging/fooddb_rebuild/fooddb_v1_excluded_missing_macros.csv"
+    "data/fooddb/draft/fooddb_v1_excluded_missing_macros.csv"
 )
-DEFAULT_SCOPE_REVIEW_OUT = Path("data/staging/fooddb_rebuild/fooddb_v1_scope_review.csv")
-DEFAULT_MERGE_REVIEW_OUT = Path("data/staging/fooddb_rebuild/fooddb_v1_merge_review.csv")
+DEFAULT_SCOPE_REVIEW_OUT = Path("data/fooddb/draft/fooddb_v1_scope_review.csv")
+DEFAULT_MERGE_REVIEW_OUT = Path("data/fooddb/draft/fooddb_v1_merge_review.csv")
 
 MINERAL_WATER_PATTERN = re.compile(
     r"^(Mineral (?:still|sparkling) water) \([^)]+\), (.+)$",
