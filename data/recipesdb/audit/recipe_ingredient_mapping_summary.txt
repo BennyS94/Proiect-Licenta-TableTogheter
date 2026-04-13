@@ -1,0 +1,38 @@
+Recipe ingredient to Food_DB mapping summary
+
+Total ingredient rows considered: 947
+
+Mapping status counts:
+- unmapped: 653
+- review_needed: 151
+- accepted_auto: 143
+
+Match method counts:
+- no_match: 663
+- exact_family_name: 138
+- normalized_name_match: 83
+- family_fallback: 29
+- exact_canonical_name: 20
+- exact_display_name: 14
+
+Top mapping notes:
+- no_exact_or_normalized_match: 663
+- ambiguous_candidate_set: 116
+- exact food_family_name match: 113
+- safe_alias_rule:ground black pepper->black pepper powder: 28
+- singularized food_family_name fallback: 24
+- exact canonical_name match: 20
+- exact display_name match: 14
+- safe_alias_rule:garlic powder->garlic powder dried: 13
+- selected_family_promotion_rule:soy sauce->soy sauce prepacked: 12
+- light_normalization_rule:minced garlic->garlic: 12
+- safe_alias_rule:dried basil->basil dried: 7
+- safe_alias_rule:dried oregano->oregano dried: 7
+- light_normalization_rule:chopped onion->onion: 6
+- safe_alias_rule:freshly ground black pepper->black pepper powder: 6
+- selected_family_promotion_rule:black pepper->black pepper powder: 5
+- normalized canonical_name match: 5
+- safe_alias_rule:dried parsley->parsley dried: 5
+- selected_family_promotion_rule:red onion->red onion raw: 5
+- light_normalization_rule:chopped fresh parsley->fresh parsley: 5
+- safe_alias_rule:dried thyme->thyme dried: 5

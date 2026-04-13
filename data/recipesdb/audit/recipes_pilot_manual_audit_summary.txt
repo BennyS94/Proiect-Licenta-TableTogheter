@@ -1,0 +1,29 @@
+Recipes pilot manual audit summary
+
+Total pilot rows: 132
+
+Decision counts:
+- keep_for_parsing: 93
+- move_to_review: 31
+- remove_from_pilot: 8
+
+Recipe kind counts:
+- standalone: 104
+- side_only: 18
+- sauce_or_dressing: 6
+- component: 4
+
+Pilot concentration notes:
+- rows with 8-10 ingredients: 126 / 132
+- rows with 4-5 steps: 105 / 132
+- rows in Main Dishes/Dinner/Beef Recipes/Pork/Mexican: 88 / 132
+- top categories: Main Dishes=18, Dinner=18, Vegetarian=18, Pork=18, Healthy Recipes=18, Beef Recipes=18, Mexican=16, Italian=8
+
+Assessment:
+- pilot is parseable, but it is still strongly centered on compact savory mains
+- side dishes, soups, vegetarian mains, and lighter component patterns are underrepresented compared with meat-forward mains
+- a few rows are clearly outside the intended pilot scope and should be removed before parsing
+
+Recommendation:
+- replace_a_small_number_for_more_diversity
+- practical interpretation: remove the clear outliers, keep the review rows separate, and replace around 10-15 rows if more diversity is desired before parsing

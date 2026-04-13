@@ -1,0 +1,133 @@
+pilot_recipe_id,source_row_number,recipe_title,category,subcategory,num_ingredients,num_steps,duplicate_group_size,selection_score,noise_score,recipe_kind_guess,audit_decision,audit_reason
+pilot_recipe_001,48504,Authentic Chicken Adobo,Main Dishes,Filipino Main Dishes,9,5,2,9.96,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_002,47659,Grilled Chicken Marinade,Main Dishes,Summer Main Dishes,9,5,2,9.96,0,sauce_or_dressing,move_to_review,"marinade component, useful but better reviewed before parsing"
+pilot_recipe_003,45755,Hot Honey Shrimp,Main Dishes,Seafood Main Dishes,9,5,2,9.96,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_004,26889,Meet Lemon Pesto: The 5-Ingredient No-Cook Sauce Ready Before Your Pasta's Done Boiling,Dinner,Side Dishes,9,5,2,9.96,0,sauce_or_dressing,move_to_review,"standalone sauce recipe, not a full meal recipe"
+pilot_recipe_005,26183,Sheet Pan Halibut with Orange and Fennel,Dinner,Sheet Pan Dinners,9,5,2,9.96,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_006,46978,Asian Pork Tenderloin,Main Dishes,Roasts,9,5,3,9.94,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_007,26109,Mama's Best Broiled Tomato Sandwich,Dinner,Quick And Easy Dinners For One,9,5,3,9.94,0,standalone,move_to_review,sandwich format may add bread-heavy mapping noise
+pilot_recipe_008,47204,Beef Tenderloin with Dijon Cream Sauce,Main Dishes,Beef Main Dishes,9,5,4,9.92,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_009,26162,Chicken with Lemon-Caper Sauce,Dinner,Cooking For Two,9,5,4,9.92,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_010,45991,Crustless Cottage Cheese Mini Quiches,Main Dishes,Quiche,9,5,5,9.9,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_011,46975,Restaurant-Style Prime Rib Roast,Main Dishes,Roasts,9,5,5,9.9,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_012,26735,Steak Chimichurri Dense Bean Salad,Dinner,Beef Steaks,9,5,5,9.9,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_013,45849,Garlic Ginger Chicken Meatball Bowls,Main Dishes,Meatballs,9,5,6,9.88,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_014,47646,Marinated Tuna Steak,Main Dishes,Summer Main Dishes,9,5,6,9.88,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_015,46542,"Easy Bacon, Onion, and Cheese-Stuffed Burgers",Main Dishes,Burgers,9,5,8,9.84,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_016,47023,Quick Beef Stir-Fry,Main Dishes,Stir-Fries,9,5,8,9.84,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_017,45823,Apple Butter Meatballs,Main Dishes,Meatballs,9,5,9,9.82,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_018,48383,Chicken Bog,Main Dishes,Southern Main Dishes,9,6,1,9.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_019,59806,Easy Grilled Vegetables,Vegetarian,Vegetarian Bbq & Grilling,9,4,1,9.73,0,side_only,keep_for_parsing,useful side-dish pattern worth keeping for parsing diversity
+pilot_recipe_020,26910,Hot Honey Grilled Carrots,Dinner,Side Dishes,9,6,1,9.73,0,side_only,keep_for_parsing,useful side-dish pattern worth keeping for parsing diversity
+pilot_recipe_021,48644,Miso Salmon,Main Dishes,Japanese Main Dishes,9,4,1,9.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_022,48763,"Bo Luc Lac ""French-Vietnamese Shaking Beef""",Main Dishes,French Main Dishes,8,5,1,9.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_023,46868,Breaded Center Cut Pork Chops,Main Dishes,Steaks And Chops,10,5,1,9.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_024,26199,Cajun Shrimp and Sausage Sheet Pan Dinner,Dinner,Sheet Pan Dinners,10,5,1,9.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_025,48281,Classic Beef Stuffed Peppers,Main Dishes,Stuffed Bell Peppers,10,5,1,9.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_026,59834,Grilled Fruit and Vegetable Kabobs,Vegetarian,Vegetarian Bbq & Grilling,8,5,1,9.73,0,side_only,move_to_review,fruit-and-vegetable side profile is useful but less central
+pilot_recipe_027,48695,Grilled Mahi Mahi in Thai Coconut Sauce,Main Dishes,Thai Main Dishes,8,5,1,9.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_028,26187,Sheet Pan Salmon and Veggies,Dinner,Sheet Pan Dinners,9,4,2,9.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_029,26856,Simple Slow Roast Chicken,Dinner,Baked And Roasted Chicken,9,4,2,9.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_030,60258,Make-Ahead Vegetarian Moroccan Stew,Vegetarian,Vegetarian Soups And Stews,8,5,2,9.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_031,26200,Sheet Pan Lemon Balsamic Chicken and Potatoes,Dinner,Sheet Pan Dinners,10,5,2,9.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_032,60321,Slow Cooker Candied Yams,Vegetarian,Vegetarian Slow Cooker Recipes,10,5,2,9.71,0,side_only,remove_from_pilot,"sweet holiday side, outside first savory parsing pilot"
+pilot_recipe_033,59935,Vegetarian Pho (Vietnamese Noodle Soup),Vegetarian,Vegetarian Protein,8,5,2,9.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_034,26584,Honey Mustard Spaghetti,Dinner,Pasta Main Dishes,9,4,3,9.69,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_035,26112,Sriracha Honey Chicken,Dinner,Quick And Easy Dinners For One,9,4,3,9.69,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_036,60600,Ham and Hash Brown Quiche,Vegetarian,Vegetarian Quiche,10,5,3,9.69,0,standalone,move_to_review,category mismatch with vegetarian tag suggests quick review first
+pilot_recipe_037,26555,Miso Ramen Stir Fry,Dinner,Pasta Main Dishes,10,5,3,9.69,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_038,26070,Lemon Panko-Crusted Salmon,Dinner,Quick And Easy Dinners For One,9,4,4,9.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_039,26779,President Ford's Braised Eye Round Steak,Dinner,Beef Steaks,9,4,4,9.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_040,26661,Broiled Pork Chops,Dinner,Pork Chops,10,5,4,9.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_041,60593,Goat Cheese and Leek Quiche,Vegetarian,Vegetarian Quiche,10,5,4,9.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_042,26455,Sweet Chili Chicken with Creamy Lime Sauce,Dinner,Main Dishes,8,5,4,9.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_043,59784,Best Fried Green Tomatoes,Vegetarian,Vegetarian,9,6,5,9.65,0,side_only,move_to_review,"appetizer/side recipe, not a strong main-meal example"
+pilot_recipe_044,59898,Make Ahead French Toast,Vegetarian,Vegetarian Breakfast And Brunch,9,4,5,9.65,0,standalone,move_to_review,sweet breakfast format is less aligned with savory pilot core
+pilot_recipe_045,26471,Million Dollar Chicken Breasts,Dinner,Main Dishes,9,6,5,9.65,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_046,60152,Country Fried Squash,Vegetarian,Vegetarian Side Dishes,9,4,12,9.51,0,side_only,move_to_review,fried vegetable side/appetizer is lower-priority for first parsing pass
+pilot_recipe_047,60026,Mujaddara Arabic Lentil Rice,Vegetarian,Vegetarian Whole Grain,9,3,1,9.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_048,60042,Veggie Quinoa,Vegetarian,Vegetarian Whole Grain,9,3,1,9.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_049,59816,California Grilled Veggie Sandwich,Vegetarian,Vegetarian Bbq & Grilling,10,4,1,9.48,0,standalone,move_to_review,sandwich format may add bread-heavy mapping noise
+pilot_recipe_050,59880,Home-Fried Potatoes,Vegetarian,Vegetarian Breakfast And Brunch,8,4,1,9.48,0,side_only,keep_for_parsing,useful side-dish pattern worth keeping for parsing diversity
+pilot_recipe_051,59849,Marinated Barbequed Vegetables,Vegetarian,Vegetarian Bbq & Grilling,8,4,1,9.48,0,side_only,keep_for_parsing,useful side-dish pattern worth keeping for parsing diversity
+pilot_recipe_052,60109,Sweet Potato Tempura,Vegetarian,Vegetarian Appetizers,8,4,1,9.48,0,side_only,move_to_review,tempura/appetizer profile is lower-priority for first parsing pass
+pilot_recipe_053,60039,Energy Balls without Peanut Butter,Vegetarian,Vegetarian Whole Grain,10,4,2,9.46,0,side_only,remove_from_pilot,"snack-style energy bite, outside meal-planning pilot"
+pilot_recipe_054,60407,Green Tomato Relish,Vegetarian,Vegan Recipes,10,6,2,9.46,0,sauce_or_dressing,remove_from_pilot,"condiment-style relish, better outside the first parsing batch"
+pilot_recipe_055,58681,Herb-Crusted Pork Sirloin Roast,Pork,Pork Loin,9,5,1,7.98,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_056,59530,Orange-Pineapple Pork Stir-Fry,Pork,Pork Stir-Fry,9,5,1,7.98,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_057,35876,Air Fryer Blackened Chicken Breasts,Healthy Recipes,Keto Diet,9,5,2,7.96,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_058,59169,Asian-Style Meatloaf,Pork,Pork Meatloaf,9,5,2,7.96,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_059,35888,Garlic Butter Smoked Shrimp,Healthy Recipes,Keto Diet,9,5,2,7.96,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_060,50678,Sweet Tamales with Pineapple and Coconut,Mexican,Authentic Mexican Recipes,9,5,2,7.96,0,standalone,remove_from_pilot,sweet tamale / dessert-leaning recipe outside first savory pilot
+pilot_recipe_061,51213,Chicken Fajita Melts,Mexican,Fajitas,9,5,3,7.94,0,standalone,move_to_review,melt/sandwich style deserves review before first parsing batch
+pilot_recipe_062,4093,Corned Beef and Cabbage,Beef Recipes,Beef Brisket,9,5,3,7.94,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_063,50640,Slow Cooker Carnitas,Mexican,Authentic Mexican Recipes,9,5,3,7.94,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_064,51228,Easy Grilled Shrimp Fajitas,Mexican,Fajitas,9,5,4,7.92,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_065,34433,Fresh Homemade Salsa,Healthy Recipes,Low-Fat Recipes,9,5,12,7.76,0,sauce_or_dressing,move_to_review,salsa component is useful but better handled after meal recipes
+pilot_recipe_066,51397,Ahi Tuna Tacos with Pineapple Salsa,Mexican,Mexican Fish Tacos,9,4,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_067,4026,Italian Style Short Ribs,Beef Recipes,Beef Ribs,9,4,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_068,38271,Quick Super-Delicious Zuppa Toscana,Italian,Italian Soups And Stews,9,4,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_069,38286,Rich Italian Sausage and Potato Soup,Italian,Italian Soups And Stews,9,4,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_070,59504,Sweet and Sour Ground Pork Stir-Fry,Pork,Pork Stir-Fry,9,4,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_071,51275,Vegetable Quesadillas,Mexican,Quesadillas,9,4,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_072,59640,"""OG"" Zuppa Toscana Soup",Pork,Pork Soup,10,5,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_073,36526,"Broiled Chicken Breasts with Herbs, Carrots, and Red Potatoes",Healthy Recipes,Healthy Kid Recipes,10,5,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_074,50389,Easy Chicken Fajita Marinade,Mexican,Mexican,8,5,1,7.73,0,sauce_or_dressing,move_to_review,"marinade component, not a full meal recipe"
+pilot_recipe_075,35100,Healthier Ultimate Twice-Baked Potatoes,Healthy Recipes,Healthy Makeover Recipes,10,5,1,7.73,0,side_only,keep_for_parsing,useful side-dish pattern worth keeping for parsing diversity
+pilot_recipe_076,58683,Herb-Roasted Pork,Pork,Pork Loin,10,5,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_077,4006,Korean Barbecue Short Ribs Teriyaki,Beef Recipes,Beef Ribs,8,5,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_078,58641,Parsley and Parmesan Crusted Pork Tenderloin,Pork,Pork Tenderloin,10,5,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_079,58642,Pork Tenderloin with Dijon Marsala Sauce,Pork,Pork Tenderloin,8,5,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_080,51272,Texas Chicken Quesadillas,Mexican,Quesadillas,8,5,1,7.73,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_081,4868,Dash's Donair,Beef Recipes,Beef Sandwiches,9,6,2,7.71,0,standalone,move_to_review,sandwich/wrap style deserves review before first parsing batch
+pilot_recipe_082,4584,Grilled London Broil,Beef Recipes,Bbq & Grilled Beef,9,4,2,7.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_083,35125,Healthier Restaurant-Style Buffalo Chicken Wings,Healthy Recipes,Healthy Makeover Recipes,9,4,2,7.71,0,standalone,move_to_review,wing/appetizer profile is borderline for meal-planning pilot
+pilot_recipe_084,36212,Marinated Grilled Shrimp,Healthy Recipes,Egg-Free Recipes,9,6,2,7.71,0,standalone,move_to_review,could behave like appetizer or protein component depending on use
+pilot_recipe_085,38470,Ricotta-Stuffed Zucchini,Italian,Italian Appetizers,9,4,2,7.71,0,side_only,move_to_review,stuffed vegetable side/appetizer is a lighter edge-case recipe
+pilot_recipe_086,4038,BBQ NY Strip,Beef Recipes,Beef Ribs,8,5,2,7.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_087,58609,Bacon-Wrapped Pork Medallions,Pork,Pork Tenderloin,8,5,2,7.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_088,59197,Cheese-Filled Meat Loaf,Pork,Pork Meatloaf,8,5,2,7.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_089,59586,Chuck's Come On Ice Cream (or Night of the Red Death) Chili,Pork,Pork Chili,10,5,2,7.71,0,standalone,move_to_review,noisy novelty title should be confirmed before parsing
+pilot_recipe_090,4598,Grilled Balsamic and Soy Marinated Flank Steak,Beef Recipes,Bbq & Grilled Beef,10,5,2,7.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_091,58628,Grilled Pork Tenderloin with Balsamic Honey Glaze,Pork,Pork Tenderloin,10,5,2,7.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_092,34492,Portuguese Pork with Red Peppers,Healthy Recipes,Low-Calorie Recipes,8,5,2,7.71,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_093,4519,Lana's Sweet and Sour Meatballs,Beef Recipes,Beef Appetizers,9,6,3,7.69,0,standalone,move_to_review,appetizer-category meatball recipe is borderline for pilot scope
+pilot_recipe_094,50499,Roasted Tomato Salsa,Mexican,Mexican Appetizers,9,4,3,7.69,0,sauce_or_dressing,move_to_review,salsa component is useful but better handled after meal recipes
+pilot_recipe_095,4500,Loaded Tater Tot Taco Cups,Beef Recipes,Beef Appetizers,8,5,3,7.69,0,side_only,move_to_review,party-food / cup format is lower-priority for the first parsing batch
+pilot_recipe_096,36081,Quick and Easy Chicken,Healthy Recipes,Dairy-Free Recipes,8,5,3,7.69,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_097,4779,Easy Taco Casserole,Beef Recipes,Beef Casserole,9,4,4,7.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_098,35127,Healthier Eggplant Parmesan,Healthy Recipes,Healthy Makeover Recipes,9,6,4,7.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_099,59182,Mini Ham Loaves,Pork,Pork Meatloaf,9,4,4,7.67,0,standalone,move_to_review,mini/party-style loaf format is slightly borderline for pilot scope
+pilot_recipe_100,4775,Pizza Casserole,Beef Recipes,Beef Casserole,9,4,4,7.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_101,4019,The Real Deal Korean Beef Ribs,Beef Recipes,Beef Ribs,9,4,4,7.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_102,38460,Double Tomato Bruschetta,Italian,Italian Appetizers,10,5,4,7.67,0,side_only,move_to_review,bruschetta/appetizer pattern is better reviewed separately
+pilot_recipe_103,4023,Gluten-Free Kalbi Beef,Beef Recipes,Beef Ribs,8,5,4,7.67,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_104,58723,Homemade Breakfast Sausage,Pork,Ground Pork,8,5,4,7.67,0,component,move_to_review,homemade component recipe should be separated from full meals
+pilot_recipe_105,38191,Genoise Sponge,Italian,Authentic Italian Recipes,9,4,5,7.65,0,component,remove_from_pilot,cake base / dessert component outside pilot scope
+pilot_recipe_106,35603,Strawberry Spinach Salad,Healthy Recipes,Low-Sodium Recipes,8,5,5,7.65,0,side_only,keep_for_parsing,useful side-dish pattern worth keeping for parsing diversity
+pilot_recipe_107,35307,Dutch Apple Pie with Oatmeal Streusel,Healthy Recipes,Low-Potassium Recipes,9,6,7,7.61,0,standalone,remove_from_pilot,dessert/pie recipe outside pilot scope
+pilot_recipe_108,35426,Kimchi,Healthy Recipes,Prebiotic And Probiotic Recipes,9,4,7,7.61,0,component,move_to_review,fermented component is valuable but better parsed in a later component pass
+pilot_recipe_109,4488,The Best Sweet and Sour Meatballs,Beef Recipes,Beef Appetizers,9,6,7,7.61,0,standalone,move_to_review,appetizer-category meatball recipe is borderline for pilot scope
+pilot_recipe_110,34911,Grandma's Chicken Noodle Soup,Healthy Recipes,Low Glycemic Impact Recipes,10,5,7,7.61,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_111,59148,Ham and Cheese Breakfast Casserole,Pork,Pork Casserole,9,6,8,7.59,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_112,4560,Serbian Ćevapčići,Beef Recipes,Bbq & Grilled Beef,10,5,11,7.53,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_113,5128,Beef Noodle Soup,Beef Recipes,Beef Soup,9,3,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_114,58707,Bourbon Bacon Pulled Pork,Pork,Pork Loin,9,3,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_115,58659,Canadian Pork Loin Chops,Pork,Pork Loin,9,7,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_116,5024,Easy Ginger Beef,Beef Recipes,Beef Stir-Fry,9,3,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_117,58823,Easy North Carolina Barbeque,Pork,Pork Shoulder,9,3,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_118,4009,Fried Beef Ribs,Beef Recipes,Beef Ribs,9,7,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_119,51404,Grilled Catfish Tacos,Mexican,Mexican Fish Tacos,9,7,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_120,35131,Healthier Broiled Tilapia Parmesan,Healthy Recipes,Healthy Makeover Recipes,9,3,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_121,50548,Posole Soup,Mexican,Mexican Soups And Stews,9,3,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_122,50439,Queso Fundido,Mexican,Mexican Appetizers,8,6,1,7.48,0,component,remove_from_pilot,dip-like cheese component outside first parsing batch
+pilot_recipe_123,36518,Herbed Chicken Nuggets,Healthy Recipes,Healthy Kid Recipes,11,5,1,7.48,0,standalone,move_to_review,nugget / processed-style shape deserves a quick scope check
+pilot_recipe_124,36331,Real Wisconsin Fried Cheese Curds,Healthy Recipes,Low-Carb Recipes,7,5,1,7.48,0,side_only,remove_from_pilot,"snack/appetizer fry, outside pilot meal focus"
+pilot_recipe_125,35810,Red Pepper Soup,Healthy Recipes,Weight-Loss Recipes,7,5,1,7.48,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_126,51407,Tilapia Fish Tacos with Red Pepper-Lime Slaw and Blue Cheese Aioli,Mexican,Mexican Fish Tacos,7,5,1,7.48,0,standalone,move_to_review,multi-component taco with slaw and aioli is a harder first-pass parse
+pilot_recipe_127,38197,Balsamic Bruschetta,Italian,Authentic Italian Recipes,10,6,2,7.46,0,side_only,move_to_review,bruschetta/appetizer pattern is better reviewed separately
+pilot_recipe_128,38710,Grilled Spaghetti,Italian,Spaghetti,10,6,2,7.46,0,standalone,move_to_review,novelty format is parseable but worth confirming manually
+pilot_recipe_129,51096,Vegan Sweet Potato and Bean Burritos,Mexican,Burritos,8,4,2,7.46,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_130,51372,Easy Mahi Mahi Fish Tacos,Mexican,Mexican Fish Tacos,11,5,2,7.46,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_131,51024,Zesty Carnitas Tacos,Mexican,Mexican Slow Cooker Recipes,7,5,2,7.46,0,standalone,keep_for_parsing,clear meal-like recipe shape for pilot parsing
+pilot_recipe_132,38386,Old-Fashioned Italian Zucchini Fritters,Italian,Italian Side Dishes,9,3,3,7.44,0,side_only,move_to_review,fritter/appetizer pattern is lower-priority for first parsing pass

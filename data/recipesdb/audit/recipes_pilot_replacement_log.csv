@@ -1,0 +1,22 @@
+action,recipe_title,category,subcategory,recipe_kind_guess,reason_code,reason
+removed_from_final_subset,Slow Cooker Candied Yams,Vegetarian,Vegetarian Slow Cooker Recipes,side_only,manual_remove,"sweet holiday side, outside first savory parsing pilot"
+removed_from_final_subset,Energy Balls without Peanut Butter,Vegetarian,Vegetarian Whole Grain,side_only,manual_remove,"snack-style energy bite, outside meal-planning pilot"
+removed_from_final_subset,Green Tomato Relish,Vegetarian,Vegan Recipes,sauce_or_dressing,manual_remove,"condiment-style relish, better outside the first parsing batch"
+removed_from_final_subset,Sweet Tamales with Pineapple and Coconut,Mexican,Authentic Mexican Recipes,standalone,manual_remove,sweet tamale / dessert-leaning recipe outside first savory pilot
+removed_from_final_subset,Genoise Sponge,Italian,Authentic Italian Recipes,component,manual_remove,cake base / dessert component outside pilot scope
+removed_from_final_subset,Dutch Apple Pie with Oatmeal Streusel,Healthy Recipes,Low-Potassium Recipes,standalone,manual_remove,dessert/pie recipe outside pilot scope
+removed_from_final_subset,Queso Fundido,Mexican,Mexican Appetizers,component,manual_remove,dip-like cheese component outside first parsing batch
+removed_from_final_subset,Real Wisconsin Fried Cheese Curds,Healthy Recipes,Low-Carb Recipes,side_only,manual_remove,"snack/appetizer fry, outside pilot meal focus"
+added_replacement,Italian Wedding Soup,Main Dishes,Main Dish Soups And Stews,standalone,add_soup_diversity,savory soup that broadens the pilot beyond compact mains
+added_replacement,Best Ever Split Pea Soup,Vegetarian,Vegetarian Soups And Stews,standalone,add_soup_diversity,vegetarian soup that adds legume-heavy savory coverage
+added_replacement,Vegan Broccoli Soup,Vegetarian,Vegetarian Soups And Stews,standalone,add_soup_diversity,clean vegetarian soup with simple parseable ingredient structure
+added_replacement,Easy Black Bean Soup for Two,Dinner,Cooking For Two,standalone,add_soup_diversity,meal-planning friendly soup that expands bean-based savory coverage
+added_replacement,Tofu Broccoli Stir-Fry,Vegetarian,Vegetarian,standalone,add_vegetarian_main_diversity,clear vegetarian main with protein-plus-vegetable structure
+added_replacement,Slow Cooker Vegetarian Curry,Vegetarian,Vegetarian Slow Cooker Recipes,standalone,add_vegetarian_main_diversity,savory vegetarian main with a different cooking profile
+added_replacement,Black Beans and Rice,Dinner,Vegetarian Main Dishes,standalone,add_vegetarian_main_diversity,simple legume-and-grain main that maps well to Food_DB ingredients
+added_replacement,Mushroom Stir-Fry,Dinner,Vegetarian Main Dishes,standalone,add_vegetarian_main_diversity,clean vegetable-forward main that improves non-meat coverage
+added_replacement,Butternut Farro Salad with Blood Orange Vinaigrette,Dinner,Main Dish Salads,standalone,add_salad_diversity,main-dish salad that broadens the pilot beyond hot mains
+added_replacement,"Kale, Quinoa, and Avocado Salad with Lemon Dijon Vinaigrette",Dinner,Main Dish Salads,standalone,add_salad_diversity,grain-based salad adds lighter savory planning coverage
+added_replacement,Mediterranean Lentil Salad,Vegetarian,Vegan Recipes,standalone,add_salad_diversity,legume-based salad adds a clean vegetarian savory pattern
+added_replacement,Oven Roasted Potatoes,Vegetarian,Vegetarian Side Dishes,side_only,add_side_dish_diversity,clean side dish with low-noise ingredients and common meal-planning use
+added_replacement,Grilled Stuffed Portobello Mushroom Caps,Vegetarian,Vegetarian Bbq & Grilling,standalone,add_vegetarian_main_diversity,stuffed vegetable main adds a useful vegetarian centerpiece pattern

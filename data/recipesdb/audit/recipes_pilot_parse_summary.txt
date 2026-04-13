@@ -1,0 +1,36 @@
+Recipes pilot parse summary
+
+Total exploded ingredient rows: 947
+
+Parse status counts:
+- parsed_clean: 674
+- parsed_partial: 263
+- review_needed: 10
+
+Top unit_raw values:
+- teaspoon: 205
+- cup: 171
+- tablespoons: 107
+- tablespoon: 65
+- teaspoons: 59
+- cups: 51
+- pound: 32
+- pounds: 20
+- cloves: 17
+- ounces: 12
+- slices: 10
+- pinch: 4
+- clove: 4
+- bunch: 3
+- stalks: 3
+- cubes: 2
+- head: 2
+- strips: 1
+- heads: 1
+- dashes: 1
+
+Top review reasons:
+- missing_quantity: 9
+- mapping_risk_line: 6
+- garnish_phrase: 3
+- alternative_phrase: 1

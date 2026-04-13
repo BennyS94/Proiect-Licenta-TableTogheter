@@ -1,0 +1,87 @@
+Recipe ingredient mapping second-pass audit plan
+
+Total review_needed rows audited: 159
+Total unmapped rows audited: 749
+
+Review audit by reason group:
+- family_exact_ambiguous: 73
+- family_exact_unique: 47
+- family_fallback_ambiguous: 25
+- parse_review_no_match: 10
+- family_fallback_unique: 4
+
+Review audit decisions:
+- keep_in_review: 104
+- likely_bad_match: 29
+- safe_to_promote_with_rule: 26
+
+Unmapped audit classifications:
+- keep_unmapped: 452
+- likely_fooddb_gap: 196
+- alias_or_normalization_fix: 78
+- singular_plural_or_descriptor_fix: 23
+
+Top unmapped pattern groups:
+- other: 337
+- powder_or_ground_spice: 72
+- pepper_variant: 65
+- dairy_or_fat: 50
+- oil_variant: 47
+- sauce_or_condiment: 41
+- onion_variant: 36
+- garlic_variant: 34
+- citrus_variant: 24
+- broth_or_stock: 17
+- sweetener: 16
+- meat_or_fish_specific: 10
+
+Top safe alias candidates:
+- ground black pepper -> Black pepper, powder: 28
+- garlic powder -> Garlic, powder, dried: 13
+- dried basil -> Basil, dried: 7
+- dried oregano -> Oregano, dried: 7
+- freshly ground black pepper -> Black pepper, powder: 6
+- dried thyme -> Thyme, dried: 5
+- dried parsley -> Parsley, dried: 5
+- balsamic vinegar -> Vinegar, balsamic: 4
+- ground cinnamon -> Cinnamon, powder: 3
+
+Top family matches that could be promoted safely:
+- soy sauce -> Soy sauce, prepacked: 12
+- black pepper -> Black pepper, powder: 5
+- red onion -> Red onion, raw: 5
+- yellow onion -> Yellow onion, raw: 2
+- lemon zest -> Lemon zest, raw: 1
+- poppy seeds -> Poppy, seed: 1
+
+Likely true Food_DB gaps:
+- salt: 39
+- olive oil: 29
+- butter: 12
+- onion powder: 11
+- vegetable oil: 10
+- lemon juice: 10
+- Dijon mustard: 8
+- ground cumin: 8
+- white sugar: 8
+- chili powder: 7
+- lime juice: 7
+- Worcestershire sauce: 6
+- shredded Cheddar cheese: 6
+- chicken broth: 5
+- cornstarch: 5
+
+Very small second-pass rule set proposal:
+- Safe alias rules only: ground/freshly ground black pepper -> Black pepper, powder
+- Safe alias rules only: garlic powder -> Garlic, powder, dried
+- Safe alias rules only: ground cinnamon -> Cinnamon, powder
+- Safe alias rules only: dried basil / oregano / thyme / parsley -> matching dried herb rows
+- Safe alias rules only: balsamic vinegar -> Vinegar, balsamic
+- Safe normalization rules only: minced garlic -> garlic, chopped onion -> onion, chopped fresh parsley -> fresh parsley
+- Optional selected family promotions: soy sauce, black pepper, red onion, yellow onion, lemon zest
+- Explicitly avoid promotion: water -> Water, bottled; cooked ham -> Cooked ham, smoked; broad ambiguous family matches like garlic/onion/milk/egg
+
+Recommendation:
+- The second pass should be alias + selected family promotions, not alias-only.
+- Keep the pass very small: a handful of safe alias rules plus a short allowlist of unique family promotions.
+- Do not add broad heuristics for oils, broths, sugars, generic butter, or generic meats yet.

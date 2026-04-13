@@ -1,0 +1,43 @@
+Recipes pilot selection summary
+
+Original rows: 62126
+Deduped rows: 25021
+After exclusions: 4067
+Final pilot subset: 132
+Duplicate signature groups: 14353
+
+Top exclusion reasons:
+- non_preferred_category: 11414
+- out_of_scope_category: 6408
+- target_size_reached: 2242
+- pilot_category_cap: 1693
+- ingredient_count_out_of_range: 1336
+- out_of_scope_title: 889
+- step_count_out_of_range: 433
+- too_many_alternative_patterns: 239
+- too_many_packaging_patterns: 124
+- too_many_optional_patterns: 73
+- too_many_brand_hints: 34
+- too_noisy_total: 4
+
+Final pilot categories:
+- Main Dishes: 18
+- Dinner: 18
+- Vegetarian: 18
+- Pork: 18
+- Healthy Recipes: 18
+- Beef Recipes: 18
+- Mexican: 16
+- Italian: 8
+
+Top final pilot subcategories:
+- Beef Ribs: 6
+- Sheet Pan Dinners: 4
+- Vegetarian Bbq & Grilling: 4
+- Pork Loin: 4
+- Mexican Fish Tacos: 4
+- Healthy Makeover Recipes: 4
+- Pork Tenderloin: 4
+- Quick And Easy Dinners For One: 3
+- Vegetarian Whole Grain: 3
+- Pork Meatloaf: 3

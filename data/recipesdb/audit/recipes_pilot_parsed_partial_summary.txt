@@ -1,0 +1,115 @@
+Recipes pilot parsed_partial audit
+
+Input file: data\recipesdb\draft\recipes_pilot_ingredients_parsed.csv
+Total parsed_partial rows: 272
+
+Primary issue category counts:
+- parenthetical_pack_size = 37
+- packaging_or_piece_unit = 34
+- size_descriptor_only = 8
+- preparation_note_inline = 153
+- count_without_standard_unit = 27
+- other = 13
+
+All matched issue counts:
+- parenthetical_pack_size = 37
+- packaging_or_piece_unit = 36
+- size_descriptor_only = 8
+- preparation_note_inline = 206
+- count_without_standard_unit = 159
+- other = 28
+
+Judgment by category:
+- parenthetical_pack_size -> safe_with_small_cleanup
+- packaging_or_piece_unit -> safe_for_mapping_now
+- size_descriptor_only -> safe_with_small_cleanup
+- preparation_note_inline -> safe_for_mapping_now
+- count_without_standard_unit -> safe_for_mapping_now
+- other -> should_go_to_mapping_review
+
+Representative examples: parenthetical_pack_size
+- Ahi Tuna Tacos with Pineapple Salsa | 4 (10 inch) flour tortillas, warmed | food=flour tortillas | unit=- | prep=warmed | notes=leading_parenthetical_note; preparation_note_from_commas; count_without_measure_unit
+- Air Fryer Blackened Chicken Breasts | 2 (6 ounce) skinless, boneless chicken breast halves | food=boneless chicken breast halves | unit=- | prep=skinless | notes=pack_size_note; leading_parenthetical_note; preparation_note_from_commas; count_without_measure_unit
+- Asian Pork Tenderloin | 1 (2 pound) fat-trimmed pork tenderloin | food=fat-trimmed pork tenderloin | unit=- | prep=- | notes=pack_size_note; leading_parenthetical_note; count_without_measure_unit
+- BBQ NY Strip | 4 (6 ounce) New York strip steaks | food=New York strip steaks | unit=- | prep=- | notes=pack_size_note; leading_parenthetical_note; count_without_measure_unit
+- Beef Tenderloin with Dijon Cream Sauce | 1 (2-pound) beef tenderloin, trimmed, with silver skin removed | food=beef tenderloin | unit=- | prep=trimmed; with silver skin removed | notes=pack_size_note; leading_parenthetical_note; preparation_note_from_commas; count_without_measure_unit
+- Breaded Center Cut Pork Chops | 6 (3/4 inch thick) center cut pork chops | food=center cut pork chops | unit=- | prep=- | notes=leading_parenthetical_note; count_without_measure_unit
+- Broiled Chicken Breasts with Herbs, Carrots, and Red Potatoes | 4 (4 ounce) skinless, boneless chicken breast halves | food=boneless chicken breast halves | unit=- | prep=skinless | notes=pack_size_note; leading_parenthetical_note; preparation_note_from_commas; count_without_measure_unit
+- Broiled Pork Chops | 6 (3/4 inch) thick pork chops | food=thick pork chops | unit=- | prep=- | notes=leading_parenthetical_note; count_without_measure_unit
+- Chicken Bog | 1 (3 pound) whole chicken | food=whole chicken | unit=- | prep=- | notes=pack_size_note; leading_parenthetical_note; count_without_measure_unit
+- Chicken with Lemon-Caper Sauce | 2 (6 ounce) skinless, boneless chicken breast halves | food=boneless chicken breast halves | unit=- | prep=skinless | notes=pack_size_note; leading_parenthetical_note; preparation_note_from_commas; count_without_measure_unit
+- Corned Beef and Cabbage | 1 (5 1/2 pound) corned beef brisket | food=corned beef brisket | unit=- | prep=- | notes=pack_size_note; leading_parenthetical_note; count_without_measure_unit
+- Easy Black Bean Soup for Two | 3 (15.75 ounce) no-salt black beans | food=no-salt black beans | unit=- | prep=- | notes=pack_size_note; leading_parenthetical_note; count_without_measure_unit
+
+Representative examples: packaging_or_piece_unit
+- "OG" Zuppa Toscana Soup | 4 strips bacon, diced | food=bacon | unit=strip | prep=diced | notes=preparation_note_from_commas
+- "OG" Zuppa Toscana Soup | ¼ bunch kale, chopped | food=kale | unit=bunch | prep=chopped | notes=preparation_note_from_commas
+- Asian Pork Tenderloin | 4 cloves garlic, crushed | food=garlic | unit=clove | prep=crushed | notes=preparation_note_from_commas
+- Asian-Style Meatloaf | 3 slices bread, broken up into small pieces | food=bread | unit=slice | prep=broken up into small pieces | notes=preparation_note_from_commas
+- Asian-Style Meatloaf | 2 stalks celery, finely chopped | food=celery | unit=stalk | prep=finely chopped | notes=preparation_note_from_commas
+- Authentic Chicken Adobo | 2 heads garlic, peeled and coarsely chopped, divided | food=garlic | unit=head | prep=peeled and coarsely chopped; divided | notes=preparation_note_from_commas
+- Black Beans and Rice | 2 cloves garlic, minced | food=garlic | unit=clove | prep=minced | notes=preparation_note_from_commas
+- Bourbon Bacon Pulled Pork | 8 slices cooked bacon, crumbled | food=cooked bacon | unit=slice | prep=crumbled | notes=preparation_note_from_commas
+- Broiled Chicken Breasts with Herbs, Carrots, and Red Potatoes | 2 cloves garlic, sliced thin | food=garlic | unit=clove | prep=sliced thin | notes=preparation_note_from_commas
+- Cheese-Filled Meat Loaf | 8 slices bacon, divided | food=bacon | unit=slice | prep=divided | notes=preparation_note_from_commas
+- Cheese-Filled Meat Loaf | 1 clove garlic, minced | food=garlic | unit=clove | prep=minced | notes=preparation_note_from_commas
+- Corned Beef and Cabbage | 2 stalks celery, sliced | food=celery | unit=stalk | prep=sliced | notes=preparation_note_from_commas
+
+Representative examples: size_descriptor_only
+- Apple Butter Meatballs | 1 large egg | food=egg | unit=- | prep=large | notes=preparation_note_from_commas; count_without_measure_unit
+- Cajun Shrimp and Sausage Sheet Pan Dinner | 1/2 medium red onion | food=red onion | unit=- | prep=medium | notes=preparation_note_from_commas; count_without_measure_unit
+- Easy Black Bean Soup for Two | 1 small jalapeno | food=jalapeno | unit=- | prep=small | notes=preparation_note_from_commas; count_without_measure_unit
+- Grilled Stuffed Portobello Mushroom Caps | 4 large portobello mushrooms | food=portobello mushrooms | unit=- | prep=large | notes=preparation_note_from_commas; count_without_measure_unit
+- Healthier Eggplant Parmesan | 1 large egg | food=egg | unit=- | prep=large | notes=preparation_note_from_commas; count_without_measure_unit
+- Healthier Eggplant Parmesan | 3 large egg whites | food=egg whites | unit=- | prep=large | notes=preparation_note_from_commas; count_without_measure_unit
+- Healthier Ultimate Twice-Baked Potatoes | 4 large baking potatoes | food=baking potatoes | unit=- | prep=large | notes=preparation_note_from_commas; count_without_measure_unit
+- Vegan Sweet Potato and Bean Burritos | 4 large vegan tortillas | food=vegan tortillas | unit=- | prep=large | notes=preparation_note_from_commas; count_without_measure_unit
+
+Representative examples: preparation_note_inline
+- "OG" Zuppa Toscana Soup | 1 large white onion, diced | food=white onion | unit=- | prep=large; diced | notes=preparation_note_from_commas; count_without_measure_unit
+- "OG" Zuppa Toscana Soup | 1 pound russet potatoes, diced | food=russet potatoes | unit=pound | prep=diced | notes=preparation_note_from_commas
+- Asian Pork Tenderloin | 3 green onions, chopped | food=green onions | unit=- | prep=chopped | notes=preparation_note_from_commas; count_without_measure_unit
+- Asian-Style Meatloaf | 1 small onion, finely chopped | food=onion | unit=- | prep=small; finely chopped | notes=preparation_note_from_commas; count_without_measure_unit
+- Asian-Style Meatloaf | 2 large eggs, lightly beaten | food=eggs | unit=- | prep=large; lightly beaten | notes=preparation_note_from_commas; count_without_measure_unit
+- Authentic Chicken Adobo | 3 teaspoons annatto powder, divided | food=annatto powder | unit=teaspoon | prep=divided | notes=preparation_note_from_commas
+- Authentic Chicken Adobo | 3 tablespoons vegetable oil, divided | food=vegetable oil | unit=tablespoon | prep=divided | notes=preparation_note_from_commas
+- Beef Tenderloin with Dijon Cream Sauce | 2 tablespoons butter, softened | food=butter | unit=tablespoon | prep=softened | notes=preparation_note_from_commas
+- Black Beans and Rice | 1 onion, chopped | food=onion | unit=- | prep=chopped | notes=preparation_note_from_commas; count_without_measure_unit
+- Black Beans and Rice | 1 ½ cups low sodium, low fat vegetable broth | food=low fat vegetable broth | unit=cup | prep=low sodium | notes=preparation_note_from_commas
+- Black Beans and Rice | 3 ½ cups canned black beans, drained | food=canned black beans | unit=cup | prep=drained | notes=preparation_note_from_commas
+- Bo Luc Lac "French-Vietnamese Shaking Beef" | 1 ½ pounds beef top sirloin, cut into 1-inch cubes | food=beef top sirloin | unit=pound | prep=cut into 1-inch cubes | notes=preparation_note_from_commas
+
+Representative examples: count_without_standard_unit
+- Authentic Chicken Adobo | 10 bay leaves | food=bay leaves | unit=- | prep=- | notes=count_without_measure_unit
+- Breaded Center Cut Pork Chops | 6 eggs | food=eggs | unit=- | prep=- | notes=count_without_measure_unit
+- Cajun Shrimp and Sausage Sheet Pan Dinner | 1 pepper red bell pepper | food=pepper red bell pepper | unit=- | prep=- | notes=count_without_measure_unit
+- Chicken with Lemon-Caper Sauce | 2 lemon wedges | food=lemon wedges | unit=- | prep=- | notes=count_without_measure_unit
+- Crustless Cottage Cheese Mini Quiches | 3 eggs | food=eggs | unit=- | prep=- | notes=count_without_measure_unit
+- Fried Beef Ribs | 3 quarts peanut oil for frying | food=quarts peanut oil for frying | unit=- | prep=- | notes=count_without_measure_unit
+- Garlic Butter Smoked Shrimp | 3 thin strips lemon peel | food=thin strips lemon peel | unit=- | prep=- | notes=count_without_measure_unit
+- Garlic Ginger Chicken Meatball Bowls | 1 ground chicken | food=ground chicken | unit=- | prep=- | notes=count_without_measure_unit
+- Goat Cheese and Leek Quiche | 3 eggs | food=eggs | unit=- | prep=- | notes=count_without_measure_unit
+- Ham and Cheese Breakfast Casserole | 6 eggs | food=eggs | unit=- | prep=- | notes=count_without_measure_unit
+- Home-Fried Potatoes | 4 red potatoes | food=red potatoes | unit=- | prep=- | notes=count_without_measure_unit
+- Mediterranean Lentil Salad | 1 bay leaf | food=bay leaf | unit=- | prep=- | notes=count_without_measure_unit
+
+Representative examples: other
+- Beef Tenderloin with Dijon Cream Sauce | fresh parsley, for garnish | food=fresh parsley | unit=- | prep=- | notes=missing_quantity; garnish_phrase
+- Cajun Shrimp and Sausage Sheet Pan Dinner | fresh parsley fresh parsley | food=fresh parsley fresh parsley | unit=- | prep=- | notes=missing_quantity
+- Crustless Cottage Cheese Mini Quiches | nonstick cooking spray | food=nonstick cooking spray | unit=- | prep=- | notes=missing_quantity
+- Easy Mahi Mahi Fish Tacos | cooking spray | food=cooking spray | unit=- | prep=- | notes=missing_quantity
+- Grilled Catfish Tacos | cooking spray | food=cooking spray | unit=- | prep=- | notes=missing_quantity
+- Miso Ramen Stir Fry | chopped scallions | food=chopped scallions | unit=- | prep=- | notes=missing_quantity
+- Miso Ramen Stir Fry | sesame seeds, | food=sesame seeds | unit=- | prep=- | notes=missing_quantity
+- Parsley and Parmesan Crusted Pork Tenderloin | cooking spray | food=cooking spray | unit=- | prep=- | notes=missing_quantity
+- Pork Tenderloin with Dijon Marsala Sauce | Dijon mustard | food=Dijon mustard | unit=- | prep=- | notes=missing_quantity
+- Posole Soup | water to cover | food=water to cover | unit=- | prep=- | notes=missing_quantity
+- Posole Soup | ½ cup shredded cabbage for garnish | food=shredded cabbage | unit=cup | prep=- | notes=garnish_phrase
+- Restaurant-Style Prime Rib Roast | aluminum foil | food=aluminum foil | unit=- | prep=- | notes=missing_quantity
+
+Recommendation:
+- Majoritatea randurilor parsed_partial sunt deja bune pentru matching candidat, chiar daca nu sunt complet normalizate.
+- Exista totusi 45 randuri care ar beneficia clar de un cleanup mic in parser si inca 13 randuri care merita trimise la mapping review.
+- Recomandarea este sa facem un singur parser cleanup pass mic inainte de Food_DB mapping.
+- Cleanup-ul ar trebui sa ramana foarte local: curatare mai buna pentru parenthetical pack size, separarea descriptorilor de marime din candidate, si tratare mai clara pentru garnish / spray / linii atipice.
+- Dupa acest pas mic, mappingul catre Food_DB ar trebui sa fie mai curat si cu mai putin review manual inutil.

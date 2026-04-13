@@ -1,0 +1,11 @@
+recipe_source_id,recipe_title_raw,category_raw,subcategory_raw,ingredient_index,ingredient_raw,section_name_raw,is_section_header,quantity_raw,quantity_value_low,quantity_value_high,unit_raw,unit_normalized,ingredient_text_clean,food_name_candidate,preparation_note,optional_flag,garnish_flag,alternative_flag,packaging_flag,parse_status,parse_notes
+pilot_recipe_final_011,Beef Tenderloin with Dijon Cream Sauce,Main Dishes,Beef Main Dishes,9,"fresh parsley, for garnish",,0,,,,,,fresh parsley,fresh parsley,,0,1,0,0,review_needed,missing_quantity; garnish_phrase
+pilot_recipe_final_024,Crustless Cottage Cheese Mini Quiches,Main Dishes,Quiche,1,nonstick cooking spray,,0,,,,,,nonstick cooking spray,nonstick cooking spray,,0,0,0,0,review_needed,missing_quantity; mapping_risk_line
+pilot_recipe_final_029,Easy Mahi Mahi Fish Tacos,Mexican,Mexican Fish Tacos,9,cooking spray,,0,,,,,,cooking spray,cooking spray,,0,0,0,0,review_needed,missing_quantity; mapping_risk_line
+pilot_recipe_final_039,Grilled Catfish Tacos,Mexican,Mexican Fish Tacos,9,cooking spray,,0,,,,,,cooking spray,cooking spray,,0,0,0,0,review_needed,missing_quantity; mapping_risk_line
+pilot_recipe_final_064,Parsley and Parmesan Crusted Pork Tenderloin,Pork,Pork Tenderloin,1,cooking spray,,0,,,,,,cooking spray,cooking spray,,0,0,0,0,review_needed,missing_quantity; mapping_risk_line
+pilot_recipe_final_068,Posole Soup,Mexican,Mexican Soups And Stews,3,water to cover,,0,,,,,,water to cover,water to cover,,0,0,0,0,review_needed,missing_quantity; mapping_risk_line
+pilot_recipe_final_068,Posole Soup,Mexican,Mexican Soups And Stews,6,½ cup shredded cabbage for garnish,,0,1/2,0.5,0.5,cup,cup,shredded cabbage,shredded cabbage,,0,1,0,0,review_needed,garnish_phrase
+pilot_recipe_final_074,Restaurant-Style Prime Rib Roast,Main Dishes,Roasts,2,aluminum foil,,0,,,,,,aluminum foil,aluminum foil,,0,0,0,0,review_needed,missing_quantity; mapping_risk_line
+pilot_recipe_final_077,Sheet Pan Halibut with Orange and Fennel,Dinner,Sheet Pan Dinners,9,"fresh parsley, for garnish",,0,,,,,,fresh parsley,fresh parsley,,0,1,0,0,review_needed,missing_quantity; garnish_phrase
+pilot_recipe_final_097,Easy Black Bean Soup for Two,Dinner,Cooking For Two,9,"salt, to taste",,0,,,,,,salt,salt,,0,0,1,0,review_needed,missing_quantity; alternative_phrase

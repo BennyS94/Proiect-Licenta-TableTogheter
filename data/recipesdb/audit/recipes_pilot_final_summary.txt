@@ -1,0 +1,30 @@
+Recipes pilot final subset summary
+
+Original pilot rows: 132
+keep_for_parsing rows retained: 93
+move_to_review rows kept separate: 31
+remove_from_pilot rows removed: 8
+replacement rows added: 13
+Final subset count: 106
+
+Final subset sources:
+- kept_original: 93
+- replacement: 13
+
+Final recipe kind distribution:
+- standalone: 99
+- side_only: 7
+
+Top final categories:
+- Dinner: 21
+- Main Dishes: 18
+- Pork: 15
+- Vegetarian: 15
+- Beef Recipes: 14
+- Healthy Recipes: 11
+- Mexican: 10
+- Italian: 2
+
+Diversity note:
+- final subset adds soups, vegetarian mains, salads, and a clean side dish to offset the original concentration in compact meat-forward mains
+- move_to_review rows remain outside the parsing subset for now
