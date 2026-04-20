@@ -1,0 +1,195 @@
+Recipes Generator Contract Audit
+
+Scope
+- Audit target: materialized pilot tables only.
+- Inputs audited:
+  - data/recipesdb/current/recipes.csv
+  - data/recipesdb/current/recipe_ingredients.csv
+  - data/recipesdb/current/recipe_nutrition_cache.csv
+  - data/recipesdb/current/recipe_components.csv
+
+1. recipes.csv
+- Row count: 106
+- Fully populated and practically useful now:
+  - recipe_id
+  - source_recipe_id
+  - source_dataset
+  - recipe_name
+  - display_name
+  - recipe_family_name
+  - recipe_kind
+  - recipe_category
+  - recipe_subcategory
+  - directions_json
+  - directions_step_count
+  - scope_status
+  - has_ingredients_parsed
+  - has_nutrition_cache
+  - is_pilot_recipe
+  - is_active
+  - qc_recipe_status
+  - qc_notes
+- Partially populated:
+  - recipe_cuisine = 17/106
+- Empty / deferred:
+  - servings_declared = 0/106
+  - servings_normalized = 0/106
+  - prep_time_min = 0/106
+  - cook_time_min = 0/106
+  - total_time_min = 0/106
+  - difficulty_level = 0/106
+- Practical note:
+  - has_nutrition_cache is structural only in this pilot and should not be treated as proof of usable nutrition totals.
+  - qc_recipe_status is consistent but not discriminative yet: 106/106 are pilot_materialized_with_missing_metadata.
+
+2. recipe_ingredients.csv
+- Row count: 947
+- Reliable structure fields now:
+  - recipe_ingredient_id
+  - recipe_id
+  - ingredient_position
+  - ingredient_raw_text
+  - ingredient_name_parsed
+  - ingredient_name_normalized
+  - ingredient_role
+  - ingredient_slot_key
+  - is_optional
+  - mapping_status
+  - mapping_confidence
+  - mapping_method
+  - qc_ingredient_status
+  - qc_notes
+- Quantity coverage:
+  - quantity_value = 933/947
+  - quantity_unit = 775/947
+  - quantity_text = 934/947
+  - quantity_grams_estimated = 200/947
+- Mapping coverage:
+  - mapped_food_id non-empty = 168/947
+  - mapped_food_canonical_name non-empty = 168/947
+  - accepted_auto = 143
+  - review_needed = 151
+  - unmapped = 653
+- Deferred / not usable yet:
+  - is_substitutable = 0/947
+  - substitution_group_id = 0/947
+- Practical note:
+  - ingredients are the main truth layer for generator v1.
+  - mapping_status must gate any downstream Food_DB-based logic.
+  - mapping_confidence and mapping_method are diagnostic, not standalone truth.
+
+3. recipe_nutrition_cache.csv
+- Row count: 106
+- One row exists for every pilot recipe, but usability is partial.
+- Cache status split:
+  - partial_from_mapped_ingredients = 76
+  - no_accepted_mapped_ingredients = 26
+  - mapped_without_weight_estimates = 4
+- Total nutrition fields non-empty = 76/106 for:
+  - energy_kcal_total
+  - protein_g_total
+  - carbs_g_total
+  - fat_g_total
+  - fibre_g_total
+  - sugars_g_total
+  - salt_g_total
+  - water_g_total
+- Coverage indicators:
+  - mapped_weight_ratio non-empty = 90/106
+  - recipes with any accepted mapped ingredient = 80/106
+  - recipes with usable total nutrition values = 76/106
+- Deferred fields:
+  - servings_basis = 0/106
+  - all per-serving metrics = 0/106
+- Practical note:
+  - cache is usable as a pilot soft scoring layer, not as a fully trusted nutrition truth layer.
+  - totals are derived only from accepted mapped ingredients with weight estimates.
+
+4. recipe_components.csv
+- Row count: 0
+- Schema is valid, but the table is intentionally placeholder-only.
+- Recommendation: ignore entirely in generator v1.
+
+5. Safe fields for generator v1 now
+recipes.csv
+- recipe_id
+- recipe_name
+- display_name
+- recipe_family_name
+- recipe_kind
+- recipe_category
+- recipe_subcategory
+- directions_json
+- directions_step_count
+- scope_status
+- is_active
+- qc_notes
+
+recipe_ingredients.csv
+- recipe_ingredient_id
+- recipe_id
+- ingredient_position
+- ingredient_raw_text
+- ingredient_name_parsed
+- ingredient_name_normalized
+- quantity_text
+- ingredient_role
+- is_optional
+- mapping_status
+- mapped_food_id only when mapping_status=accepted_auto
+- mapped_food_canonical_name only when mapping_status=accepted_auto
+- qc_ingredient_status
+- qc_notes
+
+recipe_nutrition_cache.csv
+- recipe_id
+- cache_status
+- energy_kcal_total, protein_g_total, carbs_g_total, fat_g_total only when cache_status=partial_from_mapped_ingredients
+- mapped_ingredient_count
+- unmapped_ingredient_count
+- mapped_weight_ratio
+- qc_notes
+
+6. Fields that must be optional
+- recipe_cuisine
+- quantity_value
+- quantity_unit
+- quantity_grams_estimated
+- mapping_confidence
+- mapping_method
+- fibre/sugars/salt/water totals in cache
+
+7. Fields to ignore for now
+- recipes.servings_declared
+- recipes.servings_normalized
+- recipes.prep_time_min
+- recipes.cook_time_min
+- recipes.total_time_min
+- recipes.difficulty_level
+- recipe_ingredients.is_substitutable
+- recipe_ingredients.substitution_group_id
+- all per-serving fields in recipe_nutrition_cache
+- recipe_nutrition_cache.servings_basis
+- whole recipe_components table
+
+8. Recommended generator-ready eligibility rule
+Recommended base rule for generator v1:
+- recipes.scope_status = pilot_validated
+- recipes.is_active = 1
+- recipes.has_ingredients_parsed = 1
+- recipe_nutrition_cache.cache_status = partial_from_mapped_ingredients
+
+Result on current pilot:
+- generator-ready base pool = 76 recipes
+
+Useful stricter subset if early nutrition scoring needs better coverage:
+- base rule above
+- plus recipe_nutrition_cache.mapped_weight_ratio >= 0.20
+
+Result on current pilot:
+- nutrition-preferred subset = 43 recipes
+
+9. First generator-related implementation recommendation
+- First generator adaptation should consume recipes + recipe_ingredients as the primary truth.
+- recipe_nutrition_cache should be treated as an optional soft layer for filtering/scoring, not as a hard dependency for every recipe row.
+- Start with a generator read adapter over the 76 base-eligible recipes before adding any broader scoring or substitution logic.

@@ -1,0 +1,131 @@
+Recipes Generator V1 Consumption Contract
+
+Purpose
+- Define the first stable read contract for generator work on the materialized pilot tables.
+- Scope is the validated pilot only.
+
+1. Primary tables to consume first
+Required
+- data/recipesdb/current/recipes.csv
+- data/recipesdb/current/recipe_ingredients.csv
+
+Optional soft layer
+- data/recipesdb/current/recipe_nutrition_cache.csv
+
+Ignored in v1
+- data/recipesdb/current/recipe_components.csv
+
+2. recipes.csv contract
+Required fields
+- recipe_id
+- recipe_name
+- display_name
+- recipe_family_name
+- recipe_kind
+- recipe_category
+- recipe_subcategory
+- directions_json
+- directions_step_count
+- scope_status
+- is_active
+
+Optional fields
+- source_recipe_id
+- source_dataset
+- recipe_cuisine
+- qc_notes
+
+Deferred fields
+- servings_declared
+- servings_normalized
+- prep_time_min
+- cook_time_min
+- total_time_min
+- difficulty_level
+
+3. recipe_ingredients.csv contract
+Required fields
+- recipe_ingredient_id
+- recipe_id
+- ingredient_position
+- ingredient_raw_text
+- ingredient_name_parsed
+- ingredient_name_normalized
+- quantity_text
+- ingredient_role
+- mapping_status
+- qc_ingredient_status
+
+Optional fields
+- quantity_value
+- quantity_unit
+- quantity_grams_estimated
+- mapped_food_id
+- mapped_food_canonical_name
+- mapping_confidence
+- mapping_method
+- ingredient_slot_key
+- is_optional
+- qc_notes
+
+Deferred fields
+- is_substitutable
+- substitution_group_id
+
+Consumption rule
+- Only treat mapped_food_id and mapped_food_canonical_name as valid when mapping_status=accepted_auto.
+- Treat review_needed and unmapped ingredients as real recipe ingredients that still exist, not as dropped rows.
+
+4. recipe_nutrition_cache.csv contract
+Required fields when present
+- recipe_id
+- cache_status
+- mapped_ingredient_count
+- unmapped_ingredient_count
+- mapped_weight_ratio
+
+Optional fields
+- energy_kcal_total
+- protein_g_total
+- carbs_g_total
+- fat_g_total
+- fibre_g_total
+- sugars_g_total
+- salt_g_total
+- water_g_total
+- qc_notes
+
+Deferred fields
+- servings_basis
+- all per-serving metrics
+
+Consumption rule
+- Use totals only when cache_status=partial_from_mapped_ingredients.
+- Treat cache as partial pilot support, not as complete nutrition truth.
+
+5. recipe_components.csv contract
+- Ignore the table completely for generator v1.
+- Revisit only when compound recipe/component composition becomes an explicit requirement.
+
+6. Recommended recipe eligibility for generator v1
+Base eligible recipe
+- scope_status=pilot_validated
+- is_active=1
+- has_ingredients_parsed=1
+- cache_status=partial_from_mapped_ingredients
+
+This currently yields
+- 76 recipes
+
+Nutrition-preferred stricter subset
+- base eligible rule
+- plus mapped_weight_ratio >= 0.20
+
+This currently yields
+- 43 recipes
+
+7. Recommended first generator step
+- Build a read adapter or loader that joins recipes to recipe_ingredients by recipe_id.
+- Restrict the first generator-facing pool to the 76 base-eligible pilot recipes.
+- Use recipe_nutrition_cache only as optional scoring/filter support.
+- Keep recipe_components out of scope for the first generator integration pass.
