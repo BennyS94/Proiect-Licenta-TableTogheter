@@ -1,0 +1,19 @@
+Recipes pilot time+serving patch summary
+
+Time fields
+- prep_time_min populated: 106
+- cook_time_min populated: 106
+- total_time_min populated: 106
+- time_estimated_from_directions_v1: 106
+- long_passive_time_estimated: 17
+- step-count fallback used: 0
+
+Per-serving macros
+- from real servings_basis: 0
+- from recipes.servings_normalized: 0
+- from pilot fallback servings_basis=1.0: 76
+- still missing per-serving macros: 30
+
+Operational outcome
+- recipes usable for both time + macro scoring: 76
+- recipes with valid macro per-serving and partial cache: 76

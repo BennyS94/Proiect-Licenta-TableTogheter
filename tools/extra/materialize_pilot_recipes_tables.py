@@ -1,5 +1,6 @@
 import argparse
 import csv
+import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -170,6 +171,68 @@ CUISINE_KEYWORDS = {
     "southern": "Southern US",
 }
 
+UNICODE_FRACTIONS = {
+    "¼": "1/4",
+    "½": "1/2",
+    "¾": "3/4",
+    "⅐": "1/7",
+    "⅑": "1/9",
+    "⅒": "1/10",
+    "⅓": "1/3",
+    "⅔": "2/3",
+    "⅕": "1/5",
+    "⅖": "2/5",
+    "⅗": "3/5",
+    "⅘": "4/5",
+    "⅙": "1/6",
+    "⅚": "5/6",
+    "⅛": "1/8",
+    "⅜": "3/8",
+    "⅝": "5/8",
+    "⅞": "7/8",
+}
+
+TIME_RANGE_PATTERN = re.compile(
+    r"(?P<low>\d+(?:\.\d+)?(?:\s+\d+/\d+)?|\d+/\d+)\s*(?:to|-)\s*(?P<high>\d+(?:\.\d+)?(?:\s+\d+/\d+)?|\d+/\d+)\s*(?P<unit>hours?|hrs?|minutes?|mins?)",
+    re.IGNORECASE,
+)
+TIME_HOUR_MINUTE_PATTERN = re.compile(
+    r"(?P<hours>\d+(?:\.\d+)?(?:\s+\d+/\d+)?|\d+/\d+)\s*(?:hours?|hrs?)\s*(?:and\s+)?(?P<minutes>\d+(?:\.\d+)?(?:\s+\d+/\d+)?|\d+/\d+)?\s*(?:minutes?|mins?)?",
+    re.IGNORECASE,
+)
+TIME_SINGLE_PATTERN = re.compile(
+    r"(?:about\s+)?(?P<value>\d+(?:\.\d+)?(?:\s+\d+/\d+)?|\d+/\d+)\s*(?P<unit>hours?|hrs?|minutes?|mins?)",
+    re.IGNORECASE,
+)
+
+COOK_VERBS = {
+    "bake",
+    "roast",
+    "simmer",
+    "boil",
+    "cook",
+    "fry",
+    "grill",
+    "broil",
+    "saute",
+    "sautee",
+    "steam",
+    "air fry",
+    "air-fry",
+    "preheat",
+}
+
+PASSIVE_PREP_VERBS = {
+    "chill",
+    "marinate",
+    "refrigerate",
+    "rest",
+    "stand",
+    "cool",
+    "soak",
+    "let sit",
+}
+
 
 def read_csv_rows(path: Path):
     with path.open(newline="", encoding="utf-8-sig") as handle:
@@ -224,6 +287,153 @@ def format_number(value):
     return text or "0"
 
 
+def parse_numeric_token(text: str) -> float | None:
+    raw = normalize_spaces(text)
+    if not raw:
+        return None
+    if " " in raw:
+        parts = raw.split()
+        if len(parts) == 2 and "/" in parts[1]:
+            whole = parse_numeric_token(parts[0])
+            frac = parse_numeric_token(parts[1])
+            if whole is not None and frac is not None:
+                return whole + frac
+    if "/" in raw:
+        try:
+            numerator, denominator = raw.split("/", 1)
+            return float(numerator) / float(denominator)
+        except (ValueError, ZeroDivisionError):
+            return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def normalize_time_text(text: str) -> str:
+    normalized = text or ""
+    for source, target in UNICODE_FRACTIONS.items():
+        normalized = normalized.replace(source, f" {target}")
+    normalized = normalized.replace("\u2013", "-").replace("\u2014", "-")
+    normalized = normalized.replace("–", "-").replace("—", "-")
+    normalized = normalize_spaces(normalized.lower())
+    return normalized
+
+
+def convert_to_minutes(value: float | None, unit: str) -> float | None:
+    if value is None:
+        return None
+    unit_text = (unit or "").lower()
+    if unit_text.startswith("hour") or unit_text.startswith("hr"):
+        return value * 60.0
+    return value
+
+
+def extract_step_minutes(step_text: str) -> float | None:
+    text = normalize_time_text(step_text)
+    candidates = []
+
+    if "overnight" in text:
+        candidates.append(480.0)
+
+    for match in TIME_RANGE_PATTERN.finditer(text):
+        upper = parse_numeric_token(match.group("high"))
+        minutes = convert_to_minutes(upper, match.group("unit"))
+        if minutes is not None:
+            candidates.append(minutes)
+
+    for match in TIME_HOUR_MINUTE_PATTERN.finditer(text):
+        hours = parse_numeric_token(match.group("hours"))
+        minutes_part = parse_numeric_token(match.group("minutes") or "")
+        total_minutes = 0.0
+        if hours is not None:
+            total_minutes += hours * 60.0
+        if minutes_part is not None:
+            total_minutes += minutes_part
+        if total_minutes > 0:
+            candidates.append(total_minutes)
+
+    for match in TIME_SINGLE_PATTERN.finditer(text):
+        value = parse_numeric_token(match.group("value"))
+        minutes = convert_to_minutes(value, match.group("unit"))
+        if minutes is not None:
+            candidates.append(minutes)
+
+    if not candidates:
+        return None
+    return max(candidates)
+
+
+def classify_time_step(step_text: str) -> str:
+    text = normalize_time_text(step_text)
+    if any(verb in text for verb in COOK_VERBS):
+        return "cook"
+    if any(verb in text for verb in PASSIVE_PREP_VERBS):
+        return "prep"
+    return "prep"
+
+
+def has_long_passive_time(step_text: str, minutes_value: float | None) -> bool:
+    text = normalize_time_text(step_text)
+    if "overnight" in text:
+        return True
+    if not any(verb in text for verb in {"chill", "marinate", "refrigerate", "soak", "let sit"}):
+        return False
+    return minutes_value is not None and minutes_value >= 60.0
+
+
+def derive_time_fields(row) -> tuple[str, str, str, list[str]]:
+    notes = []
+    prep_minutes = 0.0
+    cook_minutes = 0.0
+    time_found = False
+    long_passive = False
+
+    try:
+        steps = json.loads(row.get("directions_json") or "[]")
+    except json.JSONDecodeError:
+        steps = []
+
+    for step in steps:
+        minutes_value = extract_step_minutes(step)
+        if minutes_value is None:
+            continue
+        time_found = True
+        if classify_time_step(step) == "cook":
+            cook_minutes += minutes_value
+        else:
+            prep_minutes += minutes_value
+        if has_long_passive_time(step, minutes_value):
+            long_passive = True
+
+    if time_found:
+        notes.append("time_estimated_from_directions_v1")
+        if long_passive:
+            notes.append("long_passive_time_estimated")
+        total_minutes = prep_minutes + cook_minutes
+        return (
+            format_number(prep_minutes),
+            format_number(cook_minutes),
+            format_number(total_minutes),
+            notes,
+        )
+
+    steps_count = parse_float(row.get("num_steps"))
+    if steps_count is not None and steps_count > 0:
+        prep_minutes = max(5.0, steps_count * 5.0)
+        notes.append("time_estimated_from_step_count_fallback_v1")
+        total_minutes = prep_minutes
+        return (
+            format_number(prep_minutes),
+            "",
+            format_number(total_minutes),
+            notes,
+        )
+
+    notes.append("time_not_available")
+    return "", "", "", notes
+
+
 def derive_recipe_cuisine(category: str, subcategory: str) -> str:
     haystack = f"{category} {subcategory}".lower()
     for key, label in CUISINE_KEYWORDS.items():
@@ -232,12 +442,12 @@ def derive_recipe_cuisine(category: str, subcategory: str) -> str:
     return ""
 
 
-def derive_recipe_status(row) -> tuple[str, str]:
+def derive_recipe_status(row, time_notes: list[str]) -> tuple[str, str]:
     notes = []
     if not str(row.get("description") or "").strip():
         notes.append("description_missing")
     notes.append("servings_not_available")
-    notes.append("time_not_available")
+    notes.extend(time_notes)
     return "pilot_materialized_with_missing_metadata", "; ".join(notes)
 
 
@@ -322,7 +532,8 @@ def combine_notes(*note_groups):
 def build_recipes_rows(recipe_rows):
     output = []
     for row in recipe_rows:
-        qc_status, qc_notes = derive_recipe_status(row)
+        prep_time_min, cook_time_min, total_time_min, time_notes = derive_time_fields(row)
+        qc_status, qc_notes = derive_recipe_status(row, time_notes)
         output.append(
             {
                 "recipe_id": row["final_recipe_id"],
@@ -339,9 +550,9 @@ def build_recipes_rows(recipe_rows):
                 "directions_step_count": row.get("num_steps", ""),
                 "servings_declared": "",
                 "servings_normalized": "",
-                "prep_time_min": "",
-                "cook_time_min": "",
-                "total_time_min": "",
+                "prep_time_min": prep_time_min,
+                "cook_time_min": cook_time_min,
+                "total_time_min": total_time_min,
                 "difficulty_level": "",
                 "scope_status": "pilot_validated",
                 "has_ingredients_parsed": "1",
@@ -412,9 +623,22 @@ def sum_nutrient(food_row, nutrient_key: str, grams: float) -> float | None:
     return nutrient_value * grams / 100.0
 
 
+def resolve_servings_basis(recipe_cache_row, recipe_lookup_row):
+    existing_basis = parse_float(recipe_cache_row.get("servings_basis"))
+    if existing_basis is not None and existing_basis > 0:
+        return existing_basis, "servings_basis_from_existing_value"
+
+    normalized_basis = parse_float(recipe_lookup_row.get("servings_normalized"))
+    if normalized_basis is not None and normalized_basis > 0:
+        return normalized_basis, "servings_basis_from_recipes_servings_normalized"
+
+    return None, ""
+
+
 def build_nutrition_rows(recipe_rows, ingredients_by_recipe, food_lookup):
     output = []
     status_counter = Counter()
+    recipe_lookup = {row["final_recipe_id"]: row for row in recipe_rows}
 
     for recipe_row in recipe_rows:
         recipe_id = recipe_row["final_recipe_id"]
@@ -437,7 +661,7 @@ def build_nutrition_rows(recipe_rows, ingredients_by_recipe, food_lookup):
         unmapped_ingredient_count = 0
         mapped_weight = 0.0
         total_estimated_weight = 0.0
-        notes = ["derived_from_mapped_ingredients_only", "servings_unknown_per_serving_left_empty"]
+        notes = ["derived_from_mapped_ingredients_only"]
 
         for ingredient_row in base_rows:
             grams = parse_float(ingredient_row["quantity_grams_estimated"])
@@ -501,10 +725,60 @@ def build_nutrition_rows(recipe_rows, ingredients_by_recipe, food_lookup):
         if total_estimated_weight > 0:
             mapped_weight_ratio = format_number(mapped_weight / total_estimated_weight)
 
+        totals_present = all(
+            format_number(totals[key]) != ""
+            for key in ["energy_kcal_total", "protein_g_total", "carbs_g_total", "fat_g_total"]
+        ) and mapped_weight > 0
+
+        servings_basis_value = None
+        servings_basis_note = ""
+        if totals_present:
+            servings_basis_value, servings_basis_note = resolve_servings_basis({}, recipe_lookup[recipe_id])
+            if servings_basis_value is None:
+                servings_basis_value = 1.0
+                servings_basis_note = "servings_basis_pilot_fallback_1"
+
+        if servings_basis_note:
+            notes.append(servings_basis_note)
+        elif totals_present:
+            notes.append("servings_basis_missing_per_serving_left_empty")
+
+        per_serving_values = {}
+        if totals_present and servings_basis_value is not None and servings_basis_value > 0:
+            for total_key, per_serving_key in [
+                ("energy_kcal_total", "energy_kcal_per_serving"),
+                ("protein_g_total", "protein_g_per_serving"),
+                ("carbs_g_total", "carbs_g_per_serving"),
+                ("fat_g_total", "fat_g_per_serving"),
+                ("fibre_g_total", "fibre_g_per_serving"),
+                ("sugars_g_total", "sugars_g_per_serving"),
+                ("salt_g_total", "salt_g_per_serving"),
+                ("water_g_total", "water_g_per_serving"),
+            ]:
+                total_value = parse_float(format_number(totals[total_key]))
+                if total_value is not None:
+                    per_serving_values[per_serving_key] = format_number(total_value / servings_basis_value)
+                else:
+                    per_serving_values[per_serving_key] = ""
+        else:
+            per_serving_values = {
+                "energy_kcal_per_serving": "",
+                "protein_g_per_serving": "",
+                "carbs_g_per_serving": "",
+                "fat_g_per_serving": "",
+                "fibre_g_per_serving": "",
+                "sugars_g_per_serving": "",
+                "salt_g_per_serving": "",
+                "water_g_per_serving": "",
+            }
+
+        if not totals_present:
+            notes.append("servings_unknown_per_serving_left_empty")
+
         nutrition_row = {
             "recipe_id": recipe_id,
             "nutrition_basis": "whole_recipe_estimated_from_accepted_mapped_ingredients",
-            "servings_basis": "",
+            "servings_basis": format_number(servings_basis_value),
             "total_weight_grams_estimated": format_number(mapped_weight) if mapped_weight > 0 else "",
             "energy_kcal_total": format_number(totals["energy_kcal_total"]) if mapped_weight > 0 else "",
             "protein_g_total": format_number(totals["protein_g_total"]) if mapped_weight > 0 else "",
@@ -514,14 +788,14 @@ def build_nutrition_rows(recipe_rows, ingredients_by_recipe, food_lookup):
             "sugars_g_total": format_number(totals["sugars_g_total"]) if optional_seen["sugars_g_total"] and mapped_weight > 0 else "",
             "salt_g_total": format_number(totals["salt_g_total"]) if optional_seen["salt_g_total"] and mapped_weight > 0 else "",
             "water_g_total": format_number(totals["water_g_total"]) if optional_seen["water_g_total"] and mapped_weight > 0 else "",
-            "energy_kcal_per_serving": "",
-            "protein_g_per_serving": "",
-            "carbs_g_per_serving": "",
-            "fat_g_per_serving": "",
-            "fibre_g_per_serving": "",
-            "sugars_g_per_serving": "",
-            "salt_g_per_serving": "",
-            "water_g_per_serving": "",
+            "energy_kcal_per_serving": per_serving_values["energy_kcal_per_serving"],
+            "protein_g_per_serving": per_serving_values["protein_g_per_serving"],
+            "carbs_g_per_serving": per_serving_values["carbs_g_per_serving"],
+            "fat_g_per_serving": per_serving_values["fat_g_per_serving"],
+            "fibre_g_per_serving": per_serving_values["fibre_g_per_serving"],
+            "sugars_g_per_serving": per_serving_values["sugars_g_per_serving"],
+            "salt_g_per_serving": per_serving_values["salt_g_per_serving"],
+            "water_g_per_serving": per_serving_values["water_g_per_serving"],
             "mapped_ingredient_count": str(mapped_ingredient_count),
             "unmapped_ingredient_count": str(unmapped_ingredient_count),
             "mapped_weight_ratio": mapped_weight_ratio,
