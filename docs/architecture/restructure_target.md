@@ -164,6 +164,24 @@ Implementarea se va face incremental, in urmatoarea ordine:
 7. integrarea KNN in rol auxiliar
 8. conectarea serviciilor externe pentru timp si pret
 
+### 8.1 Generator v1 - directie incrementala
+
+Generatorul va fi construit incremental, ca sistem modular.
+
+Obiectivul imediat nu este implementarea celei mai avansate metode de optimizare, ci obtinerea unei prime versiuni functionale, coerente si testabile.
+
+Prima faza a generatorului va fi:
+- recipe-based
+- deterministic
+- scoring-based
+- compatibila cu household model
+- limitata initial la 1 member_profile activ si 1 zi
+
+Deciziile privind optimizare matematica mai avansata, OR-Tools sau alte straturi suplimentare vor fi luate ulterior, pe baza problemelor reale observate in practica.
+
+Food_DB v1 draft ramane baseline-ul activ.
+Completari ulterioare din surse externe vor fi selective, pornind din gaps reale observate in recipe mapping si generare.
+
 ## 9. Concluzie
 
 Arhitectura tinta urmareste o fundatie mai curata si mai extensibila decat cea actuala. Nucleul sistemului va fi format din Food_DB, Recipes_DB si generatorul bazat pe reguli si scoring, in timp ce feedback-ul, KNN-ul si serviciile externe vor completa treptat motorul fara a-i compromite interpretabilitatea.
