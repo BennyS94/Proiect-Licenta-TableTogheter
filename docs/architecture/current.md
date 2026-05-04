@@ -20,6 +20,8 @@ In forma actuala, sistemul este organizat in jurul urmatoarelor etape principale
 
 Acest pipeline permite obtinerea unui plan functional si ofera deja o baza practica pentru experimentare si iteratie.
 
+Nota operationala: codul generatorului vechi este izolat pentru referinta in `src/legacy/`. Lucrul activ pentru Generator v1 este separat in `src/generator_v1/` si `src/generator_v1_cli.py`.
+
 ## 3. Current data model reality
 
 Modelul actual este construit peste un dataset nutritional prelucrat, imbogatit cu clasificari suplimentare si semnale utile pentru generare. In aceasta forma, baza de date curenta este suficienta pentru rularea pipeline-ului existent, dar nu separa inca suficient de clar:

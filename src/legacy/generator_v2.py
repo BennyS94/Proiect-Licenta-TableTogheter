@@ -48,10 +48,10 @@ import random, math
 
 # daily rules (carb devreme + min 2 portii legume/zi)
 try:
-    # cand rulezi: python -m src.generator_v2
+    # cand rulezi: python -m src.legacy.generator_v2
     from .core.daily_rules import compute_day_metrics, adjust_day_portions_in_place
 except Exception:
-    # cand rulezi: python src/generator_v2.py
+    # cand rulezi: python src/legacy/generator_v2.py
     from core.daily_rules import compute_day_metrics, adjust_day_portions_in_place
 
 
@@ -136,25 +136,28 @@ def load_rules_and_templates(rules_path=None, templates_path=None):
 # Legaturi: src/core/scoring.py; src/core/pools.py; src/ontology.py
 ###########################################################################
 try:
-    from src.core.scoring import score_combo
+    from .core.scoring import score_combo
 except Exception:
     try:
+        from src.legacy.core.scoring import score_combo
+    except Exception:
         from core.scoring import score_combo
-    except Exception:
-        raise
 
 try:
-    from src.core.pools import build_pool
+    from .core.pools import build_pool
 except Exception:
     try:
-        from core.pools import build_pool
+        from src.legacy.core.pools import build_pool
     except Exception:
-        raise
+        from core.pools import build_pool
 
 try:
-    from src.ontology import load_taxonomy
+    from .ontology import load_taxonomy
 except Exception:
-    from ontology import load_taxonomy
+    try:
+        from src.legacy.ontology import load_taxonomy
+    except Exception:
+        from ontology import load_taxonomy
 
 ###########################################################################
 # Utilitare profil si tinte
