@@ -1,0 +1,46 @@
+{
+  "account_id": "account_demo_001",
+  "household_id": "household_demo_001",
+  "member_profile_id": "member_demo_001",
+
+  "profile_name": "Demo Member",
+  "is_active": true,
+
+  "age": 22,
+  "sex": "male",
+  "weight_kg": 67.0,
+  "height_cm": 176.0,
+
+  "activity_level": "moderately_active",
+  "goal": "maintain",
+  "goal_speed": "normal",
+
+  "training": {
+    "sessions_per_week": 3,
+    "type": "weights"
+  },
+
+  "meal_config": {
+    "meals_per_day": 3,
+    "include_snacks": true,
+    "day_structure": "3_meals_plus_snack"
+  },
+
+  "dietary_preferences": {
+    "no_beef": false,
+    "no_chicken": false,
+    "no_fish": false,
+    "no_dairy": false,
+    "vegetarian": false,
+    "vegan": false,
+    "gluten_free": false
+  },
+
+  "bf_profile": "normal",
+
+  "notes": {
+    "profile_version": "member_profile_v1",
+    "bf_profile_usage": "stored_for_future_not_used_in_energy_formula_v1",
+    "nutrition_target_method": "mifflin_st_jeor_v1"
+  }
+}
