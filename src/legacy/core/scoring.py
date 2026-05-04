@@ -36,15 +36,15 @@ import pandas as pd
 
 # Import robust pentru modulul local src/ontology.py
 try:
-    # cand rulezi ca pachet:  python -m src.generator_v2
+    # cand rulezi ca pachet:  python -m src.legacy.generator_v2
     from ..ontology import node_for_food, tree_distance
 except Exception:
     try:
-        # cand rulezi ca script: python src/generator_v2.py
-        from src.ontology import node_for_food, tree_distance
+        # cand rulezi din radacina proiectului
+        from src.legacy.ontology import node_for_food, tree_distance
     except Exception:
         try:
-            # fallback: daca radacina proiectului e deja in sys.path
+            # fallback pentru rulare directa din folderul legacy
             from ontology import node_for_food, tree_distance
         except Exception:
             node_for_food = None

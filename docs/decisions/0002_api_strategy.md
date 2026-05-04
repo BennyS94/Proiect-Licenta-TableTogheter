@@ -5,7 +5,8 @@ Status: Accepted (planned)
 New Note: restructurare in progres
 
 ## Context
-Pipeline-ul ML/inference exista deja in repo (generator_v2 + core/*) si produce meniuri in `outputs/`.
+Pipeline-ul ML/inference vechi exista deja in repo (`src/legacy/generator_v2.py` + `src/legacy/core/*`) si produce meniuri in `outputs/`.
+Lucrul activ pentru Generator v1 este separat in `src/generator_v1/`.
 Urmatorul pas este integrarea cu Android printr-un backend API, fara a modifica pipeline-ul existent.
 In plus, vrem estimarea timpului de gatit folosind GPT, dar cu output strict structurat (JSON schema).
 

@@ -37,14 +37,14 @@ I. Incepe cu "ce exista real" (I/O + rulare)
 
 II. Inima proiectului (inference / generator)
 ---------------------------------------------
-5) src/generator_v2.py
+5) src/legacy/generator_v2.py
    - De ce: orchestratorul. Citeste profile+rules+templates+foods+taxonomy+subs si produce planul.
    - Ce sa intelegi:
      a) flux: load -> pool -> template -> fallback -> scoring -> daily_rules -> write outputs
      b) cum se formeaza "day_meals" si cum se rescriu portiile dupa daily rules
      c) cum se adauga alt_* (swap similar) din substitution_edges
 
-6) src/core/scoring.py
+6) src/legacy/core/scoring.py
    - De ce: defineste "ce inseamna un plan bun" (scorul combo-ului).
    - Ce sa intelegi:
      a) tinta kcal / gap proteina
@@ -53,30 +53,30 @@ II. Inima proiectului (inference / generator)
      d) tag penalties/bonuses + name penalties
      e) (optional) preferinte din user_prefs.json (feedback)
 
-7) src/core/pools.py
+7) src/legacy/core/pools.py
    - De ce: reduce candidatii prosti inainte de scor (purity filter).
    - Ce sa intelegi: ce exclude la protein vs side_carb vs side_veg si de ce.
 
-8) src/core/daily_rules.py
+8) src/legacy/core/daily_rules.py
    - De ce: reguli la nivel de zi (carb mai mult devreme, min legume/zi).
    - Ce sa intelegi: compute_day_metrics + adjust_day_portions_in_place (nudges in limite).
 
 III. Date pipeline (enrich -> index -> substitutii)
 ---------------------------------------------------
-9) src/enrich_foods.py
+9) src/legacy/enrich_foods.py
    - De ce: adauga bucket-uri si tag-uri, fara de care scoring/pools devin slabe.
    - Ce sa intelegi:
      a) macro_buckets / micro_buckets (name hints)
      b) cue tags (procesare/context) si nutri tags
      c) overrides pentru pack info (daca exista)
 
-10) src/build_item_index.py
+10) src/legacy/build_item_index.py
    - De ce: transforma macro-urile in features per 100 kcal si le standardizeaza (z_*).
    - Ce sa intelegi:
      a) per100g -> per100kcal (factor 100/kcal)
      b) z-score (mu/sigma) si de ce influenteaza substitutiile.
 
-11) src/build_substitutions.py
+11) src/legacy/build_substitutions.py
    - De ce: calculeaza cosine similarity pe z_* si face top-K edges (src->dst).
    - Ce sa intelegi:
      a) directionat top-K
@@ -89,11 +89,11 @@ III. Date pipeline (enrich -> index -> substitutii)
 
 IV. Taxonomie si debug/inspectie
 --------------------------------
-13) src/ontology.py
+13) src/legacy/ontology.py
    - De ce: fallback semantic pentru scor (tree_distance) si mapare bucket->node.
    - Ce sa intelegi: load_taxonomy, node_for_food, tree_distance.
 
-14) src/analyze_plan.py
+14) src/legacy/analyze_plan.py
    - De ce: produce "readable" + totaluri pe zi; util pentru validare manuala.
    - Ce sa intelegi: mapping plan_v2.csv -> foods lookup -> macros -> text.
 
@@ -114,16 +114,16 @@ V. Tools (fara aplicatie/UI)
 VI. Cum rulezi pipeline-ul cap-coada (comenzi)
 ---------------------------------------------
 1) enrich (daca ai schimbat rules/taguri):
-   python -m src.enrich_foods --in_parquet data/foods_enriched.parquet --out_parquet data/foods_enriched.parquet --rules configs/enrich_rules.yaml --taxonomy configs/taxonomy.yaml --audit_out outputs/enrich_audit.txt
+   python -m src.legacy.enrich_foods --in_parquet data/foods_enriched.parquet --out_parquet data/foods_enriched.parquet --rules configs/enrich_rules.yaml --taxonomy configs/taxonomy.yaml --audit_out outputs/enrich_audit.txt
 
 2) build item index:
-   python -m src.build_item_index --in data/foods_enriched_min.csv.gz --out data/item_index.parquet
+   python -m src.legacy.build_item_index --in data/foods_enriched_min.csv.gz --out data/item_index.parquet
 
 3) build substitutions:
-   python -m src.build_substitutions --index data/item_index.parquet --out data/substitution_edges.csv.gz --topk 30 --min_sim 0.30
+   python -m src.legacy.build_substitutions --index data/item_index.parquet --out data/substitution_edges.csv.gz --topk 30 --min_sim 0.30
 
 4) generate plan:
-   python -m src.generator_v2 --profile profiles/user_profile_sample.json --rules configs/culinary_rules.yaml --templates templates/meal_templates.yaml --foods data/foods_enriched.parquet --taxonomy configs/taxonomy.yaml --subs data/substitution_edges.csv.gz --out_csv outputs/plan_v2.csv --out_txt outputs/plan_v2_summary.txt --out_readable outputs/plan_v2_readable.txt
+   python -m src.legacy.generator_v2 --profile profiles/user_profile_sample.json --rules configs/culinary_rules.yaml --templates templates/meal_templates.yaml --foods data/foods_enriched.parquet --taxonomy configs/taxonomy.yaml --subs data/substitution_edges.csv.gz --out_csv outputs/plan_v2.csv --out_txt outputs/plan_v2_summary.txt --out_readable outputs/plan_v2_readable.txt
 
 5) (optional) grocery list:
    python tools/grocery_list.py --plan outputs/plan_v2.csv --foods data/foods_enriched.parquet --out outputs/grocery_list.txt --group_by main_group --pack_defaults configs/pack_defaults.yaml

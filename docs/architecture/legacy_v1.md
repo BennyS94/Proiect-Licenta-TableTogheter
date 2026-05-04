@@ -3,7 +3,8 @@
 ## Ce exista acum (real)
 
 ### Repo layout (relevant)
-- `src/` – pipeline ML/inference (generator + core scoring/pools/daily_rules)
+- `src/legacy/` – pipeline ML/inference vechi (generator + core scoring/pools/daily_rules), pastrat pentru referinta
+- `src/generator_v1/` – lucrul activ pentru Generator v1
 - `profiles/` – input user profile (ex: `user_profile_sample.json`)
 - `configs/` – reguli YAML (scoring, priors, daily rules, enrich)
 - `templates/` – sabloane YAML pentru mese (slots/portion ranges)
@@ -12,7 +13,7 @@
 
 ### Fluxul actual (CLI / pipeline local)
 1. `profiles/<user>.json` + `configs/*.yaml` + `templates/*.yaml` + `data/foods_enriched.parquet`
-2. `src/generator_v2.py` genereaza:
+2. `src/legacy/generator_v2.py` genereaza:
    - `outputs/plan_v2.csv` (structura planului, item-uri, macro-uri, alt_*)
    - `outputs/plan_v2_summary.txt` (tinte + totaluri)
    - `outputs/plan_v2_readable.txt` (render text pentru inspectie umana)
@@ -23,7 +24,7 @@ Nota: exemplul actual de readable arata formatul “Ps/Sc/Ve + Alt_* + totaluri�
 
 ### Scop
 Adaugam un backend API (probabil FastAPI) fara a modifica logica inference-ului ML existent.
-API-ul devine un strat de orchestrare peste `src/generator_v2.py`.
+API-ul devine un strat de orchestrare peste generatorul vechi izolat in `src/legacy/generator_v2.py`.
 
 ### Flux to-be (ML -> API -> Android)
 1. Android trimite `UserProfile` + constrangeri catre Backend API
