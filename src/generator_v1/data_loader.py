@@ -9,6 +9,7 @@ import pandas as pd
 DEFAULT_RECIPES_PATH = Path("data/recipesdb/current/recipes.csv")
 DEFAULT_INGREDIENTS_PATH = Path("data/recipesdb/current/recipe_ingredients.csv")
 DEFAULT_NUTRITION_PATH = Path("data/recipesdb/current/recipe_nutrition_cache.csv")
+DEFAULT_FOODDB_PATH = Path("data/fooddb/current/fooddb_v1_core_master_draft.csv")
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,25 @@ def load_recipe_candidate_pool(
     )
 
 
+def load_fooddb_current(
+    fooddb_path: str | Path = DEFAULT_FOODDB_PATH,
+) -> pd.DataFrame:
+    fooddb = pd.read_csv(Path(fooddb_path))
+    _require_columns(
+        fooddb,
+        {
+            "food_id",
+            "canonical_name",
+            "energy_kcal_100g",
+            "protein_g_100g",
+            "carbs_g_100g",
+            "fat_g_100g",
+        },
+        "fooddb_current",
+    )
+    return fooddb
+
+
 def _eligible_mask(candidates: pd.DataFrame) -> pd.Series:
     # has_nutrition_cache este structural in pilot, nu dovada de nutritie utilizabila.
     return (
@@ -86,4 +106,3 @@ def _require_columns(df: pd.DataFrame, required_columns: set[str], source_name: 
     missing = sorted(required_columns - set(df.columns))
     if missing:
         raise ValueError(f"Lipsesc coloane in {source_name}: {', '.join(missing)}")
-
