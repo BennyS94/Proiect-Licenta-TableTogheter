@@ -16,12 +16,19 @@ def write_plan_csv(plan: dict[str, Any], out_csv: str | Path) -> None:
     for meal in plan.get("selected_meals", []):
         row = {field: meal.get(field) for field in SELECTED_MEAL_FIELDS}
         row["slot_fit_reasons"] = _format_reasons(row.get("slot_fit_reasons"))
+        row["slot_suspicion_reasons"] = _format_reasons(
+            row.get("slot_suspicion_reasons")
+        )
         row["nutrition_quality_reasons"] = _format_reasons(
             row.get("nutrition_quality_reasons")
         )
         row["time_estimation_reasons"] = _format_reasons(
             row.get("time_estimation_reasons")
         )
+        row["pilot_nutrition_overlay_reasons"] = _format_reasons(
+            row.get("pilot_nutrition_overlay_reasons")
+        )
+        row["overlay_aliases_used"] = _format_reasons(row.get("overlay_aliases_used"))
         rows.append(row)
     pd.DataFrame(rows, columns=SELECTED_MEAL_FIELDS).to_csv(output_path, index=False)
 
@@ -67,13 +74,24 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                 (
                     f"{meal.get('slot')}: {meal.get('display_name')} "
                     f"({meal.get('recipe_id')}, portion={_fmt(meal.get('portion_multiplier'))}, "
-                    f"grams_estimated={_fmt(meal.get('portion_grams_estimated'), decimals=0)})"
+                    f"grams_estimated={_fmt(meal.get('portion_grams_estimated'), decimals=0)}, "
+                    f"grams_source={meal.get('portion_grams_source')}, "
+                    "original_grams_estimated="
+                    f"{_fmt(meal.get('original_portion_grams_estimated'), decimals=0)}, "
+                    "overlay_grams_estimated="
+                    f"{_fmt(meal.get('overlay_portion_grams_estimated'), decimals=0)})"
                 ),
                 (
                     f"  kcal={_fmt(meal.get('kcal'))}, "
                     f"protein_g={_fmt(meal.get('protein_g'))}, "
                     f"carbs_g={_fmt(meal.get('carbs_g'))}, "
                     f"fat_g={_fmt(meal.get('fat_g'))}, "
+                    "original_kcal_per_serving="
+                    f"{_fmt(meal.get('original_energy_kcal_per_serving'))}, "
+                    "overlay_kcal_per_serving="
+                    f"{_fmt(meal.get('overlay_energy_kcal_per_serving'))}, "
+                    "uses_pilot_nutrition_overlay="
+                    f"{meal.get('uses_pilot_nutrition_overlay')}, "
                     f"total_time_min={_fmt(meal.get('total_time_min'), decimals=0)}, "
                     "active_time_estimated_min="
                     f"{_fmt(meal.get('active_time_estimated_min'), decimals=0)}, "
@@ -92,9 +110,14 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                     f"time_fit={_fmt(meal.get('time_fit'), decimals=2)}, "
                     f"slot_fit={_fmt(meal.get('slot_fit'), decimals=2)}, "
                     f"nutrition_quality={_fmt(meal.get('nutrition_quality'), decimals=2)}, "
-                    f"suspicious={meal.get('is_nutrition_suspicious')}"
+                    f"suspicious={meal.get('is_nutrition_suspicious')}, "
+                    f"slot_suspicious={meal.get('is_slot_suspicious')}"
                 ),
                 f"  slot_fit_reasons={_format_reasons(meal.get('slot_fit_reasons'))}",
+                (
+                    "  slot_suspicion_reasons="
+                    + _format_reasons(meal.get("slot_suspicion_reasons"))
+                ),
                 (
                     "  nutrition_quality_reasons="
                     + _format_reasons(meal.get("nutrition_quality_reasons"))
@@ -114,6 +137,12 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
             f"total_protein_g={_fmt(totals.get('total_protein_g'))}",
             f"total_carbs_g={_fmt(totals.get('total_carbs_g'))}",
             f"total_fat_g={_fmt(totals.get('total_fat_g'))}",
+            f"original_total_kcal={_fmt(totals.get('original_total_kcal'))}",
+            f"original_total_protein_g={_fmt(totals.get('original_total_protein_g'))}",
+            (
+                "uses_pilot_nutrition_overlay_count="
+                f"{totals.get('uses_pilot_nutrition_overlay_count', 0)}"
+            ),
             f"total_time_min_sum={_fmt(totals.get('total_time_min_sum'), decimals=0)}",
             (
                 "effective_time_min_sum="
@@ -163,6 +192,7 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
             "Note",
             "feedback_fit si variety_fit sunt placeholder neutru 0.50, nu logica finala.",
             "pilot time fallback este temporar si foloseste keyword-uri de timp pasiv din text.",
+            "pilot nutrition overlay este temporar si nu rescrie recipe_nutrition_cache.",
         ]
     )
     return lines

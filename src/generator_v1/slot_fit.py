@@ -26,9 +26,14 @@ HEAVY_MAIN_HINTS = {
     "tuna",
 }
 
+SNACK_HIGH_KCAL_THRESHOLD = 350.0
+SNACK_FULL_MEAL_KCAL_THRESHOLD = 300.0
+SNACK_HIGH_PROTEIN_THRESHOLD = 35.0
+
 
 def compute_slot_fit(candidate_row: Mapping[str, object], slot: str) -> dict[str, object]:
     normalized_slot = str(slot).strip().lower()
+    slot_suspicion_reasons: list[str] = []
     if normalized_slot == "breakfast":
         score, reasons = _breakfast_fit(candidate_row)
     elif normalized_slot == "lunch":
@@ -36,13 +41,15 @@ def compute_slot_fit(candidate_row: Mapping[str, object], slot: str) -> dict[str
     elif normalized_slot == "dinner":
         score, reasons = _dinner_fit(candidate_row)
     elif normalized_slot == "snack":
-        score, reasons = _snack_fit(candidate_row)
+        score, reasons, slot_suspicion_reasons = _snack_fit(candidate_row)
     else:
         score, reasons = 0.50, ["slot_necunoscut_neutru"]
 
     return {
         "slot_fit": round(clamp(score), 4),
         "slot_fit_reasons": reasons or ["neutru"],
+        "is_slot_suspicious": bool(slot_suspicion_reasons),
+        "slot_suspicion_reasons": slot_suspicion_reasons,
     }
 
 
@@ -111,11 +118,14 @@ def _dinner_fit(candidate_row: Mapping[str, object]) -> tuple[float, list[str]]:
     return score, reasons
 
 
-def _snack_fit(candidate_row: Mapping[str, object]) -> tuple[float, list[str]]:
+def _snack_fit(candidate_row: Mapping[str, object]) -> tuple[float, list[str], list[str]]:
     score = 0.50
     reasons: list[str] = []
+    slot_suspicion_reasons: list[str] = []
     total_time = _to_float(candidate_row.get("total_time_min"))
     kcal = _to_float(candidate_row.get("kcal"))
+    protein_g = _to_float(candidate_row.get("protein_g"))
+    looks_like_heavy_main = _looks_like_heavy_main(candidate_row)
 
     if total_time is not None and total_time <= 10:
         score += 0.15
@@ -123,17 +133,35 @@ def _snack_fit(candidate_row: Mapping[str, object]) -> tuple[float, list[str]]:
     if kcal is not None and kcal <= 250:
         score += 0.15
         reasons.append("kcal_gustare_ok")
-    if kcal is not None and kcal > 450:
-        score -= 0.20
+    if kcal is not None and kcal > SNACK_HIGH_KCAL_THRESHOLD:
+        score -= 0.35
         reasons.append("kcal_prea_mare_gustare")
+        slot_suspicion_reasons.append("snack_kcal_peste_350")
     if total_time is not None and total_time > 20:
         score -= 0.15
         reasons.append("timp_prea_mare_gustare")
-    if _looks_like_heavy_main(candidate_row):
-        score -= 0.15
+    if (
+        protein_g is not None
+        and protein_g > SNACK_HIGH_PROTEIN_THRESHOLD
+        and looks_like_heavy_main
+    ):
+        score -= 0.30
+        reasons.append("proteina_prea_mare_pentru_gustare_cu_carne")
+        slot_suspicion_reasons.append("snack_proteina_mare_si_fel_cu_carne")
+    if looks_like_heavy_main:
+        score -= 0.35
         reasons.append("pare_fel_principal")
+        slot_suspicion_reasons.append("snack_pare_fel_principal")
+    if (
+        kcal is not None
+        and kcal > SNACK_FULL_MEAL_KCAL_THRESHOLD
+        and looks_like_heavy_main
+    ):
+        score -= 0.20
+        reasons.append("pare_masa_completa")
+        slot_suspicion_reasons.append("snack_pare_masa_completa")
 
-    return score, reasons
+    return score, reasons, slot_suspicion_reasons
 
 
 def _looks_like_heavy_main(candidate_row: Mapping[str, object]) -> bool:
@@ -154,8 +182,17 @@ def _search_text(candidate_row: Mapping[str, object]) -> str:
         candidate_row.get("recipe_kind"),
         candidate_row.get("recipe_category"),
         candidate_row.get("recipe_subcategory"),
+        _list_text(candidate_row.get("overlay_aliases_used")),
     ]
     return " ".join(_normalize_text(part) for part in parts if part is not None)
+
+
+def _list_text(value: object) -> str:
+    if isinstance(value, list):
+        return " ".join(str(item) for item in value)
+    if isinstance(value, tuple):
+        return " ".join(str(item) for item in value)
+    return str(value or "")
 
 
 def _normalize_text(value: object) -> str:
@@ -177,4 +214,3 @@ def _to_float(value: object) -> float | None:
     if math.isnan(numeric_value):
         return None
     return numeric_value
-

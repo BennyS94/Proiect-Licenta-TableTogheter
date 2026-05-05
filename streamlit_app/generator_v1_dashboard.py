@@ -18,8 +18,15 @@ from src.generator_v1.candidate_filter import (
     build_household_preference_context,
     filter_recipe_candidates,
 )
-from src.generator_v1.data_loader import load_recipe_candidate_pool
+from src.generator_v1.data_loader import load_fooddb_current, load_recipe_candidate_pool
 from src.generator_v1.day_selector import select_one_day_plan
+from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
+from src.generator_v1.nutrition_cache_diagnostics import (
+    build_nutrition_cache_diagnostics,
+)
+from src.generator_v1.pilot_servings_estimator import (
+    build_pilot_servings_diagnostics,
+)
 from src.generator_v1.plan_validator import validate_one_day_plan
 from src.generator_v1.profile_loader import load_member_profile
 from src.generator_v1.slot_candidates import build_slot_candidates
@@ -27,7 +34,7 @@ from src.generator_v1.target_builder import NutritionTarget, build_nutrition_tar
 
 
 PROFILE_PATH = Path("profiles/member_profile_demo_v1.json")
-SESSION_SCHEMA_VERSION = 4
+SESSION_SCHEMA_VERSION = 7
 SESSION_SCHEMA_KEY = "generator_v1_dashboard_schema_version"
 SESSION_MENUS_KEY = "generator_v1_generated_menus"
 SESSION_FEEDBACK_KEY = "generator_v1_feedback_events"
@@ -44,6 +51,8 @@ PIPELINE_STEPS = [
     "macro_fit.py",
     "slot_fit.py",
     "nutrition_quality.py",
+    "pilot_servings_estimator.py",
+    "pilot_nutrition_overlay.py",
     "score_preview.py",
     "day_selector.py",
     "plan_validator.py",
@@ -103,6 +112,7 @@ def _build_generator_result(
     profile = load_member_profile(PROFILE_PATH)
     target = build_nutrition_target(profile)
     pool = load_recipe_candidate_pool()
+    fooddb = load_fooddb_current()
     preference_context = build_household_preference_context(profile)
     filtered_candidates = filter_recipe_candidates(
         eligible_candidates=pool.eligible_candidates,
@@ -113,10 +123,18 @@ def _build_generator_result(
         target=target,
         filtered_candidates=filtered_candidates,
         time_sensitivity=preference_context.time_sensitivity,
+        ingredients=pool.ingredients,
+        fooddb=fooddb,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
         slot_targets=target.slot_targets,
+    )
+    nutrition_cache_diagnostics = build_nutrition_cache_diagnostics(
+        recipes=pool.recipes,
+        nutrition=pool.nutrition,
+        candidates=pool.candidates,
+        eligible_candidates=pool.eligible_candidates,
     )
     selection_candidates = _without_recipe_ids(slot_candidates, blocked_recipe_ids or set())
     slot_order = _slot_order(target)
@@ -124,8 +142,24 @@ def _build_generator_result(
         slot_candidates_by_slot=_slot_candidates_by_slot(selection_candidates, slot_order),
         slot_order=slot_order,
     )
+    ingredient_diagnostics = build_ingredient_diagnostics(
+        recipes_df=pool.recipes,
+        ingredients_df=pool.ingredients,
+        nutrition_df=pool.nutrition,
+        selected_recipe_ids=_selected_recipe_ids(plan),
+    )
+    pilot_servings_diagnostics = build_pilot_servings_diagnostics(
+        recipes_df=pool.recipes,
+        ingredients_df=pool.ingredients,
+        nutrition_df=pool.nutrition,
+        eligible_candidates=pool.eligible_candidates,
+        selected_recipe_ids=_selected_recipe_ids(plan),
+    )
     plan["target"] = _target_to_dict(target)
     plan["candidate_diagnostics"] = candidate_diagnostics
+    plan["nutrition_cache_diagnostics"] = nutrition_cache_diagnostics
+    plan["ingredient_diagnostics"] = ingredient_diagnostics
+    plan["pilot_servings_diagnostics"] = pilot_servings_diagnostics
     plan["validation"] = validate_one_day_plan(plan, target)
     plan["pool_summary"] = {
         "total_recipes_loaded": len(pool.candidates),
@@ -176,6 +210,7 @@ def _render_plan(
             hide_index=True,
         )
         _render_long_passive_notes(selected_meals)
+        _render_slot_suspicion_notes(selected_meals)
         if enable_feedback:
             _render_feedback_controls(selected_meals)
     else:
@@ -187,6 +222,11 @@ def _render_plan(
                 st.write(f"- {warning}")
     else:
         st.caption("Warnings: none")
+
+    _render_nutrition_cache_diagnostics(plan.get("nutrition_cache_diagnostics", {}))
+    _render_pilot_servings_diagnostics(plan.get("pilot_servings_diagnostics", {}))
+    _render_pilot_nutrition_overlay_details(plan)
+    _render_ingredient_diagnostics(plan.get("ingredient_diagnostics", {}))
 
 
 def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
@@ -200,6 +240,18 @@ def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
                 "portion_grams_estimated": _format_estimated_grams(
                     _meal_portion_grams_estimated(meal)
                 ),
+                "portion_grams_source": meal.get("portion_grams_source"),
+                "original_portion_g_estimated": _format_estimated_grams(
+                    meal.get("original_portion_grams_estimated")
+                ),
+                "overlay_portion_g_estimated": _format_estimated_grams(
+                    meal.get("overlay_portion_grams_estimated")
+                ),
+                "original_kcal_serving": meal.get("original_energy_kcal_per_serving"),
+                "original_protein_serving": meal.get("original_protein_g_per_serving"),
+                "overlay_kcal_serving": meal.get("overlay_energy_kcal_per_serving"),
+                "overlay_protein_serving": meal.get("overlay_protein_g_per_serving"),
+                "pilot_nutrition_overlay": meal.get("uses_pilot_nutrition_overlay"),
                 "kcal": meal.get("kcal"),
                 "protein_g": meal.get("protein_g"),
                 "carbs_g": meal.get("carbs_g"),
@@ -214,6 +266,10 @@ def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
                 "pilot_time_fallback": meal.get("uses_pilot_time_fallback"),
                 "score_preview": meal.get("score_preview"),
                 "suspicious": meal.get("is_nutrition_suspicious"),
+                "slot_suspicious": meal.get("is_slot_suspicious"),
+                "slot_suspicion_reasons": _format_reasons(
+                    meal.get("slot_suspicion_reasons")
+                ),
             }
         )
     return pd.DataFrame(rows)
@@ -230,6 +286,9 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
             f"protein={_format_number(totals.get('total_protein_g'), 'g')}, "
             f"carbs={_format_number(totals.get('total_carbs_g'), 'g')}, "
             f"fat={_format_number(totals.get('total_fat_g'), 'g')}, "
+            f"original_kcal={_format_number(totals.get('original_total_kcal'))}, "
+            "pilot_overlay_count="
+            f"{totals.get('uses_pilot_nutrition_overlay_count')}, "
             f"total_time_min={_format_number(totals.get('total_time_min_sum'))}, "
             "effective_time_min="
             f"{_format_number(totals.get('effective_time_min_sum'))}, "
@@ -246,10 +305,21 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
                 f"({meal.get('recipe_id')}), portion={meal.get('portion_multiplier')}, "
                 f"portion_grams_estimated="
                 f"{_format_estimated_grams(_meal_portion_grams_estimated(meal))}, "
+                f"portion_grams_source={meal.get('portion_grams_source')}, "
+                "original_portion_grams_estimated="
+                f"{_format_estimated_grams(meal.get('original_portion_grams_estimated'))}, "
+                "overlay_portion_grams_estimated="
+                f"{_format_estimated_grams(meal.get('overlay_portion_grams_estimated'))}, "
                 f"kcal={_format_number(meal.get('kcal'))}, "
                 f"protein={_format_number(meal.get('protein_g'), 'g')}, "
                 f"carbs={_format_number(meal.get('carbs_g'), 'g')}, "
                 f"fat={_format_number(meal.get('fat_g'), 'g')}, "
+                "original_kcal_serving="
+                f"{_format_number(meal.get('original_energy_kcal_per_serving'))}, "
+                "overlay_kcal_serving="
+                f"{_format_number(meal.get('overlay_energy_kcal_per_serving'))}, "
+                "pilot_nutrition_overlay="
+                f"{meal.get('uses_pilot_nutrition_overlay')}, "
                 f"total_time_min={_format_number(meal.get('total_time_min'))}, "
                 "effective_time_min="
                 f"{_format_number(meal.get('effective_time_min_for_scoring'))}, "
@@ -259,6 +329,9 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
                 f"{_format_number(meal.get('passive_time_estimated_min'))}, "
                 f"long_passive={meal.get('has_long_passive_time')}, "
                 f"pilot_time_fallback={meal.get('uses_pilot_time_fallback')}, "
+                f"slot_suspicious={meal.get('is_slot_suspicious')}, "
+                "slot_suspicion_reasons="
+                f"{_format_reasons(meal.get('slot_suspicion_reasons'))}, "
                 f"score_preview={_format_number(meal.get('score_preview'))}"
             )
         )
@@ -297,6 +370,244 @@ def _render_feedback_controls(selected_meals: list[dict[str, Any]]) -> None:
             )
 
 
+def _render_nutrition_cache_diagnostics(diagnostics: object) -> None:
+    if not isinstance(diagnostics, dict) or not diagnostics:
+        return
+
+    with st.expander("Nutrition cache diagnostics", expanded=False):
+        cache_counts = diagnostics.get("cache_status_counts", {})
+        eligible = diagnostics.get("eligible_candidates", {})
+        mapped_ratio = diagnostics.get("mapped_weight_ratio", {})
+        total_weight = diagnostics.get("total_weight_grams_estimated", {})
+        servings_basis = diagnostics.get("servings_basis", {})
+        macros = diagnostics.get("per_serving_macros", {})
+
+        st.write(f"Total nutrition rows: {diagnostics.get('total_nutrition_rows')}")
+        st.write(f"Cache status counts: {_format_counts(cache_counts)}")
+        if isinstance(servings_basis, dict):
+            st.write(
+                (
+                    "Servings basis: "
+                    f"missing={servings_basis.get('missing_count')}, "
+                    f"zero_or_invalid={servings_basis.get('zero_or_invalid_count')}, "
+                    f"value_counts={_format_counts(servings_basis.get('value_counts', {}))}"
+                )
+            )
+        if isinstance(total_weight, dict):
+            st.write(
+                (
+                    "Total weight grams estimated: "
+                    f"missing={total_weight.get('missing_count')}, "
+                    f"zero_or_invalid={total_weight.get('zero_or_invalid_count')}, "
+                    f"median={_format_number(total_weight.get('median'))}"
+                )
+            )
+        if isinstance(mapped_ratio, dict):
+            st.write(
+                (
+                    "Mapped weight ratio: "
+                    f"median={_format_number(mapped_ratio.get('median'))}, "
+                    f"below_0.20={mapped_ratio.get('count_below_0.20')}, "
+                    f"below_0.40={mapped_ratio.get('count_below_0.40')}, "
+                    f"below_0.60={mapped_ratio.get('count_below_0.60')}"
+                )
+            )
+        if isinstance(eligible, dict):
+            st.write(
+                (
+                    "Eligible candidates: "
+                    f"rows={eligible.get('eligible_rows_count')}, "
+                    f"kcal_lt_150={eligible.get('kcal_per_serving_lt_150_count')}, "
+                    f"protein_lt_10={eligible.get('protein_per_serving_lt_10_count')}, "
+                    "kcal_ge_150_and_protein_ge_10="
+                    f"{eligible.get('kcal_ge_150_and_protein_ge_10_count')}"
+                )
+            )
+        if isinstance(macros, dict):
+            macro_rows = [
+                {"macro": macro_name, **macro_values}
+                for macro_name, macro_values in macros.items()
+                if isinstance(macro_values, dict)
+            ]
+            if macro_rows:
+                st.dataframe(
+                    pd.DataFrame(macro_rows),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+        suspicious = diagnostics.get("top_suspicious_eligible_recipes", [])
+        if isinstance(suspicious, list) and suspicious:
+            st.caption("Top suspicious eligible recipes")
+            st.dataframe(
+                pd.DataFrame(suspicious),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+
+def _render_pilot_servings_diagnostics(diagnostics: object) -> None:
+    if not isinstance(diagnostics, dict) or not diagnostics:
+        return
+
+    with st.expander("Pilot servings diagnostics", expanded=False):
+        st.write(f"Eligible recipes: {diagnostics.get('eligible_recipe_count')}")
+        st.write(
+            (
+                "Estimated servings distribution: "
+                f"{_format_counts(diagnostics.get('estimated_servings_basis_distribution', {}))}"
+            )
+        )
+        st.write(
+            (
+                "Pilot servings fallback count: "
+                f"{diagnostics.get('uses_pilot_servings_fallback_count')}"
+            )
+        )
+        st.caption(
+            "Pilot fallback only: these values do not overwrite nutrition_cache yet."
+        )
+
+        selected = diagnostics.get("selected_plan_servings", [])
+        if isinstance(selected, list) and selected:
+            st.dataframe(
+                pd.DataFrame(selected),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.write("Selected plan servings: none")
+
+
+def _render_pilot_nutrition_overlay_details(plan: dict[str, Any]) -> None:
+    selected_meals = plan.get("selected_meals", [])
+    if not selected_meals:
+        return
+
+    totals = plan.get("day_totals", {})
+    with st.expander("Pilot nutrition overlay details", expanded=False):
+        st.caption(
+            "Pilot fallback / overlay only: original cache values are not overwritten."
+        )
+        st.write(
+            (
+                "Original day totals: "
+                f"kcal={_format_number(totals.get('original_total_kcal'))}, "
+                f"protein={_format_number(totals.get('original_total_protein_g'), 'g')}, "
+                f"carbs={_format_number(totals.get('original_total_carbs_g'), 'g')}, "
+                f"fat={_format_number(totals.get('original_total_fat_g'), 'g')}"
+            )
+        )
+        st.write(
+            (
+                "Overlay-based day totals: "
+                f"kcal={_format_number(totals.get('total_kcal'))}, "
+                f"protein={_format_number(totals.get('total_protein_g'), 'g')}, "
+                f"carbs={_format_number(totals.get('total_carbs_g'), 'g')}, "
+                f"fat={_format_number(totals.get('total_fat_g'), 'g')}, "
+                "uses_overlay_count="
+                f"{totals.get('uses_pilot_nutrition_overlay_count')}"
+            )
+        )
+
+        rows = []
+        for meal in selected_meals:
+            rows.append(
+                {
+                    "slot": meal.get("slot"),
+                    "recipe_id": meal.get("recipe_id"),
+                    "display_name": meal.get("display_name"),
+                    "original_kcal_serving": meal.get(
+                        "original_energy_kcal_per_serving"
+                    ),
+                    "original_protein_serving": meal.get(
+                        "original_protein_g_per_serving"
+                    ),
+                    "overlay_kcal_serving": meal.get(
+                        "overlay_energy_kcal_per_serving"
+                    ),
+                    "overlay_protein_serving": meal.get(
+                        "overlay_protein_g_per_serving"
+                    ),
+                    "estimated_servings": meal.get("overlay_estimated_servings_basis"),
+                    "original_portion_g_estimated": meal.get(
+                        "original_portion_grams_estimated"
+                    ),
+                    "overlay_portion_g_estimated": meal.get(
+                        "overlay_portion_grams_estimated"
+                    ),
+                    "portion_grams_source": meal.get("portion_grams_source"),
+                    "alias_weight_g": meal.get("overlay_alias_weight_grams"),
+                    "uses_overlay": meal.get("uses_pilot_nutrition_overlay"),
+                    "aliases": _format_reasons(meal.get("overlay_aliases_used")),
+                    "reasons": _format_reasons(
+                        meal.get("pilot_nutrition_overlay_reasons")
+                    ),
+                }
+            )
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+
+def _render_ingredient_diagnostics(diagnostics: object) -> None:
+    if not isinstance(diagnostics, dict) or not diagnostics:
+        return
+
+    with st.expander("Ingredient diagnostics", expanded=False):
+        global_summary = diagnostics.get("global_mapping_summary", {})
+        if isinstance(global_summary, dict):
+            st.write(
+                (
+                    "Global mapping: "
+                    f"rows={global_summary.get('total_ingredient_rows')}, "
+                    "status_counts="
+                    f"{_format_counts(global_summary.get('mapping_status_counts', {}))}, "
+                    "mapped_food_id_present="
+                    f"{global_summary.get('mapped_food_id_present_count')}, "
+                    "grams_gt_0="
+                    f"{global_summary.get('quantity_grams_estimated_gt_0_count')}, "
+                    "mapped_food_id_and_grams_gt_0="
+                    f"{global_summary.get('mapped_food_id_and_grams_gt_0_count')}"
+                )
+            )
+            st.write(
+                (
+                    "By status with grams: "
+                    "accepted_auto="
+                    f"{global_summary.get('accepted_auto_with_grams_gt_0_count')}, "
+                    "accepted_auto_without_grams="
+                    f"{global_summary.get('accepted_auto_without_grams_count')}, "
+                    "review_needed="
+                    f"{global_summary.get('review_needed_with_grams_gt_0_count')}, "
+                    "unmapped="
+                    f"{global_summary.get('unmapped_with_grams_gt_0_count')}"
+                )
+            )
+
+        _render_records_table(
+            "Top suspicious recipes",
+            diagnostics.get("top_suspicious_recipes", []),
+        )
+        _render_records_table(
+            "Common unmapped ingredients",
+            diagnostics.get("common_unmapped_ingredients", []),
+        )
+        _render_records_table(
+            "Common review-needed ingredients",
+            diagnostics.get("common_review_needed_ingredients", []),
+        )
+        _render_records_table(
+            "Selected plan ingredient breakdown",
+            diagnostics.get("selected_plan_ingredient_breakdown", []),
+        )
+
+
+def _render_records_table(title: str, records: object) -> None:
+    st.caption(title)
+    if not isinstance(records, list) or not records:
+        st.write("none")
+        return
+    st.dataframe(pd.DataFrame(records), use_container_width=True, hide_index=True)
+
+
 def _render_long_passive_notes(selected_meals: list[dict[str, Any]]) -> None:
     long_passive_meals = [
         meal for meal in selected_meals if bool(meal.get("has_long_passive_time", False))
@@ -321,6 +632,24 @@ def _render_long_passive_notes(selected_meals: list[dict[str, Any]]) -> None:
                     f"{meal.get('slot')}: {meal.get('display_name')} has long passive time. "
                     "Reasons: "
                     f"{_format_reasons(meal.get('time_estimation_reasons'))}"
+                )
+            )
+
+
+def _render_slot_suspicion_notes(selected_meals: list[dict[str, Any]]) -> None:
+    suspicious_meals = [
+        meal for meal in selected_meals if bool(meal.get("is_slot_suspicious", False))
+    ]
+    if not suspicious_meals:
+        return
+
+    with st.expander("Slot realism notes", expanded=True):
+        for meal in suspicious_meals:
+            st.warning(
+                (
+                    f"{meal.get('slot')}: {meal.get('display_name')} may not fit this slot. "
+                    "Reasons: "
+                    f"{_format_reasons(meal.get('slot_suspicion_reasons'))}"
                 )
             )
 
@@ -461,6 +790,14 @@ def _recent_recipe_ids(menus: list[dict[str, Any]]) -> set[str]:
     return recipe_ids
 
 
+def _selected_recipe_ids(plan: dict[str, Any]) -> list[str]:
+    return [
+        str(meal.get("recipe_id"))
+        for meal in plan.get("selected_meals", [])
+        if meal.get("recipe_id")
+    ]
+
+
 def _menu_recipe_summary(menu: dict[str, Any]) -> str:
     parts = []
     for meal in menu.get("selected_meals", []):
@@ -515,6 +852,12 @@ def _format_reasons(value: object) -> str:
     if value is None:
         return "none"
     return str(value)
+
+
+def _format_counts(value: object) -> str:
+    if not isinstance(value, dict) or not value:
+        return "none"
+    return ", ".join(f"{key}:{item}" for key, item in value.items())
 
 
 def _pipeline_color(index: int) -> str:

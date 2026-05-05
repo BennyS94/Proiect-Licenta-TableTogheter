@@ -12,6 +12,30 @@ SELECTED_MEAL_FIELDS = [
     "portion_multiplier",
     "serving_weight_g_estimated",
     "portion_grams_estimated",
+    "original_portion_grams_estimated",
+    "overlay_serving_weight_g_estimated",
+    "overlay_portion_grams_estimated",
+    "portion_grams_source",
+    "original_energy_kcal_per_serving",
+    "original_protein_g_per_serving",
+    "original_carbs_g_per_serving",
+    "original_fat_g_per_serving",
+    "overlay_energy_kcal_per_serving",
+    "overlay_protein_g_per_serving",
+    "overlay_carbs_g_per_serving",
+    "overlay_fat_g_per_serving",
+    "overlay_energy_kcal_total",
+    "overlay_protein_g_total",
+    "overlay_carbs_g_total",
+    "overlay_fat_g_total",
+    "overlay_mapped_weight_grams",
+    "overlay_alias_weight_grams",
+    "overlay_used_alias_count",
+    "overlay_used_existing_mapping_count",
+    "overlay_estimated_servings_basis",
+    "uses_pilot_nutrition_overlay",
+    "pilot_nutrition_overlay_reasons",
+    "overlay_aliases_used",
     "kcal",
     "protein_g",
     "carbs_g",
@@ -27,6 +51,8 @@ SELECTED_MEAL_FIELDS = [
     "macro_fit",
     "time_fit",
     "slot_fit",
+    "is_slot_suspicious",
+    "slot_suspicion_reasons",
     "nutrition_quality",
     "nutrition_quality_reasons",
     "is_nutrition_suspicious",
@@ -61,12 +87,7 @@ def select_one_day_plan(
             warnings.append(f"Nu exista candidati pentru slot: {slot}")
             continue
 
-        sorted_candidates = candidates.sort_values(
-            SORT_COLUMNS,
-            ascending=SORT_ASCENDING,
-            kind="mergesort",
-            na_position="last",
-        )
+        sorted_candidates = _sort_candidates(candidates)
         selected_row = _first_unused_recipe(sorted_candidates, used_recipe_ids)
         if selected_row is None:
             warnings.append(f"Nu exista candidat nerepetat pentru slot: {slot}")
@@ -94,6 +115,20 @@ def _first_unused_recipe(
     return None
 
 
+def _sort_candidates(candidates: pd.DataFrame) -> pd.DataFrame:
+    sort_columns = SORT_COLUMNS
+    sort_ascending = SORT_ASCENDING
+    if "is_slot_suspicious" in candidates.columns:
+        sort_columns = ["is_slot_suspicious", *SORT_COLUMNS]
+        sort_ascending = [True, *SORT_ASCENDING]
+    return candidates.sort_values(
+        sort_columns,
+        ascending=sort_ascending,
+        kind="mergesort",
+        na_position="last",
+    )
+
+
 def _selected_meal_row(row: pd.Series) -> dict[str, object]:
     return {
         field: _clean_value(row.get(field))
@@ -107,6 +142,27 @@ def _day_totals(selected_meals: list[dict[str, object]]) -> dict[str, object]:
         "total_protein_g": round(sum(_to_float(meal.get("protein_g")) for meal in selected_meals), 1),
         "total_carbs_g": round(sum(_to_float(meal.get("carbs_g")) for meal in selected_meals), 1),
         "total_fat_g": round(sum(_to_float(meal.get("fat_g")) for meal in selected_meals), 1),
+        "original_total_kcal": _original_macro_total(
+            selected_meals,
+            "original_energy_kcal_per_serving",
+        ),
+        "original_total_protein_g": _original_macro_total(
+            selected_meals,
+            "original_protein_g_per_serving",
+        ),
+        "original_total_carbs_g": _original_macro_total(
+            selected_meals,
+            "original_carbs_g_per_serving",
+        ),
+        "original_total_fat_g": _original_macro_total(
+            selected_meals,
+            "original_fat_g_per_serving",
+        ),
+        "uses_pilot_nutrition_overlay_count": sum(
+            1
+            for meal in selected_meals
+            if bool(meal.get("uses_pilot_nutrition_overlay"))
+        ),
         "total_time_min_sum": round(
             sum(_to_float(meal.get("total_time_min")) for meal in selected_meals),
             1,
@@ -121,6 +177,16 @@ def _day_totals(selected_meals: list[dict[str, object]]) -> dict[str, object]:
         ),
         "selected_slot_count": len(selected_meals),
     }
+
+
+def _original_macro_total(
+    selected_meals: list[dict[str, object]],
+    field: str,
+) -> float:
+    total = 0.0
+    for meal in selected_meals:
+        total += _to_float(meal.get(field)) * _to_float(meal.get("portion_multiplier"))
+    return round(total, 1)
 
 
 def _to_float(value: object) -> float:
