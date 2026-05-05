@@ -10,11 +10,20 @@ SELECTED_MEAL_FIELDS = [
     "recipe_id",
     "display_name",
     "portion_multiplier",
+    "serving_weight_g_estimated",
+    "portion_grams_estimated",
     "kcal",
     "protein_g",
     "carbs_g",
     "fat_g",
     "total_time_min",
+    "active_time_estimated_min",
+    "passive_time_estimated_min",
+    "effective_time_min_for_scoring",
+    "original_effective_time_min_for_scoring",
+    "has_long_passive_time",
+    "uses_pilot_time_fallback",
+    "time_estimation_reasons",
     "macro_fit",
     "time_fit",
     "slot_fit",
@@ -102,6 +111,14 @@ def _day_totals(selected_meals: list[dict[str, object]]) -> dict[str, object]:
             sum(_to_float(meal.get("total_time_min")) for meal in selected_meals),
             1,
         ),
+        "effective_time_min_sum": _sum_optional(
+            selected_meals,
+            "effective_time_min_for_scoring",
+        ),
+        "passive_time_estimated_sum": _sum_optional(
+            selected_meals,
+            "passive_time_estimated_min",
+        ),
         "selected_slot_count": len(selected_meals),
     }
 
@@ -110,6 +127,21 @@ def _to_float(value: object) -> float:
     numeric_value = pd.to_numeric(value, errors="coerce")
     if pd.isna(numeric_value):
         return 0.0
+    return float(numeric_value)
+
+
+def _sum_optional(selected_meals: list[dict[str, object]], field: str) -> float | None:
+    values = [_to_optional_float(meal.get(field)) for meal in selected_meals]
+    numeric_values = [value for value in values if value is not None]
+    if not numeric_values:
+        return None
+    return round(sum(numeric_values), 1)
+
+
+def _to_optional_float(value: object) -> float | None:
+    numeric_value = pd.to_numeric(value, errors="coerce")
+    if pd.isna(numeric_value):
+        return None
     return float(numeric_value)
 
 

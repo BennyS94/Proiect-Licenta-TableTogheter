@@ -19,6 +19,9 @@ def write_plan_csv(plan: dict[str, Any], out_csv: str | Path) -> None:
         row["nutrition_quality_reasons"] = _format_reasons(
             row.get("nutrition_quality_reasons")
         )
+        row["time_estimation_reasons"] = _format_reasons(
+            row.get("time_estimation_reasons")
+        )
         rows.append(row)
     pd.DataFrame(rows, columns=SELECTED_MEAL_FIELDS).to_csv(output_path, index=False)
 
@@ -63,14 +66,25 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
             [
                 (
                     f"{meal.get('slot')}: {meal.get('display_name')} "
-                    f"({meal.get('recipe_id')}, portion={_fmt(meal.get('portion_multiplier'))})"
+                    f"({meal.get('recipe_id')}, portion={_fmt(meal.get('portion_multiplier'))}, "
+                    f"grams_estimated={_fmt(meal.get('portion_grams_estimated'), decimals=0)})"
                 ),
                 (
                     f"  kcal={_fmt(meal.get('kcal'))}, "
                     f"protein_g={_fmt(meal.get('protein_g'))}, "
                     f"carbs_g={_fmt(meal.get('carbs_g'))}, "
                     f"fat_g={_fmt(meal.get('fat_g'))}, "
-                    f"time_min={_fmt(meal.get('total_time_min'), decimals=0)}"
+                    f"total_time_min={_fmt(meal.get('total_time_min'), decimals=0)}, "
+                    "active_time_estimated_min="
+                    f"{_fmt(meal.get('active_time_estimated_min'), decimals=0)}, "
+                    "passive_time_estimated_min="
+                    f"{_fmt(meal.get('passive_time_estimated_min'), decimals=0)}, "
+                    "effective_time_min_for_scoring="
+                    f"{_fmt(meal.get('effective_time_min_for_scoring'), decimals=0)}, "
+                    "original_effective_time_min_for_scoring="
+                    f"{_fmt(meal.get('original_effective_time_min_for_scoring'), decimals=0)}, "
+                    f"has_long_passive_time={meal.get('has_long_passive_time')}, "
+                    f"uses_pilot_time_fallback={meal.get('uses_pilot_time_fallback')}"
                 ),
                 (
                     f"  score_preview={_fmt(meal.get('score_preview'), decimals=2)}, "
@@ -85,6 +99,10 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                     "  nutrition_quality_reasons="
                     + _format_reasons(meal.get("nutrition_quality_reasons"))
                 ),
+                (
+                    "  time_estimation_reasons="
+                    + _format_reasons(meal.get("time_estimation_reasons"))
+                ),
             ]
         )
 
@@ -97,6 +115,14 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
             f"total_carbs_g={_fmt(totals.get('total_carbs_g'))}",
             f"total_fat_g={_fmt(totals.get('total_fat_g'))}",
             f"total_time_min_sum={_fmt(totals.get('total_time_min_sum'), decimals=0)}",
+            (
+                "effective_time_min_sum="
+                f"{_fmt(totals.get('effective_time_min_sum'), decimals=0)}"
+            ),
+            (
+                "passive_time_estimated_sum="
+                f"{_fmt(totals.get('passive_time_estimated_sum'), decimals=0)}"
+            ),
             f"selected_slot_count={totals.get('selected_slot_count', 0)}",
             "",
             "Validation warnings",
@@ -119,7 +145,9 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                 f"kcal35_pass={slot_diag.get('kcal_35pct_pass_count')}, "
                 f"protein20_pass={slot_diag.get('protein_20pct_pass_count')}, "
                 f"both_pass={slot_diag.get('both_kcal_and_protein_pass_count')}, "
-                f"time_gt_180={slot_diag.get('time_gt_180_count')}"
+                f"time_gt_180={slot_diag.get('time_gt_180_count')}, "
+                f"long_passive={slot_diag.get('long_passive_time_count', 0)}, "
+                f"time_basis={slot_diag.get('time_diagnostic_basis', 'total_time_min')}"
             )
         )
     lines.extend(
@@ -134,6 +162,7 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
             "",
             "Note",
             "feedback_fit si variety_fit sunt placeholder neutru 0.50, nu logica finala.",
+            "pilot time fallback este temporar si foloseste keyword-uri de timp pasiv din text.",
         ]
     )
     return lines

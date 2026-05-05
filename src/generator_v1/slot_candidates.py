@@ -6,6 +6,7 @@ import pandas as pd
 
 from src.generator_v1.macro_fit import macro_fit
 from src.generator_v1.nutrition_quality import compute_nutrition_quality
+from src.generator_v1.recipe_time_adapter import compute_time_features
 from src.generator_v1.score_preview import compute_score_preview
 from src.generator_v1.slot_fit import compute_slot_fit
 from src.generator_v1.target_builder import NutritionTarget
@@ -28,12 +29,13 @@ def build_slot_candidates(
     for slot in target.slot_targets:
         slot_target = target.slot_targets[slot]
         for _, recipe in filtered_candidates.iterrows():
-            total_time_min = recipe.get("total_time_min")
+            time_features = compute_time_features(recipe)
             time_fit = household_time_fit(
-                total_time_min=total_time_min,
+                total_time_min=time_features["effective_time_min_for_scoring"],
                 slot=slot,
                 time_sensitivity=time_sensitivity,
             )
+            serving_weight_g_estimated = _serving_weight_g_estimated(recipe)
             for portion_multiplier in portion_multipliers:
                 actual_macros = {
                     "kcal": _scaled(recipe.get("energy_kcal_per_serving"), portion_multiplier),
@@ -51,6 +53,11 @@ def build_slot_candidates(
                     "recipe_category": recipe.get("recipe_category"),
                     "recipe_subcategory": recipe.get("recipe_subcategory"),
                     "portion_multiplier": float(portion_multiplier),
+                    "serving_weight_g_estimated": serving_weight_g_estimated,
+                    "portion_grams_estimated": _scaled_optional(
+                        serving_weight_g_estimated,
+                        portion_multiplier,
+                    ),
                     "kcal": actual_macros["kcal"],
                     "protein_g": actual_macros["protein_g"],
                     "carbs_g": actual_macros["carbs_g"],
@@ -61,6 +68,17 @@ def build_slot_candidates(
                     "carbs_fit": macro_scores["carbs_fit"],
                     "fat_fit": macro_scores["fat_fit"],
                     "total_time_min": _to_float(recipe.get("total_time_min")),
+                    "active_time_estimated_min": time_features["active_time_estimated_min"],
+                    "passive_time_estimated_min": time_features["passive_time_estimated_min"],
+                    "effective_time_min_for_scoring": time_features[
+                        "effective_time_min_for_scoring"
+                    ],
+                    "original_effective_time_min_for_scoring": time_features[
+                        "original_effective_time_min_for_scoring"
+                    ],
+                    "has_long_passive_time": time_features["has_long_passive_time"],
+                    "uses_pilot_time_fallback": time_features["uses_pilot_time_fallback"],
+                    "time_estimation_reasons": time_features["time_estimation_reasons"],
                     "time_fit": time_fit,
                 }
                 slot_scores = compute_slot_fit(candidate_row, slot)
@@ -93,6 +111,8 @@ def _slot_candidate_columns() -> list[str]:
         "recipe_id",
         "display_name",
         "portion_multiplier",
+        "serving_weight_g_estimated",
+        "portion_grams_estimated",
         "kcal",
         "protein_g",
         "carbs_g",
@@ -103,6 +123,13 @@ def _slot_candidate_columns() -> list[str]:
         "carbs_fit",
         "fat_fit",
         "total_time_min",
+        "active_time_estimated_min",
+        "passive_time_estimated_min",
+        "effective_time_min_for_scoring",
+        "original_effective_time_min_for_scoring",
+        "has_long_passive_time",
+        "uses_pilot_time_fallback",
+        "time_estimation_reasons",
         "time_fit",
         "slot_fit",
         "slot_fit_reasons",
@@ -121,6 +148,27 @@ def _scaled(value: object, portion_multiplier: float) -> float:
     if numeric_value is None:
         return 0.0
     return round(numeric_value * float(portion_multiplier), 1)
+
+
+def _scaled_optional(value: float | None, portion_multiplier: float) -> float | None:
+    if value is None:
+        return None
+    return round(value * float(portion_multiplier), 1)
+
+
+def _serving_weight_g_estimated(recipe: pd.Series) -> float | None:
+    total_weight = _to_positive_float(recipe.get("total_weight_grams_estimated"))
+    servings_basis = _to_positive_float(recipe.get("servings_basis"))
+    if total_weight is None or servings_basis is None:
+        return None
+    return round(total_weight / servings_basis, 1)
+
+
+def _to_positive_float(value: object) -> float | None:
+    numeric_value = _to_float(value)
+    if numeric_value is None or numeric_value <= 0:
+        return None
+    return numeric_value
 
 
 def _to_float(value: object) -> float | None:
