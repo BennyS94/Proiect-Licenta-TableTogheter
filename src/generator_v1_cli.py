@@ -153,7 +153,12 @@ def _print_slot_candidate_summary(
         print(f"  {slot}: slot_candidate_count={count}")
 
     print("Top time-fit candidates by slot")
-    sort_columns = ["time_fit", "total_time_min", "recipe_id", "portion_multiplier"]
+    sort_columns = [
+        "time_fit",
+        "effective_time_min_for_scoring",
+        "recipe_id",
+        "portion_multiplier",
+    ]
     ascending = [False, True, True, True]
     for slot in slot_counts.index:
         preview = (
@@ -171,6 +176,11 @@ def _print_slot_candidate_summary(
                 f"kcal={_format_number(row['kcal'])}, "
                 f"protein_g={_format_number(row['protein_g'])}, "
                 f"total_time_min={_format_number(row['total_time_min'], decimals=0)}, "
+                "effective_time_min="
+                f"{_format_number(row['effective_time_min_for_scoring'], decimals=0)}, "
+                "original_effective_time_min="
+                f"{_format_number(row['original_effective_time_min_for_scoring'], decimals=0)}, "
+                f"uses_pilot_time_fallback={row['uses_pilot_time_fallback']}, "
                 f"time_fit={_format_number(row['time_fit'], decimals=2)}"
             )
 
@@ -190,6 +200,7 @@ def _print_slot_candidate_summary(
                 f"{row['recipe_id']} | "
                 f"{row['display_name']} | "
                 f"portion={_format_number(row['portion_multiplier'])}, "
+                f"portion_g_est={_format_number(row['portion_grams_estimated'], decimals=0)}, "
                 f"kcal={_format_number(row['kcal'])}, "
                 f"protein_g={_format_number(row['protein_g'])}, "
                 f"carbs_g={_format_number(row['carbs_g'])}, "
@@ -199,6 +210,8 @@ def _print_slot_candidate_summary(
                 f"kcal_fit={_format_number(row['kcal_fit'], decimals=2)}, "
                 f"carbs_fit={_format_number(row['carbs_fit'], decimals=2)}, "
                 f"fat_fit={_format_number(row['fat_fit'], decimals=2)}, "
+                "effective_time_min="
+                f"{_format_number(row['effective_time_min_for_scoring'], decimals=0)}, "
                 f"time_fit={_format_number(row['time_fit'], decimals=2)}"
             )
 
@@ -223,6 +236,12 @@ def _print_slot_candidate_summary(
                 f"carbs_g={_format_number(row['carbs_g'])}, "
                 f"fat_g={_format_number(row['fat_g'])}, "
                 f"total_time_min={_format_number(row['total_time_min'], decimals=0)}, "
+                "effective_time_min="
+                f"{_format_number(row['effective_time_min_for_scoring'], decimals=0)}, "
+                "original_effective_time_min="
+                f"{_format_number(row['original_effective_time_min_for_scoring'], decimals=0)}, "
+                f"has_long_passive_time={row['has_long_passive_time']}, "
+                f"uses_pilot_time_fallback={row['uses_pilot_time_fallback']}, "
                 f"macro_fit={_format_number(row['macro_fit'], decimals=2)}, "
                 f"time_fit={_format_number(row['time_fit'], decimals=2)}, "
                 f"slot_fit={_format_number(row['slot_fit'], decimals=2)}, "
@@ -291,10 +310,18 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
             f"{meal['recipe_id']} | "
             f"{meal['display_name']} | "
             f"portion={_format_number(meal['portion_multiplier'])}, "
+            f"portion_g_est={_format_number(meal['portion_grams_estimated'], decimals=0)}, "
             f"kcal={_format_number(meal['kcal'])}, "
             f"protein_g={_format_number(meal['protein_g'])}, "
             f"carbs_g={_format_number(meal['carbs_g'])}, "
             f"fat_g={_format_number(meal['fat_g'])}, "
+            f"total_time_min={_format_number(meal['total_time_min'], decimals=0)}, "
+            "effective_time_min="
+            f"{_format_number(meal['effective_time_min_for_scoring'], decimals=0)}, "
+            "original_effective_time_min="
+            f"{_format_number(meal['original_effective_time_min_for_scoring'], decimals=0)}, "
+            f"has_long_passive_time={meal['has_long_passive_time']}, "
+            f"uses_pilot_time_fallback={meal['uses_pilot_time_fallback']}, "
             f"nutrition_quality={_format_number(meal['nutrition_quality'], decimals=2)}, "
             f"is_nutrition_suspicious={meal['is_nutrition_suspicious']}, "
             f"score_preview={_format_number(meal['score_preview'], decimals=2)}, "
@@ -310,6 +337,10 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
         f"total_carbs_g={_format_number(totals.get('total_carbs_g'))}, "
         f"total_fat_g={_format_number(totals.get('total_fat_g'))}, "
         f"total_time_min_sum={_format_number(totals.get('total_time_min_sum'), decimals=0)}, "
+        "effective_time_min_sum="
+        f"{_format_number(totals.get('effective_time_min_sum'), decimals=0)}, "
+        "passive_time_estimated_sum="
+        f"{_format_number(totals.get('passive_time_estimated_sum'), decimals=0)}, "
         f"selected_slot_count={totals.get('selected_slot_count', 0)}"
     )
     warnings = plan.get("warnings", [])
@@ -336,6 +367,8 @@ def _print_candidate_diagnostics(diagnostics: dict[str, dict[str, object]]) -> N
             f"time_le_60={values['time_le_60_count']}, "
             f"time_gt_60={values['time_gt_60_count']}, "
             f"time_gt_180={values['time_gt_180_count']}, "
+            f"long_passive={values.get('long_passive_time_count', 0)}, "
+            f"time_basis={values.get('time_diagnostic_basis', 'total_time_min')}, "
             f"best_macro_fit={_format_number(values['best_macro_fit'], decimals=2)}, "
             f"best_score_preview={_format_number(values['best_score_preview'], decimals=2)}, "
             f"median_kcal={_format_number(values['median_kcal'])}, "
@@ -357,6 +390,10 @@ def _print_validation(validation: dict[str, object]) -> None:
         "  "
         f"kcal_ratio={_format_number(comparison.get('kcal_ratio'), decimals=2)}, "
         f"protein_ratio={_format_number(comparison.get('protein_ratio'), decimals=2)}, "
+        "effective_time_min_sum="
+        f"{_format_number(comparison.get('effective_time_min_sum'), decimals=0)}, "
+        "time_used_for_validation_min="
+        f"{_format_number(comparison.get('time_used_for_validation_min'), decimals=0)}, "
         f"selected_slot_count={comparison.get('selected_slot_count')}, "
         f"expected_slot_count={comparison.get('expected_slot_count')}"
     )

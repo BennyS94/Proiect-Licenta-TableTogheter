@@ -25,6 +25,9 @@ def validate_one_day_plan(
     total_kcal = _to_float(totals.get("total_kcal"))
     total_protein = _to_float(totals.get("total_protein_g"))
     total_time = _to_float(totals.get("total_time_min_sum"))
+    effective_time = _to_optional_float(totals.get("effective_time_min_sum"))
+    passive_time = _to_optional_float(totals.get("passive_time_estimated_sum"))
+    time_for_validation = effective_time if effective_time is not None else total_time
     target_kcal = _to_float(target_data.get("kcal"))
     target_protein = _to_float(target_data.get("protein_g"))
 
@@ -58,21 +61,40 @@ def validate_one_day_plan(
             "Mese cu nutritie suspecta: " + ", ".join(str(slot) for slot in suspicious_meals)
         )
 
-    if total_time > MAX_DAY_TIME_MIN:
+    if time_for_validation > MAX_DAY_TIME_MIN:
         time_invalid = True
+        if effective_time is not None:
+            warnings.append(
+                "effective_time_min_sum depaseste 300; planul poate fi nerealist pentru gatire in aceeasi zi."
+            )
+        else:
+            warnings.append(
+                "total_time_min_sum depaseste 300; lipseste timpul efectiv estimat pentru validare."
+            )
+    elif effective_time is not None and total_time > MAX_DAY_TIME_MIN:
         warnings.append(
-            "total_time_min_sum depaseste 300; timpul include pasiv si planul poate fi nerealist pentru gatire in aceeasi zi."
+            "total_time_min_sum depaseste 300, dar validarea de timp foloseste timpul efectiv estimat fara pasiv."
         )
 
     long_meals = [
         str(meal.get("slot", "unknown"))
         for meal in selected_meals
-        if _to_float(meal.get("total_time_min")) > EXTREME_MEAL_TIME_MIN
+        if _to_float(meal.get("effective_time_min_for_scoring")) > EXTREME_MEAL_TIME_MIN
     ]
     if long_meals:
         time_invalid = True
         warnings.append(
-            "Mese cu timp extrem peste 180 min: " + ", ".join(long_meals)
+            "Mese cu timp efectiv extrem peste 180 min: " + ", ".join(long_meals)
+        )
+
+    passive_meals = [
+        str(meal.get("slot", "unknown"))
+        for meal in selected_meals
+        if bool(meal.get("has_long_passive_time", False))
+    ]
+    if passive_meals:
+        warnings.append(
+            "Mese marcate cu timp pasiv lung: " + ", ".join(passive_meals)
         )
 
     validation_status = _validation_status(
@@ -94,6 +116,9 @@ def validate_one_day_plan(
             "protein_ratio": round(protein_ratio, 4),
             "min_protein_ratio": MIN_DAILY_PROTEIN_RATIO,
             "total_time_min_sum": total_time,
+            "effective_time_min_sum": effective_time,
+            "passive_time_estimated_sum": passive_time,
+            "time_used_for_validation_min": time_for_validation,
             "max_day_time_min": MAX_DAY_TIME_MIN,
             "selected_slot_count": selected_slots,
             "expected_slot_count": expected_slots,
@@ -142,3 +167,9 @@ def _to_float(value: object) -> float:
         return 0.0
     return float(numeric_value)
 
+
+def _to_optional_float(value: object) -> float | None:
+    numeric_value = pd.to_numeric(value, errors="coerce")
+    if pd.isna(numeric_value):
+        return None
+    return float(numeric_value)

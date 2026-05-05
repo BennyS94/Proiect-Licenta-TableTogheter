@@ -25,7 +25,12 @@ def _slot_diagnostics(
 ) -> dict[str, object]:
     kcal = pd.to_numeric(slot_df.get("kcal"), errors="coerce")
     protein = pd.to_numeric(slot_df.get("protein_g"), errors="coerce")
-    time_min = pd.to_numeric(slot_df.get("total_time_min"), errors="coerce")
+    time_column = (
+        "effective_time_min_for_scoring"
+        if "effective_time_min_for_scoring" in slot_df.columns
+        else "total_time_min"
+    )
+    time_min = pd.to_numeric(slot_df.get(time_column), errors="coerce")
     target_kcal = float(slot_target.get("kcal") or 0)
     target_protein = float(slot_target.get("protein_g") or 0)
     kcal_pass = kcal >= target_kcal * MIN_KCAL_TARGET_RATIO if target_kcal > 0 else False
@@ -35,6 +40,7 @@ def _slot_diagnostics(
         else False
     )
     suspicious = slot_df.get("is_nutrition_suspicious", pd.Series(dtype=bool)).fillna(True)
+    long_passive = slot_df.get("has_long_passive_time", pd.Series(dtype=bool)).fillna(False)
 
     return {
         "total_slot_candidates": int(len(slot_df)),
@@ -48,6 +54,8 @@ def _slot_diagnostics(
         "time_le_60_count": int((time_min <= 60).sum()),
         "time_gt_60_count": int((time_min > 60).sum()),
         "time_gt_180_count": int((time_min > 180).sum()),
+        "long_passive_time_count": int(long_passive.astype(bool).sum()),
+        "time_diagnostic_basis": time_column,
         "best_macro_fit": _max_or_zero(slot_df.get("macro_fit")),
         "best_score_preview": _max_or_zero(slot_df.get("score_preview")),
         "median_kcal": _median_or_zero(kcal),
@@ -72,4 +80,3 @@ def _median_or_zero(series: pd.Series) -> float:
     if series.empty or pd.isna(series.median()):
         return 0.0
     return round(float(series.median()), 1)
-
