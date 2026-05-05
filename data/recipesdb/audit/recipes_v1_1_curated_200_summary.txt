@@ -1,0 +1,93 @@
+Recipes_DB v1.1 curated_200 draft selection
+
+Source rows scanned: 62126
+Deduped recipes scanned: 25021
+Clean eligible candidates after filters: 643
+Selected count: 200
+Primary protein distribution total: 200
+
+Target direction:
+- main complete/near-complete meals target: 155
+- breakfast target: 20
+- snack target: 10
+- component/side target: 15
+
+Selected structure:
+- complete/near-complete meals: 155
+- components/sides: 15
+- breakfast: 20
+- snack: 10
+
+Count by recipe_kind_guess:
+- complete_main: 81
+- near_complete_main: 37
+- soup: 25
+- breakfast: 20
+- salad: 12
+- snack: 10
+- protein_component: 5
+- carb_side: 5
+- veg_side: 5
+
+Count by primary_protein:
+- beef: 36
+- chicken: 36
+- vegetarian: 31
+- egg: 31
+- pork: 25
+- fish: 21
+- turkey: 10
+- unknown: 10
+
+Top likely Food_DB gaps among selected recipes:
+- celery: 17
+- salt_and_black_pepper: 13
+- vegetable_oil: 12
+- green_onions: 11
+- green_beans: 10
+- cornstarch: 10
+- beef: 9
+- kosher_salt: 9
+- red_pepper_flakes: 9
+- salt_and_pepper: 9
+- can_tomatoes: 8
+- carrots: 8
+- lemon: 7
+- zucchini: 7
+- chicken_thighs: 7
+- parmesan_cheese: 7
+- potatoes: 6
+- cumin: 6
+- butter: 6
+- tomatoes: 6
+
+Top likely alias/unit-to-grams needs among selected recipes:
+- garlic: 109
+- salt: 91
+- olive_oil: 86
+- onion: 70
+- black_pepper: 61
+- water: 52
+- eggs: 34
+- soy_sauce: 31
+- oregano: 26
+- sesame_oil: 21
+- egg: 20
+- garlic_powder: 19
+- white_sugar: 19
+- basil: 19
+- parsley: 17
+- ginger: 15
+- thyme: 14
+- milk: 13
+- mayonnaise: 12
+- paprika: 11
+
+Risks:
+- selectia este draft si necesita review manual inainte de materializare
+
+Recommended next step:
+- review recipes_v1_1_curated_200.csv manually by bucket
+- remove weak complete-meal false positives before ingredient parsing
+- add alias rules and unit-to-grams rules separately from Food_DB additions
+- keep this as draft/audit only until curated_200 is approved

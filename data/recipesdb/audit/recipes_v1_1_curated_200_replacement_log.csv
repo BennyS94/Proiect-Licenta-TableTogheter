@@ -1,0 +1,7 @@
+removed_title,removed_reason,replacement_title,replacement_recipe_kind_guess,replacement_primary_protein,replacement_reason
+Hawaiian Garlic Shrimp Scampi,replace_review: weird/random fusion signal,not_selected_after_quality_calibration,,,removed_before_pairing_by_tightened_audit_rules
+Hawaiian Loco Moco,replace_review: weird/random fusion signal,Korean BBQ Beef (Pul-Kogi),near_complete_main,beef,main_complete_or_near_complete
+Egg and Cheese Breakfast Biscuit Bombs,replace_review: too American/processed-style breakfast,not_selected_after_quality_calibration,,,removed_before_pairing_by_tightened_audit_rules
+Szechuan Edamame (Soy Beans),replace_review: hard-to-source/random snack signal,Real Hummus,snack,vegetarian,small_clean_snack_bucket
+French Toast II,review_decision_replace: near-duplicate breakfast cluster,Easy Broccoli Frittata,breakfast,egg,breakfast_target_bucket
+Ultimate French Toast,review_decision_replace: near-duplicate breakfast cluster,Nan's Potato and Egg Frittata,breakfast,egg,breakfast_target_bucket

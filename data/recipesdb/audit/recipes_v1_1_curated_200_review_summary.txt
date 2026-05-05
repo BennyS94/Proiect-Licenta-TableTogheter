@@ -1,0 +1,27 @@
+Recipes_DB v1.1 curated_200 review audit
+
+Selected count: 200
+Primary protein distribution total: 200
+
+Review status counts:
+- keep: 200
+
+Corrected primary_protein distribution:
+- beef: 36
+- chicken: 36
+- vegetarian: 31
+- egg: 31
+- pork: 25
+- fish: 21
+- turkey: 10
+- unknown: 10
+
+Rows with multiple protein hits tracked separately: 33
+
+Complete_main confirmed real meals: 81/81
+Recipes marked replace: 0
+
+Top review/replace reasons:
+
+Recommendation:
+- se poate trece la ingredient parsing dupa review manual rapid
