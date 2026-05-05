@@ -1,0 +1,49 @@
+Food_DB v1.1 gap additions preparation summary
+
+Total candidate gaps reviewed: 259
+CIQUAL source status: ciqual_source_unavailable:ImportError
+
+Proposed action counts:
+- needs_external_source: 153
+- keep_unmapped: 38
+- keep_review: 34
+- alias_to_existing: 28
+- add_to_fooddb_draft: 6
+
+Safety counts:
+- needs_review: 243
+- safe_auto: 16
+
+Rows with missing source macros among proposed alias/add actions: 0
+
+Top 20 highest-impact additions by total_grams_affected:
+- green beans: grams=4705.99, source=other_local_source, safety=needs_review, notes=local_usda_source_exists_but_cooked_state_may_not_match_raw_recipe_line
+- chicken thighs: grams=3515.33, source=other_local_source, safety=needs_review, notes=local_usda_source_exists_but_energy_value_needs_review_before_materialization; source_energy_suspicious_possible_kj_or_non_kcal_unit
+- parmesan cheese: grams=550, source=other_local_source, safety=needs_review, notes=local_usda_source_exact_enough_but_needs_current_fooddb_style_review
+- chicken broth: grams=0, source=other_local_source, safety=needs_review, notes=local_usda_source_exists_but_broth_concentration_varies_by_recipe
+- cornstarch: grams=0, source=other_local_source, safety=safe_auto, notes=local_usda_source_exact_common_single_ingredient
+- tomato sauce: grams=0, source=other_local_source, safety=needs_review, notes=local_usda_source_exists_but_energy_value_needs_review_before_materialization; source_energy_suspicious_possible_kj_or_non_kcal_unit
+
+Top 20 highest-impact alias_to_existing opportunities:
+- beef -> food_beef_steak_or_beef_steak_raw: grams=8164.65, safety=needs_review, notes=broad_beef_term_uses_generic_current_raw_beef_steak_candidate
+- onion -> food_yellow_onion_raw: grams=6390, safety=needs_review, notes=generic_onion_defaults_to_yellow_onion_candidate_for_review
+- chicken breasts -> food_chicken_breast_without_skin_raw: grams=4989.5, safety=safe_auto, notes=plural_chicken_breasts_to_current_raw_chicken_breast
+- red potatoes -> food_potato_peeled_raw: grams=3855.53, safety=needs_review, notes=red_potato_specific_item_missing_generic_raw_potato_candidate_exists
+- beef chuck -> food_beef_chuck_raw: grams=3628.74, safety=safe_auto, notes=current_fooddb_has_beef_chuck_raw
+- turkey -> food_turkey_meat_raw: grams=3401.93, safety=needs_review, notes=generic_turkey_maps_to_existing_turkey_meat_raw_candidate
+- milk -> food_milk_semi_skimmed_pasteurised: grams=3040, safety=needs_review, notes=generic_milk_type_unspecified
+- shrimp -> food_shrimp_or_prawn_raw: grams=2608.14, safety=safe_auto, notes=current_fooddb_has_raw_shrimp_or_prawn
+- rice -> food_rice_raw: grams=2312.5, safety=needs_review, notes=generic_rice_may_be_raw_or_cooked
+- chicken breast -> food_chicken_breast_without_skin_raw: grams=2041.16, safety=safe_auto, notes=current_fooddb_has_chicken_breast_without_skin_raw
+- onions -> food_yellow_onion_raw: grams=1770, safety=needs_review, notes=generic_plural_onions_defaults_to_yellow_onion_candidate_for_review
+- green onions -> food_chive_or_spring_onion_fresh: grams=1730, safety=needs_review, notes=green_onion_scallion_approximated_by_chive_or_spring_onion_current_item
+- white rice -> food_rice_raw: grams=1480, safety=safe_auto, notes=white_rice_maps_to_current_raw_rice_candidate
+- jasmine rice -> food_rice_raw: grams=1202.5, safety=needs_review, notes=jasmine_rice_specific_item_missing_generic_raw_rice_candidate_exists
+- potatoes -> food_potato_peeled_raw: grams=907.18, safety=needs_review, notes=generic_potatoes_use_raw_peeled_potato_candidate
+- mushrooms -> food_button_mushroom_or_cultivated_mushroom_raw: grams=680.4, safety=needs_review, notes=generic_mushrooms_mapped_to_button_mushroom_current_candidate
+- brown sugar -> food_sugar_brown: grams=674.6, safety=safe_auto, notes=exact_common_ingredient_exists_in_current_fooddb
+- yellow onion -> food_yellow_onion_raw: grams=620, safety=safe_auto, notes=current_fooddb_has_yellow_onion_raw
+- uncooked white rice -> food_rice_raw: grams=493.34, safety=safe_auto, notes=explicit_uncooked_white_rice_maps_to_current_raw_rice
+- celery -> food_celery_stalk_raw: grams=453.59, safety=safe_auto, notes=current_fooddb_has_celery_stalk_raw
+
+Recommended next patch: A. apply safe alias_to_existing promotions

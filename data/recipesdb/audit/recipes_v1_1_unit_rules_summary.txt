@@ -1,0 +1,91 @@
+Recipes_DB v1.1 unit-to-grams pass summary
+
+Food_DB v1.1 draft rows read: 1540
+Total ingredient rows: 1861
+Rows with grams before: 841
+Rows with grams after: 1006
+Grams coverage before: 45.19%
+Grams coverage after: 54.06%
+Rules applied count: 165
+
+Rows that gained grams by mapping status:
+- mapped rows gained grams (accepted_auto + review_needed): 150
+- accepted_auto rows gained grams: 78
+- review_needed rows gained grams: 72
+- unmapped rows gained grams for future use: 15
+
+Top rules by usage:
+- black pepper_teaspoon: 47
+- carrot_count: 22
+- dried oregano_teaspoon: 15
+- fresh_garlic_tablespoon: 11
+- onion_cup: 10
+- chicken broth_cup: 7
+- fresh_garlic_teaspoon: 7
+- dried basil_teaspoon: 7
+- cornstarch_tablespoon: 6
+- dried thyme_teaspoon: 6
+- dried oregano_tablespoon: 5
+- dried basil_tablespoon: 5
+- black pepper_tablespoon: 4
+- cornstarch_teaspoon: 3
+- red onion_cup: 3
+- dried thyme_tablespoon: 2
+- dried parsley_teaspoon: 2
+- carrot_cup: 2
+- dried parsley_tablespoon: 1
+
+Top deferred units:
+- cup: 192
+- teaspoon: 154
+- count: 149
+- tablespoon: 126
+- <missing>: 94
+- can: 49
+- package: 27
+- stalk: 15
+- slice: 11
+- pinch: 10
+- bunch: 8
+- head: 7
+- jar: 4
+- cube: 4
+- box: 2
+- leaf: 1
+- clove: 1
+- dash: 1
+
+Top deferred ingredients:
+- salt: 22
+- black pepper: 20
+- garlic powder: 19
+- ginger: 17
+- celery: 17
+- parsley: 16
+- red pepper flakes: 14
+- cayenne pepper: 14
+- tomatoes: 14
+- salt and black pepper: 13
+- paprika: 13
+- mayonnaise: 12
+- tomato: 12
+- cumin: 9
+- salt and pepper: 9
+- basil: 8
+- zucchini: 8
+- rosemary: 8
+- lemon juice: 8
+- tomato sauce: 7
+- soy sauce: 7
+- ketchup: 7
+- bay leaves: 7
+- cinnamon: 7
+- mushrooms: 7
+- freshly black pepper: 7
+- potato: 7
+- thyme: 7
+- oregano: 6
+- lemon zest: 6
+
+Recommended next patch:
+- Review high-impact remaining gaps before nutrition cache rebuild: beef/turkey/butter/lemon/green onions/chicken thighs.

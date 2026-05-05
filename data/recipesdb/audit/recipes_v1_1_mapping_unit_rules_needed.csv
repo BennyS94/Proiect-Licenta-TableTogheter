@@ -1,0 +1,435 @@
+ingredient_name_normalized,quantity_unit,frequency,example_raw_texts,likely_safe_rule,proposed_grams_per_unit,safety
+black pepper,teaspoon,47,"1 teaspoon fresh-ground black pepper | 1 teaspoon ground black pepper | 1/2 teaspoon black pepper, | 1/2 teaspoon ground black pepper | 3/4 teaspoon ground black pepper",teaspoon needs ingredient density,,needs_review
+oregano,teaspoon,17,1 teaspoon dried oregano | 2 teaspoons dried oregano (Optional) | 1/2 teaspoon dried oregano | 1/2 teaspoon oregano | 1/4 teaspoon dried oregano,teaspoon needs ingredient density,,needs_review
+carrot,count,15,"1 carrot, sliced | 1 large carrot, sliced | 1 large carrot, sliced into chunks (Optional) | 1 large carrot, roughly chopped | 1 large carrot, peeled and grated",count needs food-specific rule,,needs_review
+garlic powder,teaspoon,12,"1 teaspoon garlic powder | 2 teaspoons garlic powder | 1/4 teaspoon garlic powder | 1/2 teaspoon garlic powder | 3 teaspoons garlic powder, divided",teaspoon needs ingredient density,,needs_review
+garlic,tablespoon,11,"2 tablespoons minced garlic | 1 tablespoon minced garlic | 2 tablespoons minced garlic, divided | 1 tablespoon chopped garlic",tablespoon needs ingredient density,,needs_review
+ginger,teaspoon,11,"4 teaspoons fresh ginger, minced | 2 teaspoons minced fresh ginger | 1 teaspoon ground ginger | 2 teaspoons fresh ginger | 1 teaspoon grated ginger",teaspoon needs ingredient density,,needs_review
+thyme,teaspoon,11,1 teaspoon dried thyme | 1 teaspoon ground thyme | 1/2 teaspoon dried thyme | ⅛ teaspoon ground dried thyme | 1 teaspoon chopped fresh thyme,teaspoon needs ingredient density,,needs_review
+tomato,count,10,"1 tomato, chopped | 1 medium tomato, chopped | 1 large tomato, cubed | 1 medium tomato, diced | 1 large tomato, cut into 8 slices",count needs food-specific rule,,needs_review
+onion,cup,10,1 cup onion | 1 cup chopped onion | 1/4 cup onion | 1/2 cup onion | 1 cup diced onion,cup needs ingredient density,,needs_review
+basil,tablespoon,10,1 tablespoon chopped fresh basil | 2 tablespoons chopped fresh basil | 1 tablespoon dried basil | 3 tablespoons chopped fresh basil,tablespoon needs ingredient density,,needs_review
+parsley,tablespoon,10,"1 tablespoon chopped fresh parsley | 3 tablespoons fresh parsley, divided | 2 tablespoons chopped fresh parsley | 3 tablespoons chopped fresh parsley | 1 tablespoon dried parsley",tablespoon needs ingredient density,,needs_review
+tomatoes,can,9,1 (14.5 ounce) can crushed tomatoes | 1 (14.5 ounce) can diced tomatoes | 1 (28 ounce) can crushed tomatoes | 2 (14.5 ounce) cans diced tomatoes | 3 (28 ounce) cans crushed tomatoes,packaging unit needs label-size parsing,,needs_review
+oregano,tablespoon,9,1 tablespoon dried oregano | 1 tablespoon chopped fresh oregano | 2 tablespoons fresh oregano,tablespoon needs ingredient density,,needs_review
+paprika,teaspoon,9,"1 teaspoon paprika | 1/2 teaspoon paprika | 2 teaspoons paprika | 1 teaspoon paprika, divided | 1 teaspoon paprika (Optional)",teaspoon needs ingredient density,,needs_review
+red pepper flakes,teaspoon,9,"1 ½ teaspoons crushed red pepper flakes | ¾ teaspoon red pepper flakes, divided | 1/2 teaspoon red pepper flakes (optional) | 1/2 teaspoon red pepper flakes | ½ teaspoon red pepper flakes, or to taste",teaspoon needs ingredient density,,needs_review
+cayenne pepper,teaspoon,8,1 teaspoon cayenne pepper | 1/4 teaspoon cayenne pepper | 1/2 teaspoon cayenne pepper | 1/8 teaspoon cayenne pepper | ¼ teaspoon cayenne pepper,teaspoon needs ingredient density,,needs_review
+bay leaves,count,7,3 bay leaves | 2 bay leaves,count needs food-specific rule,,needs_review
+carrots,count,7,"2 medium carrots, cut into 2-inch pieces | 4 carrots, peeled and sliced | 6 carrots, chopped | 2 large carrots, chopped | 3 carrots, chopped",count needs food-specific rule,,needs_review
+potato,count,7,"1 potato, peeled and cut into 3/4 inch pieces | 1 potato, peeled and diced | 1 large potato, chopped | 1 large potato, diced | 1 small potato, peeled and diced",count needs food-specific rule,,needs_review
+chicken broth,cup,7,"1 cup chicken broth | 5 cups chicken broth | 2 cups chicken broth | 4 cups chicken broth | 3 cups chicken broth, or more as needed",cup needs ingredient density,,needs_review
+mayonnaise,cup,7,1/2 cup mayonnaise | 1 cup mayonnaise | 1/4 cup mayonnaise | 2 cups mayonnaise,cup needs ingredient density,,needs_review
+soy sauce,cup,7,1 cup soy sauce | ½ cup soy sauce | 1 cups soy sauce | ¼ cup soy sauce | 1/2 cup soy sauce,cup needs ingredient density,,needs_review
+basil,teaspoon,7,1 teaspoon dried basil | 2 teaspoons dried basil (Optional) | 2 teaspoons dried basil,teaspoon needs ingredient density,,needs_review
+garlic,teaspoon,7,1 teaspoon minced garlic | 2 teaspoons minced garlic,teaspoon needs ingredient density,,needs_review
+tomato sauce,can,6,1 (8 ounce) can tomato sauce | 1 (15 ounce) can tomato sauce | 2 (15 ounce) cans tomato sauce | 1 (10 ounce) can tomato sauce | 2 (8 ounce) cans tomato sauce,packaging unit needs label-size parsing,,needs_review
+cornstarch,tablespoon,6,1 tablespoon cornstarch | 2 tablespoons cornstarch,tablespoon needs ingredient density,,needs_review
+freshly black pepper,teaspoon,6,1/4 teaspoon freshly ground black pepper | 2 teaspoons freshly ground black pepper | ½ teaspoon freshly ground black pepper | 1 teaspoon freshly ground black pepper to taste | 1 teaspoon freshly ground black pepper,teaspoon needs ingredient density,,needs_review
+lemon zest,teaspoon,6,1 teaspoon lemon zest | 2 teaspoons lemon zest | ½ teaspoon lemon zest | 1/2 teaspoon lemon zest,teaspoon needs ingredient density,,needs_review
+potatoes,count,5,"5 large potatoes, peeled and sliced | 2 large potatoes, cut into chunks | 2 potatoes, peeled and cubed | 6 potatoes, peeled and cubed | 2 large potatoes, peeled and sliced",count needs food-specific rule,,needs_review
+zucchini,count,5,"1 large zucchini, halved and sliced | 2 zucchini | 1 extra large zucchini, cut into noodle-shape strands | 1 small zucchini, shredded | 2 zucchini, sliced",count needs food-specific rule,,needs_review
+cheddar cheese,cup,5,½ cup shredded Cheddar cheese | ¼ cup shredded Cheddar cheese | 1 1/2 cups shredded Cheddar cheese,cup needs ingredient density,,needs_review
+mozzarella cheese,cup,5,1 cup shredded mozzarella cheese | 2 cups shredded mozzarella cheese | 1/2 cup shredded mozzarella cheese | ½ cup shredded mozzarella cheese,cup needs ingredient density,,needs_review
+ginger,tablespoon,5,"2 tablespoons grated fresh ginger | 1 tablespoon fresh ginger, | 2 tablespoons fresh ginger | 1 tablespoon grated fresh ginger | 1 tablespoon ginger",tablespoon needs ingredient density,,needs_review
+lemon juice,tablespoon,5,2 tablespoons lemon juice | 2 tablespoons fresh lemon juice | 3 tablespoons lemon juice | 4 tablespoons lemon juice,tablespoon needs ingredient density,,needs_review
+peanut oil,tablespoon,5,2 tablespoons peanut oil | 1 tablespoon peanut oil,tablespoon needs ingredient density,,needs_review
+cinnamon,teaspoon,5,1 teaspoon ground cinnamon | ½ teaspoon ground cinnamon | 1 teaspoon cinnamon,teaspoon needs ingredient density,,needs_review
+cumin,teaspoon,5,"1 teaspoon ground cumin | ⅛ teaspoon ground cumin, optional | 1/4 teaspoon ground cumin | ½ teaspoon ground cumin",teaspoon needs ingredient density,,needs_review
+rosemary,teaspoon,5,2 teaspoons fresh rosemary | 1 teaspoon dried rosemary | 1 teaspoon chopped fresh rosemary | 1/2 teaspoon dried rosemary,teaspoon needs ingredient density,,needs_review
+sage,teaspoon,5,1 teaspoon chopped fresh sage | 2 teaspoons dried sage | 1 teaspoon dried sage | 1/2 teaspoon sage | 1 teaspoon ground sage,teaspoon needs ingredient density,,needs_review
+black beans,can,4,"2 (14.5 ounce) cans black beans, rinsed, drained, and mashed | 1 (15.25 ounce) can black beans | 1 (15 ounce) can black beans, rinsed and drained (Optional) | 1 (15 ounce) can black beans, rinsed and drained",packaging unit needs label-size parsing,,needs_review
+green bell pepper,count,4,"1 green bell pepper, chopped | 1 medium green bell pepper, diced | 1 small green bell pepper, chopped | 1 small green bell pepper, seeded and diced",count needs food-specific rule,,needs_review
+red bell pepper,count,4,"1 red bell pepper, chopped | 1 red bell pepper, thinly sliced | 1 large red bell pepper",count needs food-specific rule,,needs_review
+broccoli florets,cup,4,2 cups broccoli florets | 1 1/2 cups broccoli florets | 5 ½ cups broccoli florets,cup needs ingredient density,,needs_review
+ketchup,cup,4,"½ cup ketchup | 1/4 cup ketchup | 2 cups ketchup, divided | ½ cup ketchup, divided",cup needs ingredient density,,needs_review
+parsley,cup,4,1/4 cup chopped fresh parsley (optional) | 1/4 cup chopped fresh parsley | 1/3 cup chopped fresh parsley | 1/2 cup fresh parsley,cup needs ingredient density,,needs_review
+peas,cup,4,"1 cup frozen peas, thawed | ⅓ cup frozen peas, thawed | ¼ cup peas",cup needs ingredient density,,needs_review
+spinach,cup,4,"4 cups chopped fresh spinach | 10 cups fresh spinach, trimmed | 2 cups chopped fresh spinach | ½ cup chopped fresh spinach",cup needs ingredient density,,needs_review
+bacon,slice,4,"6 slices bacon, sliced crosswise into 1/2-inch pieces | 6 slices bacon | 6 slices bacon, chopped | 6 slices bacon, cut crosswise into 1/4-inch pieces",slice needs food-specific rule,,needs_review
+black pepper,tablespoon,4,1 tablespoon ground black pepper | 1/2 tablespoon black pepper | 2 tablespoons ground black pepper,tablespoon needs ingredient density,,needs_review
+cumin,tablespoon,4,1 tablespoon ground cumin | 1 ½ tablespoons cumin | 2 tablespoons ground cumin,tablespoon needs ingredient density,,needs_review
+garlic powder,tablespoon,4,2 tablespoons garlic powder | 1 tablespoon garlic powder,tablespoon needs ingredient density,,needs_review
+mayonnaise,tablespoon,4,4 tablespoons mayonnaise | 2 tablespoons mayonnaise | 3 tablespoons mayonnaise,tablespoon needs ingredient density,,needs_review
+red pepper flakes,tablespoon,4,2 tablespoons red pepper flakes | 1 tablespoon red pepper flakes | 1 tablespoon red pepper flakes (Optional),tablespoon needs ingredient density,,needs_review
+thyme,tablespoon,4,2 tablespoons dried thyme | 1 tablespoon dried thyme | 1 tablespoon chopped fresh thyme | 2 tablespoons chopped fresh thyme,tablespoon needs ingredient density,,needs_review
+red pepper,teaspoon,4,1/2 teaspoon crushed red pepper | 1/4 teaspoon crushed red pepper | ½ teaspoon crushed red pepper,teaspoon needs ingredient density,,needs_review
+bay leaf,count,3,1 bay leaf,count needs food-specific rule,,needs_review
+head cabbage,count,3,"1 medium head cabbage | 1 large head cabbage, cored and shredded | 1 small head cabbage, shredded",count needs food-specific rule,,needs_review
+jalapeno peppers,count,3,"2 medium jalapeno peppers, chopped | 1 fresh jalapeno peppers, diced | 4 jalapeno peppers",count needs food-specific rule,,needs_review
+russet potatoes,count,3,"2 russet potatoes, cut into small pieces | 2 medium russet potatoes, | 2 large russet potatoes, peeled and shredded",count needs food-specific rule,,needs_review
+tomatoes,count,3,"2 large tomatoes, quartered | 3 large tomatoes, diced | 4 tomatoes, chopped",count needs food-specific rule,,needs_review
+basil,cup,3,"1/4 cup chopped fresh basil, plus more for garnish | ¼ cup chopped fresh basil | 2 cups chopped fresh basil",cup needs ingredient density,,needs_review
+beef broth,cup,3,1 1/4 cups beef broth | 1 ½ cups beef broth | 1 cup beef broth,cup needs ingredient density,,needs_review
+cabbage,cup,3,1 cup shredded cabbage | 3 cups cabbage | 1 cup sliced cabbage,cup needs ingredient density,,needs_review
+celery,cup,3,1 cup sliced celery | ½ cup diced celery | 1/2 cup celery,cup needs ingredient density,,needs_review
+chicken,cup,3,2 cups shredded cooked chicken | 1 cup chopped cooked chicken | 1 2/3 cups cooked chicken,cup needs ingredient density,,needs_review
+honey,cup,3,1/4 cup honey | 1/2 cup honey,cup needs ingredient density,,needs_review
+mushrooms,cup,3,½ cup sliced mushrooms | 1 cup sliced fresh mushrooms | 2 cups sliced fresh mushrooms,cup needs ingredient density,,needs_review
+onions,cup,3,2 cups chopped onions | ½ cup chopped onions | 1/2 cup onions,cup needs ingredient density,,needs_review
+quinoa,cup,3,2 cups quinoa | 1 cup quinoa,cup needs ingredient density,,needs_review
+red onion,cup,3,1/4 cup red onion (optional) | 1/4 cup red onion | 1 cup chopped red onion,cup needs ingredient density,,needs_review
+zucchini,cup,3,1 cup zucchini | 4 cups zucchini (about 2 zucchini) | 2 1/2 cups zucchini,cup needs ingredient density,,needs_review
+mushrooms,package,3,1 (8 ounce) package sliced fresh mushrooms | 1 (8 ounce) package sliced mushrooms | 1 (4 ounce) package sliced fresh mushrooms,packaging unit needs label-size parsing,,needs_review
+all purpose flour,tablespoon,3,"1 ½ tablespoons all-purpose flour | 2 tablespoons all-purpose flour, or as needed | 1 tablespoon all-purpose flour",tablespoon needs ingredient density,,needs_review
+chili powder,tablespoon,3,1 tablespoon chili powder | 3 tablespoons chili powder,tablespoon needs ingredient density,,needs_review
+ketchup,tablespoon,3,2 tablespoons ketchup,tablespoon needs ingredient density,,needs_review
+rosemary,tablespoon,3,1 tablespoon dried rosemary | 2 tablespoons minced fresh rosemary | 1 tablespoon chopped fresh rosemary,tablespoon needs ingredient density,,needs_review
+worcestershire sauce,tablespoon,3,4 tablespoons Worcestershire sauce | 1 tablespoon Worcestershire sauce | 2 tablespoons Worcestershire sauce,tablespoon needs ingredient density,,needs_review
+cornstarch,teaspoon,3,4 teaspoons cornstarch | 2 teaspoons cornstarch | 1 teaspoon cornstarch,teaspoon needs ingredient density,,needs_review
+parsley,teaspoon,3,1 teaspoon dried parsley | 1 teaspoon minced fresh parsley,teaspoon needs ingredient density,,needs_review
+pepper,teaspoon,3,3/4 teaspoon pepper | 1/2 teaspoon pepper | ¼ teaspoon pepper,teaspoon needs ingredient density,,needs_review
+turmeric,teaspoon,3,1 1/2 teaspoons ground turmeric | 1 teaspoon ground turmeric | ½ teaspoon ground turmeric,teaspoon needs ingredient density,,needs_review
+vanilla extract,teaspoon,3,2 teaspoons vanilla extract | 1 teaspoon vanilla extract,teaspoon needs ingredient density,,needs_review
+raisins,box,2,2 (1.5 ounce) boxes raisins | 1 (1.5 ounce) box raisins,packaging unit needs label-size parsing,,needs_review
+chickpeas,can,2,"1 (15 ounce) can chickpeas, drained and rinsed",packaging unit needs label-size parsing,,needs_review
+fire roasted tomatoes,can,2,1 (15-ounce) can diced fire-roasted tomatoes | 1 (14.5 ounce) can fire roasted tomatoes,packaging unit needs label-size parsing,,needs_review
+garbanzo beans,can,2,"1 (15 ounce) can garbanzo beans, drained and rinsed | 2 (12 ounce) cans garbanzo beans, drained and rinsed",packaging unit needs label-size parsing,,needs_review
+green bell peppers,count,2,"3 large green bell peppers, halved and seeded | 2 green bell peppers",count needs food-specific rule,,needs_review
+parsnip,count,2,"1 parsnip, peeled and grated | 1 medium parsnip, chopped",count needs food-specific rule,,needs_review
+pear,count,2,"½ pear - peeled, cored, and minced | 1 pear",count needs food-specific rule,,needs_review
+red bell peppers,count,2,"2 red bell peppers | 2 red bell peppers, halved and seeded",count needs food-specific rule,,needs_review
+salmon fillets,count,2,"2 (4 ounce) salmon fillets, | 2 (6 ounce) boneless salmon fillets",count needs food-specific rule,,needs_review
+seeded and,count,2,"3 jalapeno peppers, seeded and minced | 2 tomatoes, seeded and chopped",count needs food-specific rule,,needs_review
+shallot,count,2,"1 shallot | 1/2 shallot,",count needs food-specific rule,,needs_review
+sweet potato,count,2,"1 sweet potato, cut into 1/4-inch wedges | 1 medium sweet potato, peeled and cut into 1/2-inch cubes",count needs food-specific rule,,needs_review
+broccoli,cup,2,1 cup broccoli | 4 cups chopped fresh broccoli,cup needs ingredient density,,needs_review
+butter,cup,2,¼ cup butter | ½ cup butter,cup needs ingredient density,,needs_review
+cherry tomatoes,cup,2,"2 cups cherry tomatoes, halved | 1/2 cup cherry tomatoes",cup needs ingredient density,,needs_review
+green onions,cup,2,1/4 cup green onions | ¼ cup sliced green onions,cup needs ingredient density,,needs_review
+green peas,cup,2,1/2 cup green peas | ¼ cup green peas,cup needs ingredient density,,needs_review
+lemon juice,cup,2,¾ cup lemon juice | ¼ cup lemon juice,cup needs ingredient density,,needs_review
+reduced sodium chicken broth,cup,2,2 cups reduced sodium chicken broth | 2 cups reduced-sodium chicken broth,cup needs ingredient density,,needs_review
+tomatoes,cup,2,"1 cup tomatoes, diced | 1 cup chopped tomatoes",cup needs ingredient density,,needs_review
+vegetable broth,cup,2,2 cups vegetable broth | 4 cups vegetable broth,cup needs ingredient density,,needs_review
+lima beans,package,2,1 (16 ounce) package dried lima beans,packaging unit needs label-size parsing,,needs_review
+white bread,slice,2,"6 slices white bread, cut into cubes | 9 slices white bread",bread slice estimate,30,needs_review
+cayenne pepper,tablespoon,2,1 tablespoon cayenne pepper,tablespoon needs ingredient density,,needs_review
+cilantro,tablespoon,2,1 tablespoon chopped fresh cilantro | 2 tablespoons chopped fresh cilantro,tablespoon needs ingredient density,,needs_review
+curry powder,tablespoon,2,1 tablespoon curry powder,tablespoon needs ingredient density,,needs_review
+mint,tablespoon,2,"2 tablespoons fresh mint | 1 tablespoon dried mint, crushed",tablespoon needs ingredient density,,needs_review
+onion,tablespoon,2,1 tablespoon minced onion | 2 tablespoons chopped onion,tablespoon needs ingredient density,,needs_review
+onion powder,tablespoon,2,2 tablespoons onion powder | 1 tablespoon onion powder,tablespoon needs ingredient density,,needs_review
+paprika,tablespoon,2,1 tablespoon paprika | 2 tablespoons paprika,tablespoon needs ingredient density,,needs_review
+parmesan cheese,tablespoon,2,1 tablespoon grated Parmesan cheese | 2 tablespoons grated Parmesan cheese,tablespoon needs ingredient density,,needs_review
+rice wine,tablespoon,2,2 tablespoons rice wine | 1 tablespoon rice wine,tablespoon needs ingredient density,,needs_review
+sesame seeds,tablespoon,2,2 tablespoons sesame seeds | 1 tablespoon sesame seeds,tablespoon needs ingredient density,,needs_review
+tahini,tablespoon,2,1 tablespoon tahini | 2 tablespoons tahini,tablespoon needs ingredient density,,needs_review
+tomato paste,tablespoon,2,2 tablespoons tomato paste,tablespoon needs ingredient density,,needs_review
+baking powder,teaspoon,2,2 teaspoons baking powder,teaspoon needs ingredient density,,needs_review
+chili powder,teaspoon,2,1 teaspoon chili powder | 2 teaspoons chili powder,teaspoon needs ingredient density,,needs_review
+onion powder,teaspoon,2,1/4 teaspoon onion powder | 1 teaspoon onion powder,teaspoon needs ingredient density,,needs_review
+smoked paprika,teaspoon,2,1 teaspoon smoked paprika,teaspoon needs ingredient density,,needs_review
+white pepper,teaspoon,2,1/4 teaspoon white pepper | 1 teaspoon ground white pepper,teaspoon needs ingredient density,,needs_review
+bamboo shoots,can,1,"1 (8 ounce) can bamboo shoots, cut into thin matchstick-size pieces",packaging unit needs label-size parsing,,needs_review
+beef broth,can,1,1 (10.5 ounce) can beef broth,packaging unit needs label-size parsing,,needs_review
+black olives,can,1,"1 (6 ounce) can sliced black olives, drained (Optional)",packaging unit needs label-size parsing,,needs_review
+butter beans,can,1,"1 (16 ounce) can large butter beans, drained and rinsed",packaging unit needs label-size parsing,,needs_review
+canned green chile peppers,can,1,"2 (4 ounce) cans canned green chile peppers, chopped",packaging unit needs label-size parsing,,needs_review
+cannellini beans,can,1,3 (15 ounce) cans cannellini beans,packaging unit needs label-size parsing,,needs_review
+chickpeas beans,can,1,"1 (15 ounce) can chickpeas beans, drained",packaging unit needs label-size parsing,,needs_review
+chili beans,can,1,4 (16 ounce) cans chili beans,packaging unit needs label-size parsing,,needs_review
+coconut milk,can,1,1 (14 ounce) can coconut milk,packaging unit needs label-size parsing,,needs_review
+condensed tomato soup,can,1,1 (10.75 ounce) can condensed tomato soup,packaging unit needs label-size parsing,,needs_review
+garbanzo beans drained and rinsed,can,1,1 (14-ounce) can garbanzo beans drained and rinsed,packaging unit needs label-size parsing,,needs_review
+half the liquid reserved,can,1,"1 (19 ounce) can chickpeas, half the liquid reserved",packaging unit needs label-size parsing,,needs_review
+italian style tomatoes,can,1,"2 (28 ounce) cans Italian-style crushed tomatoes, undrained",packaging unit needs label-size parsing,,needs_review
+pineapple chunks,can,1,"1 (20 ounce) can pineapple chunks, drained",packaging unit needs label-size parsing,,needs_review
+pinto beans,can,1,"1 (14 ounce) can pinto beans, rinsed and drained",packaging unit needs label-size parsing,,needs_review
+refrigerated biscuit dough,can,1,"1 (10 ounce) can refrigerated biscuit dough, separated and chopped",packaging unit needs label-size parsing,,needs_review
+refrigerated biscuits,can,1,1 (16.3 ounce) can refrigerated biscuits,packaging unit needs label-size parsing,,needs_review
+stewed tomatoes,can,1,1 (14.5 ounce) can stewed tomatoes,packaging unit needs label-size parsing,,needs_review
+tomato juice,can,1,1 (12 fluid ounce) can tomato juice,packaging unit needs label-size parsing,,needs_review
+tomato paste,can,1,2 (6 ounce) cans tomato paste,packaging unit needs label-size parsing,,needs_review
+tomatoes with juice,can,1,1 (14.5 ounce) can diced tomatoes with juice,packaging unit needs label-size parsing,,needs_review
+undrained,can,1,"1 (28 ounce) can diced tomatoes, undrained",packaging unit needs label-size parsing,,needs_review
+water chestnuts,can,1,1 (5 ounce) can water chestnuts,packaging unit needs label-size parsing,,needs_review
+whole tomatoes,can,1,"1 (28 ounce) can whole peeled tomatoes, crushed",packaging unit needs label-size parsing,,needs_review
+unpeeled,clove,1,"2 cloves garlic, unpeeled",unit needs review,,needs_review
+4 metal skewers,count,1,4 4 metal skewers,count needs food-specific rule,,needs_review
+ancho chiles,count,1,4 ancho chiles,count needs food-specific rule,,needs_review
+and red potatoes,count,1,3 large peeled and diced red potatoes,count needs food-specific rule,,needs_review
+bag classic coleslaw mix,count,1,1 (14 ounce) bag classic coleslaw mix,count needs food-specific rule,,needs_review
+baking potato,count,1,"1 large baking potato, peeled and sliced 1/4 inch thick",count needs food-specific rule,,needs_review
+beef ribs,count,1,"4 beef ribs, trimmed from a cooked prime rib roast",count needs food-specific rule,,needs_review
+bell pepper,count,1,"1 bell pepper, chopped",count needs food-specific rule,,needs_review
+bell peppers,count,1,3 bell peppers,count needs food-specific rule,,needs_review
+butternut squash,count,1,"1 medium butternut squash - peeled, seeded, and cubed",count needs food-specific rule,,needs_review
+chicken,count,1,"1 (4 pound) chicken, cut into pieces",count needs food-specific rule,,needs_review
+chicken breast,count,1,"1 skinless, boneless chicken breast",count needs food-specific rule,,needs_review
+chicken breast halves,count,1,"4 skinless, boneless chicken breast halves, chopped",count needs food-specific rule,,needs_review
+chicken breast halves cut into bite size pieces,count,1,"2 skinless, boneless chicken breast halves - cut into bite-size pieces",count needs food-specific rule,,needs_review
+chicken breast halves pounded to 1 4 inch thickness,count,1,"4 skinless, boneless chicken breast halves - pounded to 1/4 inch thickness",count needs food-specific rule,,needs_review
+chicken breasts,count,1,"2 boneless skinless chicken breasts, bite-size pieces",count needs food-specific rule,,needs_review
+chicken thighs,count,1,"5 skinless, boneless chicken thighs",count needs food-specific rule,,needs_review
+chile de arbol peppers,count,1,10 dried chile de arbol peppers,count needs food-specific rule,,needs_review
+chili pepper,count,1,"1 chili pepper,",count needs food-specific rule,,needs_review
+cored and,count,1,"1 apple, cored and diced",count needs food-specific rule,,needs_review
+deboned and cut into bite size pieces,count,1,"1 (3 pound) roasting chicken, deboned and cut into bite size pieces",count needs food-specific rule,,needs_review
+drops ketchup,count,1,3 drops ketchup,count needs food-specific rule,,needs_review
+english cucumber,count,1,"1/2 English cucumber, sliced",count needs food-specific rule,,needs_review
+flank steak,count,1,1 (1 pound) flank steak,count needs food-specific rule,,needs_review
+flour tortillas,count,1,"12 flour tortillas, warmed",count needs food-specific rule,,needs_review
+fluid ounces chicken stock,count,1,10 fluid ounces chicken stock,count needs food-specific rule,,needs_review
+gallon water,count,1,1 gallon water,count needs food-specific rule,,needs_review
+ginger,count,1,"1 ( fresh ginger, minced",count needs food-specific rule,,needs_review
+green pepper,count,1,"1 small green pepper, chopped",count needs food-specific rule,,needs_review
+ham bone with some meat,count,1,1 ham bone with some meat,count needs food-specific rule,,needs_review
+hamburger buns,count,1,"6 hamburger buns,",count needs food-specific rule,,needs_review
+jalapeno,count,1,1 jalapeno,count needs food-specific rule,,needs_review
+jalapeno pepper,count,1,"½ fresh jalapeno pepper, seeded and chopped",count needs food-specific rule,,needs_review
+julienned,count,1,"1 carrot, julienned",count needs food-specific rule,,needs_review
+lasagna noodles,count,1,9 lasagna noodles,count needs food-specific rule,,needs_review
+leek,count,1,"1 leek, cut into small pieces",count needs food-specific rule,,needs_review
+leeks,count,1,"2 leeks, chopped",count needs food-specific rule,,needs_review
+link spanish chorizo sausage,count,1,"1 link Spanish chorizo sausage, casing removed, chopped",count needs food-specific rule,,needs_review
+loaf crusty french bread,count,1,"1 (8-ounce) loaf crusty French bread, cut into bite-sized pieces, or more as needed",count needs food-specific rule,,needs_review
+loaf focaccia bread,count,1,1 (1 pound) loaf focaccia bread,count needs food-specific rule,,needs_review
+loaf gluten free bread,count,1,1 (1 pound) loaf gluten-free bread,count needs food-specific rule,,needs_review
+loaf italian bread,count,1,1 (1 pound) loaf Italian bread,count needs food-specific rule,,needs_review
+mushrooms,count,1,"4 large mushrooms, chopped",count needs food-specific rule,,needs_review
+neck and giblets removed,count,1,"1 (12 pound) whole turkey, neck and giblets removed",count needs food-specific rule,,needs_review
+new potatoes,count,1,"1 (14 1/2 ounce) new potatoes, drained and rinsed",count needs food-specific rule,,needs_review
+orange bell peppers,count,1,"2 orange bell peppers, halved and seeded",count needs food-specific rule,,needs_review
+pepper bell pepper,count,1,1 pepper bell pepper,count needs food-specific rule,,needs_review
+pinches paprika,count,1,"2 pinches paprika, or more to taste",count needs food-specific rule,,needs_review
+pinches red pepper flakes,count,1,2 pinches red pepper flakes,count needs food-specific rule,,needs_review
+pint cherry tomatoes,count,1,"1 pint cherry tomatoes, halved",count needs food-specific rule,,needs_review
+pint jars,count,1,5 (16 oz) pint jars,count needs food-specific rule,,needs_review
+poblano pepper,count,1,"1 small poblano pepper, diced",count needs food-specific rule,,needs_review
+portobello mushrooms,count,1,"2 portobello mushrooms, sliced",count needs food-specific rule,,needs_review
+quart chicken stock,count,1,1 quart chicken stock,count needs food-specific rule,,needs_review
+quart vegetable broth,count,1,1 quart vegetable broth,count needs food-specific rule,,needs_review
+quarts water,count,1,"2 quarts water, or as needed",count needs food-specific rule,,needs_review
+red apple,count,1,1 red apple,count needs food-specific rule,,needs_review
+red potatoes,count,1,"8 red potatoes, cut into chunks",count needs food-specific rule,,needs_review
+ribs celery,count,1,"2 ribs celery, sliced",count needs food-specific rule,,needs_review
+rice paper wrappers,count,1,12 rice paper wrappers,count needs food-specific rule,,needs_review
+rice wrappers,count,1,8 rice wrappers (6.5 inch diameter),count needs food-specific rule,,needs_review
+rump roast,count,1,1 (5 pound) rump roast,count needs food-specific rule,,needs_review
+spaghetti squash,count,1,1 large spaghetti squash (4 to 5 pounds),count needs food-specific rule,,needs_review
+summer squash,count,1,"1 small summer squash, shredded",count needs food-specific rule,,needs_review
+sweet potatoes,count,1,"2 sweet potatoes, peeled and cut into 1/2-inch cubes",count needs food-specific rule,,needs_review
+sweet potatoes or jewel yams,count,1,"2 sweet potatoes or jewel yams, cut into 1-inch cubes",count needs food-specific rule,,needs_review
+thumb sized piece ginger,count,1,1 thumb-sized piece fresh ginger,count needs food-specific rule,,needs_review
+tilapia filets,count,1,4 (4 ounce) tilapia filets,count needs food-specific rule,,needs_review
+tortilla,count,1,1 (10-inch) tortilla,count needs food-specific rule,,needs_review
+turkey carcass,count,1,1 turkey carcass,count needs food-specific rule,,needs_review
+white potatoes,count,1,"2 white potatoes, cubed",count needs food-specific rule,,needs_review
+whole beef tenderloin,count,1,1 (5 pound) whole beef tenderloin,count needs food-specific rule,,needs_review
+whole chicken,count,1,"1 (4 pound) whole chicken, cut into pieces",count needs food-specific rule,,needs_review
+whole habanero pepper,count,1,1 whole habanero pepper,count needs food-specific rule,,needs_review
+whole jalape o,count,1,1 whole jalapeño,count needs food-specific rule,,needs_review
+yellow bell pepper,count,1,"1 yellow bell pepper, cut into 1-inch pieces",count needs food-specific rule,,needs_review
+yellow potatoes,count,1,"3 yellow potatoes, peeled and grated",count needs food-specific rule,,needs_review
+,cup,1,"1 cup cooked, chopped chicken meat",cup needs ingredient density,,needs_review
+and cucumber,cup,1,"1 cup peeled, seeded, and chopped cucumber",cup needs ingredient density,,needs_review
+apple,cup,1,1/2 cup apple,cup needs ingredient density,,needs_review
+baby carrots,cup,1,2 cups chopped baby carrots,cup needs ingredient density,,needs_review
+baby kale,cup,1,2 cups baby kale,cup needs ingredient density,,needs_review
+baby spinach,cup,1,2 cups baby spinach,cup needs ingredient density,,needs_review
+beef stock,cup,1,2 cups beef stock,cup needs ingredient density,,needs_review
+bite size broccoli pieces,cup,1,3 cups bite-size broccoli pieces,cup needs ingredient density,,needs_review
+black eyed peas,cup,1,1 cup dried black-eyed peas,cup needs ingredient density,,needs_review
+butternut squash,cup,1,1 ½ cups grated butternut squash,cup needs ingredient density,,needs_review
+canned garbanzo beans,cup,1,"2 cups canned garbanzo beans, drained",cup needs ingredient density,,needs_review
+canned lentils,cup,1,"1 cup canned lentils, rinsed",cup needs ingredient density,,needs_review
+canola oil,cup,1,"¼ cup canola oil, divided",cup needs ingredient density,,needs_review
+carrot,cup,1,1/2 cup shredded carrot,cup needs ingredient density,,needs_review
+carrots,cup,1,1/2 cup carrots,cup needs ingredient density,,needs_review
+cauliflower florets,cup,1,2 cups cauliflower florets,cup needs ingredient density,,needs_review
+cheese flavored crackers,cup,1,½ cup crushed cheese-flavored crackers,cup needs ingredient density,,needs_review
+chicken breast,cup,1,2 cups chopped cooked chicken breast,cup needs ingredient density,,needs_review
+chicken stock,cup,1,1 1/2 cups chicken stock,cup needs ingredient density,,needs_review
+chinese cabbage,cup,1,2 cups shredded Chinese cabbage,cup needs ingredient density,,needs_review
+chives,cup,1,¼ cup chopped fresh chives,cup needs ingredient density,,needs_review
+chunky salsa,cup,1,1 ½ cups chunky salsa,cup needs ingredient density,,needs_review
+cilantro,cup,1,1/4 cup chopped cilantro,cup needs ingredient density,,needs_review
+club soda,cup,1,1 1/4 cups club soda,cup needs ingredient density,,needs_review
+coconut aminos or light soy sauce,cup,1,1/4 cup coconut aminos or light soy sauce,cup needs ingredient density,,needs_review
+corn kernels,cup,1,"1 cup frozen corn kernels, thawed",cup needs ingredient density,,needs_review
+cornstarch,cup,1,2/3 cup cornstarch,cup needs ingredient density,,needs_review
+cottage cheese,cup,1,1 cup cottage cheese,cup needs ingredient density,,needs_review
+cracker crumbs,cup,1,1 cup cracker crumbs,cup needs ingredient density,,needs_review
+crumbled feta cheese,cup,1,½ cup crumbled feta cheese (can use reduced-fat),cup needs ingredient density,,needs_review
+distilled white vinegar,cup,1,1 cup distilled white vinegar,cup needs ingredient density,,needs_review
+dry pinto beans,cup,1,"3 cups dry pinto beans, rinsed",cup needs ingredient density,,needs_review
+egg noodles,cup,1,2 cups thin egg noodles,cup needs ingredient density,,needs_review
+elbow macaroni,cup,1,⅔ cup elbow macaroni,cup needs ingredient density,,needs_review
+feta,cup,1,1/3 cup feta,cup needs ingredient density,,needs_review
+feta cheese,cup,1,1 cup feta cheese,cup needs ingredient density,,needs_review
+finely green bell pepper,cup,1,½ cup finely chopped green bell pepper,cup needs ingredient density,,needs_review
+finely mozzarella cheese,cup,1,2 cups finely shredded mozzarella cheese,cup needs ingredient density,,needs_review
+flat leaf parsley,cup,1,½ cup chopped fresh flat-leaf parsley,cup needs ingredient density,,needs_review
+flaxseed meal,cup,1,¼ cup flaxseed meal,cup needs ingredient density,,needs_review
+ghee,cup,1,¼ cup ghee (clarified butter),cup needs ingredient density,,needs_review
+gluten free chicken broth,cup,1,2 cups gluten-free chicken broth,cup needs ingredient density,,needs_review
+green beans,cup,1,2 cups green beans,cup needs ingredient density,,needs_review
+green bell pepper,cup,1,½ cup chopped green bell pepper,cup needs ingredient density,,needs_review
+halved grape tomatoes,cup,1,1 cup halved grape tomatoes,cup needs ingredient density,,needs_review
+ham,cup,1,1 cup lean diced ham,cup needs ingredient density,,needs_review
+heavy cream,cup,1,2 cups heavy cream,cup needs ingredient density,,needs_review
+hoisin sauce,cup,1,½ cup hoisin sauce,cup needs ingredient density,,needs_review
+italian cheese blend,cup,1,6 cups shredded Italian cheese blend,cup needs ingredient density,,needs_review
+julienned carrots,cup,1,2 cups julienned carrots,cup needs ingredient density,,needs_review
+lentils,cup,1,1 cup lentils,cup needs ingredient density,,needs_review
+lettuce,cup,1,1 cup shredded lettuce,cup needs ingredient density,,needs_review
+low sodium chicken broth,cup,1,2 cups low-sodium chicken broth,cup needs ingredient density,,needs_review
+mafalda noodles,cup,1,2 cups dried mafalda noodles,cup needs ingredient density,,needs_review
+marinara sauce,cup,1,"1 ¾ cups marinara sauce, divided",cup needs ingredient density,,needs_review
+mashed potatoes,cup,1,2 cups mashed potatoes,cup needs ingredient density,,needs_review
+mexican beer,cup,1,"1 cup Mexican beer, or more as needed",cup needs ingredient density,,needs_review
+mint leaves,cup,1,1/4 cup mint leaves,cup needs ingredient density,,needs_review
+monterey jack cheese,cup,1,2 cups shredded Monterey Jack cheese,cup needs ingredient density,,needs_review
+napa cabbage,cup,1,2 cups shredded napa cabbage,cup needs ingredient density,,needs_review
+oil for deep frying,cup,1,4 cups oil for deep frying,cup needs ingredient density,,needs_review
+olives,cup,1,1/4 cup olives,cup needs ingredient density,,needs_review
+or,cup,1,"⅔ cup shredded Pecorino cheese, or to taste",cup needs ingredient density,,needs_review
+pancake waffle mix,cup,1,1 cup pancake/waffle mix,cup needs ingredient density,,needs_review
+parmigiano reggiano cheese,cup,1,"1/2 cup Parmigiano Reggiano cheese, plus more for serving",cup needs ingredient density,,needs_review
+pecans,cup,1,½ cup pecans,cup needs ingredient density,,needs_review
+pecorino romano cheese,cup,1,1/2 cup pecorino Romano cheese,cup needs ingredient density,,needs_review
+pesto,cup,1,1/4 cup pesto,cup needs ingredient density,,needs_review
+petite peas,cup,1,1 cup frozen petite peas,cup needs ingredient density,,needs_review
+pineapple,cup,1,½ cup chopped fresh pineapple,cup needs ingredient density,,needs_review
+pistachios,cup,1,"1/2 cup pistachios, divided",cup needs ingredient density,,needs_review
+provolone cheese,cup,1,"1 cup provolone cheese, divided",cup needs ingredient density,,needs_review
+raisins,cup,1,½ cup raisins,cup needs ingredient density,,needs_review
+red bell pepper,cup,1,1 cup chopped red bell pepper,cup needs ingredient density,,needs_review
+red chile pepper,cup,1,¼ cup ground red chile pepper,cup needs ingredient density,,needs_review
+red lentils,cup,1,1 cup red lentils,cup needs ingredient density,,needs_review
+ricotta cheese,cup,1,1 ¼ cups ricotta cheese,cup needs ingredient density,,needs_review
+roasted peanuts,cup,1,¼ cup roasted peanuts (Optional),cup needs ingredient density,,needs_review
+salsa,cup,1,1 cup salsa,cup needs ingredient density,,needs_review
+savory vegetable broth,cup,1,4 cups savory vegetable broth,cup needs ingredient density,,needs_review
+sesame oil,cup,1,1/4 cup sesame oil,cup needs ingredient density,,needs_review
+shrimp,cup,1,"2 cups fresh shrimp, peeled and deveined",cup needs ingredient density,,needs_review
+stewed tomatoes,cup,1,1 cup stewed tomatoes,cup needs ingredient density,,needs_review
+sugar snap peas,cup,1,2 cups sugar snap peas,cup sugar density,200,safe_auto
+sweet onion,cup,1,1/3 cup chopped sweet onion,cup needs ingredient density,,needs_review
+tahini,cup,1,⅓ cup tahini,cup needs ingredient density,,needs_review
+tarragon vinegar,cup,1,1 cup tarragon vinegar,cup needs ingredient density,,needs_review
+tofu,cup,1,½ cup tofu,cup needs ingredient density,,needs_review
+tomato,cup,1,1 cup tomato,cup needs ingredient density,,needs_review
+tomato basil pasta sauce,cup,1,1 cup tomato-basil pasta sauce,cup needs ingredient density,,needs_review
+tomato puree,cup,1,3 cups tomato puree,cup needs ingredient density,,needs_review
+tortilla chips,cup,1,1/2 cup tortilla chips,cup needs ingredient density,,needs_review
+total assorted toppings,cup,1,1/2 cup total assorted toppings,cup needs ingredient density,,needs_review
+uncooked elbow macaroni,cup,1,2 cups uncooked elbow macaroni,cup needs ingredient density,,needs_review
+uncooked quinoa,cup,1,"2 cups uncooked quinoa, rinsed",cup needs ingredient density,,needs_review
+unsalted butter,cup,1,1/2 cup unsalted butter,cup needs ingredient density,,needs_review
+unsalted natural style peanut butter,cup,1,¾ cup unsalted natural-style peanut butter,cup needs ingredient density,,needs_review
+vegetable stock,cup,1,2 cups vegetable stock,cup needs ingredient density,,needs_review
+walnuts,cup,1,1 ½ cups walnuts,cup needs ingredient density,,needs_review
+white vinegar,cup,1,1 cup white vinegar,cup needs ingredient density,,needs_review
+white wine,cup,1,¼ cup white wine,cup needs ingredient density,,needs_review
+yum yum sauce,cup,1,1/2 cup yum yum sauce,cup needs ingredient density,,needs_review
+alfredo style pasta sauce,jar,1,2 (16 ounce) jars Alfredo-style pasta sauce,packaging unit needs label-size parsing,,needs_review
+prepared pasta sauce,jar,1,2 (24 ounce) jars prepared pasta sauce,packaging unit needs label-size parsing,,needs_review
+sausage flavored spaghetti sauce,jar,1,1 (28 ounce) jar sausage flavored spaghetti sauce,packaging unit needs label-size parsing,,needs_review
+spaghetti sauce,jar,1,½ (28 ounce) jar spaghetti sauce,packaging unit needs label-size parsing,,needs_review
+and squeezed dry,package,1,"1 (10 ounce) package chopped frozen spinach, thawed and squeezed dry",packaging unit needs label-size parsing,,needs_review
+baby bella mushrooms,package,1,"1 (6 ounce) package baby bella mushrooms, chopped",packaging unit needs label-size parsing,,needs_review
+cheese ravioli,package,1,1 (25 ounce) package frozen cheese ravioli,packaging unit needs label-size parsing,,needs_review
+chicken flavored ramen noodles,package,1,1 (3 ounce) package chicken-flavored ramen noodles,packaging unit needs label-size parsing,,needs_review
+dry italian style salad dressing mix,package,1,1 (.7 ounce) package dry Italian-style salad dressing mix,packaging unit needs label-size parsing,,needs_review
+elbow macaroni,package,1,1 (16 ounce) package dried elbow macaroni,packaging unit needs label-size parsing,,needs_review
+firm tofu,package,1,"1 (12 ounce) package extra-firm tofu, drained and diced",packaging unit needs label-size parsing,,needs_review
+lasagna noodles,package,1,1 (16 ounce) package lasagna noodles,packaging unit needs label-size parsing,,needs_review
+linguine pasta,package,1,1 (8 ounce) package linguine pasta,packaging unit needs label-size parsing,,needs_review
+mixed vegetables,package,1,1 (16 ounce) package frozen mixed vegetables,packaging unit needs label-size parsing,,needs_review
+navy beans,package,1,1 (16 ounce) package dried navy beans,packaging unit needs label-size parsing,,needs_review
+pancit bihon,package,1,½ (8 ounce) package pancit bihon (rice noodles),packaging unit needs label-size parsing,,needs_review
+pancit canton,package,1,½ (8 ounce) package pancit canton (yellow Chinese noodles),packaging unit needs label-size parsing,,needs_review
+peas and carrots,package,1,1 (10-ounce) package frozen peas and carrots,packaging unit needs label-size parsing,,needs_review
+puff pastry,package,1,"½ (17.5 ounce) package frozen puff pastry, thawed",packaging unit needs label-size parsing,,needs_review
+rice vermicelli,package,1,1 (8 ounce) package rice vermicelli,packaging unit needs label-size parsing,,needs_review
+rigatoni pasta,package,1,1 ½ (16 ounce) packages rigatoni pasta,packaging unit needs label-size parsing,,needs_review
+silken tofu,package,1,"½ (12 ounce) package silken tofu, cut into 1/2-inch cubes",packaging unit needs label-size parsing,,needs_review
+spaghetti,package,1,1 (16 ounce) package spaghetti,packaging unit needs label-size parsing,,needs_review
+uncooked elbow macaroni,package,1,1 (8 ounce) package uncooked elbow macaroni,packaging unit needs label-size parsing,,needs_review
+whole leaf spinach,package,1,1 (16 ounce) package frozen whole leaf spinach,packaging unit needs label-size parsing,,needs_review
+wonton wrappers,package,1,1 (14 ounce) package wonton wrappers,packaging unit needs label-size parsing,,needs_review
+garlic and rosemary focaccia bread,slice,1,8 slices garlic and rosemary focaccia bread,bread slice estimate,30,needs_review
+onion,slice,1,"1 slice onion, diced",slice needs food-specific rule,,needs_review
+sourdough bread,slice,1,8 slices sourdough bread,bread slice estimate,30,needs_review
+tomato,slice,1,8 slices tomato,slice needs food-specific rule,,needs_review
+torn into pieces,slice,1,"4 slices white bread, torn into pieces",slice needs food-specific rule,,needs_review
+adobo sauce from chipotle peppers,tablespoon,1,1 tablespoon adobo sauce from chipotle peppers,tablespoon needs ingredient density,,needs_review
+bacon fat,tablespoon,1,"10 tablespoons bacon fat, melted",tablespoon needs ingredient density,,needs_review
+bbq sauce,tablespoon,1,"2 tablespoons BBQ sauce, or as needed, for basting",tablespoon needs ingredient density,,needs_review
+chicken soup base,tablespoon,1,1 tablespoon chicken soup base,tablespoon needs ingredient density,,needs_review
+cinnamon,tablespoon,1,1 tablespoon ground cinnamon,tablespoon needs ingredient density,,needs_review
+coarsely black pepper,tablespoon,1,2 tablespoons coarsely ground black pepper,tablespoon needs ingredient density,,needs_review
+coriander seed,tablespoon,1,1 tablespoon ground coriander seed,tablespoon needs ingredient density,,needs_review
+dijon mustard,tablespoon,1,1 tablespoon Dijon mustard,tablespoon needs ingredient density,,needs_review
+dry garlic sauce,tablespoon,1,2 tablespoons dry garlic sauce,tablespoon needs ingredient density,,needs_review
+finely tomatoes,tablespoon,1,2 tablespoons finely chopped dried tomatoes,tablespoon needs ingredient density,,needs_review
+flour,tablespoon,1,2 tablespoons flour,tablespoon needs ingredient density,,needs_review
+freshly parmesan cheese,tablespoon,1,3 tablespoons freshly grated Parmesan cheese,tablespoon needs ingredient density,,needs_review
+garlic or garlic paste,tablespoon,1,1/2 tablespoon garlic or garlic paste,tablespoon needs ingredient density,,needs_review
+ginger root,tablespoon,1,"2 tablespoons ginger root, minced",tablespoon needs ingredient density,,needs_review
+grapeseed oil,tablespoon,1,2 tablespoon grapeseed oil,tablespoon needs ingredient density,,needs_review
+green onions,tablespoon,1,2 tablespoons green onions,tablespoon needs ingredient density,,needs_review
+hoisin sauce,tablespoon,1,1 tablespoon hoisin sauce,tablespoon needs ingredient density,,needs_review
+ijon mustard,tablespoon,1,1 tablespoon ijon mustard,tablespoon needs ingredient density,,needs_review
+italian herb seasoning,tablespoon,1,2 tablespoons dried Italian herb seasoning,tablespoon needs ingredient density,,needs_review
+italian herb seasoning blend,tablespoon,1,1 1/2 tablespoons Italian herb seasoning blend,tablespoon needs ingredient density,,needs_review
+italian parsley,tablespoon,1,2 tablespoons Italian parsley,tablespoon needs ingredient density,,needs_review
+mustard,tablespoon,1,1 tablespoon mustard,tablespoon needs ingredient density,,needs_review
+nutmeg,tablespoon,1,1 tablespoon ground nutmeg,tablespoon needs ingredient density,,needs_review
+onions,tablespoon,1,2 tablespoons onions,tablespoon needs ingredient density,,needs_review
+oyster sauce,tablespoon,1,2 tablespoons oyster sauce,tablespoon needs ingredient density,,needs_review
+parmigiano reggiano cheese,tablespoon,1,2 tablespoons grated Parmigiano-Reggiano cheese,tablespoon needs ingredient density,,needs_review
+peanut or sesame,tablespoon,1,"1 tablespoon oil, peanut or sesame",tablespoon needs ingredient density,,needs_review
+rubbed sage,tablespoon,1,1 tablespoon rubbed sage,tablespoon needs ingredient density,,needs_review
+sage,tablespoon,1,2 tablespoons fresh sage,tablespoon needs ingredient density,,needs_review
+smoked paprika,tablespoon,1,2 tablespoons smoked paprika,tablespoon needs ingredient density,,needs_review
+taco seasoning mix,tablespoon,1,3 tablespoons taco seasoning mix,tablespoon needs ingredient density,,needs_review
+thyme leaves,tablespoon,1,1 tablespoon dried thyme leaves,tablespoon needs ingredient density,,needs_review
+tomato sauce,tablespoon,1,3 tablespoons tomato sauce,tablespoon needs ingredient density,,needs_review
+whole black peppercorns,tablespoon,1,2 tablespoons whole black peppercorns,tablespoon needs ingredient density,,needs_review
+yellow cornmeal,tablespoon,1,2 tablespoons yellow cornmeal,tablespoon needs ingredient density,,needs_review
+yellow mustard,tablespoon,1,"3 tablespoons yellow mustard, divided",tablespoon needs ingredient density,,needs_review
+baking soda,teaspoon,1,1/4 teaspoon baking soda,teaspoon needs ingredient density,,needs_review
+black or white pepper,teaspoon,1,1 teaspoon black or white pepper,teaspoon needs ingredient density,,needs_review
+black pepper or,teaspoon,1,1 teaspoon ground black pepper or to taste,teaspoon needs ingredient density,,needs_review
+canola oil,teaspoon,1,2 teaspoons canola oil,teaspoon needs ingredient density,,needs_review
+caraway seed,teaspoon,1,¼ teaspoon caraway seed,teaspoon needs ingredient density,,needs_review
+caraway seeds,teaspoon,1,1 teaspoon caraway seeds,teaspoon needs ingredient density,,needs_review
+celery seed,teaspoon,1,½ teaspoon celery seed,teaspoon needs ingredient density,,needs_review
+chicken bouillon granules,teaspoon,1,"1 teaspoon chicken bouillon granules, or to taste",teaspoon needs ingredient density,,needs_review
+chicken stock base,teaspoon,1,4 teaspoons chicken stock base,teaspoon needs ingredient density,,needs_review
+citric acid powder,teaspoon,1,1 teaspoon citric acid powder,teaspoon needs ingredient density,,needs_review
+coriander,teaspoon,1,½ teaspoon ground coriander,teaspoon needs ingredient density,,needs_review
+coriander seed,teaspoon,1,1 teaspoon ground coriander seed,teaspoon needs ingredient density,,needs_review
+corn flour,teaspoon,1,2 teaspoons corn flour,teaspoon needs ingredient density,,needs_review
+creamy salad dressing,teaspoon,1,4 teaspoons creamy salad dressing (such as Miracle Whip),teaspoon needs ingredient density,,needs_review
+cumin seeds,teaspoon,1,1 teaspoon cumin seeds,teaspoon needs ingredient density,,needs_review
+curry powder,teaspoon,1,1 teaspoon curry powder,teaspoon needs ingredient density,,needs_review
+everything bagel seasoning,teaspoon,1,2 teaspoons everything bagel seasoning,teaspoon needs ingredient density,,needs_review
+fish sauce,teaspoon,1,2 teaspoons fish sauce,teaspoon needs ingredient density,,needs_review
+freshly white pepper,teaspoon,1,¼ teaspoon freshly ground white pepper,teaspoon needs ingredient density,,needs_review
+garam masala,teaspoon,1,1 ½ teaspoons garam masala,teaspoon needs ingredient density,,needs_review
+garlic chili sauce,teaspoon,1,1 teaspoon garlic chili sauce,teaspoon needs ingredient density,,needs_review
+ginger root,teaspoon,1,¼ teaspoon chopped fresh ginger root,teaspoon needs ingredient density,,needs_review
+hot red pepper flakes,teaspoon,1,¾ teaspoon hot red pepper flakes,teaspoon needs ingredient density,,needs_review
+i talian seasoning,teaspoon,1,1/2 teaspoon I talian seasoning,teaspoon needs ingredient density,,needs_review
+italian seasoning,teaspoon,1,1 teaspoon Italian seasoning,teaspoon needs ingredient density,,needs_review
+lemon juice,teaspoon,1,2 teaspoons lemon juice,teaspoon needs ingredient density,,needs_review
+lemon pepper seasoning,teaspoon,1,1 teaspoon lemon pepper seasoning,teaspoon needs ingredient density,,needs_review
+lime juice,teaspoon,1,1 teaspoon lime juice,teaspoon needs ingredient density,,needs_review
+marjoram,teaspoon,1,1 teaspoon dried marjoram,teaspoon needs ingredient density,,needs_review
+mayonnaise,teaspoon,1,2 teaspoons mayonnaise,teaspoon needs ingredient density,,needs_review
+mint,teaspoon,1,4 teaspoons dried mint,teaspoon needs ingredient density,,needs_review
+mirin,teaspoon,1,4 teaspoons mirin (Japanese sweet wine),teaspoon needs ingredient density,,needs_review
+mustard,teaspoon,1,2 teaspoons mustard,teaspoon needs ingredient density,,needs_review
+mustard seed,teaspoon,1,1 teaspoon mustard seed,teaspoon needs ingredient density,,needs_review
+onion,teaspoon,1,1 teaspoon dried minced onion (Optional),teaspoon needs ingredient density,,needs_review
+pickle relish,teaspoon,1,2 teaspoons pickle relish,teaspoon needs ingredient density,,needs_review
+prepared dijon style mustard,teaspoon,1,2 teaspoons prepared Dijon-style mustard,teaspoon needs ingredient density,,needs_review
+roasted red pepper and garlic seasoning blend,teaspoon,1,1 teaspoon roasted red pepper and garlic seasoning blend,teaspoon needs ingredient density,,needs_review
+seasoning,teaspoon,1,1 1/2 teaspoons seasoning,teaspoon needs ingredient density,,needs_review
+shaoxing cooking wine,teaspoon,1,1 teaspoon Shaoxing cooking wine,teaspoon needs ingredient density,,needs_review
+thyme leaves,teaspoon,1,1 teaspoon dried thyme leaves,teaspoon needs ingredient density,,needs_review
+za atar,teaspoon,1,2 teaspoons za'atar,teaspoon needs ingredient density,,needs_review

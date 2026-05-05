@@ -1,0 +1,48 @@
+Recipes_DB v1.1 remaining macro blockers audit
+====================================================
+
+Total blockers with grams: 139
+
+Safety counts:
+- needs_review: 127
+- safe_auto: 12
+
+Recommended action counts:
+- keep_review: 125
+- promote_exact_mapping: 12
+- needs_edible_yield_rule: 2
+
+Top blockers by grams:
+- beef: 8164.65g | action=promote_exact_mapping | safety=safe_auto | food_id=food_beef_minced_steak_15_fat_raw
+- red potatoes: 3855.53g | action=keep_review | safety=needs_review | food_id=food_potato_peeled_raw
+- chicken thighs: 3515.33g | action=needs_edible_yield_rule | safety=needs_review | food_id=
+- turkey: 3401.93g | action=keep_review | safety=needs_review | food_id=food_turkey_meat_raw
+- bone in chicken pieces: 2494.76g | action=needs_edible_yield_rule | safety=needs_review | food_id=
+- water: 1920g | action=keep_review | safety=needs_review | food_id=
+- pork neck bones: 1814.37g | action=keep_review | safety=needs_review | food_id=
+- pork shoulder: 1814.37g | action=promote_exact_mapping | safety=safe_auto | food_id=food_pork_shoulder_raw
+- onions: 1770g | action=promote_exact_mapping | safety=safe_auto | food_id=food_onion_raw
+- white rice: 1480g | action=promote_exact_mapping | safety=safe_auto | food_id=food_rice_cooked_unsalted
+- jasmine rice: 1202.5g | action=promote_exact_mapping | safety=safe_auto | food_id=food_rice_thai_cooked
+- pork: 1133.98g | action=keep_review | safety=needs_review | food_id=
+- yukon gold potatoes: 1133.98g | action=keep_review | safety=needs_review | food_id=
+- mild italian sausage links: 907.18g | action=keep_review | safety=needs_review | food_id=
+- mozzarella cheese: 907.18g | action=promote_exact_mapping | safety=safe_auto | food_id=food_mozzarella_cheese_from_cow_s_milk
+- pork sausage: 907.18g | action=keep_review | safety=needs_review | food_id=
+- potatoes: 907.18g | action=promote_exact_mapping | safety=safe_auto | food_id=food_potato_peeled_raw
+- salted cod fish: 907.18g | action=keep_review | safety=needs_review | food_id=
+- spinach pasta dough: 907.18g | action=keep_review | safety=needs_review | food_id=
+- tomatillos: 907.18g | action=keep_review | safety=needs_review | food_id=
+- mayonnaise: 850.49g | action=keep_review | safety=needs_review | food_id=
+- spicy pork sausage: 793.79g | action=keep_review | safety=needs_review | food_id=
+- chicken broth: 720g | action=keep_review | safety=needs_review | food_id=
+- mushrooms: 680.4g | action=keep_review | safety=needs_review | food_id=
+- asparagus: 680.39g | action=keep_review | safety=needs_review | food_id=
+- cubed beef stew meat: 680.39g | action=keep_review | safety=needs_review | food_id=
+- uncooked shrimp: 680.39g | action=keep_review | safety=needs_review | food_id=
+- whole wheat flour: 660g | action=keep_review | safety=needs_review | food_id=
+- rice: 647.5g | action=promote_exact_mapping | safety=safe_auto | food_id=food_rice_cooked_unsalted
+- pork loin: 566.99g | action=promote_exact_mapping | safety=safe_auto | food_id=food_pork_loin_raw
+
+Recommended next step:
+- Apply only safe row-level promotions, then rerun nutrition cache as round3 draft.

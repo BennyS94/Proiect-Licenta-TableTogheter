@@ -1,0 +1,114 @@
+Recipes_DB v1.1 mapping readiness audit
+
+Total ingredient rows: 1861
+
+Mapping audit status counts:
+- alias_candidate: 760
+- fooddb_gap_candidate: 424
+- ambiguous_review: 351
+- no_match: 227
+- exact_match: 70
+- normalized_match: 18
+- out_of_scope: 11
+
+Rows with grams and mappable: 526
+Rows with grams but no mapping: 315
+Rows with mapping but no grams: 322
+
+Top 30 alias candidates:
+- garlic -> garlic_fresh: freq=108, grams=88, priority=high, safety=safe_auto
+- salt -> salt_white_sea_igneous_or_rock_no_enrichment: freq=97, grams=75, priority=high, safety=safe_auto
+- olive oil -> olive_oil_extra_virgin: freq=91, grams=91, priority=high, safety=safe_auto
+- onion -> yellow_onion_raw: freq=73, grams=59, priority=high, safety=needs_review
+- black pepper -> black_pepper_powder: freq=71, grams=0, priority=high, safety=safe_auto
+- soy sauce -> soy_sauce_prepacked: freq=36, grams=29, priority=high, safety=safe_auto
+- eggs -> egg_raw: freq=34, grams=34, priority=high, safety=safe_auto
+- oregano -> oregano_dried: freq=26, grams=0, priority=high, safety=needs_review
+- basil -> basil_dried: freq=20, grams=0, priority=high, safety=needs_review
+- egg -> egg_raw: freq=20, grams=20, priority=high, safety=safe_auto
+- garlic powder -> garlic_powder_dried: freq=19, grams=0, priority=high, safety=safe_auto
+- parsley -> parsley_fresh: freq=19, grams=0, priority=high, safety=needs_review
+- white sugar -> sugar_white: freq=19, grams=19, priority=high, safety=safe_auto
+- thyme -> thyme_dried: freq=15, grams=0, priority=high, safety=needs_review
+- green onions -> chive_or_spring_onion_fresh: freq=12, grams=7, priority=high, safety=needs_review
+- onions -> yellow_onion_raw: freq=10, grams=6, priority=high, safety=needs_review
+- cumin -> cumin_seed: freq=9, grams=0, priority=high, safety=needs_review
+- kosher salt -> salt_white_sea_igneous_or_rock_no_enrichment: freq=9, grams=8, priority=high, safety=needs_review
+- butter -> butter_82_fat_unsalted: freq=8, grams=6, priority=high, safety=needs_review
+- freshly black pepper -> black_pepper_powder: freq=7, grams=0, priority=medium, safety=safe_auto
+- rice -> rice_raw: freq=7, grams=7, priority=high, safety=needs_review
+- red onion -> red_onion_raw: freq=6, grams=3, priority=medium, safety=safe_auto
+- yellow onion -> yellow_onion_raw: freq=6, grams=6, priority=high, safety=safe_auto
+- garlic cloves -> garlic_fresh: freq=5, grams=5, priority=high, safety=safe_auto
+- unsalted butter -> butter_82_fat_unsalted: freq=5, grams=4, priority=high, safety=safe_auto
+- sugar -> sugar_white: freq=4, grams=4, priority=medium, safety=needs_review
+- white rice -> rice_raw: freq=4, grams=4, priority=high, safety=safe_auto
+- balsamic vinegar -> vinegar_balsamic: freq=3, grams=3, priority=medium, safety=safe_auto
+- flank steak -> beef_flank_steak_raw: freq=3, grams=2, priority=medium, safety=safe_auto
+- jasmine rice -> rice_raw: freq=3, grams=3, priority=high, safety=needs_review
+
+Top 30 Food_DB gaps:
+- celery: freq=18, grams=1, role=veg, priority=high, action=add_to_fooddb
+- beef: freq=15, grams=15, role=protein, priority=high, action=add_to_fooddb
+- vegetable oil: freq=15, grams=15, role=fat, priority=high, action=add_to_fooddb
+- green beans: freq=11, grams=10, role=veg, priority=high, action=add_to_fooddb
+- parmesan cheese: freq=11, grams=9, role=dairy, priority=high, action=add_to_fooddb
+- brown sugar: freq=10, grams=10, role=other, priority=high, action=add_to_fooddb
+- cornstarch: freq=10, grams=0, role=other, priority=high, action=add_unit_rule
+- mushrooms: freq=10, grams=3, role=veg, priority=high, action=add_to_fooddb
+- lemon juice: freq=8, grams=0, role=other, priority=high, action=add_unit_rule
+- zucchini: freq=8, grams=0, role=veg, priority=high, action=add_unit_rule
+- chicken broth: freq=7, grams=0, role=sauce, priority=medium, action=add_unit_rule
+- chicken thighs: freq=7, grams=6, role=protein, priority=high, action=add_to_fooddb
+- ketchup: freq=7, grams=0, role=other, priority=medium, action=add_unit_rule
+- lemon: freq=7, grams=7, role=other, priority=high, action=add_to_fooddb
+- mozzarella cheese: freq=7, grams=2, role=dairy, priority=high, action=add_to_fooddb
+- all purpose flour: freq=6, grams=3, role=carb, priority=high, action=add_to_fooddb
+- turkey: freq=6, grams=6, role=protein, priority=high, action=add_to_fooddb
+- broccoli florets: freq=5, grams=1, role=veg, priority=medium, action=keep_review
+- cheddar cheese: freq=5, grams=0, role=dairy, priority=high, action=add_unit_rule
+- chicken: freq=5, grams=1, role=protein, priority=high, action=add_to_fooddb
+- green bell pepper: freq=5, grams=0, role=veg, priority=medium, action=add_unit_rule
+- red bell pepper: freq=5, grams=0, role=veg, priority=medium, action=add_unit_rule
+- bacon: freq=4, grams=0, role=other, priority=medium, action=add_unit_rule
+- beef broth: freq=4, grams=0, role=sauce, priority=medium, action=add_unit_rule
+- black beans: freq=4, grams=0, role=protein, priority=high, action=add_unit_rule
+- cabbage: freq=4, grams=0, role=veg, priority=medium, action=add_unit_rule
+- ham: freq=4, grams=3, role=other, priority=medium, action=keep_review
+- peas: freq=4, grams=0, role=other, priority=medium, action=add_unit_rule
+- red pepper: freq=4, grams=0, role=veg, priority=medium, action=add_unit_rule
+- red potatoes: freq=4, grams=3, role=carb, priority=high, action=add_to_fooddb
+
+Top 30 unit-to-grams needs:
+- black pepper [teaspoon]: freq=47, rule=teaspoon needs ingredient density, safety=needs_review
+- oregano [teaspoon]: freq=17, rule=teaspoon needs ingredient density, safety=needs_review
+- carrot [count]: freq=15, rule=count needs food-specific rule, safety=needs_review
+- garlic powder [teaspoon]: freq=12, rule=teaspoon needs ingredient density, safety=needs_review
+- garlic [tablespoon]: freq=11, rule=tablespoon needs ingredient density, safety=needs_review
+- ginger [teaspoon]: freq=11, rule=teaspoon needs ingredient density, safety=needs_review
+- thyme [teaspoon]: freq=11, rule=teaspoon needs ingredient density, safety=needs_review
+- tomato [count]: freq=10, rule=count needs food-specific rule, safety=needs_review
+- onion [cup]: freq=10, rule=cup needs ingredient density, safety=needs_review
+- basil [tablespoon]: freq=10, rule=tablespoon needs ingredient density, safety=needs_review
+- parsley [tablespoon]: freq=10, rule=tablespoon needs ingredient density, safety=needs_review
+- tomatoes [can]: freq=9, rule=packaging unit needs label-size parsing, safety=needs_review
+- oregano [tablespoon]: freq=9, rule=tablespoon needs ingredient density, safety=needs_review
+- paprika [teaspoon]: freq=9, rule=teaspoon needs ingredient density, safety=needs_review
+- red pepper flakes [teaspoon]: freq=9, rule=teaspoon needs ingredient density, safety=needs_review
+- cayenne pepper [teaspoon]: freq=8, rule=teaspoon needs ingredient density, safety=needs_review
+- bay leaves [count]: freq=7, rule=count needs food-specific rule, safety=needs_review
+- carrots [count]: freq=7, rule=count needs food-specific rule, safety=needs_review
+- potato [count]: freq=7, rule=count needs food-specific rule, safety=needs_review
+- chicken broth [cup]: freq=7, rule=cup needs ingredient density, safety=needs_review
+- mayonnaise [cup]: freq=7, rule=cup needs ingredient density, safety=needs_review
+- soy sauce [cup]: freq=7, rule=cup needs ingredient density, safety=needs_review
+- basil [teaspoon]: freq=7, rule=teaspoon needs ingredient density, safety=needs_review
+- garlic [teaspoon]: freq=7, rule=teaspoon needs ingredient density, safety=needs_review
+- tomato sauce [can]: freq=6, rule=packaging unit needs label-size parsing, safety=needs_review
+- cornstarch [tablespoon]: freq=6, rule=tablespoon needs ingredient density, safety=needs_review
+- freshly black pepper [teaspoon]: freq=6, rule=teaspoon needs ingredient density, safety=needs_review
+- lemon zest [teaspoon]: freq=6, rule=teaspoon needs ingredient density, safety=needs_review
+- potatoes [count]: freq=5, rule=count needs food-specific rule, safety=needs_review
+- zucchini [count]: freq=5, rule=count needs food-specific rule, safety=needs_review
+
+Likely next patch recommendation: A. alias patch

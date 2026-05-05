@@ -1,0 +1,24 @@
+Food_DB v1.1 draft minimal additions summary
+================================================
+
+Current Food_DB row count: 1537
+Approved additions requested: 3
+Additions applied: 3
+Additions deferred: 3
+Final Food_DB v1.1 draft row count: 1540
+
+Applied rows
+------------
+- food_cornstarch | cornstarch | 381 kcal, 0.26g protein, 91.3g carbs, 0.05g fat / 100g | source=comprehensive_foods_usda.csv:fdc_id=169698
+- food_green_beans_cooked_unsalted | green_beans_cooked_unsalted | 35 kcal, 1.89g protein, 7.88g carbs, 0.28g fat / 100g | source=comprehensive_foods_usda.csv:fdc_id=169141
+- food_parmesan_cheese_hard | parmesan_cheese_hard | 392 kcal, 35.8g protein, 3.22g carbs, 25g fat / 100g | source=comprehensive_foods_usda.csv:fdc_id=170848
+
+Deferred rows
+-------------
+- chicken broth | reason=explicitly_deferred_by_current_task | sanity=sanity_passed
+- chicken thighs | reason=explicitly_deferred_by_current_task | sanity=energy_outside_plausible_kcal_range; macro_energy_mismatch_ratio=4.28; source_energy_flagged_suspicious
+- tomato sauce | reason=explicitly_deferred_by_current_task | sanity=macro_energy_mismatch_ratio=3.55; source_energy_flagged_suspicious
+
+Recommended next patch
+----------------------
+- Rerun the Recipes_DB v1.1 draft mapping against this Food_DB v1.1 draft, then do the unit-to-grams rules pass before any nutrition cache rebuild.

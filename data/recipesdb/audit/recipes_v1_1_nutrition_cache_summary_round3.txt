@@ -1,0 +1,91 @@
+Recipes_DB v1.1 nutrition cache draft summary
+====================================================
+
+Total recipes: 200
+
+Cache status counts:
+- partial_from_mapped_ingredients: 125
+- usable_from_mapped_ingredients: 73
+- no_accepted_mapped_ingredients: 2
+
+usable_from_mapped_ingredients count: 73
+partial_from_mapped_ingredients count: 125
+low coverage count: 127
+median mapped_weight_ratio: 0.8398
+median energy_kcal_per_serving: 100.1285
+median protein_g_per_serving: 1.8646
+median carbs_g_per_serving: 2.4365
+median fat_g_per_serving: 6.753
+complete/near-complete mains with kcal_per_serving >= 300: 21
+complete/near-complete mains with protein_per_serving >= 20: 34
+
+Top 20 low coverage recipes:
+- recipes_v1_1_candidate_124 | Fish Tacos al Pastor | status=no_accepted_mapped_ingredients | ratio=0 | kcal=0 | protein=0 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_069 | Vietnamese Salad Rolls | status=no_accepted_mapped_ingredients | ratio=0 | kcal=0 | protein=0 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_187 | Homemade Turkey Sausage Patties | status=partial_from_mapped_ingredients | ratio=0.007 | kcal=1.2019 | protein=0.0574 | flags=is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_003 | Salmon Couscous Salad | status=partial_from_mapped_ingredients | ratio=0.0163 | kcal=0.8325 | protein=0.0398 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_194 | Air Fryer Lemon-Thyme Baby Red Potatoes | status=partial_from_mapped_ingredients | ratio=0.0463 | kcal=30.375 | protein=0.0101 | flags=is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_074 | Adas bil Hamod (Lebanese Lentil Lemon Soup) | status=partial_from_mapped_ingredients | ratio=0.0473 | kcal=32.8725 | protein=0.1296 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_139 | Sheet Pan Lemon Butter Garlic Shrimp with Asparagus | status=partial_from_mapped_ingredients | ratio=0.0671 | kcal=144.2745 | protein=0.2541 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_136 | Chinese Shrimp and Tofu Soup | status=partial_from_mapped_ingredients | ratio=0.0803 | kcal=40.3263 | protein=0.1231 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_138 | Air Fryer Lemon Garlic Parmesan Chicken | status=partial_from_mapped_ingredients | ratio=0.0818 | kcal=51.9477 | protein=4.617 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_065 | Vegetarian Refried Beans | status=partial_from_mapped_ingredients | ratio=0.0881 | kcal=65.412 | protein=0.2433 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_042 | Greek Feta and Spinach Potato Casserole | status=partial_from_mapped_ingredients | ratio=0.0893 | kcal=94.3108 | protein=1.1639 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio; needs_mapping_review
+- recipes_v1_1_candidate_132 | Amy's Delicious Turkey Burgers | status=partial_from_mapped_ingredients | ratio=0.0993 | kcal=17.5 | protein=1.5875 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_121 | Broccoli Beef I | status=partial_from_mapped_ingredients | ratio=0.1104 | kcal=29.4225 | protein=0.6062 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_071 | Roasted Tomato Hummus Toast | status=partial_from_mapped_ingredients | ratio=0.129 | kcal=123.165 | protein=0.1201 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_165 | Turkey Sausage, Potato, Brussels Sprouts, and Apple Hash | status=partial_from_mapped_ingredients | ratio=0.1375 | kcal=135.0655 | protein=0.7514 | flags=is_low_protein_suspicious; is_low_mapped_weight_ratio; needs_mapping_review
+- recipes_v1_1_candidate_051 | Cabbage Borsht | status=partial_from_mapped_ingredients | ratio=0.1435 | kcal=19.155 | protein=0.507 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_127 | Valerio's Pulled Pork Sandwich | status=partial_from_mapped_ingredients | ratio=0.1458 | kcal=36.5044 | protein=0.4671 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_054 | Dad's Lima Bean Soup with Ham Bone | status=partial_from_mapped_ingredients | ratio=0.1478 | kcal=33.0058 | protein=0.4017 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_090 | BBQ Meatballs | status=partial_from_mapped_ingredients | ratio=0.1509 | kcal=44.3893 | protein=1.5958 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_019 | Turmeric Black Pepper Chicken with Broccoli | status=partial_from_mapped_ingredients | ratio=0.1524 | kcal=65.9869 | protein=0.1162 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio; needs_mapping_review
+
+Top 20 suspicious low macro recipes:
+- recipes_v1_1_candidate_069 | Vietnamese Salad Rolls | kcal=0 | protein=0 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_120 | Super Easy Chicken Noodle Soup | kcal=0 | protein=0 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_124 | Fish Tacos al Pastor | kcal=0 | protein=0 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_125 | Chipotle Chicken Burgers | kcal=0 | protein=0 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_003 | Salmon Couscous Salad | kcal=0.8325 | protein=0.0398 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_187 | Homemade Turkey Sausage Patties | kcal=1.2019 | protein=0.0574 | flags=is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_133 | Slow Cooker Italian Beef | kcal=2.6376 | protein=0.1755 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_102 | Navy Bean Soup | kcal=6.0631 | protein=0.2447 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_036 | Prime Rib Soup | kcal=7.6325 | protein=0.171 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_007 | Spicy Sausage and Rice Casserole | kcal=7.7 | protein=0.5799 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_137 | Chicken Zoodle Soup in a Jar | kcal=8.3469 | protein=0.1972 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_143 | Sausage Pinwheels | kcal=9.625 | protein=0.3025 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+- recipes_v1_1_candidate_022 | Grandma's Chinese Vegetable Soup | kcal=9.9233 | protein=0.1985 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_089 | Filipino Chicken Salad | kcal=10.2216 | protein=0.0945 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_144 | Chicken Broth in a Slow Cooker | kcal=11.2861 | protein=0.3061 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_085 | Refried Beans Without the Refry | kcal=11.3943 | protein=0.4396 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_186 | Blackened Shrimp Tacos with Pineapple | kcal=11.8131 | protein=0.5759 | flags=is_low_protein_suspicious
+- recipes_v1_1_candidate_044 | Easy Chicken and Dumplings with Vegetables | kcal=11.9273 | protein=0.4171 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_010 | Angela's Asian-Inspired Chicken Noodle Soup | kcal=16.155 | protein=0.0945 | flags=is_low_kcal_suspicious; is_low_protein_suspicious
+- recipes_v1_1_candidate_132 | Amy's Delicious Turkey Burgers | kcal=17.5 | protein=1.5875 | flags=is_low_kcal_suspicious; is_low_protein_suspicious; is_low_mapped_weight_ratio
+
+Top 20 high macro suspicious recipes:
+- recipes_v1_1_candidate_188 | Easy Herb-Roasted Turkey | kcal=1463.5711 | servings=1 | flags=is_low_protein_suspicious; is_high_macro_suspicious
+
+Top remaining unmapped/review ingredients by total grams:
+- red potatoes: 3855.53g across 3 rows | unmapped:3 | examples=Slow Cooker Chicken Thighs, Green Beans, and Potatoes | Instant Pot Potato and Bacon Soup | American Potato Salad
+- chicken thighs: 3515.33g across 6 rows | unmapped:6 | examples=Turmeric Black Pepper Chicken with Broccoli | Slow Cooker Chicken and Rice | Slow Cooker Chicken Thighs, Green Beans, and Potatoes | Zucchini Chicken Rice Casserole | Copycat McChicken Sandwich
+- turkey: 3401.93g across 6 rows | unmapped:6 | examples=White Chili with Ground Turkey | Air Fryer Turkey Stuffed Peppers | Ground Turkey Lettuce Wraps | Amy's Delicious Turkey Burgers | Low-Carb Meatloaf
+- bone in chicken pieces: 2494.76g across 2 rows | unmapped:2 | examples=Cabbage Borsht | Chicken Broth in a Slow Cooker
+- water: 1920g across 1 rows | review_needed:1 | examples=Dad's Lima Bean Soup with Ham Bone
+- pork neck bones: 1814.37g across 2 rows | unmapped:2 | examples=Grandma's Chinese Vegetable Soup | Neck Bones and Lima Beans
+- pork: 1133.98g across 1 rows | unmapped:1 | examples=Filipino Pork Adobo
+- yukon gold potatoes: 1133.98g across 1 rows | unmapped:1 | examples=Greek Feta and Spinach Potato Casserole
+- mild italian sausage links: 907.18g across 1 rows | unmapped:1 | examples=Baked Rigatoni
+- pork sausage: 907.18g across 2 rows | unmapped:2 | examples=Sausage Pinwheels | Sausage, Egg, and Cheese Biscuit Casserole
+- salted cod fish: 907.18g across 1 rows | unmapped:1 | examples=Portuguese Cod Fish Casserole
+- spinach pasta dough: 907.18g across 1 rows | unmapped:1 | examples=Spinach and Ricotta Tortellini
+- tomatillos: 907.18g across 1 rows | unmapped:1 | examples=Fish Tacos al Pastor
+- mayonnaise: 850.49g across 1 rows | review_needed:1 | examples=Smoky Chicken Salad
+- spicy pork sausage: 793.79g across 1 rows | unmapped:1 | examples=Spicy Sausage and Rice Casserole
+- chicken broth: 720g across 1 rows | review_needed:1 | examples=Mongo Guisado (Mung Bean Soup)
+- mushrooms: 680.4g across 3 rows | unmapped:3 | examples=10-Minute Mushroom Carbonara | Quinoa Chard Pilaf | Asparagus and Mushroom Frittata
+- asparagus: 680.39g across 2 rows | review_needed:2 | examples=Sheet Pan Lemon Butter Garlic Shrimp with Asparagus | Asparagus and Mushroom Frittata
+- uncooked shrimp: 680.39g across 1 rows | unmapped:1 | examples=Sheet Pan Lemon Butter Garlic Shrimp with Asparagus
+- whole wheat flour: 660g across 2 rows | unmapped:2 | examples=Harvest Patties | Bacon-Flavored Dog Biscuits
+
+Recommendation: B. one more targeted mapping pass

@@ -1,0 +1,38 @@
+Food_DB v1.1 round3 targeted blocker summary
+====================================================
+
+Base Food_DB round2 row count: 1541
+Round3 new rows appended: 0
+Round3 alias_to_existing decisions: 14
+Round3 deferred decisions: 6
+Final Food_DB round3 draft row count: 1541
+
+Round3 alias_to_existing decisions
+------------------------------------
+- beef_ground_rows_only -> food_beef_minced_steak_15_fat_raw | 209 kcal, 20.2g protein, 0.47g carbs, 14.1g fat / 100g
+- beef_lean_ground_rows_only -> food_beef_minced_steak_10_fat_raw | 171 kcal, 20g protein, 0g carbs, 10.1g fat / 100g
+- cubed_beef_stew_meat -> food_beef_stewing_meat_raw | 164 kcal, 24g protein, 0g carbs, 7.5g fat / 100g
+- garlic_cloves -> food_garlic_fresh | 111 kcal, 5.31g protein, 18.6g carbs, 0.3g fat / 100g
+- jasmine_rice_cooked_rows_only -> food_rice_thai_cooked | 143 kcal, 2.92g protein, 30.5g carbs, 0.7g fat / 100g
+- kosher_salt -> food_salt_white_sea_igneous_or_rock_no_enrichment | 0 kcal, 0g protein, 0g carbs, 0g fat / 100g
+- mozzarella_cheese -> food_mozzarella_cheese_from_cow_s_milk | 227 kcal, 16.5g protein, 0.75g carbs, 17.7g fat / 100g
+- onions -> food_onion_raw | 35 kcal, 1.1g protein, 6.25g carbs, 0.62g fat / 100g
+- pork_loin -> food_pork_loin_raw | 175 kcal, 20.8g protein, 0.75g carbs, 9.89g fat / 100g
+- pork_shoulder -> food_pork_shoulder_raw | 178 kcal, 18.9g protein, 0.38g carbs, 11.2g fat / 100g
+- potatoes_clear_cooked_rows_only -> food_potato_boiled_cooked_in_water | 80.5 kcal, 1.8g protein, 16.7g carbs, 0.34g fat / 100g
+- potatoes_clear_raw_rows_only -> food_potato_peeled_raw | 80.5 kcal, 2.16g protein, 16.2g carbs, 0.18g fat / 100g
+- white_rice_cooked_rows_only -> food_rice_cooked_unsalted | 145 kcal, 2.92g protein, 31.8g carbs, 0.41g fat / 100g
+- white_rice_uncooked_rows_only -> food_rice_raw | 352 kcal, 7.04g protein, 78g carbs, 0.91g fat / 100g
+
+Round3 deferred
+---------------
+- bone in chicken pieces | reason=needs_edible_yield_rule_before_mapping
+- chicken thighs | reason=exact_safe_chicken_thigh_item_or_edible_yield_rule_missing
+- generic_beef | reason=generic_beef_still_not_promoted_globally
+- pork | reason=generic_pork_remains_broad_keep_review
+- red potatoes | reason=exact_red_potato_item_missing_keep_review
+- turkey | reason=ground_turkey_exact_item_missing_keep_review
+
+Recommended next patch
+----------------------
+- Rerun mapping with round3 targeted blocker promotions, then rebuild nutrition cache draft.

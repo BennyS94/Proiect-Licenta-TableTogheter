@@ -1,0 +1,267 @@
+Recipes_DB v1.1 safe-alias mapping pass summary
+
+Food_DB version used: fooddb_v1_1_draft_round3
+Food_DB path: data\fooddb\draft\fooddb_v1_1_core_master_draft_round3.csv
+Baseline mapping path: data\recipesdb\draft\recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round2_unit_rules_review_promotions.csv
+
+Total ingredient rows: 1861
+
+Baseline mapping vs this run:
+- accepted_auto: 880 -> 944 (+64)
+- review_needed: 289 -> 287 (-2)
+- unmapped: 692 -> 630 (-62)
+- accepted_auto_with_grams: 775 -> 825 (+50)
+- review_needed_with_grams: 35 -> 32 (-3)
+- unmapped_with_grams: 196 -> 149 (-47)
+
+Previously promoted safe aliases still active:
+- celery -> celery_stalk_raw: usage=18, rows_with_grams=1
+- vegetable oil -> combined_oil_blended_vegetable_oils: usage=15, rows_with_grams=15
+- brown sugar -> sugar_brown: usage=10, rows_with_grams=10
+- shrimp -> shrimp_or_prawn_raw: usage=7, rows_with_grams=6
+- chicken breast -> chicken_breast_without_skin_raw: usage=6, rows_with_grams=4
+- chicken breasts -> chicken_breast_without_skin_raw: usage=6, rows_with_grams=5
+- beef chuck -> beef_chuck_raw: usage=3, rows_with_grams=3
+
+Food_DB v1.1 draft additions used:
+- cornstarch -> food_cornstarch: usage=10, rows_with_grams=9
+- green beans -> food_green_beans_cooked_unsalted: usage=11, rows_with_grams=10
+- parmesan cheese -> food_parmesan_cheese_hard: usage=11, rows_with_grams=9
+
+Review promotions in this run:
+- onion: 73
+- water: 53
+- milk: 15
+- red onion: 6
+- yellow onion: 6
+- rice: 5
+
+Review promotions with grams:
+- onion: 69
+- water: 53
+- milk: 15
+- red onion: 6
+- yellow onion: 6
+- rice: 5
+
+Round2 promotions in this run:
+- oregano: 20
+- carrot: 16
+- basil: 12
+- green onions: 12
+- thyme: 9
+- butter: 8
+- carrots: 8
+- chicken broth: 6
+- unsalted butter: 5
+- flank steak: 3
+- parsley: 3
+- lemon: 2
+- beef short ribs: 1
+- green onion: 1
+- beef flank steak: 1
+
+Round2 promotions with grams:
+- oregano: 20
+- carrot: 16
+- basil: 12
+- thyme: 8
+- carrots: 8
+- green onions: 7
+- chicken broth: 6
+- butter: 6
+- unsalted butter: 4
+- parsley: 3
+- lemon: 2
+- flank steak: 2
+- beef short ribs: 1
+- green onion: 1
+- beef flank steak: 1
+
+Round3 targeted blocker promotions in this run:
+- beef: 15
+- onions: 10
+- kosher salt: 8
+- potatoes: 7
+- mozzarella cheese: 7
+- garlic cloves: 5
+- uncooked white rice: 3
+- white rice: 3
+- pork loin: 2
+- jasmine rice: 2
+- cubed beef stew meat: 1
+- pork shoulder: 1
+
+Round3 targeted blocker promotions with grams:
+- beef: 15
+- kosher salt: 8
+- onions: 6
+- garlic cloves: 5
+- uncooked white rice: 3
+- white rice: 3
+- pork loin: 2
+- potatoes: 2
+- jasmine rice: 2
+- mozzarella cheese: 2
+- cubed beef stew meat: 1
+- pork shoulder: 1
+
+Round2 Food_DB additions/promotions applied:
+- butter | alias_to_existing_round2 | food_butter_82_fat_unsalted
+- carrot | alias_to_existing_round2 | food_carrot_raw
+- carrots | alias_to_existing_round2 | food_carrot_raw
+- green onions | alias_to_existing_round2 | food_chive_or_spring_onion_fresh
+- lemon | alias_to_existing_round2 | food_lemon_pulp_raw
+- chicken broth | applied_to_round2_draft | food_chicken_broth_ready_to_serve
+
+Round2 Food_DB additions deferred:
+- beef | reason=generic_beef_remains_too_broad_for_auto_mapping
+- chicken thighs | reason=source_energy_suspicious_possible_kj_or_non_kcal_unit
+- mushrooms | reason=not_in_round2_priority_scope
+- potatoes | reason=not_in_round2_priority_scope
+- red potatoes | reason=not_in_round2_priority_scope
+- tomato sauce | reason=source_energy_suspicious_possible_kj_or_non_kcal_unit
+- turkey | reason=generic_turkey_remains_review_until recipe context is explicit
+
+Round3 Food_DB alias decisions applied:
+- beef_ground_rows_only | alias_to_existing_round3 | food_beef_minced_steak_15_fat_raw
+- beef_lean_ground_rows_only | alias_to_existing_round3 | food_beef_minced_steak_10_fat_raw
+- cubed_beef_stew_meat | alias_to_existing_round3 | food_beef_stewing_meat_raw
+- garlic_cloves | alias_to_existing_round3 | food_garlic_fresh
+- jasmine_rice_cooked_rows_only | alias_to_existing_round3 | food_rice_thai_cooked
+- kosher_salt | alias_to_existing_round3 | food_salt_white_sea_igneous_or_rock_no_enrichment
+- mozzarella_cheese | alias_to_existing_round3 | food_mozzarella_cheese_from_cow_s_milk
+- onions | alias_to_existing_round3 | food_onion_raw
+- pork_loin | alias_to_existing_round3 | food_pork_loin_raw
+- pork_shoulder | alias_to_existing_round3 | food_pork_shoulder_raw
+- potatoes_clear_cooked_rows_only | alias_to_existing_round3 | food_potato_boiled_cooked_in_water
+- potatoes_clear_raw_rows_only | alias_to_existing_round3 | food_potato_peeled_raw
+- white_rice_cooked_rows_only | alias_to_existing_round3 | food_rice_cooked_unsalted
+- white_rice_uncooked_rows_only | alias_to_existing_round3 | food_rice_raw
+
+Round3 Food_DB decisions deferred:
+- bone in chicken pieces | reason=needs_edible_yield_rule_before_mapping
+- chicken thighs | reason=exact_safe_chicken_thigh_item_or_edible_yield_rule_missing
+- generic_beef | reason=generic_beef_still_not_promoted_globally
+- pork | reason=generic_pork_remains_broad_keep_review
+- red potatoes | reason=exact_red_potato_item_missing_keep_review
+- turkey | reason=ground_turkey_exact_item_missing_keep_review
+
+Items kept in review and why:
+- salt | safe_alias_v1_1:salt->food_salt_white_sea_igneous_or_rock_no_enrichment: 23
+- ginger | family_name_candidate_only: 17
+- black pepper | safe_alias_v1_1:black pepper->food_black_pepper_powder: 16
+- parsley | family_name_candidate_only: 16
+- salt and black pepper | compound_or_alternative_ingredient_name: 13
+- mayonnaise | family_name_candidate_only: 13
+- tomato | family_name_candidate_only: 12
+- salt and pepper | compound_or_alternative_ingredient_name: 9
+- basil | family_name_candidate_only: 8
+- rosemary | family_name_candidate_only: 8
+- tomato sauce | family_name_candidate_only: 7
+- cinnamon | family_name_candidate_only: 7
+- potato | family_name_candidate_only: 7
+- oregano | family_name_candidate_only: 6
+- lemon zest | family_name_candidate_only: 6
+- salt and freshly black pepper | compound_or_alternative_ingredient_name: 6
+- thyme | family_name_candidate_only: 6
+- sage | family_name_candidate_only: 6
+- white pepper | family_name_candidate_only: 5
+- broccoli | family_name_candidate_only: 5
+
+Mapping status counts:
+- accepted_auto: 944
+- unmapped: 630
+- review_needed: 287
+
+accepted_auto_with_grams: 825
+review_needed_with_grams: 32
+unmapped_with_grams: 149
+
+Top safe aliases used:
+- garlic -> garlic_fresh: usage=108, rows_with_grams=106
+- salt -> salt_white_sea_igneous_or_rock_no_enrichment: usage=97, rows_with_grams=75
+- olive oil -> olive_oil_extra_virgin: usage=91, rows_with_grams=91
+- black pepper -> black_pepper_powder: usage=71, rows_with_grams=51
+- soy sauce -> soy_sauce_prepacked: usage=36, rows_with_grams=29
+- eggs -> egg_raw: usage=34, rows_with_grams=34
+- egg -> egg_raw: usage=20, rows_with_grams=20
+- white sugar -> sugar_white: usage=19, rows_with_grams=19
+- celery -> celery_stalk_raw: usage=18, rows_with_grams=1
+- vegetable oil -> combined_oil_blended_vegetable_oils: usage=15, rows_with_grams=15
+- green beans -> green_beans_cooked_unsalted: usage=11, rows_with_grams=10
+- parmesan cheese -> parmesan_cheese_hard: usage=11, rows_with_grams=9
+- brown sugar -> sugar_brown: usage=10, rows_with_grams=10
+- cornstarch -> cornstarch: usage=10, rows_with_grams=9
+- shrimp -> shrimp_or_prawn_raw: usage=7, rows_with_grams=6
+- chicken breast -> chicken_breast_without_skin_raw: usage=6, rows_with_grams=4
+- chicken breasts -> chicken_breast_without_skin_raw: usage=6, rows_with_grams=5
+- beef chuck -> beef_chuck_raw: usage=3, rows_with_grams=3
+
+Top unmapped ingredients with grams:
+- turkey: 6
+- chicken thighs: 6
+- lemon: 5
+- rice wine vinegar: 4
+- rice vinegar: 4
+- sugar: 4
+- seasoned salt: 4
+- balsamic vinegar: 3
+- mushrooms: 3
+- red potatoes: 3
+- ham: 3
+- all purpose flour: 3
+- red wine vinegar: 3
+- virgin olive oil: 2
+- light soy sauce: 2
+- pork neck bones: 2
+- whole wheat flour: 2
+- bone in chicken pieces: 2
+- white onion: 2
+- pork sausage: 2
+
+Top review_needed ingredients with grams:
+- salt: 3
+- eggplant: 2
+- rice: 2
+- egg yolk: 2
+- basmati rice: 2
+- asparagus: 2
+- broccoli: 1
+- pancetta: 1
+- spinach: 1
+- water: 1
+- or: 1
+- quinoa or rice: 1
+- and deveined prawns: 1
+- chicken broth: 1
+- 20 fat or higher preferred: 1
+- wild rice: 1
+- soy sauce: 1
+- egg white: 1
+- chicken meat: 1
+- and pork cut into 1 4 inch strips: 1
+
+Top ingredients still blocking nutrition cache:
+- salt: 25
+- black pepper: 20
+- garlic powder: 19
+- ginger: 17
+- celery: 17
+- parsley: 16
+- red pepper flakes: 14
+- cayenne pepper: 14
+- tomatoes: 14
+- salt and black pepper: 13
+- mayonnaise: 13
+- paprika: 13
+- tomato: 12
+- mushrooms: 10
+- cumin: 9
+- salt and pepper: 9
+- soy sauce: 8
+- basil: 8
+- zucchini: 8
+- rosemary: 8
+
+Expected next patch: B. Food_DB gap additions

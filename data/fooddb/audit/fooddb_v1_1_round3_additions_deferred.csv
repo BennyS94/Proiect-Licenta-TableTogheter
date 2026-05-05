@@ -1,0 +1,7 @@
+ingredient_name_normalized,suggested_food_id,suggested_canonical_name,suggested_display_name,suggested_food_group,suggested_role,source_used,source_row_reference,energy_kcal_100g,protein_g_100g,carbs_g_100g,fat_g_100g,frequency_in_v1_1,rows_with_grams,total_grams_affected,proposed_action,final_action,safety,sanity_status,sanity_notes,defer_reason,review_notes,example_raw_texts,example_recipes
+bone in chicken pieces,,,,,,,,,,,,,,,,deferred,,not_applied,not_evaluated_for_round3_append,needs_edible_yield_rule_before_mapping,,,
+chicken thighs,,,,,,,,,,,,,,,,deferred,,not_applied,not_evaluated_for_round3_append,exact_safe_chicken_thigh_item_or_edible_yield_rule_missing,,,
+generic_beef,,,,,,,,,,,,,,,,deferred,,not_applied,not_evaluated_for_round3_append,generic_beef_still_not_promoted_globally,,,
+pork,,,,,,,,,,,,,,,,deferred,,not_applied,not_evaluated_for_round3_append,generic_pork_remains_broad_keep_review,,,
+red potatoes,,,,,,,,,,,,,,,,deferred,,not_applied,not_evaluated_for_round3_append,exact_red_potato_item_missing_keep_review,,,
+turkey,,,,,,,,,,,,,,,,deferred,,not_applied,not_evaluated_for_round3_append,ground_turkey_exact_item_missing_keep_review,,,

@@ -1,0 +1,166 @@
+recipe_id_candidate,display_name,ingredient_position,ingredient_raw_text,ingredient_name_normalized,quantity_value,quantity_unit,old_quantity_grams_estimated,new_quantity_grams_estimated,unit_rule_key,unit_rule_reason,mapping_status,mapped_food_id,safety
+recipes_v1_1_candidate_001,Pork and Pepper Stir Fry,3,2 tablespoons minced garlic,garlic,2.0,tablespoon,,16.8,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_002,Alysia's Basic Meat Lasagna,8,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_006,Filipino Pork Adobo,4,1 tablespoon minced garlic,garlic,1.0,tablespoon,,8.4,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_006,Filipino Pork Adobo,6,1 teaspoon fresh-ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_007,Spicy Sausage and Rice Casserole,8,1 cup chicken broth,chicken broth,1.0,cup,,240,chicken broth_cup,chicken_broth_cup_density,unmapped,,safe_auto
+recipes_v1_1_candidate_007,Spicy Sausage and Rice Casserole,10,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_008,White Chili with Ground Turkey,6,1 tablespoon dried oregano,oregano,1.0,tablespoon,,3,dried oregano_tablespoon,dried_oregano_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_008,White Chili with Ground Turkey,10,5 cups chicken broth,chicken broth,5.0,cup,,1200,chicken broth_cup,chicken_broth_cup_density,unmapped,,safe_auto
+recipes_v1_1_candidate_010,Angela's Asian-Inspired Chicken Noodle Soup,5,"1 carrot, sliced",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_013,Ground Beef Casserole with Rice,7,1 teaspoon minced garlic,garlic,1.0,teaspoon,,2.8,fresh_garlic_teaspoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_013,Ground Beef Casserole with Rice,8,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_013,Ground Beef Casserole with Rice,9,1 teaspoon dried basil,basil,1.0,teaspoon,,0.7,dried basil_teaspoon,dried_basil_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_015,Sheet Pan Garlic Butter Steak Bites with Veggies,6,"1/2 teaspoon black pepper,",black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_016,Sheet Pan Tilapia and Potatoes,7,1/2 teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_018,Shrimp Marinara,10,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_019,Turmeric Black Pepper Chicken with Broccoli,3,3/4 teaspoon ground black pepper,black pepper,0.75,teaspoon,,1.725,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_022,Grandma's Chinese Vegetable Soup,6,"1 large carrot, sliced",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_023,Beef and Broccoli Udon Noodles,2,1 tablespoon cornstarch,cornstarch,1.0,tablespoon,,8,cornstarch_tablespoon,cornstarch_tablespoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_026,Hibachi Chicken and Rice Casserole,6,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_026,Hibachi Chicken and Rice Casserole,8,1 cup onion,onion,1.0,cup,,160,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_027,Linda's Lasagna Recipe,6,1 tablespoon dried oregano,oregano,1.0,tablespoon,,3,dried oregano_tablespoon,dried_oregano_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_027,Linda's Lasagna Recipe,9,¼ teaspoon ground black pepper,black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_028,Easy Skillet Lasagna,6,2 teaspoons dried basil (Optional),basil,2.0,teaspoon,,1.4,dried basil_teaspoon,dried_basil_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_028,Easy Skillet Lasagna,7,2 teaspoons dried oregano (Optional),oregano,2.0,teaspoon,,2,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_028,Easy Skillet Lasagna,9,1 teaspoon black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_029,Air Fryer Everything-Bagel Salmon Dinner,5,"1/4 teaspoon ground black pepper, divided",black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_030,Stuffed Eggplant,4,1/2 teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_030,Stuffed Eggplant,6,1 cup chopped onion,onion,1.0,cup,,160,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_031,Spaghetti Squash Carbonara,7,1 tablespoon ground black pepper,black pepper,1.0,tablespoon,,6.9,black pepper_tablespoon,black_pepper_tablespoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_032,Slow Cooker Tuscan Chicken Meatballs with Gnocchi,3,1/4 cup onion,onion,0.25,cup,,40,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_033,Ground Turkey and Zucchini Skillet,10,1 teaspoon dried basil,basil,1.0,teaspoon,,0.7,dried basil_teaspoon,dried_basil_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_033,Ground Turkey and Zucchini Skillet,11,1 teaspoon dried thyme,thyme,1.0,teaspoon,,1,dried thyme_teaspoon,dried_thyme_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_034,Slow Cooker Chicken and Rice,5,1 teaspoon dried thyme,thyme,1.0,teaspoon,,1,dried thyme_teaspoon,dried_thyme_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_034,Slow Cooker Chicken and Rice,9,1/2 teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_035,Homemade Roasted Chicken Noodle Soup,4,"1 teaspoon ground black pepper, divided",black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_035,Homemade Roasted Chicken Noodle Soup,5,"2 medium carrots, cut into 2-inch pieces",carrots,2.0,count,,120,carrot_count,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_036,Prime Rib Soup,4,"1 large carrot, sliced into chunks (Optional)",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_036,Prime Rib Soup,7,1 teaspoon black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_038,Classic Turkey and Rice Soup,3,"1 large carrot, roughly chopped",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_038,Classic Turkey and Rice Soup,7,1 teaspoon dried thyme,thyme,1.0,teaspoon,,1,dried thyme_teaspoon,dried_thyme_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_041,Harvest Patties,2,"1 large carrot, peeled and grated",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_042,Greek Feta and Spinach Potato Casserole,9,1/2 teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_043,"Slow Cooker Chicken Thighs, Green Beans, and Potatoes",4,"1 teaspoon ground black pepper,",black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_043,"Slow Cooker Chicken Thighs, Green Beans, and Potatoes",8,2 tablespoons minced garlic,garlic,2.0,tablespoon,,16.8,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_043,"Slow Cooker Chicken Thighs, Green Beans, and Potatoes",9,2 cups chicken broth,chicken broth,2.0,cup,,480,chicken broth_cup,chicken_broth_cup_density,unmapped,,safe_auto
+recipes_v1_1_candidate_044,Easy Chicken and Dumplings with Vegetables,5,2 tablespoons dried thyme,thyme,2.0,tablespoon,,6,dried thyme_tablespoon,dried_thyme_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_044,Easy Chicken and Dumplings with Vegetables,8,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_046,Alison's Slow Cooker Vegetable Beef Soup,8,2 teaspoons ground black pepper,black pepper,2.0,teaspoon,,4.6,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_046,Alison's Slow Cooker Vegetable Beef Soup,10,1 tablespoon dried basil,basil,1.0,tablespoon,,2.1,dried basil_tablespoon,dried_basil_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_050,Zucchini Chicken Rice Casserole,3,1 cup onion,onion,1.0,cup,,160,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_050,Zucchini Chicken Rice Casserole,5,1/2 teaspoon dried oregano,oregano,0.5,teaspoon,,0.5,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_051,Cabbage Borsht,7,"1 large carrot, diced",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_052,Teriyaki Chicken with Mushrooms and Broccoli,6,4 teaspoons cornstarch,cornstarch,4.0,teaspoon,,10.8,cornstarch_teaspoon,cornstarch_teaspoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_053,Baked Chicken and Vegetable Rice Paper Rolls,7,"1 large carrot, finely shredded",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_054,Dad's Lima Bean Soup with Ham Bone,8,"4 carrots, peeled and sliced",carrots,4.0,count,,240,carrot_count,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_054,Dad's Lima Bean Soup with Ham Bone,10,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_054,Dad's Lima Bean Soup with Ham Bone,11,1 teaspoon dried parsley,parsley,1.0,teaspoon,,0.5,dried parsley_teaspoon,dried_parsley_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_055,Chicken Adobo Fried Rice,2,1/2 cup onion,onion,0.5,cup,,80,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_055,Chicken Adobo Fried Rice,5,1/2 cup carrots,carrots,0.5,cup,,62.5,carrot_cup,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_056,Braised Beef Short Ribs,11,"6 carrots, chopped",carrots,6.0,count,,360,carrot_count,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_057,Neck Bones and Lima Beans,10,1 cup diced onion,onion,1.0,cup,,160,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_058,Filipino Pancit Bihon with Canton,11,"1 carrot, peeled and cut into matchsticks",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_059,Italian Meatballs on Parmesan Noodles,4,1 tablespoon dried oregano,oregano,1.0,tablespoon,,3,dried oregano_tablespoon,dried_oregano_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_059,Italian Meatballs on Parmesan Noodles,7,1/2 tablespoon black pepper,black pepper,0.5,tablespoon,,3.45,black pepper_tablespoon,black_pepper_tablespoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_059,Italian Meatballs on Parmesan Noodles,8,1 teaspoon dried basil,basil,1.0,teaspoon,,0.7,dried basil_teaspoon,dried_basil_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_061,Zoodles alla Carbonara,8,2 teaspoons ground black pepper,black pepper,2.0,teaspoon,,4.6,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_062,Air Fryer Garlic Green Beans,3,1 tablespoon minced garlic,garlic,1.0,tablespoon,,8.4,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_062,Air Fryer Garlic Green Beans,5,1/8 teaspoon ground black pepper,black pepper,0.125,teaspoon,,0.2875,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_063,Dad's Pan-Fried Green Beans,6,2 teaspoons minced garlic,garlic,2.0,teaspoon,,5.6,fresh_garlic_teaspoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_065,Vegetarian Refried Beans,2,"2 tablespoons minced garlic, divided",garlic,2.0,tablespoon,,16.8,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_068,Instant Pot Potato and Bacon Soup,5,1 tablespoon minced garlic,garlic,1.0,tablespoon,,8.4,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_068,Instant Pot Potato and Bacon Soup,8,4 cups chicken broth,chicken broth,4.0,cup,,960,chicken broth_cup,chicken_broth_cup_density,unmapped,,safe_auto
+recipes_v1_1_candidate_068,Instant Pot Potato and Bacon Soup,10,2 tablespoons cornstarch,cornstarch,2.0,tablespoon,,16,cornstarch_tablespoon,cornstarch_tablespoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_070,Hot Honey Salmon Bowls,14,1/4 cup red onion (optional),red onion,0.25,cup,,40,red onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_072,Dutch Oven Chili Colorado,9,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_073,Mongo Guisado (Mung Bean Soup),10,"3 cups chicken broth, or more as needed",chicken broth,3.0,cup,,720,chicken broth_cup,chicken_broth_cup_density,unmapped,,safe_auto
+recipes_v1_1_candidate_075,Mom's Goulash in the Microwave,3,1 cup diced onion,onion,1.0,cup,,160,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_075,Mom's Goulash in the Microwave,5,1 tablespoon minced garlic,garlic,1.0,tablespoon,,8.4,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_075,Mom's Goulash in the Microwave,10,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_076,Shrimp Vermicelli Salad,6,1 teaspoon dried thyme,thyme,1.0,teaspoon,,1,dried thyme_teaspoon,dried_thyme_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_080,Mexican Rice and Beans,8,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_082,Vegetable Curry with Coconut Milk,6,"2 large carrots, chopped",carrots,2.0,count,,120,carrot_count,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_083,Air Fryer Turkey Stuffed Peppers,8,1/2 teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_083,Air Fryer Turkey Stuffed Peppers,11,1 cup minced onion,onion,1.0,cup,,160,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_085,Refried Beans Without the Refry,4,2 tablespoons minced garlic,garlic,2.0,tablespoon,,16.8,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_085,Refried Beans Without the Refry,6,1 ¾ teaspoons fresh ground black pepper,black pepper,1.75,teaspoon,,4.025,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_086,One Pot Turmeric Chicken and Rice,5,1 cup onion,onion,1.0,cup,,160,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_087,Shrimp Lemon Pepper Linguini,4,½ cup chicken broth,chicken broth,0.5,cup,,120,chicken broth_cup,chicken_broth_cup_density,unmapped,,safe_auto
+recipes_v1_1_candidate_088,African Chicken Stew,10,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_089,Filipino Chicken Salad,7,"1 carrot, diced",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_091,Vegetable Fried Rice,6,1 teaspoon minced garlic,garlic,1.0,teaspoon,,2.8,fresh_garlic_teaspoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_093,Savory Vegetarian Quinoa,2,"3 carrots, chopped",carrots,3.0,count,,180,carrot_count,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_096,Veggie Burgers,4,"2 carrots, shredded",carrots,2.0,count,,120,carrot_count,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_102,Navy Bean Soup,10,1 tablespoon dried parsley,parsley,1.0,tablespoon,,1.5,dried parsley_tablespoon,dried_parsley_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_102,Navy Bean Soup,15,½ teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_103,Breadless Stuffing,5,⅓ cup diced onion,onion,0.3333,cup,,53.328,onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_103,Breadless Stuffing,12,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_104,Steak Fried Rice,5,1 tablespoon cornstarch,cornstarch,1.0,tablespoon,,8,cornstarch_tablespoon,cornstarch_tablespoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_106,Cabbage Fried Rice,3,1/4 teaspoon black pepper,black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_107,American Potato Salad,9,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_109,Randy's Slow Cooker Ravioli Lasagna,2,1 tablespoon chopped garlic,garlic,1.0,tablespoon,,8.4,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_109,Randy's Slow Cooker Ravioli Lasagna,5,½ teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_109,Randy's Slow Cooker Ravioli Lasagna,8,1 teaspoon dried basil,basil,1.0,teaspoon,,0.7,dried basil_teaspoon,dried_basil_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_109,Randy's Slow Cooker Ravioli Lasagna,9,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_111,Nut Loaf Supreme,9,1 teaspoon dried thyme,thyme,1.0,teaspoon,,1,dried thyme_teaspoon,dried_thyme_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_112,Lemon Chicken Gnocchi,5,1/2 teaspoon dried oregano,oregano,0.5,teaspoon,,0.5,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_112,Lemon Chicken Gnocchi,7,1/4 teaspoon black pepper,black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_113,Campfire Carnitas,3,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_114,Fried Rice with Tofu,5,"1 carrot, peeled and finely chopped",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_116,"Velveting Chicken Breast, Chinese Restaurant Style",3,1 tablespoon cornstarch,cornstarch,1.0,tablespoon,,8,cornstarch_tablespoon,cornstarch_tablespoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_117,Tomato Basil Salmon,2,1 tablespoon dried basil,basil,1.0,tablespoon,,2.1,dried basil_tablespoon,dried_basil_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_118,Korean Sweet Potato Noodles (Japchae),5,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_122,Gourmet Chicken Sandwich,4,1 teaspoon minced garlic,garlic,1.0,teaspoon,,2.8,fresh_garlic_teaspoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_123,Blackened Shrimp Tacos,2,1/4 cup red onion,red onion,0.25,cup,,40,red onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_126,Beefy Chinese Dumplings,3,"1 medium carrot, shredded",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_127,Valerio's Pulled Pork Sandwich,3,2 tablespoons ground black pepper,black pepper,2.0,tablespoon,,13.8,black pepper_tablespoon,black_pepper_tablespoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_128,Grilled Chicken and Strawberry Mason Jar Salad with Poppyseed Dressing,3,1/2 teaspoon dried thyme,thyme,0.5,teaspoon,,0.5,dried thyme_teaspoon,dried_thyme_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_128,Grilled Chicken and Strawberry Mason Jar Salad with Poppyseed Dressing,4,1/4 teaspoon dried oregano,oregano,0.25,teaspoon,,0.25,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_129,Garlic Butter Steak Bites With Mushrooms,5,1/2 teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_130,Easy Moo Shu Pork,4,1 teaspoon minced garlic,garlic,1.0,teaspoon,,2.8,fresh_garlic_teaspoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_130,Easy Moo Shu Pork,8,"1 carrot, grated",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_131,Garlic Chicken Stir Fry,11,1 cup chicken broth,chicken broth,1.0,cup,,240,chicken broth_cup,chicken_broth_cup_density,unmapped,,safe_auto
+recipes_v1_1_candidate_131,Garlic Chicken Stir Fry,14,2 tablespoons cornstarch,cornstarch,2.0,tablespoon,,16,cornstarch_tablespoon,cornstarch_tablespoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_133,Slow Cooker Italian Beef,3,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_133,Slow Cooker Italian Beef,4,1 teaspoon dried basil,basil,1.0,teaspoon,,0.7,dried basil_teaspoon,dried_basil_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_133,Slow Cooker Italian Beef,5,1 teaspoon dried parsley,parsley,1.0,teaspoon,,0.5,dried parsley_teaspoon,dried_parsley_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_133,Slow Cooker Italian Beef,10,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_134,Spicy Slow-Cooked Beanless Chili,9,2 teaspoons minced garlic,garlic,2.0,teaspoon,,5.6,fresh_garlic_teaspoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_134,Spicy Slow-Cooked Beanless Chili,10,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_136,Chinese Shrimp and Tofu Soup,9,½ teaspoon black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_136,Chinese Shrimp and Tofu Soup,10,1 tablespoon cornstarch,cornstarch,1.0,tablespoon,,8,cornstarch_tablespoon,cornstarch_tablespoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_137,Chicken Zoodle Soup in a Jar,5,1/4 teaspoon ground black pepper,black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_137,Chicken Zoodle Soup in a Jar,8,1/2 cup shredded carrot,carrot,0.5,cup,,62.5,carrot_cup,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_138,Air Fryer Lemon Garlic Parmesan Chicken,5,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_140,Hot Honey Feta Chicken Skewers,4,1/4 teaspoon ground black pepper,black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_141,Lobster Ravioli in Tomato Cream Sauce with Shrimp,5,1 tablespoon dried basil,basil,1.0,tablespoon,,2.1,dried basil_tablespoon,dried_basil_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_141,Lobster Ravioli in Tomato Cream Sauce with Shrimp,6,1 tablespoon dried oregano,oregano,1.0,tablespoon,,3,dried oregano_tablespoon,dried_oregano_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_141,Lobster Ravioli in Tomato Cream Sauce with Shrimp,7,1 tablespoon dried thyme,thyme,1.0,tablespoon,,3,dried thyme_tablespoon,dried_thyme_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_142,"Super-Simple, Super-Spicy Mongolian Beef",5,1 tablespoon minced garlic,garlic,1.0,tablespoon,,8.4,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_144,Chicken Broth in a Slow Cooker,4,"2 carrots, chopped",carrots,2.0,count,,120,carrot_count,carrot_explicit_household_weight,unmapped,,safe_auto
+recipes_v1_1_candidate_144,Chicken Broth in a Slow Cooker,6,1 tablespoon dried basil,basil,1.0,tablespoon,,2.1,dried basil_tablespoon,dried_basil_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_147,Creamy Morel Mushroom Soup,2,1 tablespoon minced garlic,garlic,1.0,tablespoon,,8.4,fresh_garlic_tablespoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_147,Creamy Morel Mushroom Soup,11,2 teaspoons ground black pepper,black pepper,2.0,teaspoon,,4.6,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_150,Smoky Chicken Salad,2,2 tablespoons ground black pepper,black pepper,2.0,tablespoon,,13.8,black pepper_tablespoon,black_pepper_tablespoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_151,Low-Carb Meatloaf,4,"1 carrot, shredded",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_151,Low-Carb Meatloaf,9,2 teaspoons ground black pepper,black pepper,2.0,teaspoon,,4.6,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_152,Szechwan Shrimp,4,2 teaspoons cornstarch,cornstarch,2.0,teaspoon,,5.4,cornstarch_teaspoon,cornstarch_teaspoon_density,accepted_auto,food_cornstarch,safe_auto
+recipes_v1_1_candidate_153,Asian Fire Meat,10,"1 small carrot, chopped",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_158,Potato and Zucchini Frittata,6,1 teaspoon dried oregano,oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_160,"Sausage, Egg, and Cheese Biscuit Casserole",8,1/2 teaspoon ground black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_163,My Big Fat Greek Omelet,2,"1 teaspoon dried oregano, divided",oregano,1.0,teaspoon,,1,dried oregano_teaspoon,dried_oregano_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_165,"Turkey Sausage, Potato, Brussels Sprouts, and Apple Hash",8,1/2 teaspoon black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_170,Easy Breakfast Tortilla Pizza,5,1/4 teaspoon ground black pepper,black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_171,Homemade Hash Browns,5,¼ teaspoon ground black pepper,black pepper,0.25,teaspoon,,0.575,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_174,Easy Broccoli Frittata,6,1 teaspoon ground black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_184,Easy Black Bean Hummus,3,1 tablespoon dried basil,basil,1.0,tablespoon,,2.1,dried basil_tablespoon,dried_basil_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_186,Blackened Shrimp Tacos with Pineapple,3,1 tablespoon dried oregano,oregano,1.0,tablespoon,,3,dried oregano_tablespoon,dried_oregano_tablespoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_186,Blackened Shrimp Tacos with Pineapple,6,1 teaspoon black pepper,black pepper,1.0,teaspoon,,2.3,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_187,Homemade Turkey Sausage Patties,4,3/4 teaspoon black pepper,black pepper,0.75,teaspoon,,1.725,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_188,Easy Herb-Roasted Turkey,4,2 teaspoons dried basil,basil,2.0,teaspoon,,1.4,dried basil_teaspoon,dried_basil_teaspoon_density,review_needed,,safe_auto
+recipes_v1_1_candidate_188,Easy Herb-Roasted Turkey,7,½ teaspoon black pepper,black pepper,0.5,teaspoon,,1.15,black pepper_teaspoon,black_pepper_teaspoon_density,accepted_auto,food_black_pepper_powder,safe_auto
+recipes_v1_1_candidate_192,Lemon Herb Quinoa,6,1 teaspoon minced garlic,garlic,1.0,teaspoon,,2.8,fresh_garlic_teaspoon,fresh_garlic_explicit_density,accepted_auto,food_garlic_fresh,safe_auto
+recipes_v1_1_candidate_199,Mid-Summer Italian Bread Salad,6,1 cup chopped red onion,red onion,1.0,cup,,160,red onion_cup,onion_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_200,Broccoli and Carrot Stir Fry,2,"1 carrot, thinly sliced",carrot,1.0,count,,60,carrot_count,carrot_explicit_household_weight,review_needed,,safe_auto
+recipes_v1_1_candidate_200,Broccoli and Carrot Stir Fry,4,1 teaspoon cornstarch,cornstarch,1.0,teaspoon,,2.7,cornstarch_teaspoon,cornstarch_teaspoon_density,accepted_auto,food_cornstarch,safe_auto

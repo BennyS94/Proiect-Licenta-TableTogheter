@@ -1,0 +1,201 @@
+ingredient_name_normalized,suggested_canonical_name,suggested_food_group,suggested_role,frequency,rows_with_grams,example_raw_texts,example_recipes,priority,proposed_action
+celery,celery,vegetable,veg,18,1,"4 stalks celery, cut into strips and leaves reserved | 1 stalk celery, roughly chopped | 4 stalks celery, chopped | 4 stalks celery, diced | 2 stalks celery, sliced",Korean Fried Pork With Stir-Fried Celery | Classic Turkey and Rice Soup | Easy Chicken and Dumplings with Vegetables | Dad's Lima Bean Soup with Ham Bone | Filipino Pancit Bihon with Canton,high,add_to_fooddb
+beef,beef,meat_fish_egg_or_legume,protein,15,15,1 ½ pounds ground beef | 1 pound ground beef | 1 pound lean ground beef | 1 ½ pounds lean ground beef | ½ pound ground beef,Alysia's Basic Meat Lasagna | Polish Stuffed Cabbage | Ground Beef Casserole with Rice | Kelsey's Favorite Stuffed Green Peppers | Linda's Lasagna Recipe,high,add_to_fooddb
+vegetable oil,vegetable_oil,fat_oil,fat,15,15,"1 tablespoon vegetable oil | ¼ cup vegetable oil | 1 teaspoon vegetable oil, divided | 2 tablespoons vegetable oil | 3 tablespoons vegetable oil, divided",Turmeric Black Pepper Chicken with Broccoli | Asian Chicken Salad | Baked Chicken and Vegetable Rice Paper Rolls | Chicken Adobo Fried Rice | Braised Beef Short Ribs,high,add_to_fooddb
+green beans,green_beans,vegetable,veg,11,10,"1 pound small green beans, trimmed (Optional) | 12 ounces green beans, | 2 pounds green beans, | 2 pounds fresh green beans, rinsed and trimmed | 12 ounces fresh green beans, ends trimmed","Filipino Pork Adobo | Sheet Pan Garlic Butter Steak Bites with Veggies | Slow Cooker Chicken Thighs, Green Beans, and Potatoes | Greek Green Beans | Air Fryer Garlic Green Beans",high,add_to_fooddb
+parmesan cheese,parmesan_cheese,dairy,dairy,11,9,"½ cup grated Parmesan cheese | 1/2 cup grated Parmesan cheese, divided | 1 tablespoon grated Parmesan cheese | 1/2 cup grated Parmesan cheese | 1 cup grated Parmesan cheese",Linda's Lasagna Recipe | Stuffed Eggplant | Slow Cooker Tuscan Chicken Meatballs with Gnocchi | Slow Cooker Chicken and Rice | BLT Pasta Carbonara,high,add_to_fooddb
+brown sugar,brown_sugar,other,other,10,10,1 tablespoon brown sugar | 3 tablespoons brown sugar | 2 tablespoons brown sugar | 1 cup brown sugar | 1 cup packed brown sugar,Pork and Pepper Stir Fry | Hibachi Chicken and Rice Casserole | Asian Chicken Salad | BBQ Meatballs | Granny's Easy Chili,high,add_to_fooddb
+cornstarch,cornstarch,other,other,10,0,1 tablespoon cornstarch | 4 teaspoons cornstarch | 2 tablespoons cornstarch | 2/3 cup cornstarch | 2 teaspoons cornstarch,Beef and Broccoli Udon Noodles | Teriyaki Chicken with Mushrooms and Broccoli | Instant Pot Potato and Bacon Soup | Copycat McChicken Sandwich | Steak Fried Rice,high,add_unit_rule
+mushrooms,mushrooms,vegetable,veg,10,3,"½ cup sliced mushrooms | ½ pound sliced fresh mushrooms | 1 cup sliced fresh mushrooms | 1 (8 ounce) package sliced fresh mushrooms | 8 ounces fresh mushrooms, chopped",Garbanzo Stir-Fry | 10-Minute Mushroom Carbonara | Stuffed Eggplant | Prime Rib Soup | Quinoa Chard Pilaf,high,add_to_fooddb
+lemon juice,lemon_juice,other,other,8,0,2 tablespoons lemon juice | 2 tablespoons fresh lemon juice | ¾ cup lemon juice | 3 tablespoons lemon juice | ¼ cup lemon juice,Zucchini Chicken Rice Casserole | Roasted Tomato Hummus Toast | Adas bil Hamod (Lebanese Lentil Lemon Soup) | Sheet Pan Lemon Butter Garlic Shrimp with Asparagus | Pistachio Hummus,high,add_unit_rule
+zucchini,zucchini,vegetable,veg,8,0,"1 large zucchini, halved and sliced | 1 cup zucchini | 2 zucchini | 4 cups zucchini (about 2 zucchini) | 1 extra large zucchini, cut into noodle-shape strands",Garbanzo Stir-Fry | Hibachi Chicken and Rice Casserole | Ground Turkey and Zucchini Skillet | Zucchini Chicken Rice Casserole | Zoodles alla Carbonara,high,add_unit_rule
+chicken broth,chicken_broth,sauce,sauce,7,0,"1 cup chicken broth | 5 cups chicken broth | 2 cups chicken broth | 4 cups chicken broth | 3 cups chicken broth, or more as needed","Spicy Sausage and Rice Casserole | White Chili with Ground Turkey | Slow Cooker Chicken Thighs, Green Beans, and Potatoes | Instant Pot Potato and Bacon Soup | Mongo Guisado (Mung Bean Soup)",medium,add_unit_rule
+chicken thighs,chicken_thighs,meat_fish_egg_or_legume,protein,7,6,"1 pound skinless, boneless chicken thighs | 5 skinless, boneless chicken thighs | 1 1/2 pounds skinless boneless chicken thighs, cut into bite-sized pieces | 2 pounds skinless, boneless chicken thighs | 1 pound skinless boneless chicken thighs, cut into bite-sized pieces","Turmeric Black Pepper Chicken with Broccoli | Hibachi Chicken and Rice Casserole | Slow Cooker Chicken and Rice | Slow Cooker Chicken Thighs, Green Beans, and Potatoes | Zucchini Chicken Rice Casserole",high,add_to_fooddb
+ketchup,ketchup,other,other,7,0,"½ cup ketchup | 2 tablespoons ketchup | 1/4 cup ketchup | 2 cups ketchup, divided | ½ cup ketchup, divided",Filipino Pork Adobo | Thai Fried Rice | Air Fryer Turkey Stuffed Peppers | BBQ Meatballs | Sweet and Sour Stuffed Cabbage,medium,add_unit_rule
+lemon,lemon,other,other,7,7,"1 lemon, juiced | 1 lemon, cut into wedges | 1 lemon, zested | 1 lemon, halved | 1 large lemon, juiced",Salmon Couscous Salad | Sheet Pan Tilapia and Potatoes | Shrimp Lemon Pepper Linguini | Grilled Chicken and Strawberry Mason Jar Salad with Poppyseed Dressing | Lobster Ravioli in Tomato Cream Sauce with Shrimp,high,add_to_fooddb
+mozzarella cheese,mozzarella_cheese,dairy,dairy,7,2,"1 pound shredded mozzarella cheese | 1 cup shredded mozzarella cheese | 1 pound mozzarella cheese, shredded | 2 cups shredded mozzarella cheese | 1/2 cup shredded mozzarella cheese",Linda's Lasagna Recipe | Easy Skillet Lasagna | Baked Rigatoni | Tofu and Rice Stuffed Peppers | Air Fryer Turkey Stuffed Peppers,high,add_to_fooddb
+all purpose flour,all_purpose_flour,cereal_starch_or_legume,carb,6,3,"1 ½ tablespoons all-purpose flour | 1 ½ cups all-purpose flour | 2 tablespoons all-purpose flour, or as needed | ¼ cup all-purpose flour | 1 tablespoon all-purpose flour",Braised Beef Short Ribs | Veggie Burgers | Spinach and Ricotta Tortellini | Broccoli Beef I | Creamy Morel Mushroom Soup,high,add_to_fooddb
+turkey,turkey,meat_fish_egg_or_legume,protein,6,6,1 ½ pounds ground turkey | 1 pound ground turkey | 2 pounds lean ground turkey | 1 pound lean ground turkey,White Chili with Ground Turkey | Air Fryer Turkey Stuffed Peppers | Ground Turkey Lettuce Wraps | Amy's Delicious Turkey Burgers | Low-Carb Meatloaf,high,add_to_fooddb
+broccoli florets,broccoli_florets,vegetable,veg,5,1,"2 cups broccoli florets | 1 pound broccoli florets, chopped into bite-sized pieces | 1 1/2 cups broccoli florets | 5 ½ cups broccoli florets",Stir Fried Pasta with Veggies | Air Fryer Everything-Bagel Salmon Dinner | Teriyaki Chicken with Mushrooms and Broccoli | Steak and Broccoli Stir Fry | Broccoli and Carrot Stir Fry,medium,keep_review
+cheddar cheese,cheddar_cheese,dairy,dairy,5,0,½ cup shredded Cheddar cheese | ¼ cup shredded Cheddar cheese | 1 1/2 cups shredded Cheddar cheese,"Ground Beef Casserole with Rice | Veggie Burgers | Egg Scramble | Sausage, Egg, and Cheese Biscuit Casserole | Potato and Cheese Frittata",high,add_unit_rule
+chicken,chicken,meat_fish_egg_or_legume,protein,5,1,"1 pound ground chicken | 2 cups shredded cooked chicken | 1 cup chopped cooked chicken | 1 2/3 cups cooked chicken | 1 (4 pound) chicken, cut into pieces",Slow Cooker Tuscan Chicken Meatballs with Gnocchi | Baked Chicken and Vegetable Rice Paper Rolls | Filipino Pancit Bihon with Canton | Chicken Zoodle Soup in a Jar | Greek Chicken,high,add_to_fooddb
+green bell pepper,green_bell_pepper,vegetable,veg,5,0,"1 green bell pepper, chopped | 1 medium green bell pepper, diced | ½ cup chopped green bell pepper | 1 small green bell pepper, chopped | 1 small green bell pepper, seeded and diced",Spicy Sausage and Rice Casserole | Ground Beef Casserole with Rice | Black-Eyed Peas and Rice | Vegetable Fried Rice | American Potato Salad,medium,add_unit_rule
+red bell pepper,red_bell_pepper,vegetable,veg,5,0,"1 red bell pepper, chopped | 1 cup chopped red bell pepper | 1 red bell pepper, thinly sliced | 1 large red bell pepper",Spicy Sausage and Rice Casserole | Neck Bones and Lima Beans | Garlic Chicken Stir Fry | Crab Omelet | Chef John's Jollof Rice,medium,add_unit_rule
+bacon,bacon,other,other,4,0,"6 slices bacon, sliced crosswise into 1/2-inch pieces | 6 slices bacon | 6 slices bacon, chopped | 6 slices bacon, cut crosswise into 1/4-inch pieces","Thai Fried Rice | Slow Cooker Chicken Thighs, Green Beans, and Potatoes | Instant Pot Potato and Bacon Soup | Camp Breakfast",medium,add_unit_rule
+beef broth,beef_broth,sauce,sauce,4,0,1 1/4 cups beef broth | 1 ½ cups beef broth | 1 (10.5 ounce) can beef broth | 1 cup beef broth,Italian Meatballs on Parmesan Noodles | Beef and Butternut Squash Chili | Broccoli Beef I | Spicy Beef Curry Stew for the Slow Cooker,medium,add_unit_rule
+black beans,black_beans,meat_fish_egg_or_legume,protein,4,0,"2 (14.5 ounce) cans black beans, rinsed, drained, and mashed | 1 (15.25 ounce) can black beans | 1 (15 ounce) can black beans, rinsed and drained (Optional) | 1 (15 ounce) can black beans, rinsed and drained",Vegan Bean Taco Filling | Ground Turkey and Zucchini Skillet | Beef and Butternut Squash Chili | Easy Black Bean Hummus,high,add_unit_rule
+cabbage,cabbage,vegetable,veg,4,0,"1 cup shredded cabbage | 2 heads cabbage, cored | 3 cups cabbage | 1 cup sliced cabbage",Baked Chicken and Vegetable Rice Paper Rolls | Sweet and Sour Stuffed Cabbage | Cabbage Fried Rice | Garlic Chicken Stir Fry,medium,add_unit_rule
+ham,ham,other,other,4,3,"1 cup lean diced ham | ½ pound diced cooked ham | 2 ounces cooked ham, thinly sliced | ½ pound chopped ham",Black-Eyed Peas and Rice | Dad's Lima Bean Soup with Ham Bone | Simple Hot and Sour Soup | Navy Bean Soup,medium,keep_review
+peas,peas,other,other,4,0,"1 cup frozen peas, thawed | ⅓ cup frozen peas, thawed | ¼ cup peas",Steak Fried Rice | Cold Rice Salad | Chinese Shrimp and Tofu Soup | Crab Omelet,medium,add_unit_rule
+red pepper,red_pepper,vegetable,veg,4,0,1/2 teaspoon crushed red pepper | 1/4 teaspoon crushed red pepper | ½ teaspoon crushed red pepper,Shrimp Marinara | Zucchini Chicken Rice Casserole | Air Fryer Lemon Garlic Parmesan Chicken | Szechwan Shrimp,medium,add_unit_rule
+red potatoes,red_potatoes,cereal_starch_or_legume,carb,4,3,"8 red potatoes, cut into chunks | 1 pound red potatoes, cut into 1-inch pieces | 2 ½ pounds red potatoes, diced | 5 pounds red potatoes","Sheet Pan Tilapia and Potatoes | Slow Cooker Chicken Thighs, Green Beans, and Potatoes | Instant Pot Potato and Bacon Soup | American Potato Salad",high,add_to_fooddb
+rice vinegar,rice_vinegar,cereal_starch_or_legume,carb,4,4,1 teaspoon rice vinegar | 3 tablespoons rice vinegar | ½ cup rice vinegar | 2 teaspoons rice vinegar,Turmeric Black Pepper Chicken with Broccoli | Asian Chicken Salad | Teriyaki Chicken with Mushrooms and Broccoli | Shrimp Pomelo Salad,high,add_to_fooddb
+rice wine vinegar,rice_wine_vinegar,cereal_starch_or_legume,carb,4,4,¼ cup rice wine vinegar | 2 tablespoons rice wine vinegar | 1 tablespoon rice wine vinegar | 1 teaspoon rice wine vinegar,"Pork and Pepper Stir Fry | Hibachi Chicken and Rice Casserole | Asian Pasta Salad with Beef, Broccoli and Bean Sprouts | Spicy Air Fryer Green Beans",high,add_to_fooddb
+chicken bouillon,chicken_bouillon,meat_fish_egg_or_legume,protein,3,0,1 cube chicken bouillon | 1 ½ cubes chicken bouillon | 4 cubes chicken bouillon,Navy Bean Soup | Breadless Stuffing | Super Easy Chicken Noodle Soup,high,add_to_fooddb
+garbanzo beans,garbanzo_beans,meat_fish_egg_or_legume,protein,3,1,"1 (15 ounce) can garbanzo beans, drained and rinsed | 15 ounce garbanzo beans | 2 (12 ounce) cans garbanzo beans, drained and rinsed",Garbanzo Stir-Fry | Roasted Tomato Hummus Toast | Breadless Stuffing,high,add_to_fooddb
+red wine vinegar,red_wine_vinegar,sauce,sauce,3,3,2 tablespoons red wine vinegar | 3 tablespoons red wine vinegar,Garlic Butter Steak Bites With Mushrooms | Chimichurri Shrimp | Roasted Sweet Potato and Kale Salad,medium,keep_review
+russet potatoes,russet_potatoes,cereal_starch_or_legume,carb,3,0,"2 russet potatoes, cut into small pieces | 2 medium russet potatoes, | 2 large russet potatoes, peeled and shredded","Potato Leek Latkes | Turkey Sausage, Potato, Brussels Sprouts, and Apple Hash | Potato and Cheese Frittata",high,add_unit_rule
+salmon fillets,salmon_fillets,meat_fish_egg_or_legume,protein,3,1,"2 ounces) salmon fillets | 2 (4 ounce) salmon fillets, | 2 (6 ounce) boneless salmon fillets",Air Fryer Everything-Bagel Salmon Dinner | Hot Honey Salmon Bowls | Tomato Basil Salmon,high,add_to_fooddb
+bone in chicken pieces,bone_in_chicken_pieces,meat_fish_egg_or_legume,protein,2,2,3 pounds bone-in chicken pieces | 2 ½ pounds bone-in chicken pieces,Cabbage Borsht | Chicken Broth in a Slow Cooker,high,add_to_fooddb
+butternut squash,butternut_squash,fat_oil,fat,2,0,"1 ½ cups grated butternut squash | 1 medium butternut squash - peeled, seeded, and cubed",Harvest Patties | Beef and Butternut Squash Chili,high,add_unit_rule
+canola oil,canola_oil,fat_oil,fat,2,0,"¼ cup canola oil, divided | 2 teaspoons canola oil",Korean Fried Pork With Stir-Fried Celery | Sweet and Spicy Green Beans,high,add_unit_rule
+chickpeas,chickpeas,meat_fish_egg_or_legume,protein,2,0,"1 (15 ounce) can chickpeas, drained and rinsed",African Chicken Stew | Roasted Salt & Vinegar Chickpeas,high,add_unit_rule
+cottage cheese,cottage_cheese,dairy,dairy,2,1,12 ounces cottage cheese | 1 cup cottage cheese,Linda's Lasagna Recipe | Nut Loaf Supreme,high,add_to_fooddb
+dry pinto beans,dry_pinto_beans,meat_fish_egg_or_legume,protein,2,1,"1 pound dry pinto beans, rinsed | 3 cups dry pinto beans, rinsed",Vegetarian Refried Beans | Refried Beans Without the Refry,high,add_to_fooddb
+flour,flour,cereal_starch_or_legume,carb,2,1,2 tablespoons flour | 1 cup flour,Turmeric Black Pepper Chicken with Broccoli | Copycat McChicken Sandwich,high,add_to_fooddb
+freshly parmesan cheese,freshly_parmesan_cheese,dairy,dairy,2,1,"1 ½ cups freshly shredded Parmesan cheese, divided | 3 tablespoons freshly grated Parmesan cheese",Baked Rigatoni | Asparagus and Mushroom Frittata,high,add_to_fooddb
+lasagna noodles,lasagna_noodles,cereal_starch_or_legume,carb,2,0,1 (16 ounce) package lasagna noodles | 9 lasagna noodles,Seafood Lasagna II | Linda's Lasagna Recipe,high,add_unit_rule
+parmigiano reggiano cheese,parmigiano_reggiano_cheese,dairy,dairy,2,0,"1/2 cup Parmigiano Reggiano cheese, plus more for serving | 2 tablespoons grated Parmigiano-Reggiano cheese",Spaghetti Squash Carbonara | Zoodles alla Carbonara,high,add_unit_rule
+pork neck bones,pork_neck_bones,meat_fish_egg_or_legume,protein,2,2,1 pound pork neck bones | 3 pounds pork neck bones,Grandma's Chinese Vegetable Soup | Neck Bones and Lima Beans,high,add_to_fooddb
+pork sausage,pork_sausage,meat_fish_egg_or_legume,protein,2,2,1 pound ground pork sausage | 1 pound pork sausage,"Sausage Pinwheels | Sausage, Egg, and Cheese Biscuit Casserole",high,add_to_fooddb
+reduced sodium chicken broth,reduced_sodium_chicken_broth,sauce,sauce,2,0,2 cups reduced sodium chicken broth | 2 cups reduced-sodium chicken broth,Slow Cooker Chicken and Rice | Zucchini Chicken Rice Casserole,low,add_unit_rule
+rice wine,rice_wine,cereal_starch_or_legume,carb,2,0,2 tablespoons rice wine | 1 tablespoon rice wine,Korean Fried Pork With Stir-Fried Celery | Korean BBQ Beef (Pul-Kogi),high,add_unit_rule
+spaghetti,spaghetti,cereal_starch_or_legume,carb,2,1,8 ounces spaghetti | 1 (16 ounce) package spaghetti,Stir Fried Pasta with Veggies | 10-Minute Mushroom Carbonara,high,add_to_fooddb
+white bread,white_bread,cereal_starch_or_legume,carb,2,0,"6 slices white bread, cut into cubes | 9 slices white bread",Mary's Meatloaf | Cinnamon and Sugar French Waffle Toast,high,add_unit_rule
+white onion,white_onion,vegetable,veg,2,2,"1 white onion, | 1/2 white onion",Campfire Carnitas | Hot Honey Feta Chicken Skewers,medium,keep_review
+whole wheat flour,whole_wheat_flour,cereal_starch_or_legume,carb,2,2,½ cup whole wheat flour | 5 cups whole wheat flour,Harvest Patties | Bacon-Flavored Dog Biscuits,high,add_to_fooddb
+93 turkey,93_turkey,meat_fish_egg_or_legume,protein,1,1,1 pound 93% lean ground turkey,Ground Turkey and Zucchini Skillet,high,add_to_fooddb
+alfredo style pasta sauce,alfredo_style_pasta_sauce,cereal_starch_or_legume,carb,1,0,2 (16 ounce) jars Alfredo-style pasta sauce,Seafood Lasagna II,high,add_unit_rule
+all purpose flour for coating,all_purpose_flour_for_coating,cereal_starch_or_legume,carb,1,1,½ cup all-purpose flour for coating,Braised Beef Short Ribs,high,add_to_fooddb
+all purpose flour for dredging,all_purpose_flour_for_dredging,cereal_starch_or_legume,carb,1,1,½ cup all-purpose flour for dredging,Margaret's Keftedes (Greek Meatballs),high,add_to_fooddb
+arge egg yolks,arge_egg_yolks,meat_fish_egg_or_legume,protein,1,1,2 arge egg yolks,Spaghetti Squash Carbonara,high,add_to_fooddb
+baby portobello mushrooms,baby_portobello_mushrooms,vegetable,veg,1,1,"1 pound baby portobello mushrooms, sliced",Seafood Lasagna II,medium,keep_review
+baby red potatoes,baby_red_potatoes,cereal_starch_or_legume,carb,1,1,"12 ounces baby red potatoes, halved lengthwise",Air Fryer Lemon-Thyme Baby Red Potatoes,high,add_to_fooddb
+baking potato,baking_potato,cereal_starch_or_legume,carb,1,0,"1 large baking potato, peeled and sliced 1/4 inch thick",Nan's Potato and Egg Frittata,high,add_unit_rule
+bay scallops,bay_scallops,meat_fish_egg_or_legume,protein,1,1,1 pound bay scallops,Seafood Lasagna II,high,add_to_fooddb
+beef bouillon,beef_bouillon,meat_fish_egg_or_legume,protein,1,0,"10 cubes beef bouillon, crumbled",Alison's Slow Cooker Vegetable Beef Soup,high,add_to_fooddb
+beef ribs,beef_ribs,meat_fish_egg_or_legume,protein,1,0,"4 beef ribs, trimmed from a cooked prime rib roast",Prime Rib Soup,high,add_unit_rule
+beef round steak,beef_round_steak,meat_fish_egg_or_legume,protein,1,1,"1 pound beef round steak, sliced paper thin",Asian Fire Meat,high,add_to_fooddb
+beef stew meat,beef_stew_meat,meat_fish_egg_or_legume,protein,1,1,1 pound beef stew meat,Spicy Beef Curry Stew for the Slow Cooker,high,add_to_fooddb
+beef stock,beef_stock,sauce,sauce,1,0,2 cups beef stock,Prime Rib Soup,low,add_unit_rule
+beef top sirloin,beef_top_sirloin,meat_fish_egg_or_legume,protein,1,1,"1 pound beef top sirloin, thinly sliced",Korean BBQ Beef (Pul-Kogi),high,add_to_fooddb
+bread crumbs,bread_crumbs,cereal_starch_or_legume,carb,1,1,1/4 cup bread crumbs,Slow Cooker Tuscan Chicken Meatballs with Gnocchi,high,add_to_fooddb
+brown lentils,brown_lentils,meat_fish_egg_or_legume,protein,1,1,1 pound brown lentils,Adas bil Hamod (Lebanese Lentil Lemon Soup),high,add_to_fooddb
+butter beans,butter_beans,meat_fish_egg_or_legume,protein,1,0,"1 (16 ounce) can large butter beans, drained and rinsed",Air Fryer Puffed Butter Beans,high,add_unit_rule
+buttermilk,buttermilk,dairy,dairy,1,1,1/2 cup buttermilk,Salmon Couscous Salad,high,add_to_fooddb
+canned garbanzo beans,canned_garbanzo_beans,meat_fish_egg_or_legume,protein,1,0,"2 cups canned garbanzo beans, drained",Hummus III,high,add_unit_rule
+canned lentils,canned_lentils,meat_fish_egg_or_legume,protein,1,0,"1 cup canned lentils, rinsed",Quinoa Chard Pilaf,high,add_unit_rule
+cannellini beans,cannellini_beans,meat_fish_egg_or_legume,protein,1,0,3 (15 ounce) cans cannellini beans,White Chili with Ground Turkey,high,add_unit_rule
+cheese flavored crackers,cheese_flavored_crackers,dairy,dairy,1,0,½ cup crushed cheese-flavored crackers,Amy's Delicious Turkey Burgers,high,add_unit_rule
+cheese ravioli,cheese_ravioli,dairy,dairy,1,0,1 (25 ounce) package frozen cheese ravioli,Randy's Slow Cooker Ravioli Lasagna,high,add_unit_rule
+chicken adobo,chicken_adobo,meat_fish_egg_or_legume,protein,1,1,1 pound chicken adobo,Chicken Adobo Fried Rice,high,add_to_fooddb
+chicken bouillon granules,chicken_bouillon_granules,meat_fish_egg_or_legume,protein,1,0,"1 teaspoon chicken bouillon granules, or to taste",Broccoli and Carrot Stir Fry,high,add_unit_rule
+chicken breast halves,chicken_breast_halves,meat_fish_egg_or_legume,protein,1,0,"4 skinless, boneless chicken breast halves, chopped",Easy Chicken and Dumplings with Vegetables,high,add_unit_rule
+chicken breast halves cut into bite size pieces,chicken_breast_halves_cut_into_bite_size_pieces,meat_fish_egg_or_legume,protein,1,0,"2 skinless, boneless chicken breast halves - cut into bite-size pieces",Stir Fried Pasta with Veggies,high,add_unit_rule
+chicken breast halves pounded to 1 4 inch thickness,chicken_breast_halves_pounded_to_1_4_inch_thickness,meat_fish_egg_or_legume,protein,1,0,"4 skinless, boneless chicken breast halves - pounded to 1/4 inch thickness",Gourmet Chicken Sandwich,high,add_unit_rule
+chicken flavored ramen noodles,chicken_flavored_ramen_noodles,meat_fish_egg_or_legume,protein,1,0,1 (3 ounce) package chicken-flavored ramen noodles,Angela's Asian-Inspired Chicken Noodle Soup,high,add_unit_rule
+chicken soup base,chicken_soup_base,meat_fish_egg_or_legume,protein,1,0,1 tablespoon chicken soup base,Creamy Morel Mushroom Soup,high,add_unit_rule
+chicken stock,chicken_stock,sauce,sauce,1,0,1 1/2 cups chicken stock,One Pot Turmeric Chicken and Rice,low,add_unit_rule
+chicken stock base,chicken_stock_base,sauce,sauce,1,0,4 teaspoons chicken stock base,Chicken Zoodle Soup in a Jar,low,add_unit_rule
+chickpeas beans,chickpeas_beans,meat_fish_egg_or_legume,protein,1,0,"1 (15 ounce) can chickpeas beans, drained",Garlic Hummus,high,add_unit_rule
+chili beans,chili_beans,meat_fish_egg_or_legume,protein,1,0,4 (16 ounce) cans chili beans,Granny's Easy Chili,high,add_unit_rule
+chinese rice vinegar,chinese_rice_vinegar,cereal_starch_or_legume,carb,1,1,1 tablespoon Chinese rice vinegar,"Velveting Chicken Breast, Chinese Restaurant Style",high,add_to_fooddb
+cloud ear mushrooms,cloud_ear_mushrooms,vegetable,veg,1,1,1 ounce dried cloud ear mushrooms,Simple Hot and Sour Soup,medium,keep_review
+cloves garlic,cloves_garlic,vegetable,veg,1,1,3 large cloves garlic,Grilled Chicken and Strawberry Mason Jar Salad with Poppyseed Dressing,medium,keep_review
+coconut milk,coconut_milk,dairy,dairy,1,0,1 (14 ounce) can coconut milk,Vegetable Curry with Coconut Milk,high,add_unit_rule
+cold milk,cold_milk,dairy,dairy,1,1,½ cup cold milk,French Toast Waffles,high,add_to_fooddb
+cold water,cold_water,other,other,1,1,1 cup cold water,Homemade Roasted Chicken Noodle Soup,medium,keep_review
+corn flour,corn_flour,cereal_starch_or_legume,carb,1,0,2 teaspoons corn flour,Simple Hot and Sour Soup,high,add_unit_rule
+corn kernels,corn_kernels,cereal_starch_or_legume,carb,1,0,"1 cup frozen corn kernels, thawed",Cold Rice Salad,high,add_unit_rule
+crabmeat,crabmeat,other,other,1,1,"¼ pound fresh crabmeat, drained and flaked",Crab Omelet,medium,keep_review
+crumbled feta cheese,crumbled_feta_cheese,dairy,dairy,1,0,½ cup crumbled feta cheese (can use reduced-fat),My Big Fat Greek Omelet,high,add_unit_rule
+cubed beef stew meat,cubed_beef_stew_meat,meat_fish_egg_or_legume,protein,1,1,1 ½ pounds cubed beef stew meat,Alison's Slow Cooker Vegetable Beef Soup,high,add_to_fooddb
+cut into 1 2 inch pieces,cut_into_1_2_inch_pieces,other,other,1,1,"½ pound sliced bacon, cut into 1/2-inch pieces",BLT Pasta Carbonara,medium,keep_review
+dry jasmine rice,dry_jasmine_rice,cereal_starch_or_legume,carb,1,1,1 ½ cups dry jasmine rice,Jasmine Rice,high,add_to_fooddb
+dry spaghetti,dry_spaghetti,cereal_starch_or_legume,carb,1,1,12 ounces dry spaghetti,Shrimp Marinara,high,add_to_fooddb
+egg noodles,egg_noodles,meat_fish_egg_or_legume,protein,1,0,2 cups thin egg noodles,Super Easy Chicken Noodle Soup,high,add_unit_rule
+feta,feta,other,other,1,1,6 ounces feta,Greek Feta and Spinach Potato Casserole,medium,keep_review
+feta cheese,feta_cheese,dairy,dairy,1,0,1 cup feta cheese,Zucchini Chicken Rice Casserole,high,add_unit_rule
+finely mozzarella cheese,finely_mozzarella_cheese,dairy,dairy,1,0,2 cups finely shredded mozzarella cheese,Kelsey's Favorite Stuffed Green Peppers,high,add_unit_rule
+firm tofu,firm_tofu,meat_fish_egg_or_legume,protein,1,0,"1 (12 ounce) package extra-firm tofu, drained and diced",Tofu and Rice Stuffed Peppers,high,add_unit_rule
+fish sauce,fish_sauce,meat_fish_egg_or_legume,protein,1,0,2 teaspoons fish sauce,One Pot Turmeric Chicken and Rice,high,add_unit_rule
+flour tortillas,flour_tortillas,cereal_starch_or_legume,carb,1,0,"12 flour tortillas, warmed",Blackened Shrimp Tacos,high,add_unit_rule
+fluid ounces chicken stock,fluid_ounces_chicken_stock,sauce,sauce,1,0,10 fluid ounces chicken stock,Simple Hot and Sour Soup,low,add_unit_rule
+freshly parmesan cheese divided,freshly_parmesan_cheese_divided,dairy,dairy,1,1,½ cup freshly grated Parmesan cheese divided,10-Minute Mushroom Carbonara,high,add_to_fooddb
+fried eggs,fried_eggs,meat_fish_egg_or_legume,protein,1,1,4 fried eggs,"Turkey Sausage, Potato, Brussels Sprouts, and Apple Hash",high,add_to_fooddb
+garlic clove,garlic_clove,vegetable,veg,1,1,"1 garlic clove, quartered",Pistachio Hummus,medium,keep_review
+garlic salt,garlic_salt,vegetable,veg,1,1,1 teaspoon garlic salt,Blackened Shrimp Tacos with Pineapple,medium,keep_review
+gluten free chicken broth,gluten_free_chicken_broth,sauce,sauce,1,0,2 cups gluten-free chicken broth,Thanksgiving Gluten-Free Stuffing,low,add_unit_rule
+green onion,green_onion,vegetable,veg,1,1,"1 green onion, thinly sliced (optional)",Cabbage Fried Rice,medium,keep_review
+guacamole,guacamole,other,other,1,1,8 ounces guacamole,Blackened Shrimp Tacos,medium,keep_review
+hard boiled eggs,hard_boiled_eggs,meat_fish_egg_or_legume,protein,1,1,"4 large hard boiled eggs, mashed",Easy Deviled Egg Potato Salad,high,add_to_fooddb
+heavy cream,heavy_cream,dairy,dairy,1,0,2 cups heavy cream,Creamy Morel Mushroom Soup,high,add_unit_rule
+imitation crabmeat,imitation_crabmeat,other,other,1,1,"1 pound imitation crabmeat, chopped",Seafood Lasagna II,medium,keep_review
+instant rice,instant_rice,cereal_starch_or_legume,carb,1,1,1 1/2 cups instant rice,Hibachi Chicken and Rice Casserole,high,add_to_fooddb
+italian cheese blend,italian_cheese_blend,dairy,dairy,1,0,6 cups shredded Italian cheese blend,Seafood Lasagna II,high,add_unit_rule
+italian seasoned panko bread crumbs,italian_seasoned_panko_bread_crumbs,cereal_starch_or_legume,carb,1,1,"3/4 cup Italian seasoned panko bread crumbs, divided",Stuffed Eggplant,high,add_to_fooddb
+lamb,lamb,other,other,1,1,½ pound ground lamb,Margaret's Keftedes (Greek Meatballs),medium,keep_review
+lemons,lemons,other,other,1,1,"2 medium lemons, juiced",Greek Chicken,medium,keep_review
+lime,lime,other,other,1,1,"1 lime, juiced",Shrimp Pomelo Salad,medium,keep_review
+limes,limes,other,other,1,1,"2 limes, juiced",Blackened Shrimp Tacos,medium,keep_review
+linguine pasta,linguine_pasta,cereal_starch_or_legume,carb,1,0,1 (8 ounce) package linguine pasta,Shrimp Lemon Pepper Linguini,high,add_unit_rule
+loaf crusty french bread,loaf_crusty_french_bread,cereal_starch_or_legume,carb,1,0,"1 (8-ounce) loaf crusty French bread, cut into bite-sized pieces, or more as needed",Easy French Toast Casserole,high,add_unit_rule
+loaf focaccia bread,loaf_focaccia_bread,cereal_starch_or_legume,carb,1,0,1 (1 pound) loaf focaccia bread,Grilled Mediterranean Vegetable Sandwich,high,add_unit_rule
+loaf gluten free bread,loaf_gluten_free_bread,cereal_starch_or_legume,carb,1,0,1 (1 pound) loaf gluten-free bread,Thanksgiving Gluten-Free Stuffing,high,add_unit_rule
+loaf italian bread,loaf_italian_bread,cereal_starch_or_legume,carb,1,0,1 (1 pound) loaf Italian bread,Mid-Summer Italian Bread Salad,high,add_unit_rule
+low sodium chicken broth,low_sodium_chicken_broth,sauce,sauce,1,0,2 cups low-sodium chicken broth,Hibachi Chicken and Rice Casserole,low,add_unit_rule
+low sodium soy sauce,low_sodium_soy_sauce,sauce,sauce,1,1,6 tablespoons low-sodium soy sauce,Hibachi Chicken and Rice Casserole,medium,keep_review
+mafalda noodles,mafalda_noodles,cereal_starch_or_legume,carb,1,0,2 cups dried mafalda noodles,Easy Skillet Lasagna,high,add_unit_rule
+mashed potatoes,mashed_potatoes,cereal_starch_or_legume,carb,1,0,2 cups mashed potatoes,Homemade Hash Browns,high,add_unit_rule
+mild italian sausage links,mild_italian_sausage_links,other,other,1,1,"2 pounds mild Italian sausage links, casings removed",Baked Rigatoni,medium,keep_review
+monterey jack cheese,monterey_jack_cheese,dairy,dairy,1,0,2 cups shredded Monterey Jack cheese,White Chili with Ground Turkey,high,add_unit_rule
+morel mushrooms,morel_mushrooms,vegetable,veg,1,1,"8 ounces fresh morel mushrooms, sliced",Creamy Morel Mushroom Soup,medium,keep_review
+navy beans,navy_beans,meat_fish_egg_or_legume,protein,1,0,1 (16 ounce) package dried navy beans,Navy Bean Soup,high,add_unit_rule
+oil for deep frying,oil_for_deep_frying,fat_oil,fat,1,0,4 cups oil for deep frying,Fried Cauliflower,high,add_unit_rule
+oil for frying,oil_for_frying,fat_oil,fat,1,0,"oil for frying, or as needed",Copycat McChicken Sandwich,high,add_to_fooddb
+onion salt,onion_salt,vegetable,veg,1,1,1 teaspoon onion salt,Slow Cooker Italian Beef,medium,keep_review
+ounces mung beans,ounces_mung_beans,meat_fish_egg_or_legume,protein,1,0,ounces raw mung beans,Mongo Guisado (Mung Bean Soup),high,add_to_fooddb
+panko bread crumbs,panko_bread_crumbs,cereal_starch_or_legume,carb,1,1,1/4 cup panko bread crumbs,Air Fryer Lemon Garlic Parmesan Chicken,high,add_to_fooddb
+pecorino romano cheese,pecorino_romano_cheese,dairy,dairy,1,0,1/2 cup pecorino Romano cheese,Spaghetti Squash Carbonara,high,add_unit_rule
+pinto beans,pinto_beans,meat_fish_egg_or_legume,protein,1,0,"1 (14 ounce) can pinto beans, rinsed and drained",Mexican Rice and Beans,high,add_unit_rule
+pork,pork,meat_fish_egg_or_legume,protein,1,1,"2 ½ pounds lean pork, cut into 1 inch cubes",Filipino Pork Adobo,high,add_to_fooddb
+pork butt roast with bone,pork_butt_roast_with_bone,meat_fish_egg_or_legume,protein,1,1,1 (3 1/2) pound pork butt roast with bone,Valerio's Pulled Pork Sandwich,high,add_to_fooddb
+prepared pasta sauce,prepared_pasta_sauce,cereal_starch_or_legume,carb,1,0,2 (24 ounce) jars prepared pasta sauce,Randy's Slow Cooker Ravioli Lasagna,high,add_unit_rule
+provolone cheese,provolone_cheese,dairy,dairy,1,0,"1 cup provolone cheese, divided",Zucchini Chicken Rice Casserole,high,add_unit_rule
+quart chicken stock,quart_chicken_stock,sauce,sauce,1,0,1 quart chicken stock,Chinese Shrimp and Tofu Soup,low,add_unit_rule
+quick cooking brown rice,quick_cooking_brown_rice,cereal_starch_or_legume,carb,1,1,1 ½ cups quick-cooking brown rice,Vegetable Fried Rice,high,add_to_fooddb
+quick cooking oats,quick_cooking_oats,cereal_starch_or_legume,carb,1,1,3 cups quick-cooking oats,Amish Baked Oatmeal,high,add_to_fooddb
+red lentils,red_lentils,meat_fish_egg_or_legume,protein,1,0,1 cup red lentils,Spicy Indian Dahl,high,add_unit_rule
+ribeye steak,ribeye_steak,other,other,1,1,1 pound ribeye steak,Steak and Broccoli Stir Fry,medium,keep_review
+rice paper wrappers,rice_paper_wrappers,cereal_starch_or_legume,carb,1,0,12 rice paper wrappers,Baked Chicken and Vegetable Rice Paper Rolls,high,add_unit_rule
+rice vermicelli,rice_vermicelli,cereal_starch_or_legume,carb,1,0,1 (8 ounce) package rice vermicelli,Vietnamese Salad Rolls,high,add_unit_rule
+rice wrappers,rice_wrappers,cereal_starch_or_legume,carb,1,0,8 rice wrappers (6.5 inch diameter),Vietnamese Salad Rolls,high,add_unit_rule
+rigatoni pasta,rigatoni_pasta,cereal_starch_or_legume,carb,1,0,1 ½ (16 ounce) packages rigatoni pasta,Baked Rigatoni,high,add_unit_rule
+rolled oats,rolled_oats,cereal_starch_or_legume,carb,1,1,1 ½ cups rolled oats,Veggie Burgers,high,add_to_fooddb
+round steak,round_steak,other,other,1,1,"1 pound boneless round steak, cut into bite size pieces",Broccoli Beef I,medium,keep_review
+salted cod fish,salted_cod_fish,meat_fish_egg_or_legume,protein,1,1,2 pounds salted cod fish,Portuguese Cod Fish Casserole,high,add_to_fooddb
+sausage flavored spaghetti sauce,sausage_flavored_spaghetti_sauce,cereal_starch_or_legume,carb,1,0,1 (28 ounce) jar sausage flavored spaghetti sauce,Alysia's Basic Meat Lasagna,high,add_unit_rule
+seasoned bread crumbs,seasoned_bread_crumbs,cereal_starch_or_legume,carb,1,1,1/2 cup seasoned bread crumbs,Italian Meatballs on Parmesan Noodles,high,add_to_fooddb
+silken tofu,silken_tofu,meat_fish_egg_or_legume,protein,1,0,"½ (12 ounce) package silken tofu, cut into 1/2-inch cubes",Simple Hot and Sour Soup,high,add_unit_rule
+sirloin steak,sirloin_steak,other,other,1,1,"1 pound sirloin steak,",Sheet Pan Garlic Butter Steak Bites with Veggies,medium,keep_review
+sourdough bread,sourdough_bread,cereal_starch_or_legume,carb,1,0,8 slices sourdough bread,Roasted Tomato Hummus Toast,high,add_unit_rule
+spaghetti sauce,spaghetti_sauce,cereal_starch_or_legume,carb,1,0,½ (28 ounce) jar spaghetti sauce,Easy Skillet Lasagna,high,add_unit_rule
+spaghetti squash,spaghetti_squash,cereal_starch_or_legume,carb,1,0,1 large spaghetti squash (4 to 5 pounds),Spaghetti Squash Carbonara,high,add_unit_rule
+spicy pork sausage,spicy_pork_sausage,meat_fish_egg_or_legume,protein,1,1,"28 ounces fresh, ground spicy pork sausage",Spicy Sausage and Rice Casserole,high,add_to_fooddb
+spinach leaves,spinach_leaves,vegetable,veg,1,1,8 ounces fresh spinach leaves,Mongo Guisado (Mung Bean Soup),medium,keep_review
+spinach pasta dough,spinach_pasta_dough,cereal_starch_or_legume,carb,1,1,2 pounds fresh spinach pasta dough,Spinach and Ricotta Tortellini,high,add_to_fooddb
+sweet italian sausage,sweet_italian_sausage,other,other,1,1,"1/2 pound sweet Italian sausage, casings removed",Stuffed Eggplant,medium,keep_review
+sweet yellow onion,sweet_yellow_onion,vegetable,veg,1,1,"1 small sweet yellow onion, finely chopped",Nut Loaf Supreme,medium,keep_review
+swiss cheese,swiss_cheese,dairy,dairy,1,1,12 ounces shredded Swiss cheese,Nut Loaf Supreme,high,add_to_fooddb
+textured vegetable protein,textured_vegetable_protein,other,other,1,1,8 ounces textured vegetable protein,Granny's Easy Chili,medium,keep_review
+tilapia filets,tilapia_filets,meat_fish_egg_or_legume,protein,1,0,4 (4 ounce) tilapia filets,Sheet Pan Tilapia and Potatoes,high,add_unit_rule
+tomatillos,tomatillos,other,other,1,1,"2 pounds fresh tomatillos, husks removed",Fish Tacos al Pastor,medium,keep_review
+tortilla,tortilla,cereal_starch_or_legume,carb,1,0,1 (10-inch) tortilla,Easy Breakfast Tortilla Pizza,high,add_unit_rule
+tortilla chips,tortilla_chips,cereal_starch_or_legume,carb,1,0,1/2 cup tortilla chips,BBQ Meatballs,high,add_unit_rule
+turkey carcass,turkey_carcass,meat_fish_egg_or_legume,protein,1,0,1 turkey carcass,Classic Turkey and Rice Soup,high,add_unit_rule
+turkey sausage,turkey_sausage,meat_fish_egg_or_legume,protein,1,1,1 pound turkey sausage,"Turkey Sausage, Potato, Brussels Sprouts, and Apple Hash",high,add_to_fooddb
+uncooked brown rice,uncooked_brown_rice,cereal_starch_or_legume,carb,1,1,1 cup uncooked brown rice,Tofu and Rice Stuffed Peppers,high,add_to_fooddb
+uncooked long grain rice,uncooked_long_grain_rice,cereal_starch_or_legume,carb,1,1,1 cup uncooked long-grain rice,Spicy Sausage and Rice Casserole,high,add_to_fooddb
+uncooked quinoa,uncooked_quinoa,cereal_starch_or_legume,carb,1,0,"2 cups uncooked quinoa, rinsed",Quinoa Chard Pilaf,high,add_unit_rule
+uncooked shrimp,uncooked_shrimp,meat_fish_egg_or_legume,protein,1,1,"1 ½ pounds uncooked medium shrimp, peeled and deveined",Sheet Pan Lemon Butter Garlic Shrimp with Asparagus,high,add_to_fooddb
+unpeeled shrimp,unpeeled_shrimp,meat_fish_egg_or_legume,protein,1,1,½ pound unpeeled large shrimp,Lobster Ravioli in Tomato Cream Sauce with Shrimp,high,add_to_fooddb
+unsalted natural style peanut butter,unsalted_natural_style_peanut_butter,fat_oil,fat,1,0,¾ cup unsalted natural-style peanut butter,African Chicken Stew,high,add_unit_rule
+vegetable oil for frying,vegetable_oil_for_frying,fat_oil,fat,1,0,vegetable oil for frying,Margaret's Keftedes (Greek Meatballs),high,add_to_fooddb
+vermicelli pasta,vermicelli_pasta,cereal_starch_or_legume,carb,1,1,1 pound vermicelli pasta,Shrimp Vermicelli Salad,high,add_to_fooddb
+white potatoes,white_potatoes,cereal_starch_or_legume,carb,1,0,"2 white potatoes, cubed",Camp Breakfast,high,add_unit_rule
+white vinegar,white_vinegar,sauce,sauce,1,1,1 teaspoon white vinegar,Steak Fried Rice,medium,keep_review
+whole beef tenderloin,whole_beef_tenderloin,meat_fish_egg_or_legume,protein,1,0,1 (5 pound) whole beef tenderloin,Grilled Beef Tenderloin with Herb-Garlic-Pepper Coating,high,add_unit_rule
+whole chicken,whole_chicken,meat_fish_egg_or_legume,protein,1,0,"1 (4 pound) whole chicken, cut into pieces",Homemade Roasted Chicken Noodle Soup,high,add_unit_rule
+whole wheat elbow macaroni,whole_wheat_elbow_macaroni,other,other,1,1,13 ½ ounces whole wheat elbow macaroni,BLT Pasta Carbonara,medium,keep_review
+yellow potatoes,yellow_potatoes,cereal_starch_or_legume,carb,1,0,"3 yellow potatoes, peeled and grated",Harvest Patties,high,add_unit_rule
+yukon gold potatoes,yukon_gold_potatoes,cereal_starch_or_legume,carb,1,1,"2 1/2 pounds yukon gold potatoes, peeled and halved",Greek Feta and Spinach Potato Casserole,high,add_to_fooddb

@@ -1,0 +1,128 @@
+Recipes_DB v1.1 curated_200 ingredient parse summary
+
+Total recipes parsed: 200
+Total ingredient rows: 1861
+Rows with quantity_grams_estimated > 0: 841
+Rows missing quantity_grams_estimated: 1020
+
+Parse status counts:
+- parsed_partial: 1160
+- parsed_clean: 500
+- review_needed: 201
+
+Top parsed_partial reasons:
+- preparation_note_from_commas: 480
+- count_without_measure_unit: 331
+- teaspoon_needs_density_rule: 236
+- cup_needs_density_rule: 207
+- count_without_safe_grams_rule: 167
+- tablespoon_needs_density_rule: 156
+- size_descriptor_removed: 119
+- leading_descriptor_removed: 27
+- leading_parenthetical_note: 19
+- optional_phrase: 17
+- pack_size_note: 17
+- stalk_needs_food_specific_rule: 15
+- slice_needs_food_specific_rule: 11
+- missing_quantity: 9
+- grams_missing_quantity: 9
+- bunch_needs_food_specific_rule: 8
+- pinch_no_grams_rule: 8
+- head_needs_food_specific_rule: 7
+- cube_no_grams_rule: 4
+- leaf_needs_food_specific_rule: 1
+
+Top review_needed reasons:
+- alternative_phrase: 105
+- missing_quantity: 85
+- grams_missing_quantity: 85
+- pack_size_note: 83
+- leading_parenthetical_note: 83
+- packaging_phrase: 83
+- packaging_unit_no_grams_estimate: 82
+- preparation_note_from_commas: 51
+- mapping_risk_line: 9
+- cup_needs_density_rule: 7
+- teaspoon_needs_density_rule: 5
+- garnish_phrase: 4
+- count_without_measure_unit: 4
+- count_without_safe_grams_rule: 4
+- tablespoon_needs_density_rule: 4
+- optional_phrase: 3
+- pinch_no_grams_rule: 2
+- size_descriptor_removed: 1
+
+Top quantity units:
+- teaspoon: 365
+- tablespoon: 355
+- cup: 339
+- count: 335
+- pound: 109
+- clove: 89
+- can: 49
+- ounce: 36
+- package: 27
+- stalk: 15
+- slice: 11
+- pinch: 10
+- bunch: 8
+- head: 7
+- jar: 4
+- cube: 4
+- box: 2
+- leaf: 1
+- dash: 1
+
+Top normalized ingredient names:
+- garlic: 108
+- salt: 97
+- olive oil: 91
+- onion: 73
+- black pepper: 71
+- water: 55
+- soy sauce: 36
+- eggs: 34
+- oregano: 26
+- sesame oil: 21
+- egg: 20
+- basil: 20
+- garlic powder: 19
+- parsley: 19
+- white sugar: 19
+- celery: 18
+- ginger: 17
+- carrot: 16
+- beef: 15
+- vegetable oil: 15
+- milk: 15
+- thyme: 15
+- red pepper flakes: 14
+- cayenne pepper: 14
+- tomatoes: 14
+- salt and black pepper: 13
+- mayonnaise: 13
+- paprika: 13
+- tomato: 12
+- green onions: 12
+
+Recipes with many review/failed ingredients:
+- Fried Rice with Tofu: 4
+- Kelsey's Favorite Stuffed Green Peppers: 4
+- Mom's Goulash in the Microwave: 4
+- Polish Stuffed Cabbage: 4
+- White Chili with Ground Turkey: 4
+- Air Fryer Turkey Stuffed Peppers: 3
+- Baked Rigatoni: 3
+- Classic Goulash: 3
+- Filipino Pancit Bihon with Canton: 3
+- Granny's Easy Chili: 3
+- Ground Turkey and Zucchini Skillet: 3
+- Mary's Meatloaf: 3
+- My Big Fat Greek Omelet: 3
+- One - Two - Three - Mexican Macaroni Salad: 3
+- Potato Salad Deviled Eggs: 3
+- Real Hummus: 3
+- Shrimp Marinara: 3
+- Simple Hot and Sour Soup: 3
+- Spinach and Ricotta Tortellini: 3
+- Tofu and Rice Stuffed Peppers: 3

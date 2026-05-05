@@ -1,0 +1,109 @@
+Recipes_DB v1.1 / Food_DB gap-driven expansion audit
+
+Source rows scanned: 62126
+Deduped recipes scanned: 25021
+Preliminary candidate recipes audited for ingredient gaps: 17113
+Recipes suitable for v1.1: 757
+
+Top recipe categories among suitable recipes:
+- protein_main: 251
+- standalone_main: 237
+- carb_side: 79
+- veg_side: 74
+- breakfast: 44
+- salad: 35
+- soup: 23
+- snack: 14
+
+Top recipe categories across deduped source:
+- out_of_scope: 6718
+- standalone_main: 5332
+- protein_main: 4693
+- carb_side: 1894
+- soup: 1404
+- sauce_or_component: 1303
+- breakfast: 1297
+- salad: 1142
+- veg_side: 1030
+- snack: 208
+
+Ingredient gap classes among suitable recipes:
+- needs_unit_to_grams_rule: 3032
+- needs_fooddb_item: 1968
+- needs_alias_only: 437
+- too_ambiguous: 99
+- already_mappable: 69
+- out_of_scope: 1
+
+Top missing ingredients needing Food_DB items:
+- butter (add_to_fooddb, high, freq=59): butter
+- vegetable_oil (add_to_fooddb, high, freq=34): vegetable oil
+- milk (add_to_fooddb, high, freq=25): milk
+- beef (add_to_fooddb, high, freq=22): beef
+- parmesan_cheese (add_to_fooddb, high, freq=19): parmesan cheese
+- potatoes (add_to_fooddb, high, freq=19): potatoes
+- bread_flour (add_to_fooddb, high, freq=12): bread flour
+- turkey (add_to_fooddb, high, freq=11): turkey
+- egg_white (add_to_fooddb, high, freq=10): egg white
+- chicken_broth (add_to_fooddb, high, freq=9): chicken broth
+- rice_vinegar (add_to_fooddb, high, freq=9): rice vinegar
+- unsalted_butter (add_to_fooddb, high, freq=9): unsalted butter
+- chicken_wings (add_to_fooddb, high, freq=7): chicken wings
+- margarine (add_to_fooddb, high, freq=7): margarine
+- virgin_olive_oil (add_to_fooddb, high, freq=7): virgin olive oil
+- whole_chicken (add_to_fooddb, high, freq=7): whole chicken
+- green_beans (add_to_fooddb, high, freq=6): green beans
+- pork_tenderloin (add_to_fooddb, high, freq=6): pork tenderloin
+- russet_potatoes (add_to_fooddb, high, freq=6): russet potatoes
+- sweet_potatoes (add_to_fooddb, high, freq=6): sweet potatoes
+
+Top alias opportunities:
+- onion (alias_to_existing, high, freq=159): onion_raw
+- eggs (alias_to_existing, high, freq=90): egg_raw
+- basil (alias_to_existing, high, freq=64): basil_dried
+- egg (alias_to_existing, high, freq=46): egg_raw
+- apples (alias_to_existing, high, freq=37): apples_raw_without_skin_cooked_boiled_cooked_in_water
+- onions (alias_to_existing, high, freq=25): onion_raw
+- apple (alias_to_existing, high, freq=14): apple_dried
+- beef_tenderloin (alias_to_existing, high, freq=8): beef_tenderloin_raw
+- beef_short_ribs (alias_to_existing, medium, freq=7): beef_short_ribs_raw
+- garlic_cloves (alias_to_existing, medium, freq=5): garlic_fresh
+- beef_flank_steak (alias_to_existing, medium, freq=4): beef_flank_steak_raw
+- okra (alias_to_existing, medium, freq=4): okra_cooked_without_salt
+- new_potatoes (alias_to_existing, medium, freq=3): new_potato_raw
+- beef_chuck (alias_to_existing, medium, freq=2): beef_chuck_raw
+- chicken_drumsticks (alias_to_existing, medium, freq=2): chicken_drumstick_raw
+- corned_beef (alias_to_existing, medium, freq=1): corned_beef_canned
+- pork_fat (alias_to_existing, medium, freq=1): pork_fat_raw
+- pork_spare_ribs (alias_to_existing, medium, freq=1): pork_spare_ribs_raw
+- turkey_wings (alias_to_existing, medium, freq=1): turkey_wing_raw
+- lamb_chops (alias_to_existing, low, freq=3): lamb_chop_cooked_avergae
+
+Top unit-to-grams rule opportunities:
+- salt (add_unit_conversion, high, freq=413): salt_white_sea_igneous_or_rock_no_enrichment
+- garlic (add_unit_conversion, high, freq=294): garlic_fresh
+- olive_oil (add_unit_conversion, high, freq=271): olive_oil_extra_virgin
+- black_pepper (add_unit_conversion, high, freq=263): black_pepper_powder
+- water (add_unit_conversion, high, freq=211): water_bottled
+- white_sugar (add_unit_conversion, high, freq=187): sugar_white
+- brown_sugar (add_unit_conversion, high, freq=107): sugar_brown
+- garlic_powder (add_unit_conversion, high, freq=105): garlic_powder_dried
+- cinnamon (add_unit_conversion, high, freq=104): cinnamon_powder
+- soy_sauce (add_unit_conversion, high, freq=104): soy_sauce_prepacked
+- oregano (add_unit_conversion, high, freq=87): oregano_dried
+- paprika (add_unit_conversion, high, freq=80): paprika
+- thyme (add_unit_conversion, high, freq=77): thyme_dried
+- parsley (add_unit_conversion, high, freq=73): parsley_dried
+- rosemary (add_unit_conversion, high, freq=55): rosemary_dried
+- honey (add_unit_conversion, high, freq=53): honey
+- cayenne_pepper (add_unit_conversion, high, freq=51): cayenne_pepper
+- sesame_oil (add_unit_conversion, high, freq=51): sesame_oil
+- balsamic_vinegar (add_unit_conversion, high, freq=46): vinegar_balsamic
+- sage (add_unit_conversion, high, freq=27): sage_dried
+
+Recommended next patch:
+- review the high-priority gap candidates first
+- add only canonical Food_DB ingredients that appear frequently in suitable recipes
+- add alias rules separately from Food_DB additions
+- add unit-to-grams rules for high-frequency mapped ingredients before materializing v1.1
+- do not generate production Recipes_DB v1.1 tables until this audit is manually reviewed

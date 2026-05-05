@@ -1,0 +1,32 @@
+Food_DB v1.1 round2 blocker-resolution summary
+======================================================
+
+Base Food_DB v1.1 draft row count: 1540
+Round2 items considered: 6
+Round2 alias_to_existing applied: 5
+Round2 new rows appended: 1
+Round2 deferred rows: 7
+Final Food_DB v1.1 round2 draft row count: 1541
+
+Round2 applied
+--------------
+- butter | alias_to_existing_round2 | food_butter_82_fat_unsalted | butter_82_fat_unsalted | 753 kcal, 0.7g protein, 0.9g carbs, 82.9g fat / 100g
+- carrot | alias_to_existing_round2 | food_carrot_raw | carrot_raw | 40.2 kcal, 0.63g protein, 7.59g carbs, 0.3g fat / 100g
+- carrots | alias_to_existing_round2 | food_carrot_raw | carrot_raw | 40.2 kcal, 0.63g protein, 7.59g carbs, 0.3g fat / 100g
+- green onions | alias_to_existing_round2 | food_chive_or_spring_onion_fresh | chive_or_spring_onion_fresh | 29.7 kcal, 2.57g protein, 2.1g carbs, 0.52g fat / 100g
+- lemon | alias_to_existing_round2 | food_lemon_pulp_raw | lemon_pulp_raw | 27.6 kcal, 0.3g protein, 1.56g carbs, 0.3g fat / 100g
+- chicken broth | applied_to_round2_draft | food_chicken_broth_ready_to_serve | chicken_broth_ready_to_serve | 6 kcal, 0.64g protein, 0.44g carbs, 0.21g fat / 100g
+
+Round2 deferred
+---------------
+- beef | reason=generic_beef_remains_too_broad_for_auto_mapping | sanity=sanity_passed
+- chicken thighs | reason=source_energy_suspicious_possible_kj_or_non_kcal_unit | sanity=energy_outside_plausible_kcal_range; macro_energy_mismatch_ratio=4.28; source_energy_flagged_suspicious
+- mushrooms | reason=not_in_round2_priority_scope | sanity=sanity_passed
+- potatoes | reason=not_in_round2_priority_scope | sanity=sanity_passed
+- red potatoes | reason=not_in_round2_priority_scope | sanity=sanity_passed
+- tomato sauce | reason=source_energy_suspicious_possible_kj_or_non_kcal_unit | sanity=macro_energy_mismatch_ratio=3.55; source_energy_flagged_suspicious
+- turkey | reason=generic_turkey_remains_review_until recipe context is explicit | sanity=sanity_passed
+
+Recommended next patch
+----------------------
+- Rerun Recipes_DB v1.1 mapping against the round2 Food_DB draft, then decide whether coverage is sufficient for a first nutrition cache draft.
