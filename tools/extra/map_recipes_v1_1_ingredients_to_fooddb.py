@@ -28,6 +28,9 @@ DEFAULT_FOODDB_V1_1_UNIT_RULES_REVIEW_PROMOTIONS_MATCHES_OUT = Path(
 DEFAULT_FOODDB_V1_1_ROUND2_MATCHES_OUT = Path(
     "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round2_unit_rules_review_promotions.csv"
 )
+DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round3_targeted_blockers.csv"
+)
 ROUND2_FOODDB_APPLIED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round2_additions_applied.csv")
 ROUND2_FOODDB_DEFERRED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round2_additions_deferred.csv")
 ROUND3_FOODDB_APPLIED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round3_additions_applied.csv")
@@ -147,6 +150,18 @@ ROUND3_TARGET_FOOD_IDS = {
     "onions": "food_onion_raw",
     "garlic_cloves": "food_garlic_fresh",
     "kosher_salt": "food_salt_white_sea_igneous_or_rock_no_enrichment",
+}
+
+ROUND4_STRICT_SAFE_FOOD_IDS = {
+    "beef_stew_meat": "food_beef_stewing_meat_raw",
+    "uncooked_shrimp": "food_shrimp_or_prawn_raw",
+    "dry_jasmine_rice": "food_rice_raw",
+    "uncooked_brown_rice": "food_rice_brown_raw",
+    "uncooked_long_grain_rice": "food_rice_raw",
+    "wild_rice_cooked": "food_wild_rice_cooked_unsalted",
+    "wild_rice_raw": "food_wild_rice_raw",
+    "chicken_broth": "food_chicken_broth_ready_to_serve",
+    "water": "food_water_municipal",
 }
 
 BASELINE_CURRENT_FOODDB_MAPPING = {
@@ -434,12 +449,12 @@ def round3_rice_key(row: dict[str, str]) -> str:
     )
     if has_forbidden_rice_signal(row):
         return ""
+    if "uncooked white rice" in text or "raw white rice" in text or "dry white rice" in text:
+        return "white_rice_raw"
     if "cooked jasmine rice" in text:
         return "jasmine_rice_cooked"
     if "cooked white rice" in text or "cooked rice" in text:
         return "white_rice_cooked"
-    if "uncooked white rice" in text or "raw white rice" in text or "dry white rice" in text:
-        return "white_rice_raw"
     return ""
 
 
@@ -462,11 +477,11 @@ def rice_preparation_key(row: dict[str, str]) -> str:
     )
     if has_forbidden_rice_signal(row):
         return ""
-    if "cooked" in text:
-        return "cooked rice"
     raw_signals = ["uncooked", "raw", "dry", "dried"]
     if any(signal in text for signal in raw_signals):
         return "raw rice"
+    if "cooked" in text:
+        return "cooked rice"
     return ""
 
 
@@ -643,6 +658,81 @@ def attempt_round3_promotion(
     return result
 
 
+def round4_rice_key(row: dict[str, str]) -> str:
+    ingredient_name = normalize_match_text(row.get("ingredient_name_normalized"))
+    text = normalize_match_text(
+        f"{row.get('ingredient_raw_text', '')} {row.get('ingredient_name_normalized', '')}"
+    )
+    if has_forbidden_rice_signal(row):
+        return ""
+    if ingredient_name == "dry jasmine rice":
+        return "dry_jasmine_rice"
+    if ingredient_name == "uncooked brown rice":
+        return "uncooked_brown_rice"
+    if ingredient_name == "uncooked long grain rice":
+        return "uncooked_long_grain_rice"
+    if ingredient_name == "wild rice":
+        if any(signal in text for signal in ("uncooked", "raw", "dry")):
+            return "wild_rice_raw"
+        if "cooked" in text:
+            return "wild_rice_cooked"
+    return ""
+
+
+def attempt_round4_strict_safe_promotion(
+    ingredient_row: dict[str, str],
+    food_indexes: dict[str, dict[str, list[dict[str, str]]]],
+) -> dict[str, str] | None:
+    ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
+    parsed_name = normalize_match_text(ingredient_row.get("ingredient_name_parsed"))
+
+    promotion_food_id = ""
+    promotion_note = ""
+
+    if ingredient_name == "beef stew meat":
+        promotion_food_id = ROUND4_STRICT_SAFE_FOOD_IDS["beef_stew_meat"]
+        promotion_note = "round4_strict_safe:beef_stew_meat_exact"
+    elif ingredient_name == "uncooked shrimp":
+        promotion_food_id = ROUND4_STRICT_SAFE_FOOD_IDS["uncooked_shrimp"]
+        promotion_note = "round4_strict_safe:uncooked_shrimp_to_raw_shrimp"
+    elif ingredient_name in {
+        "dry jasmine rice",
+        "uncooked brown rice",
+        "uncooked long grain rice",
+        "wild rice",
+    }:
+        rice_key = round4_rice_key(ingredient_row)
+        promotion_food_id = ROUND4_STRICT_SAFE_FOOD_IDS.get(rice_key, "")
+        if rice_key:
+            promotion_note = f"round4_strict_safe:rice_state_clear:{rice_key}"
+    elif ingredient_name == "chicken broth" and not has_forbidden_broth_signal(ingredient_row):
+        promotion_food_id = ROUND4_STRICT_SAFE_FOOD_IDS["chicken_broth"]
+        promotion_note = "round4_strict_safe:chicken_broth_low_macro_impact"
+    elif ingredient_name == "water":
+        promotion_food_id = ROUND4_STRICT_SAFE_FOOD_IDS["water"]
+        promotion_note = "round4_strict_safe:water_no_macro_impact"
+
+    if not promotion_food_id:
+        return None
+
+    food_row = get_by_food_id(food_indexes, promotion_food_id)
+    if not food_row:
+        return None
+
+    result = match_result(
+        food_row=food_row,
+        status="accepted_auto",
+        confidence="medium",
+        method="round4_strict_safe",
+        notes=[promotion_note],
+    )
+    if parsed_name and parsed_name != ingredient_name:
+        notes = [note.strip() for note in clean_text(result.get("mapping_notes")).split(";") if note.strip()]
+        notes.append(f"parsed_name={parsed_name}")
+        result["mapping_notes"] = "; ".join(dict.fromkeys(notes))
+    return result
+
+
 def empty_result(status: str, method: str, notes: list[str]) -> dict[str, str]:
     return {
         "mapped_food_id": "",
@@ -689,6 +779,7 @@ def attempt_match(
     enable_review_promotions: bool = False,
     enable_round2_promotions: bool = False,
     enable_round3_promotions: bool = False,
+    enable_round4_promotions: bool = False,
 ) -> dict[str, str]:
     ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
     if not ingredient_name:
@@ -726,6 +817,11 @@ def attempt_match(
                 "review_candidate",
                 [f"safe_alias_target_missing:{ingredient_name}->{alias_food_id}"],
             )
+
+    if enable_round4_promotions:
+        round4_result = attempt_round4_strict_safe_promotion(ingredient_row, food_indexes)
+        if round4_result:
+            return round4_result
 
     if enable_review_promotions:
         promoted_result = attempt_review_promotion(ingredient_row, food_indexes)
@@ -880,6 +976,8 @@ def load_baseline_counts(path: Path) -> dict[str, int]:
 
 def choose_baseline_path(output_suffix: str) -> Path:
     normalized_suffix = normalize_match_text(output_suffix)
+    if "round4" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT.exists():
+        return DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT
     if "round3" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND2_MATCHES_OUT.exists():
         return DEFAULT_FOODDB_V1_1_ROUND2_MATCHES_OUT
     if "round2" in normalized_suffix and DEFAULT_FOODDB_V1_1_UNIT_RULES_REVIEW_PROMOTIONS_MATCHES_OUT.exists():
@@ -992,6 +1090,7 @@ def build_summary(
     promoted_counts, promoted_with_grams_counts = build_promoted_usage(mapped_rows)
     round2_counts, round2_with_grams_counts = build_method_usage(mapped_rows, "round2_promotion_v1_1")
     round3_counts, round3_with_grams_counts = build_method_usage(mapped_rows, "round3_targeted_blocker")
+    round4_counts, round4_with_grams_counts = build_method_usage(mapped_rows, "round4_strict_safe")
     kept_review_reasons = build_kept_review_reasons(mapped_rows)
     round2_applied_rows = load_round2_fooddb_audit(ROUND2_FOODDB_APPLIED_AUDIT)
     round2_deferred_rows = load_round2_fooddb_audit(ROUND2_FOODDB_DEFERRED_AUDIT)
@@ -1076,6 +1175,16 @@ def build_summary(
     lines.extend(["", "Round3 targeted blocker promotions with grams:"])
     if round3_with_grams_counts:
         lines.extend(f"- {name}: {count}" for name, count in round3_with_grams_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round4 strict-safe promotions in this run:"])
+    if round4_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round4_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round4 strict-safe promotions with grams:"])
+    if round4_with_grams_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round4_with_grams_counts)
     else:
         lines.append("- none")
     lines.extend(["", "Round2 Food_DB additions/promotions applied:"])
@@ -1166,9 +1275,13 @@ def main() -> None:
     baseline_path = choose_baseline_path(args.output_suffix)
     baseline_counts = load_baseline_counts(baseline_path)
     normalized_suffix = normalize_match_text(args.output_suffix)
-    enable_review_promotions = "review promotions" in normalized_suffix or "round3" in normalized_suffix
-    enable_round2_promotions = "round2" in normalized_suffix or "round3" in normalized_suffix
-    enable_round3_promotions = "round3" in normalized_suffix
+    is_round4 = "round4" in normalized_suffix
+    enable_review_promotions = (
+        "review promotions" in normalized_suffix or "round3" in normalized_suffix or is_round4
+    )
+    enable_round2_promotions = "round2" in normalized_suffix or "round3" in normalized_suffix or is_round4
+    enable_round3_promotions = "round3" in normalized_suffix or is_round4
+    enable_round4_promotions = is_round4
 
     mapped_rows = [
         output_row(
@@ -1179,6 +1292,7 @@ def main() -> None:
                 enable_review_promotions,
                 enable_round2_promotions,
                 enable_round3_promotions,
+                enable_round4_promotions,
             ),
             fooddb_version_used,
         )

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import re
 import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -22,6 +23,17 @@ DEFAULT_MAPPING = (
     / "recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round2_unit_rules_review_promotions.csv"
 )
 DEFAULT_FOODDB = REPO_ROOT / "data" / "fooddb" / "draft" / "fooddb_v1_1_core_master_draft_round2.csv"
+ROUND3_MAPPING = (
+    REPO_ROOT
+    / "data"
+    / "recipesdb"
+    / "draft"
+    / "recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round3_targeted_blockers.csv"
+)
+ROUND3_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft_round3.csv"
+ROUND3_RECIPE_AUDIT = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round3.csv"
+)
 
 OUT_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft.csv"
 OUT_SUMMARY = REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_summary.txt"
@@ -59,8 +71,11 @@ CACHE_COLUMNS = [
     "servings_estimation_reasons",
     "total_weight_grams_estimated",
     "mapped_weight_grams",
+    "macro_relevant_mapped_weight_grams",
+    "low_or_no_macro_mapped_weight_grams",
     "known_weight_grams_sum",
     "mapped_weight_ratio",
+    "macro_relevant_mapped_weight_ratio",
     "energy_kcal_total",
     "protein_g_total",
     "carbs_g_total",
@@ -95,7 +110,75 @@ CONTRIBUTION_COLUMNS = [
     "carbs_g_contribution",
     "fat_g_contribution",
     "contribution_status",
+    "macro_impact_class",
 ]
+
+NO_MACRO_FOOD_IDS = {
+    "food_water_municipal",
+    "food_water_bottled",
+    "food_mineral_water_bottled",
+    "food_mineral_still_water_bottled",
+    "food_mineral_sparkling_water_bottled",
+}
+
+LOW_MACRO_FOOD_IDS = {
+    "food_chicken_broth_ready_to_serve",
+    "food_salt_white_sea_igneous_or_rock_no_enrichment",
+    "food_black_pepper_powder",
+    "food_oregano_dried",
+    "food_basil_dried",
+    "food_thyme_dried",
+    "food_parsley_dried",
+}
+
+LOW_MACRO_GENERAL_TOKENS = {
+    "broth",
+    "bouillon",
+    "stock",
+    "salt",
+    "pepper",
+    "oregano",
+    "basil",
+    "thyme",
+    "parsley",
+    "bay_leaf",
+    "bay_leaves",
+    "dill",
+    "rosemary",
+    "sage",
+    "paprika",
+    "cumin",
+    "cinnamon",
+}
+
+LOW_MACRO_EXACT_INGREDIENTS = {
+    "salt",
+    "kosher_salt",
+    "pepper",
+    "black_pepper",
+    "ground_black_pepper",
+    "freshly_ground_black_pepper",
+    "dried_oregano",
+    "dried_basil",
+    "dried_thyme",
+    "dried_parsley",
+    "oregano",
+    "basil",
+    "thyme",
+    "parsley",
+    "bay_leaf",
+    "bay_leaves",
+    "dill",
+    "rosemary",
+    "sage",
+    "paprika",
+    "ground_cumin",
+    "cumin",
+    "ground_cinnamon",
+    "cinnamon",
+    "garlic_powder",
+    "onion_powder",
+}
 
 
 def read_csv(path: Path) -> tuple[list[dict[str, str]], list[str]]:
@@ -160,6 +243,14 @@ def format_number(value: float | None, digits: int = 4) -> str:
 
 def is_true(value: object) -> bool:
     return clean_text(value).casefold() in {"1", "true", "yes", "y"}
+
+
+def normalize_simple(value: object) -> str:
+    return clean_text(value).casefold().replace(" ", "_").replace("-", "_")
+
+
+def normalized_tokens(value: object) -> set[str]:
+    return set(re.findall(r"[a-z0-9]+", normalize_simple(value)))
 
 
 def get_recipe_kind(recipe_row: dict[str, str]) -> str:
@@ -279,6 +370,30 @@ def contribution_status(
     return "used"
 
 
+def macro_impact_class(row: dict[str, str], macros: dict[str, float] | None = None) -> str:
+    food_id = normalize_simple(row.get("mapped_food_id"))
+    food_name = normalize_simple(row.get("mapped_food_canonical_name"))
+    ingredient_name = normalize_simple(row.get("ingredient_name_normalized"))
+    tokens = (
+        normalized_tokens(food_id)
+        | normalized_tokens(food_name)
+        | normalized_tokens(ingredient_name)
+    )
+
+    if food_id in NO_MACRO_FOOD_IDS or ingredient_name == "water":
+        return "no_macro_impact"
+    if food_id in LOW_MACRO_FOOD_IDS or ingredient_name in LOW_MACRO_EXACT_INGREDIENTS:
+        return "low_macro_impact"
+    if tokens & (LOW_MACRO_GENERAL_TOKENS - {"pepper"}):
+        return "low_macro_impact"
+    if "pepper" in tokens and (
+        ingredient_name in LOW_MACRO_EXACT_INGREDIENTS
+        or {"black", "white", "powder"} & tokens
+    ):
+        return "low_macro_impact"
+    return "macro_relevant"
+
+
 def compute_contributions(
     mapping_rows: list[dict[str, str]],
     fooddb_lookup: dict[str, dict[str, float]],
@@ -291,6 +406,8 @@ def compute_contributions(
             "carbs_g_total": 0.0,
             "fat_g_total": 0.0,
             "mapped_weight_grams": 0.0,
+            "macro_relevant_mapped_weight_grams": 0.0,
+            "low_or_no_macro_mapped_weight_grams": 0.0,
             "accepted_mapped_ingredient_count": 0.0,
             "accepted_mapped_with_grams_count": 0.0,
         }
@@ -301,6 +418,7 @@ def compute_contributions(
         grams = parse_positive_float(row.get("quantity_grams_estimated"))
         status = contribution_status(row, grams, fooddb_lookup)
         energy = protein = carbs = fat = None
+        impact_class = ""
 
         if clean_text(row.get("mapping_status")) == "accepted_auto":
             recipe_totals[recipe_id]["accepted_mapped_ingredient_count"] += 1
@@ -309,6 +427,7 @@ def compute_contributions(
             food_id = clean_text(row.get("mapped_food_id"))
             assert grams is not None
             macros = fooddb_lookup[food_id]
+            impact_class = macro_impact_class(row, macros)
             energy = grams * macros["energy"] / 100
             protein = grams * macros["protein"] / 100
             carbs = grams * macros["carbs"] / 100
@@ -319,7 +438,13 @@ def compute_contributions(
             recipe_totals[recipe_id]["carbs_g_total"] += carbs
             recipe_totals[recipe_id]["fat_g_total"] += fat
             recipe_totals[recipe_id]["mapped_weight_grams"] += grams
+            if impact_class == "macro_relevant":
+                recipe_totals[recipe_id]["macro_relevant_mapped_weight_grams"] += grams
+            else:
+                recipe_totals[recipe_id]["low_or_no_macro_mapped_weight_grams"] += grams
             recipe_totals[recipe_id]["accepted_mapped_with_grams_count"] += 1
+        elif clean_text(row.get("mapping_status")) == "accepted_auto":
+            impact_class = macro_impact_class(row)
 
         contribution_rows.append(
             {
@@ -336,6 +461,7 @@ def compute_contributions(
                 "carbs_g_contribution": format_number(carbs),
                 "fat_g_contribution": format_number(fat),
                 "contribution_status": status,
+                "macro_impact_class": impact_class,
             }
         )
 
@@ -380,7 +506,11 @@ def build_recipe_coverage(mapping_rows: list[dict[str, str]]) -> dict[str, dict[
     return coverage
 
 
-def choose_cache_status(coverage: dict[str, float], mapped_weight_ratio: float | None, kcal_per_serving: float) -> str:
+def choose_cache_status(
+    coverage: dict[str, float],
+    macro_relevant_mapped_weight_ratio: float | None,
+    kcal_per_serving: float,
+) -> str:
     accepted_count = int(coverage["accepted_auto_count"])
     accepted_with_grams = int(coverage["accepted_auto_with_grams_count"])
     if accepted_count == 0:
@@ -389,8 +519,8 @@ def choose_cache_status(coverage: dict[str, float], mapped_weight_ratio: float |
         return "mapped_without_weight_estimates"
     if (
         accepted_with_grams >= USABLE_MIN_ACCEPTED_WITH_GRAMS
-        and mapped_weight_ratio is not None
-        and mapped_weight_ratio >= USABLE_MIN_MAPPED_WEIGHT_RATIO
+        and macro_relevant_mapped_weight_ratio is not None
+        and macro_relevant_mapped_weight_ratio >= USABLE_MIN_MAPPED_WEIGHT_RATIO
         and kcal_per_serving >= USABLE_MIN_KCAL_PER_SERVING
     ):
         return "usable_from_mapped_ingredients"
@@ -401,6 +531,7 @@ def build_quality_flags(
     recipe_row: dict[str, str],
     coverage: dict[str, float],
     mapped_weight_ratio: float | None,
+    macro_relevant_mapped_weight_ratio: float | None,
     kcal_per_serving: float,
     protein_per_serving: float,
 ) -> list[str]:
@@ -413,6 +544,10 @@ def build_quality_flags(
         flags.append("mapped_weight_ratio_missing")
     elif mapped_weight_ratio < LOW_RATIO_THRESHOLD:
         flags.append("is_low_mapped_weight_ratio")
+    if macro_relevant_mapped_weight_ratio is None:
+        flags.append("macro_relevant_mapped_weight_ratio_missing")
+    elif macro_relevant_mapped_weight_ratio < LOW_RATIO_THRESHOLD:
+        flags.append("is_low_macro_relevant_mapped_weight_ratio")
     if kcal_per_serving > HIGH_KCAL_PER_SERVING_THRESHOLD:
         flags.append("is_high_macro_suspicious")
     blocker_count = int(coverage["review_needed_with_grams_count"] + coverage["unmapped_with_grams_count"])
@@ -438,7 +573,12 @@ def build_cache_rows(
         coverage = coverage_by_recipe[recipe_id]
         known_weight = coverage["known_weight_grams_sum"]
         mapped_weight = totals["mapped_weight_grams"]
+        macro_relevant_mapped_weight = totals["macro_relevant_mapped_weight_grams"]
+        low_or_no_macro_mapped_weight = totals["low_or_no_macro_mapped_weight_grams"]
         mapped_weight_ratio = mapped_weight / known_weight if known_weight > 0 else None
+        macro_relevant_mapped_weight_ratio = (
+            macro_relevant_mapped_weight / known_weight if known_weight > 0 else None
+        )
 
         servings, uses_fallback, servings_method, servings_reasons = estimate_servings(recipe, known_weight)
         energy_total = totals["energy_kcal_total"]
@@ -451,8 +591,15 @@ def build_cache_rows(
         carbs_per_serving = carbs_total / servings if servings > 0 else 0.0
         fat_per_serving = fat_total / servings if servings > 0 else 0.0
 
-        cache_status = choose_cache_status(coverage, mapped_weight_ratio, energy_per_serving)
-        quality_flags = build_quality_flags(recipe, coverage, mapped_weight_ratio, energy_per_serving, protein_per_serving)
+        cache_status = choose_cache_status(coverage, macro_relevant_mapped_weight_ratio, energy_per_serving)
+        quality_flags = build_quality_flags(
+            recipe,
+            coverage,
+            mapped_weight_ratio,
+            macro_relevant_mapped_weight_ratio,
+            energy_per_serving,
+            protein_per_serving,
+        )
 
         row = {
             "recipe_id_candidate": recipe_id,
@@ -466,8 +613,11 @@ def build_cache_rows(
             "servings_estimation_reasons": "; ".join(servings_reasons),
             "total_weight_grams_estimated": format_number(known_weight),
             "mapped_weight_grams": format_number(mapped_weight),
+            "macro_relevant_mapped_weight_grams": format_number(macro_relevant_mapped_weight),
+            "low_or_no_macro_mapped_weight_grams": format_number(low_or_no_macro_mapped_weight),
             "known_weight_grams_sum": format_number(known_weight),
             "mapped_weight_ratio": format_number(mapped_weight_ratio),
+            "macro_relevant_mapped_weight_ratio": format_number(macro_relevant_mapped_weight_ratio),
             "energy_kcal_total": format_number(energy_total),
             "protein_g_total": format_number(protein_total),
             "carbs_g_total": format_number(carbs_total),
@@ -574,13 +724,74 @@ def grouped_remaining_blockers(contribution_rows: list[dict[str, object]], mappi
 
 def sort_low_coverage(rows: list[dict[str, object]]) -> list[dict[str, object]]:
     def sort_key(row: dict[str, object]) -> tuple[float, int, float, str]:
-        ratio = parse_float(row.get("mapped_weight_ratio"))
+        ratio = parse_float(row.get("macro_relevant_mapped_weight_ratio"))
         ratio_sort = ratio if ratio is not None else -1.0
         blockers = int(parse_float(row.get("blocking_with_grams_count")) or 0)
         kcal = parse_float(row.get("energy_kcal_per_serving")) or 0.0
         return (ratio_sort, -blockers, kcal, clean_text(row.get("display_name")))
 
     return sorted(rows, key=sort_key)
+
+
+def read_optional_csv(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    rows, _ = read_csv(path)
+    return rows
+
+
+def summarize_mapping_counts(rows: list[dict[str, str]]) -> dict[str, int]:
+    accepted_rows = [row for row in rows if clean_text(row.get("mapping_status")) == "accepted_auto"]
+    review_rows = [row for row in rows if clean_text(row.get("mapping_status")) == "review_needed"]
+    unmapped_rows = [row for row in rows if clean_text(row.get("mapping_status")) == "unmapped"]
+    return {
+        "accepted_auto_with_grams": sum(1 for row in accepted_rows if parse_positive_float(row.get("quantity_grams_estimated")) is not None),
+        "review_needed_with_grams": sum(1 for row in review_rows if parse_positive_float(row.get("quantity_grams_estimated")) is not None),
+        "unmapped_with_grams": sum(1 for row in unmapped_rows if parse_positive_float(row.get("quantity_grams_estimated")) is not None),
+    }
+
+
+def summarize_cache_metrics(rows: list[dict[str, object]]) -> dict[str, object]:
+    status_counts = Counter(clean_text(row.get("cache_status")) for row in rows)
+    complete_rows = [
+        row for row in rows
+        if clean_text(row.get("is_complete_or_near_complete_meal")) == "True"
+        or clean_text(row.get("recipe_kind_guess")) in {"complete_main", "near_complete_main"}
+    ]
+    return {
+        "usable_from_mapped_ingredients": status_counts["usable_from_mapped_ingredients"],
+        "median_kcal": format_number(median_or_none(numeric_column(rows, "energy_kcal_per_serving"))),
+        "median_protein": format_number(median_or_none(numeric_column(rows, "protein_g_per_serving"))),
+        "median_carbs": format_number(median_or_none(numeric_column(rows, "carbs_g_per_serving"))),
+        "median_fat": format_number(median_or_none(numeric_column(rows, "fat_g_per_serving"))),
+        "complete_kcal_300": sum(
+            1 for row in complete_rows if (parse_float(row.get("energy_kcal_per_serving")) or 0) >= 300
+        ),
+        "complete_protein_20": sum(
+            1 for row in complete_rows if (parse_float(row.get("protein_g_per_serving")) or 0) >= 20
+        ),
+    }
+
+
+def summarize_macro_impact_weights(
+    contribution_rows: list[dict[str, object]],
+) -> tuple[Counter[str], list[tuple[str, float]]]:
+    class_totals: Counter[str] = Counter()
+    low_or_no_by_ingredient: Counter[str] = Counter()
+    for row in contribution_rows:
+        if clean_text(row.get("contribution_status")) != "used":
+            continue
+        grams = parse_positive_float(row.get("quantity_grams_estimated"))
+        if grams is None:
+            continue
+        impact_class = clean_text(row.get("macro_impact_class")) or "unclassified"
+        class_totals[impact_class] += grams
+        if impact_class in {"no_macro_impact", "low_macro_impact"}:
+            ingredient = clean_text(row.get("ingredient_name_normalized")) or clean_text(
+                row.get("mapped_food_canonical_name")
+            )
+            low_or_no_by_ingredient[ingredient] += grams
+    return class_totals, low_or_no_by_ingredient.most_common()
 
 
 def build_summary(
@@ -591,10 +802,18 @@ def build_summary(
 ) -> str:
     status_counts = Counter(clean_text(row.get("cache_status")) for row in cache_rows)
     ratios = numeric_column(cache_rows, "mapped_weight_ratio")
+    macro_relevant_ratios = numeric_column(cache_rows, "macro_relevant_mapped_weight_ratio")
     kcal_values = numeric_column(cache_rows, "energy_kcal_per_serving")
     protein_values = numeric_column(cache_rows, "protein_g_per_serving")
     carbs_values = numeric_column(cache_rows, "carbs_g_per_serving")
     fat_values = numeric_column(cache_rows, "fat_g_per_serving")
+    macro_relevant_weight_total = sum(numeric_column(cache_rows, "macro_relevant_mapped_weight_grams"))
+    low_or_no_macro_weight_total = sum(numeric_column(cache_rows, "low_or_no_macro_mapped_weight_grams"))
+    mapped_weight_total = sum(numeric_column(cache_rows, "mapped_weight_grams"))
+    impact_weight_totals, low_or_no_ingredient_weights = summarize_macro_impact_weights(contribution_rows)
+    low_or_no_macro_weight_share = (
+        low_or_no_macro_weight_total / mapped_weight_total if mapped_weight_total > 0 else None
+    )
 
     complete_rows = [row for row in recipe_audit_rows if clean_text(row.get("is_complete_or_near_complete_meal")) == "True"]
     complete_kcal_300 = sum(1 for row in complete_rows if (parse_float(row.get("energy_kcal_per_serving")) or 0) >= 300)
@@ -603,8 +822,7 @@ def build_summary(
     low_coverage_rows = [
         row for row in recipe_audit_rows
         if clean_text(row.get("cache_status")) != "usable_from_mapped_ingredients"
-        or "is_low_mapped_weight_ratio" in clean_text(row.get("quality_flags"))
-        or "mapped_weight_ratio_missing" in clean_text(row.get("quality_flags"))
+        or clean_text(row.get("quality_flags"))
     ]
     suspicious_low_rows = [
         row for row in recipe_audit_rows
@@ -616,6 +834,12 @@ def build_summary(
         if "is_high_macro_suspicious" in clean_text(row.get("quality_flags"))
     ]
     blockers = grouped_remaining_blockers(contribution_rows, mapping_rows)
+    round3_mapping_rows = read_optional_csv(ROUND3_MAPPING)
+    round3_cache_rows = read_optional_csv(ROUND3_RECIPE_AUDIT) or read_optional_csv(ROUND3_CACHE)
+    round3_mapping_counts = summarize_mapping_counts(round3_mapping_rows)
+    current_mapping_counts = summarize_mapping_counts(mapping_rows)
+    round3_cache_metrics = summarize_cache_metrics(round3_cache_rows)
+    current_cache_metrics = summarize_cache_metrics(recipe_audit_rows)
 
     recommendation = "A. proceed to materialize v1.1 tables"
     if status_counts["usable_from_mapped_ingredients"] < 150 or blockers:
@@ -637,6 +861,15 @@ def build_summary(
     lines.append(f"partial_from_mapped_ingredients count: {status_counts['partial_from_mapped_ingredients']}")
     lines.append(f"low coverage count: {len(low_coverage_rows)}")
     lines.append(f"median mapped_weight_ratio: {format_number(median_or_none(ratios))}")
+    lines.append(
+        f"median macro_relevant_mapped_weight_ratio: {format_number(median_or_none(macro_relevant_ratios))}"
+    )
+    lines.append(f"macro_relevant_mapped_weight_grams total: {format_number(macro_relevant_weight_total)}")
+    lines.append(f"low_or_no_macro_mapped_weight_grams total: {format_number(low_or_no_macro_weight_total)}")
+    lines.append(f"mapped_weight_grams total: {format_number(mapped_weight_total)}")
+    lines.append(f"no_macro_impact mapped weight: {format_number(impact_weight_totals['no_macro_impact'])}g")
+    lines.append(f"low_macro_impact mapped weight: {format_number(impact_weight_totals['low_macro_impact'])}g")
+    lines.append(f"low/no macro mapped weight share: {format_number(low_or_no_macro_weight_share)}")
     lines.append(f"median energy_kcal_per_serving: {format_number(median_or_none(kcal_values))}")
     lines.append(f"median protein_g_per_serving: {format_number(median_or_none(protein_values))}")
     lines.append(f"median carbs_g_per_serving: {format_number(median_or_none(carbs_values))}")
@@ -645,10 +878,46 @@ def build_summary(
     lines.append(f"complete/near-complete mains with protein_per_serving >= 20: {complete_protein_20}")
     lines.append("")
 
+    lines.append("Round3 vs this run:")
+    for key in ("accepted_auto_with_grams", "review_needed_with_grams", "unmapped_with_grams"):
+        before = round3_mapping_counts.get(key, 0)
+        after = current_mapping_counts.get(key, 0)
+        lines.append(f"- {key}: {before} -> {after} ({after - before:+d})")
+    for key, label in (
+        ("usable_from_mapped_ingredients", "usable_from_mapped_ingredients"),
+        ("median_kcal", "median energy_kcal_per_serving"),
+        ("median_protein", "median protein_g_per_serving"),
+        ("median_carbs", "median carbs_g_per_serving"),
+        ("median_fat", "median fat_g_per_serving"),
+        ("complete_kcal_300", "complete/near-complete mains kcal >= 300"),
+        ("complete_protein_20", "complete/near-complete mains protein >= 20"),
+    ):
+        before = round3_cache_metrics.get(key, "")
+        after = current_cache_metrics.get(key, "")
+        lines.append(f"- {label}: {before} -> {after}")
+    lines.append(
+        "- macro_relevant_mapped_weight_ratio: n/a in round3 file -> "
+        f"{format_number(median_or_none(macro_relevant_ratios))}"
+    )
+    lines.append(
+        "- mapped low/no macro weight in this run: "
+        f"{format_number(low_or_no_macro_weight_total)}g"
+    )
+    lines.append("")
+
+    lines.append("Top mapped water/broth/seasoning ingredients by grams:")
+    if low_or_no_ingredient_weights:
+        for ingredient, grams in low_or_no_ingredient_weights[:20]:
+            lines.append(f"- {ingredient}: {format_number(float(grams))}g")
+    else:
+        lines.append("- none")
+    lines.append("")
+
     lines.append("Top 20 low coverage recipes:")
     for row in sort_low_coverage(low_coverage_rows)[:20]:
         lines.append(
             f"- {row['recipe_id_candidate']} | {row['display_name']} | status={row['cache_status']} | "
+            f"macro_ratio={row['macro_relevant_mapped_weight_ratio']} | "
             f"ratio={row['mapped_weight_ratio']} | kcal={row['energy_kcal_per_serving']} | "
             f"protein={row['protein_g_per_serving']} | flags={row['quality_flags']}"
         )
