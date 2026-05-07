@@ -34,6 +34,17 @@ ROUND3_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrit
 ROUND3_RECIPE_AUDIT = (
     REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round3.csv"
 )
+ROUND4_MAPPING = (
+    REPO_ROOT
+    / "data"
+    / "recipesdb"
+    / "draft"
+    / "recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round4_strict_safe.csv"
+)
+ROUND4_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft_round4.csv"
+ROUND4_RECIPE_AUDIT = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round4.csv"
+)
 
 OUT_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft.csv"
 OUT_SUMMARY = REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_summary.txt"
@@ -103,6 +114,11 @@ CONTRIBUTION_COLUMNS = [
     "ingredient_raw_text",
     "ingredient_name_normalized",
     "quantity_grams_estimated",
+    "original_quantity_grams_estimated",
+    "edible_yield_factor",
+    "nutrition_grams_used",
+    "uses_pilot_edible_yield",
+    "edible_yield_reason",
     "mapped_food_id",
     "mapped_food_canonical_name",
     "energy_kcal_contribution",
@@ -233,6 +249,13 @@ def parse_positive_float(value: object) -> float | None:
     if parsed is None or parsed <= 0:
         return None
     return parsed
+
+
+def parse_yield_factor(value: object) -> float:
+    parsed = parse_float(value)
+    if parsed is None or parsed <= 0:
+        return 1.0
+    return min(parsed, 1.0)
 
 
 def format_number(value: float | None, digits: int = 4) -> str:
@@ -415,33 +438,37 @@ def compute_contributions(
 
     for row in mapping_rows:
         recipe_id = clean_text(row.get("recipe_id_candidate"))
-        grams = parse_positive_float(row.get("quantity_grams_estimated"))
-        status = contribution_status(row, grams, fooddb_lookup)
+        original_grams = parse_positive_float(row.get("quantity_grams_estimated"))
+        edible_yield_factor = parse_yield_factor(row.get("edible_yield_factor"))
+        nutrition_grams = original_grams * edible_yield_factor if original_grams is not None else None
+        status = contribution_status(row, nutrition_grams, fooddb_lookup)
         energy = protein = carbs = fat = None
         impact_class = ""
+        uses_pilot_edible_yield = clean_text(row.get("uses_pilot_edible_yield"))
+        edible_yield_reason = clean_text(row.get("edible_yield_reason"))
 
         if clean_text(row.get("mapping_status")) == "accepted_auto":
             recipe_totals[recipe_id]["accepted_mapped_ingredient_count"] += 1
 
         if status == "used":
             food_id = clean_text(row.get("mapped_food_id"))
-            assert grams is not None
+            assert nutrition_grams is not None
             macros = fooddb_lookup[food_id]
             impact_class = macro_impact_class(row, macros)
-            energy = grams * macros["energy"] / 100
-            protein = grams * macros["protein"] / 100
-            carbs = grams * macros["carbs"] / 100
-            fat = grams * macros["fat"] / 100
+            energy = nutrition_grams * macros["energy"] / 100
+            protein = nutrition_grams * macros["protein"] / 100
+            carbs = nutrition_grams * macros["carbs"] / 100
+            fat = nutrition_grams * macros["fat"] / 100
 
             recipe_totals[recipe_id]["energy_kcal_total"] += energy
             recipe_totals[recipe_id]["protein_g_total"] += protein
             recipe_totals[recipe_id]["carbs_g_total"] += carbs
             recipe_totals[recipe_id]["fat_g_total"] += fat
-            recipe_totals[recipe_id]["mapped_weight_grams"] += grams
+            recipe_totals[recipe_id]["mapped_weight_grams"] += nutrition_grams
             if impact_class == "macro_relevant":
-                recipe_totals[recipe_id]["macro_relevant_mapped_weight_grams"] += grams
+                recipe_totals[recipe_id]["macro_relevant_mapped_weight_grams"] += nutrition_grams
             else:
-                recipe_totals[recipe_id]["low_or_no_macro_mapped_weight_grams"] += grams
+                recipe_totals[recipe_id]["low_or_no_macro_mapped_weight_grams"] += nutrition_grams
             recipe_totals[recipe_id]["accepted_mapped_with_grams_count"] += 1
         elif clean_text(row.get("mapping_status")) == "accepted_auto":
             impact_class = macro_impact_class(row)
@@ -453,7 +480,12 @@ def compute_contributions(
                 "ingredient_position": clean_text(row.get("ingredient_position")),
                 "ingredient_raw_text": clean_text(row.get("ingredient_raw_text")),
                 "ingredient_name_normalized": clean_text(row.get("ingredient_name_normalized")),
-                "quantity_grams_estimated": format_number(grams),
+                "quantity_grams_estimated": format_number(original_grams),
+                "original_quantity_grams_estimated": format_number(original_grams),
+                "edible_yield_factor": format_number(edible_yield_factor),
+                "nutrition_grams_used": format_number(nutrition_grams),
+                "uses_pilot_edible_yield": uses_pilot_edible_yield,
+                "edible_yield_reason": edible_yield_reason,
                 "mapped_food_id": clean_text(row.get("mapped_food_id")),
                 "mapped_food_canonical_name": clean_text(row.get("mapped_food_canonical_name")),
                 "energy_kcal_contribution": format_number(energy),
@@ -794,11 +826,39 @@ def summarize_macro_impact_weights(
     return class_totals, low_or_no_by_ingredient.most_common()
 
 
+def summarize_edible_yield(
+    contribution_rows: list[dict[str, object]],
+) -> dict[str, object]:
+    affected_recipes: set[str] = set()
+    adjusted_original_grams = 0.0
+    adjusted_nutrition_grams = 0.0
+    affected_rows = 0
+    for row in contribution_rows:
+        if clean_text(row.get("uses_pilot_edible_yield")).casefold() != "true":
+            continue
+        original_grams = parse_positive_float(row.get("original_quantity_grams_estimated"))
+        nutrition_grams = parse_positive_float(row.get("nutrition_grams_used"))
+        if original_grams is None or nutrition_grams is None:
+            continue
+        affected_rows += 1
+        affected_recipes.add(clean_text(row.get("recipe_id_candidate")))
+        adjusted_original_grams += original_grams
+        adjusted_nutrition_grams += nutrition_grams
+    return {
+        "affected_recipe_count": len(affected_recipes),
+        "affected_row_count": affected_rows,
+        "original_grams": adjusted_original_grams,
+        "nutrition_grams": adjusted_nutrition_grams,
+        "grams_removed": adjusted_original_grams - adjusted_nutrition_grams,
+    }
+
+
 def build_summary(
     cache_rows: list[dict[str, object]],
     recipe_audit_rows: list[dict[str, object]],
     contribution_rows: list[dict[str, object]],
     mapping_rows: list[dict[str, str]],
+    output_suffix: str = "",
 ) -> str:
     status_counts = Counter(clean_text(row.get("cache_status")) for row in cache_rows)
     ratios = numeric_column(cache_rows, "mapped_weight_ratio")
@@ -811,6 +871,7 @@ def build_summary(
     low_or_no_macro_weight_total = sum(numeric_column(cache_rows, "low_or_no_macro_mapped_weight_grams"))
     mapped_weight_total = sum(numeric_column(cache_rows, "mapped_weight_grams"))
     impact_weight_totals, low_or_no_ingredient_weights = summarize_macro_impact_weights(contribution_rows)
+    edible_yield_summary = summarize_edible_yield(contribution_rows)
     low_or_no_macro_weight_share = (
         low_or_no_macro_weight_total / mapped_weight_total if mapped_weight_total > 0 else None
     )
@@ -834,11 +895,22 @@ def build_summary(
         if "is_high_macro_suspicious" in clean_text(row.get("quality_flags"))
     ]
     blockers = grouped_remaining_blockers(contribution_rows, mapping_rows)
-    round3_mapping_rows = read_optional_csv(ROUND3_MAPPING)
-    round3_cache_rows = read_optional_csv(ROUND3_RECIPE_AUDIT) or read_optional_csv(ROUND3_CACHE)
-    round3_mapping_counts = summarize_mapping_counts(round3_mapping_rows)
+    normalized_suffix = clean_text(output_suffix).casefold()
+    baseline_label = "Round3"
+    baseline_mapping_path = ROUND3_MAPPING
+    baseline_recipe_audit_path = ROUND3_RECIPE_AUDIT
+    baseline_cache_path = ROUND3_CACHE
+    if "round5" in normalized_suffix:
+        baseline_label = "Round4"
+        baseline_mapping_path = ROUND4_MAPPING
+        baseline_recipe_audit_path = ROUND4_RECIPE_AUDIT
+        baseline_cache_path = ROUND4_CACHE
+
+    baseline_mapping_rows = read_optional_csv(baseline_mapping_path)
+    baseline_cache_rows = read_optional_csv(baseline_recipe_audit_path) or read_optional_csv(baseline_cache_path)
+    baseline_mapping_counts = summarize_mapping_counts(baseline_mapping_rows)
     current_mapping_counts = summarize_mapping_counts(mapping_rows)
-    round3_cache_metrics = summarize_cache_metrics(round3_cache_rows)
+    baseline_cache_metrics = summarize_cache_metrics(baseline_cache_rows)
     current_cache_metrics = summarize_cache_metrics(recipe_audit_rows)
 
     recommendation = "A. proceed to materialize v1.1 tables"
@@ -878,9 +950,9 @@ def build_summary(
     lines.append(f"complete/near-complete mains with protein_per_serving >= 20: {complete_protein_20}")
     lines.append("")
 
-    lines.append("Round3 vs this run:")
+    lines.append(f"{baseline_label} vs this run:")
     for key in ("accepted_auto_with_grams", "review_needed_with_grams", "unmapped_with_grams"):
-        before = round3_mapping_counts.get(key, 0)
+        before = baseline_mapping_counts.get(key, 0)
         after = current_mapping_counts.get(key, 0)
         lines.append(f"- {key}: {before} -> {after} ({after - before:+d})")
     for key, label in (
@@ -892,17 +964,25 @@ def build_summary(
         ("complete_kcal_300", "complete/near-complete mains kcal >= 300"),
         ("complete_protein_20", "complete/near-complete mains protein >= 20"),
     ):
-        before = round3_cache_metrics.get(key, "")
+        before = baseline_cache_metrics.get(key, "")
         after = current_cache_metrics.get(key, "")
         lines.append(f"- {label}: {before} -> {after}")
     lines.append(
-        "- macro_relevant_mapped_weight_ratio: n/a in round3 file -> "
+        f"- macro_relevant_mapped_weight_ratio: {baseline_label.lower()} baseline -> "
         f"{format_number(median_or_none(macro_relevant_ratios))}"
     )
     lines.append(
         "- mapped low/no macro weight in this run: "
         f"{format_number(low_or_no_macro_weight_total)}g"
     )
+    lines.append("")
+
+    lines.append("Edible-yield pilot adjustments:")
+    lines.append(f"- affected recipes: {edible_yield_summary['affected_recipe_count']}")
+    lines.append(f"- affected ingredient rows: {edible_yield_summary['affected_row_count']}")
+    lines.append(f"- original grams adjusted: {format_number(float(edible_yield_summary['original_grams']))}g")
+    lines.append(f"- nutrition grams used after yield: {format_number(float(edible_yield_summary['nutrition_grams']))}g")
+    lines.append(f"- grams removed by yield: {format_number(float(edible_yield_summary['grams_removed']))}g")
     lines.append("")
 
     lines.append("Top mapped water/broth/seasoning ingredients by grams:")
@@ -1005,7 +1085,7 @@ def main() -> None:
     write_csv(out_low_coverage, sort_low_coverage(low_coverage_rows), audit_columns)
     write_csv(out_contributions, contribution_rows, CONTRIBUTION_COLUMNS)
 
-    summary = build_summary(cache_rows, recipe_audit_rows, contribution_rows, mapping_rows)
+    summary = build_summary(cache_rows, recipe_audit_rows, contribution_rows, mapping_rows, args.output_suffix)
     out_summary.parent.mkdir(parents=True, exist_ok=True)
     out_summary.write_text(summary, encoding="utf-8")
 

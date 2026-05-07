@@ -31,6 +31,9 @@ DEFAULT_FOODDB_V1_1_ROUND2_MATCHES_OUT = Path(
 DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT = Path(
     "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round3_targeted_blockers.csv"
 )
+DEFAULT_FOODDB_V1_1_ROUND4_MATCHES_OUT = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round4_strict_safe.csv"
+)
 ROUND2_FOODDB_APPLIED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round2_additions_applied.csv")
 ROUND2_FOODDB_DEFERRED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round2_additions_deferred.csv")
 ROUND3_FOODDB_APPLIED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round3_additions_applied.csv")
@@ -55,6 +58,10 @@ OUTPUT_COLUMNS = [
     "mapping_confidence",
     "mapping_method",
     "mapping_notes",
+    "edible_yield_factor",
+    "uses_pilot_edible_yield",
+    "edible_yield_reason",
+    "manual_decision_notes",
 ]
 
 SAFE_ALIAS_BY_NORMALIZED_NAME = {
@@ -164,6 +171,17 @@ ROUND4_STRICT_SAFE_FOOD_IDS = {
     "water": "food_water_municipal",
 }
 
+ROUND5_MANUAL_FOOD_IDS = {
+    "potato_raw": "food_potato_peeled_raw",
+    "butter": "food_butter_82_fat_unsalted",
+    "ground_turkey": "food_turkey_meat_raw",
+    "boneless_skinless_chicken_thigh": "food_chicken_leg_meat_raw",
+    "chicken_thigh_with_skin": "food_chicken_leg_meat_and_skin_raw",
+    "bone_in_chicken_pieces": "food_chicken_meat_and_skin_raw",
+    "pork_chop": "food_pork_chop_raw",
+    "pork_tenderloin": "food_pork_tenderloin_lean_raw",
+}
+
 BASELINE_CURRENT_FOODDB_MAPPING = {
     "accepted_auto": 583,
     "review_needed": 508,
@@ -215,6 +233,8 @@ def resolve_output_path(explicit_path: str, default_path: Path, output_suffix: s
 
 def infer_fooddb_version_used(fooddb_path: Path, output_suffix: str) -> str:
     combined = normalize_match_text(f"{fooddb_path.as_posix()} {output_suffix}")
+    if "round5" in combined:
+        return "fooddb_v1_1_draft_round5"
     if "round3" in combined:
         return "fooddb_v1_1_draft_round3"
     if "round2" in combined:
@@ -733,6 +753,127 @@ def attempt_round4_strict_safe_promotion(
     return result
 
 
+def has_forbidden_round5_potato_signal(row: dict[str, str]) -> bool:
+    text = normalize_match_text(
+        f"{row.get('ingredient_raw_text', '')} {row.get('ingredient_name_parsed', '')}"
+    )
+    blocked_terms = [
+        "sweet potato",
+        "fries",
+        "french fries",
+        "fried potatoes",
+        "potato chips",
+        "potato crisps",
+        "mashed potatoes",
+        "roasted potatoes",
+        "roasted potato",
+        "hash brown",
+        "potato pancake",
+    ]
+    return any(term in text for term in blocked_terms)
+
+
+def round5_manual_decision_promotion(
+    ingredient_row: dict[str, str],
+    food_indexes: dict[str, dict[str, list[dict[str, str]]]],
+) -> dict[str, str] | None:
+    ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
+    parsed_name = normalize_match_text(ingredient_row.get("ingredient_name_parsed"))
+    raw_text = normalize_match_text(ingredient_row.get("ingredient_raw_text"))
+    combined_text = normalize_match_text(f"{raw_text} {parsed_name} {ingredient_name}")
+
+    promotion_food_id = ""
+    promotion_note = ""
+    manual_notes = ""
+    edible_yield_factor = ""
+    uses_pilot_edible_yield = ""
+    edible_yield_reason = ""
+
+    if ingredient_name in {"red potatoes", "baby red potatoes", "and red potatoes", "yukon gold potatoes"}:
+        if has_forbidden_round5_potato_signal(ingredient_row):
+            return None
+        promotion_food_id = ROUND5_MANUAL_FOOD_IDS["potato_raw"]
+        promotion_note = "round5_manual_decision:potato_cultivar_to_generic_raw"
+        manual_notes = "cultivar_collapsed_to_generic_potato_v1_1"
+    elif ingredient_name in {"potatoes", "white potatoes"}:
+        if has_forbidden_round5_potato_signal(ingredient_row) or "cooked" in combined_text or "boiled" in combined_text:
+            return None
+        promotion_food_id = ROUND5_MANUAL_FOOD_IDS["potato_raw"]
+        promotion_note = "round5_manual_decision:generic_potatoes_raw_rows_only"
+        manual_notes = "generic_potatoes_to_raw_potato_only_without_prepared_dish_signal"
+    elif ingredient_name in {"butter", "unsalted butter", "salted butter"} and not has_forbidden_butter_signal(ingredient_row):
+        promotion_food_id = ROUND5_MANUAL_FOOD_IDS["butter"]
+        promotion_note = "round5_manual_decision:butter_to_82_fat_unsalted_macro_draft"
+        manual_notes = "salted_unsalted_distinction_not_material_for_kcal_macros"
+        if ingredient_name == "salted butter":
+            manual_notes = "salted_collapsed_to_generic_butter"
+    elif "ground turkey" in combined_text:
+        promotion_food_id = ROUND5_MANUAL_FOOD_IDS["ground_turkey"]
+        promotion_note = "round5_manual_decision:explicit_ground_turkey_to_generic_turkey_meat_raw"
+        manual_notes = "exact_ground_turkey_item_missing; pilot_manual_to_generic_turkey_meat_raw"
+    elif ingredient_name == "chicken thighs":
+        if "boneless" in combined_text and "skinless" in combined_text:
+            promotion_food_id = ROUND5_MANUAL_FOOD_IDS["boneless_skinless_chicken_thigh"]
+            edible_yield_factor = "1"
+            uses_pilot_edible_yield = "true"
+            edible_yield_reason = "boneless_skinless_chicken_thighs_edible_yield_1_0"
+            promotion_note = "round5_manual_decision:boneless_skinless_chicken_thigh_pilot"
+            manual_notes = "exact_chicken_thigh_source_suspect; use_chicken_leg_meat_raw_pilot_fallback"
+        elif "bone in" in combined_text:
+            promotion_food_id = ROUND5_MANUAL_FOOD_IDS["chicken_thigh_with_skin"]
+            edible_yield_factor = "0.7"
+            uses_pilot_edible_yield = "true"
+            edible_yield_reason = "bone_in_chicken_thighs_pilot_edible_yield_0_70"
+            promotion_note = "round5_manual_decision:bone_in_chicken_thigh_pilot_edible_yield"
+            manual_notes = "exact_chicken_thigh_source_suspect; pilot_manual_edible_yield"
+        else:
+            promotion_food_id = ROUND5_MANUAL_FOOD_IDS["chicken_thigh_with_skin"]
+            edible_yield_factor = "0.75"
+            uses_pilot_edible_yield = "true"
+            edible_yield_reason = "chicken_thighs_unspecified_bone_status_pilot_edible_yield_0_75"
+            promotion_note = "round5_manual_decision:chicken_thigh_pilot_edible_yield"
+            manual_notes = "exact_chicken_thigh_source_suspect; pilot_manual_edible_yield"
+    elif ingredient_name in {"bone in chicken pieces", "cut up chicken parts"}:
+        promotion_food_id = ROUND5_MANUAL_FOOD_IDS["bone_in_chicken_pieces"]
+        edible_yield_factor = "0.65"
+        uses_pilot_edible_yield = "true"
+        edible_yield_reason = "bone_in_chicken_pieces_pilot_edible_yield_0_65"
+        promotion_note = "round5_manual_decision:bone_in_chicken_pieces_pilot_edible_yield"
+        manual_notes = "pilot_manual_edible_yield; do_not_map_to_chicken_breast"
+    elif ingredient_name in {"pork chop", "pork chops"}:
+        promotion_food_id = ROUND5_MANUAL_FOOD_IDS["pork_chop"]
+        promotion_note = "round5_manual_decision:pork_chop_exact"
+        manual_notes = "specific_pork_cut_only"
+    elif "pork tenderloin" in combined_text:
+        promotion_food_id = ROUND5_MANUAL_FOOD_IDS["pork_tenderloin"]
+        promotion_note = "round5_manual_decision:pork_tenderloin_exact"
+        manual_notes = "specific_pork_cut_only"
+
+    if not promotion_food_id:
+        return None
+
+    food_row = get_by_food_id(food_indexes, promotion_food_id)
+    if not food_row:
+        return None
+
+    result = match_result(
+        food_row=food_row,
+        status="accepted_auto",
+        confidence="medium",
+        method="round5_manual_decision",
+        notes=[promotion_note],
+        edible_yield_factor=edible_yield_factor,
+        uses_pilot_edible_yield=uses_pilot_edible_yield,
+        edible_yield_reason=edible_yield_reason,
+        manual_decision_notes=manual_notes,
+    )
+    if parsed_name and parsed_name != ingredient_name:
+        notes = [note.strip() for note in clean_text(result.get("mapping_notes")).split(";") if note.strip()]
+        notes.append(f"parsed_name={parsed_name}")
+        result["mapping_notes"] = "; ".join(dict.fromkeys(notes))
+    return result
+
+
 def empty_result(status: str, method: str, notes: list[str]) -> dict[str, str]:
     return {
         "mapped_food_id": "",
@@ -741,6 +882,10 @@ def empty_result(status: str, method: str, notes: list[str]) -> dict[str, str]:
         "mapping_confidence": "low",
         "mapping_method": method,
         "mapping_notes": "; ".join(dict.fromkeys(note for note in notes if note)),
+        "edible_yield_factor": "",
+        "uses_pilot_edible_yield": "",
+        "edible_yield_reason": "",
+        "manual_decision_notes": "",
     }
 
 
@@ -750,6 +895,10 @@ def match_result(
     confidence: str,
     method: str,
     notes: list[str],
+    edible_yield_factor: str = "",
+    uses_pilot_edible_yield: str = "",
+    edible_yield_reason: str = "",
+    manual_decision_notes: str = "",
 ) -> dict[str, str]:
     return {
         "mapped_food_id": clean_text(food_row.get("food_id")),
@@ -758,6 +907,10 @@ def match_result(
         "mapping_confidence": confidence,
         "mapping_method": method,
         "mapping_notes": "; ".join(dict.fromkeys(note for note in notes if note)),
+        "edible_yield_factor": edible_yield_factor,
+        "uses_pilot_edible_yield": uses_pilot_edible_yield,
+        "edible_yield_reason": edible_yield_reason,
+        "manual_decision_notes": manual_decision_notes,
     }
 
 
@@ -780,6 +933,7 @@ def attempt_match(
     enable_round2_promotions: bool = False,
     enable_round3_promotions: bool = False,
     enable_round4_promotions: bool = False,
+    enable_round5_promotions: bool = False,
 ) -> dict[str, str]:
     ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
     if not ingredient_name:
@@ -787,6 +941,11 @@ def attempt_match(
 
     if is_out_of_scope(ingredient_row):
         return empty_result("unmapped", "no_match", ["out_of_scope_non_food_or_non_nutrition_line"])
+
+    if enable_round5_promotions:
+        round5_result = round5_manual_decision_promotion(ingredient_row, food_indexes)
+        if round5_result:
+            return gate_review_if_needed(ingredient_row, round5_result)
 
     if " and " in f" {ingredient_name} " or " or " in f" {ingredient_name} ":
         return empty_result("review_needed", "review_candidate", ["compound_or_alternative_ingredient_name"])
@@ -976,6 +1135,8 @@ def load_baseline_counts(path: Path) -> dict[str, int]:
 
 def choose_baseline_path(output_suffix: str) -> Path:
     normalized_suffix = normalize_match_text(output_suffix)
+    if "round5" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND4_MATCHES_OUT.exists():
+        return DEFAULT_FOODDB_V1_1_ROUND4_MATCHES_OUT
     if "round4" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT.exists():
         return DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT
     if "round3" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND2_MATCHES_OUT.exists():
@@ -1091,6 +1252,7 @@ def build_summary(
     round2_counts, round2_with_grams_counts = build_method_usage(mapped_rows, "round2_promotion_v1_1")
     round3_counts, round3_with_grams_counts = build_method_usage(mapped_rows, "round3_targeted_blocker")
     round4_counts, round4_with_grams_counts = build_method_usage(mapped_rows, "round4_strict_safe")
+    round5_counts, round5_with_grams_counts = build_method_usage(mapped_rows, "round5_manual_decision")
     kept_review_reasons = build_kept_review_reasons(mapped_rows)
     round2_applied_rows = load_round2_fooddb_audit(ROUND2_FOODDB_APPLIED_AUDIT)
     round2_deferred_rows = load_round2_fooddb_audit(ROUND2_FOODDB_DEFERRED_AUDIT)
@@ -1187,6 +1349,16 @@ def build_summary(
         lines.extend(f"- {name}: {count}" for name, count in round4_with_grams_counts)
     else:
         lines.append("- none")
+    lines.extend(["", "Round5 manual decisions in this run:"])
+    if round5_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round5_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round5 manual decisions with grams:"])
+    if round5_with_grams_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round5_with_grams_counts)
+    else:
+        lines.append("- none")
     lines.extend(["", "Round2 Food_DB additions/promotions applied:"])
     if round2_applied_rows:
         lines.extend(
@@ -1275,13 +1447,15 @@ def main() -> None:
     baseline_path = choose_baseline_path(args.output_suffix)
     baseline_counts = load_baseline_counts(baseline_path)
     normalized_suffix = normalize_match_text(args.output_suffix)
-    is_round4 = "round4" in normalized_suffix
+    is_round5 = "round5" in normalized_suffix
+    is_round4 = "round4" in normalized_suffix or is_round5
     enable_review_promotions = (
         "review promotions" in normalized_suffix or "round3" in normalized_suffix or is_round4
     )
     enable_round2_promotions = "round2" in normalized_suffix or "round3" in normalized_suffix or is_round4
     enable_round3_promotions = "round3" in normalized_suffix or is_round4
     enable_round4_promotions = is_round4
+    enable_round5_promotions = is_round5
 
     mapped_rows = [
         output_row(
@@ -1293,6 +1467,7 @@ def main() -> None:
                 enable_round2_promotions,
                 enable_round3_promotions,
                 enable_round4_promotions,
+                enable_round5_promotions,
             ),
             fooddb_version_used,
         )

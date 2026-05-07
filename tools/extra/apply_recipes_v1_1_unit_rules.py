@@ -16,6 +16,14 @@ DEFAULT_OUT_PARSED = Path("data/recipesdb/draft/recipes_v1_1_ingredients_parsed_
 DEFAULT_OUT_SUMMARY = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_summary.txt")
 DEFAULT_OUT_APPLIED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_applied.csv")
 DEFAULT_OUT_DEFERRED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_deferred.csv")
+ROUND4_MAPPING = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round4_strict_safe.csv"
+)
+ROUND5_FOODDB = Path("data/fooddb/draft/fooddb_v1_1_core_master_draft_round5.csv")
+ROUND5_OUT_PARSED = Path("data/recipesdb/draft/recipes_v1_1_ingredients_parsed_unit_rules_round5.csv")
+ROUND5_OUT_SUMMARY = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_summary_round5.txt")
+ROUND5_OUT_APPLIED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_applied_round5.csv")
+ROUND5_OUT_DEFERRED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_deferred_round5.csv")
 
 APPLIED_COLUMNS = [
     "recipe_id_candidate",
@@ -61,6 +69,8 @@ UNIT_ALIASES = {
     "piece": "count",
     "pieces": "count",
     "whole": "count",
+    "stick": "stick",
+    "sticks": "stick",
 }
 
 EXPLICIT_GRAMS_PER_UNIT = {
@@ -83,6 +93,18 @@ EXPLICIT_GRAMS_PER_UNIT = {
     ("milk", "cup"): (244.0, "milk_cup_density"),
     ("chicken broth", "cup"): (240.0, "chicken_broth_cup_density"),
     ("water", "cup"): (240.0, "water_cup_weight_diagnostics_only"),
+    ("butter", "teaspoon"): (4.7, "butter_teaspoon_density_round5"),
+    ("butter", "tablespoon"): (14.2, "butter_tablespoon_density_round5"),
+    ("butter", "cup"): (227.0, "butter_cup_weight_round5"),
+    ("butter", "stick"): (113.0, "butter_stick_weight_round5"),
+    ("unsalted butter", "teaspoon"): (4.7, "butter_teaspoon_density_round5"),
+    ("unsalted butter", "tablespoon"): (14.2, "butter_tablespoon_density_round5"),
+    ("unsalted butter", "cup"): (227.0, "butter_cup_weight_round5"),
+    ("unsalted butter", "stick"): (113.0, "butter_stick_weight_round5"),
+    ("salted butter", "teaspoon"): (4.7, "butter_teaspoon_density_round5"),
+    ("salted butter", "tablespoon"): (14.2, "butter_tablespoon_density_round5"),
+    ("salted butter", "cup"): (227.0, "butter_cup_weight_round5"),
+    ("salted butter", "stick"): (113.0, "butter_stick_weight_round5"),
 }
 
 DRIED_HERB_RULES = {
@@ -101,6 +123,7 @@ PACKAGE_UNITS = {"can", "jar", "package", "packet", "bag", "bottle", "container"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Aplica reguli conservative unit-to-grams pentru Recipes_DB v1.1.")
+    parser.add_argument("--round5", action="store_true", help="Scrie outputurile separate pentru round5.")
     parser.add_argument("--ingredients", "--ingredients_path", dest="ingredients", default=str(DEFAULT_PARSED_INGREDIENTS))
     parser.add_argument("--mapping", "--mapping_path", dest="mapping", default=str(DEFAULT_MAPPING))
     parser.add_argument("--fooddb", "--fooddb_path", dest="fooddb", default=str(DEFAULT_FOODDB))
@@ -419,9 +442,33 @@ def apply_unit_rules(
 
 def main() -> None:
     args = parse_args()
-    ingredient_rows, ingredient_fieldnames = read_csv_rows(Path(args.ingredients))
-    mapping_rows, _ = read_csv_rows(Path(args.mapping))
-    fooddb_rows, _ = read_csv_rows(Path(args.fooddb))
+    ingredients_path = Path(args.ingredients)
+    mapping_path = Path(args.mapping)
+    fooddb_path = Path(args.fooddb)
+    out_ingredients = Path(args.out_ingredients)
+    out_summary = Path(args.out_summary)
+    out_applied = Path(args.out_applied)
+    out_deferred = Path(args.out_deferred)
+
+    if args.round5:
+        if args.ingredients == str(DEFAULT_PARSED_INGREDIENTS):
+            ingredients_path = DEFAULT_PARSED_INGREDIENTS
+        if args.mapping == str(DEFAULT_MAPPING):
+            mapping_path = ROUND4_MAPPING
+        if args.fooddb == str(DEFAULT_FOODDB):
+            fooddb_path = ROUND5_FOODDB
+        if args.out_ingredients == str(DEFAULT_OUT_PARSED):
+            out_ingredients = ROUND5_OUT_PARSED
+        if args.out_summary == str(DEFAULT_OUT_SUMMARY):
+            out_summary = ROUND5_OUT_SUMMARY
+        if args.out_applied == str(DEFAULT_OUT_APPLIED):
+            out_applied = ROUND5_OUT_APPLIED
+        if args.out_deferred == str(DEFAULT_OUT_DEFERRED):
+            out_deferred = ROUND5_OUT_DEFERRED
+
+    ingredient_rows, ingredient_fieldnames = read_csv_rows(ingredients_path)
+    mapping_rows, _ = read_csv_rows(mapping_path)
+    fooddb_rows, _ = read_csv_rows(fooddb_path)
     updated_rows, applied_rows, deferred_rows, fooddb_row_count = apply_unit_rules(
         ingredient_rows,
         ingredient_fieldnames,
@@ -429,11 +476,11 @@ def main() -> None:
         fooddb_rows,
     )
 
-    write_csv(Path(args.out_ingredients), updated_rows, ingredient_fieldnames)
-    write_csv(Path(args.out_applied), applied_rows, APPLIED_COLUMNS)
-    write_csv(Path(args.out_deferred), deferred_rows, DEFERRED_COLUMNS)
+    write_csv(out_ingredients, updated_rows, ingredient_fieldnames)
+    write_csv(out_applied, applied_rows, APPLIED_COLUMNS)
+    write_csv(out_deferred, deferred_rows, DEFERRED_COLUMNS)
     write_summary(
-        Path(args.out_summary),
+        out_summary,
         ingredient_rows,
         updated_rows,
         applied_rows,
@@ -446,10 +493,10 @@ def main() -> None:
     print(f"Rows with grams after: {sum(1 for row in updated_rows if has_valid_grams(row))}")
     print(f"Rules applied count: {len(applied_rows)}")
     print(f"Deferred count: {len(deferred_rows)}")
-    print(f"Written: {args.out_ingredients}")
-    print(f"Written: {args.out_summary}")
-    print(f"Written: {args.out_applied}")
-    print(f"Written: {args.out_deferred}")
+    print(f"Written: {out_ingredients}")
+    print(f"Written: {out_summary}")
+    print(f"Written: {out_applied}")
+    print(f"Written: {out_deferred}")
 
 
 if __name__ == "__main__":
