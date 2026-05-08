@@ -45,6 +45,53 @@ ROUND4_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrit
 ROUND4_RECIPE_AUDIT = (
     REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round4.csv"
 )
+ROUND5_MAPPING = (
+    REPO_ROOT
+    / "data"
+    / "recipesdb"
+    / "draft"
+    / "recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round5_manual_decisions.csv"
+)
+ROUND5_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft_round5.csv"
+ROUND5_RECIPE_AUDIT = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round5.csv"
+)
+ROUND7_MAPPING = (
+    REPO_ROOT
+    / "data"
+    / "recipesdb"
+    / "draft"
+    / "recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round7_macro_blockers.csv"
+)
+ROUND7_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft_round7.csv"
+ROUND7_RECIPE_AUDIT = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round7.csv"
+)
+ROUND8_MAPPING = (
+    REPO_ROOT
+    / "data"
+    / "recipesdb"
+    / "draft"
+    / "recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round8_unit_rules_punctual_mapping.csv"
+)
+ROUND8_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft_round8.csv"
+ROUND8_RECIPE_AUDIT = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round8.csv"
+)
+ROUND9_MAPPING = (
+    REPO_ROOT
+    / "data"
+    / "recipesdb"
+    / "draft"
+    / "recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round9_final_mapping.csv"
+)
+ROUND9_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft_round9.csv"
+ROUND9_RECIPE_AUDIT = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_recipe_audit_round9.csv"
+)
+ROUND10_SERVINGS_ADJUSTMENT_CANDIDATES = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_round10_servings_adjustment_candidates.csv"
+)
 
 OUT_CACHE = REPO_ROOT / "data" / "recipesdb" / "draft" / "recipes_v1_1_nutrition_cache_draft.csv"
 OUT_SUMMARY = REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_summary.txt"
@@ -52,6 +99,9 @@ OUT_RECIPE_AUDIT = REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nu
 OUT_LOW_COVERAGE = REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_nutrition_cache_low_coverage.csv"
 OUT_CONTRIBUTIONS = (
     REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_ingredient_nutrition_contributions.csv"
+)
+OUT_SERVINGS_ADJUSTMENTS = (
+    REPO_ROOT / "data" / "recipesdb" / "audit" / "recipes_v1_1_servings_adjustments_applied.csv"
 )
 
 CACHE_VERSION = "recipes_v1_1_draft_001"
@@ -105,6 +155,37 @@ CACHE_COLUMNS = [
     "cache_status",
     "quality_flags",
     "cache_version",
+]
+
+SERVINGS_ADJUSTMENT_COLUMNS = [
+    "original_servings_basis",
+    "adjusted_servings_basis",
+    "servings_adjustment_applied",
+    "servings_adjustment_reason",
+    "servings_adjustment_method",
+    "original_energy_kcal_per_serving",
+    "adjusted_energy_kcal_per_serving",
+    "original_protein_g_per_serving",
+    "adjusted_protein_g_per_serving",
+    "no_adjust_reason",
+]
+
+SERVINGS_ADJUSTMENT_AUDIT_COLUMNS = [
+    "recipe_id_candidate",
+    "display_name",
+    "recipe_kind_guess",
+    "original_servings_basis",
+    "adjusted_servings_basis",
+    "serving_weight_g_estimated",
+    "adjusted_serving_weight_g_estimated",
+    "servings_adjustment_reason",
+    "servings_adjustment_method",
+    "original_energy_kcal_per_serving",
+    "adjusted_energy_kcal_per_serving",
+    "original_protein_g_per_serving",
+    "adjusted_protein_g_per_serving",
+    "macro_relevant_mapped_weight_ratio",
+    "cache_status",
 ]
 
 CONTRIBUTION_COLUMNS = [
@@ -227,6 +308,14 @@ def resolve_output_path(explicit_path: str, default_path: Path, output_suffix: s
     return add_output_suffix(default_path, output_suffix)
 
 
+def resolve_servings_adjustment_path(path_text: str, output_suffix: str) -> Path | None:
+    if clean_text(path_text):
+        return Path(path_text)
+    if "round10" in clean_text(output_suffix).casefold():
+        return ROUND10_SERVINGS_ADJUSTMENT_CANDIDATES
+    return None
+
+
 def clean_text(value: object) -> str:
     return str(value or "").strip()
 
@@ -249,6 +338,13 @@ def parse_positive_float(value: object) -> float | None:
     if parsed is None or parsed <= 0:
         return None
     return parsed
+
+
+def parse_int(value: object) -> int:
+    parsed = parse_float(value)
+    if parsed is None:
+        return 0
+    return int(parsed)
 
 
 def parse_yield_factor(value: object) -> float:
@@ -684,6 +780,189 @@ def build_cache_rows(
     return cache_rows, recipe_audit_rows, low_coverage_rows, contribution_rows
 
 
+def load_servings_adjustments(path: Path | None) -> dict[str, dict[str, str]]:
+    if path is None or not path.exists():
+        return {}
+    rows, _ = read_csv(path)
+    adjustments: dict[str, dict[str, str]] = {}
+    for row in rows:
+        recipe_id = clean_text(row.get("recipe_id_candidate"))
+        current_servings = parse_positive_float(
+            row.get("current_servings_basis") or row.get("original_servings_basis")
+        )
+        target_servings = parse_positive_float(
+            row.get("recommended_adjusted_servings_basis") or row.get("adjusted_servings_basis")
+        )
+        allowed = is_true(row.get("servings_adjustment_allowed"))
+        if not recipe_id or current_servings is None or target_servings is None:
+            continue
+        if not allowed or target_servings >= current_servings:
+            continue
+        if target_servings not in {1.0, 2.0, 3.0, 4.0, 6.0, 8.0}:
+            continue
+        adjustments[recipe_id] = row
+    return adjustments
+
+
+def row_coverage_for_status(row: dict[str, object]) -> dict[str, float]:
+    return {
+        "accepted_auto_count": float(parse_int(row.get("accepted_auto_count"))),
+        "accepted_auto_with_grams_count": float(parse_int(row.get("accepted_auto_with_grams_count"))),
+        "review_needed_with_grams_count": float(parse_int(row.get("review_needed_with_grams_count"))),
+        "unmapped_with_grams_count": float(parse_int(row.get("unmapped_with_grams_count"))),
+    }
+
+
+def row_is_complete_or_near_complete(row: dict[str, object]) -> bool:
+    kind = clean_text(row.get("recipe_kind_guess"))
+    return kind in {"complete_main", "near_complete_main"} or clean_text(
+        row.get("is_complete_or_near_complete_meal")
+    ) == "True"
+
+
+def row_is_protein_relevant(row: dict[str, object]) -> bool:
+    kind = clean_text(row.get("recipe_kind_guess"))
+    primary_protein = clean_text(row.get("primary_protein")).casefold()
+    return kind in MAIN_KINDS or kind == "protein_component" or primary_protein in PROTEIN_SIGNALS
+
+
+def rebuild_quality_flags_from_row(row: dict[str, object]) -> list[str]:
+    flags: list[str] = []
+    mapped_weight_ratio = parse_float(row.get("mapped_weight_ratio"))
+    macro_relevant_mapped_weight_ratio = parse_float(row.get("macro_relevant_mapped_weight_ratio"))
+    kcal_per_serving = parse_float(row.get("energy_kcal_per_serving")) or 0.0
+    protein_per_serving = parse_float(row.get("protein_g_per_serving")) or 0.0
+    if row_is_complete_or_near_complete(row) and kcal_per_serving < LOW_MAIN_KCAL_THRESHOLD:
+        flags.append("is_low_kcal_suspicious")
+    if row_is_protein_relevant(row) and protein_per_serving < LOW_PROTEIN_THRESHOLD:
+        flags.append("is_low_protein_suspicious")
+    if mapped_weight_ratio is None:
+        flags.append("mapped_weight_ratio_missing")
+    elif mapped_weight_ratio < LOW_RATIO_THRESHOLD:
+        flags.append("is_low_mapped_weight_ratio")
+    if macro_relevant_mapped_weight_ratio is None:
+        flags.append("macro_relevant_mapped_weight_ratio_missing")
+    elif macro_relevant_mapped_weight_ratio < LOW_RATIO_THRESHOLD:
+        flags.append("is_low_macro_relevant_mapped_weight_ratio")
+    if kcal_per_serving > HIGH_KCAL_PER_SERVING_THRESHOLD:
+        flags.append("is_high_macro_suspicious")
+    blocker_count = parse_int(row.get("review_needed_with_grams_count")) + parse_int(row.get("unmapped_with_grams_count"))
+    if blocker_count >= MAPPING_REVIEW_BLOCKER_COUNT:
+        flags.append("needs_mapping_review")
+    return flags
+
+
+def refresh_cache_status_and_flags(row: dict[str, object]) -> None:
+    coverage = row_coverage_for_status(row)
+    macro_ratio = parse_float(row.get("macro_relevant_mapped_weight_ratio"))
+    kcal_per_serving = parse_float(row.get("energy_kcal_per_serving")) or 0.0
+    row["cache_status"] = choose_cache_status(coverage, macro_ratio, kcal_per_serving)
+    row["quality_flags"] = "; ".join(rebuild_quality_flags_from_row(row))
+
+
+def add_default_servings_adjustment_fields(row: dict[str, object], reason: str) -> None:
+    servings_basis = clean_text(row.get("servings_basis"))
+    energy_per_serving = clean_text(row.get("energy_kcal_per_serving"))
+    protein_per_serving = clean_text(row.get("protein_g_per_serving"))
+    row["original_servings_basis"] = servings_basis
+    row["adjusted_servings_basis"] = servings_basis
+    row["servings_adjustment_applied"] = "false"
+    row["servings_adjustment_reason"] = ""
+    row["servings_adjustment_method"] = ""
+    row["original_energy_kcal_per_serving"] = energy_per_serving
+    row["adjusted_energy_kcal_per_serving"] = energy_per_serving
+    row["original_protein_g_per_serving"] = protein_per_serving
+    row["adjusted_protein_g_per_serving"] = protein_per_serving
+    row["no_adjust_reason"] = reason
+
+
+def apply_servings_adjustment_to_row(
+    row: dict[str, object],
+    adjustments: dict[str, dict[str, str]],
+) -> dict[str, object] | None:
+    recipe_id = clean_text(row.get("recipe_id_candidate"))
+    adjustment = adjustments.get(recipe_id)
+    add_default_servings_adjustment_fields(row, "not_selected_for_round10_servings_adjustment")
+    if not adjustment:
+        return None
+
+    original_servings = parse_positive_float(row.get("servings_basis"))
+    adjusted_servings = parse_positive_float(
+        adjustment.get("recommended_adjusted_servings_basis") or adjustment.get("adjusted_servings_basis")
+    )
+    if original_servings is None or adjusted_servings is None or adjusted_servings >= original_servings:
+        row["no_adjust_reason"] = "invalid_or_non_reducing_adjustment_candidate"
+        return None
+
+    energy_total = parse_float(row.get("energy_kcal_total")) or 0.0
+    protein_total = parse_float(row.get("protein_g_total")) or 0.0
+    carbs_total = parse_float(row.get("carbs_g_total")) or 0.0
+    fat_total = parse_float(row.get("fat_g_total")) or 0.0
+    original_energy_per = parse_float(row.get("energy_kcal_per_serving")) or 0.0
+    original_protein_per = parse_float(row.get("protein_g_per_serving")) or 0.0
+    adjusted_energy_per = energy_total / adjusted_servings
+    adjusted_protein_per = protein_total / adjusted_servings
+    adjusted_carbs_per = carbs_total / adjusted_servings
+    adjusted_fat_per = fat_total / adjusted_servings
+
+    row["original_servings_basis"] = format_number(original_servings)
+    row["adjusted_servings_basis"] = format_number(adjusted_servings)
+    row["servings_basis"] = format_number(adjusted_servings)
+    row["servings_adjustment_applied"] = "true"
+    row["servings_adjustment_reason"] = clean_text(adjustment.get("servings_adjustment_reason")) or (
+        "current_serving_weight_below_expected_band_with_good_macro_coverage"
+    )
+    row["servings_adjustment_method"] = clean_text(adjustment.get("servings_adjustment_method")) or (
+        "round10_conservative_serving_weight_band"
+    )
+    row["original_energy_kcal_per_serving"] = format_number(original_energy_per)
+    row["adjusted_energy_kcal_per_serving"] = format_number(adjusted_energy_per)
+    row["original_protein_g_per_serving"] = format_number(original_protein_per)
+    row["adjusted_protein_g_per_serving"] = format_number(adjusted_protein_per)
+    row["energy_kcal_per_serving"] = format_number(adjusted_energy_per)
+    row["protein_g_per_serving"] = format_number(adjusted_protein_per)
+    row["carbs_g_per_serving"] = format_number(adjusted_carbs_per)
+    row["fat_g_per_serving"] = format_number(adjusted_fat_per)
+    row["no_adjust_reason"] = ""
+    reasons = clean_text(row.get("servings_estimation_reasons"))
+    adjustment_note = f"round10_servings_adjusted_from_{format_number(original_servings)}_to_{format_number(adjusted_servings)}"
+    row["servings_estimation_reasons"] = "; ".join(part for part in (reasons, adjustment_note) if part)
+    refresh_cache_status_and_flags(row)
+
+    return {
+        "recipe_id_candidate": recipe_id,
+        "display_name": clean_text(row.get("display_name")),
+        "recipe_kind_guess": clean_text(row.get("recipe_kind_guess")),
+        "original_servings_basis": format_number(original_servings),
+        "adjusted_servings_basis": format_number(adjusted_servings),
+        "serving_weight_g_estimated": clean_text(adjustment.get("serving_weight_g_estimated")),
+        "adjusted_serving_weight_g_estimated": clean_text(adjustment.get("adjusted_serving_weight_g_estimated")),
+        "servings_adjustment_reason": clean_text(row.get("servings_adjustment_reason")),
+        "servings_adjustment_method": clean_text(row.get("servings_adjustment_method")),
+        "original_energy_kcal_per_serving": format_number(original_energy_per),
+        "adjusted_energy_kcal_per_serving": format_number(adjusted_energy_per),
+        "original_protein_g_per_serving": format_number(original_protein_per),
+        "adjusted_protein_g_per_serving": format_number(adjusted_protein_per),
+        "macro_relevant_mapped_weight_ratio": clean_text(row.get("macro_relevant_mapped_weight_ratio")),
+        "cache_status": clean_text(row.get("cache_status")),
+    }
+
+
+def apply_servings_adjustments(
+    cache_rows: list[dict[str, object]],
+    recipe_audit_rows: list[dict[str, object]],
+    adjustments: dict[str, dict[str, str]],
+) -> list[dict[str, object]]:
+    applied_rows: list[dict[str, object]] = []
+    for row in cache_rows:
+        applied = apply_servings_adjustment_to_row(row, adjustments)
+        if applied is not None:
+            applied_rows.append(applied)
+    for row in recipe_audit_rows:
+        apply_servings_adjustment_to_row(row, adjustments)
+    return applied_rows
+
+
 def median_or_none(values: list[float]) -> float | None:
     clean_values = [value for value in values if not math.isnan(value) and not math.isinf(value)]
     if not clean_values:
@@ -778,6 +1057,7 @@ def summarize_mapping_counts(rows: list[dict[str, str]]) -> dict[str, int]:
     unmapped_rows = [row for row in rows if clean_text(row.get("mapping_status")) == "unmapped"]
     return {
         "accepted_auto_with_grams": sum(1 for row in accepted_rows if parse_positive_float(row.get("quantity_grams_estimated")) is not None),
+        "accepted_auto_without_grams": sum(1 for row in accepted_rows if parse_positive_float(row.get("quantity_grams_estimated")) is None),
         "review_needed_with_grams": sum(1 for row in review_rows if parse_positive_float(row.get("quantity_grams_estimated")) is not None),
         "unmapped_with_grams": sum(1 for row in unmapped_rows if parse_positive_float(row.get("quantity_grams_estimated")) is not None),
     }
@@ -895,12 +1175,35 @@ def build_summary(
         if "is_high_macro_suspicious" in clean_text(row.get("quality_flags"))
     ]
     blockers = grouped_remaining_blockers(contribution_rows, mapping_rows)
+    servings_adjusted_count = sum(
+        1 for row in cache_rows if clean_text(row.get("servings_adjustment_applied")).casefold() == "true"
+    )
     normalized_suffix = clean_text(output_suffix).casefold()
     baseline_label = "Round3"
     baseline_mapping_path = ROUND3_MAPPING
     baseline_recipe_audit_path = ROUND3_RECIPE_AUDIT
     baseline_cache_path = ROUND3_CACHE
-    if "round5" in normalized_suffix:
+    if "round10" in normalized_suffix:
+        baseline_label = "Round9"
+        baseline_mapping_path = ROUND9_MAPPING
+        baseline_recipe_audit_path = ROUND9_RECIPE_AUDIT
+        baseline_cache_path = ROUND9_CACHE
+    elif "round9" in normalized_suffix:
+        baseline_label = "Round8"
+        baseline_mapping_path = ROUND8_MAPPING
+        baseline_recipe_audit_path = ROUND8_RECIPE_AUDIT
+        baseline_cache_path = ROUND8_CACHE
+    elif "round8" in normalized_suffix:
+        baseline_label = "Round7"
+        baseline_mapping_path = ROUND7_MAPPING
+        baseline_recipe_audit_path = ROUND7_RECIPE_AUDIT
+        baseline_cache_path = ROUND7_CACHE
+    elif "round7" in normalized_suffix:
+        baseline_label = "Round5"
+        baseline_mapping_path = ROUND5_MAPPING
+        baseline_recipe_audit_path = ROUND5_RECIPE_AUDIT
+        baseline_cache_path = ROUND5_CACHE
+    elif "round5" in normalized_suffix:
         baseline_label = "Round4"
         baseline_mapping_path = ROUND4_MAPPING
         baseline_recipe_audit_path = ROUND4_RECIPE_AUDIT
@@ -914,10 +1217,43 @@ def build_summary(
     current_cache_metrics = summarize_cache_metrics(recipe_audit_rows)
 
     recommendation = "A. proceed to materialize v1.1 tables"
-    if status_counts["usable_from_mapped_ingredients"] < 150 or blockers:
-        recommendation = "B. one more targeted mapping pass"
-    if len(high_macro_rows) > 20:
-        recommendation = "C. serving-estimation adjustment"
+    if "round10" in normalized_suffix:
+        recommendation = "D. run generator readiness and materialize only a reviewed subset"
+    elif "round9" in normalized_suffix:
+        usable_before = int(baseline_cache_metrics.get("usable_from_mapped_ingredients", 0) or 0)
+        usable_after = int(current_cache_metrics.get("usable_from_mapped_ingredients", 0) or 0)
+        median_kcal_delta = (parse_float(current_cache_metrics.get("median_kcal")) or 0.0) - (
+            parse_float(baseline_cache_metrics.get("median_kcal")) or 0.0
+        )
+        median_protein_delta = (parse_float(current_cache_metrics.get("median_protein")) or 0.0) - (
+            parse_float(baseline_cache_metrics.get("median_protein")) or 0.0
+        )
+        recommendation = "A. stop mapping passes and move to servings adjustment"
+        if usable_after - usable_before >= 10 and (median_kcal_delta >= 25 or median_protein_delta >= 2):
+            recommendation = "B. review round9 gains before deciding whether one narrow mapping follow-up is justified"
+    elif "round8" in normalized_suffix:
+        recommendation = "D. materialize subset"
+        if status_counts["usable_from_mapped_ingredients"] < 120 or blockers:
+            recommendation = "A. servings adjustment"
+        if len(blockers) > 40 and status_counts["usable_from_mapped_ingredients"] < 110:
+            recommendation = "C. another mapping pass"
+        if len(high_macro_rows) > 20:
+            recommendation = "A. servings adjustment"
+        if status_counts["usable_from_mapped_ingredients"] >= 180 and not blockers:
+            recommendation = "E. materialize full v1.1"
+    elif "round7" in normalized_suffix:
+        recommendation = "D. materialize subset"
+        if status_counts["usable_from_mapped_ingredients"] < 120 or blockers:
+            recommendation = "C. another mapping pass"
+        elif len(high_macro_rows) > 20:
+            recommendation = "A. servings adjustment"
+        if status_counts["usable_from_mapped_ingredients"] >= 180 and not blockers:
+            recommendation = "E. materialize full v1.1"
+    else:
+        if status_counts["usable_from_mapped_ingredients"] < 150 or blockers:
+            recommendation = "B. one more targeted mapping pass"
+        if len(high_macro_rows) > 20:
+            recommendation = "C. serving-estimation adjustment"
 
     lines: list[str] = []
     lines.append("Recipes_DB v1.1 nutrition cache draft summary")
@@ -948,10 +1284,12 @@ def build_summary(
     lines.append(f"median fat_g_per_serving: {format_number(median_or_none(fat_values))}")
     lines.append(f"complete/near-complete mains with kcal_per_serving >= 300: {complete_kcal_300}")
     lines.append(f"complete/near-complete mains with protein_per_serving >= 20: {complete_protein_20}")
+    if "round10" in normalized_suffix:
+        lines.append(f"round10 servings adjustments applied: {servings_adjusted_count}")
     lines.append("")
 
     lines.append(f"{baseline_label} vs this run:")
-    for key in ("accepted_auto_with_grams", "review_needed_with_grams", "unmapped_with_grams"):
+    for key in ("accepted_auto_with_grams", "accepted_auto_without_grams", "review_needed_with_grams", "unmapped_with_grams"):
         before = baseline_mapping_counts.get(key, 0)
         after = current_mapping_counts.get(key, 0)
         lines.append(f"- {key}: {before} -> {after} ({after - before:+d})")
@@ -975,6 +1313,40 @@ def build_summary(
         "- mapped low/no macro weight in this run: "
         f"{format_number(low_or_no_macro_weight_total)}g"
     )
+    if "round10" in normalized_suffix:
+        adjusted_rows = [
+            row for row in cache_rows if clean_text(row.get("servings_adjustment_applied")).casefold() == "true"
+        ]
+        lines.append("")
+        lines.append("Round10 servings adjustment impact:")
+        lines.append(f"- adjusted recipes: {len(adjusted_rows)}")
+        if adjusted_rows:
+            for row in adjusted_rows[:30]:
+                lines.append(
+                    f"- {row['recipe_id_candidate']} | {row['display_name']} | "
+                    f"{row.get('original_servings_basis')} -> {row.get('adjusted_servings_basis')} servings | "
+                    f"kcal {row.get('original_energy_kcal_per_serving')} -> "
+                    f"{row.get('adjusted_energy_kcal_per_serving')} | "
+                    f"protein {row.get('original_protein_g_per_serving')} -> "
+                    f"{row.get('adjusted_protein_g_per_serving')}"
+                )
+        else:
+            lines.append("- none")
+    if "round9" in normalized_suffix:
+        usable_before = int(baseline_cache_metrics.get("usable_from_mapped_ingredients", 0) or 0)
+        usable_after = int(current_cache_metrics.get("usable_from_mapped_ingredients", 0) or 0)
+        median_kcal_delta = (parse_float(current_cache_metrics.get("median_kcal")) or 0.0) - (
+            parse_float(baseline_cache_metrics.get("median_kcal")) or 0.0
+        )
+        median_protein_delta = (parse_float(current_cache_metrics.get("median_protein")) or 0.0) - (
+            parse_float(baseline_cache_metrics.get("median_protein")) or 0.0
+        )
+        lines.append("")
+        lines.append("Round9 stop-rule check:")
+        lines.append(f"- usable cache gain: {usable_after - usable_before}")
+        lines.append(f"- median kcal gain: {format_number(median_kcal_delta)}")
+        lines.append(f"- median protein gain: {format_number(median_protein_delta)}")
+        lines.append("- stop mapping if usable gain is under 10 or median kcal/protein only moves slightly")
     lines.append("")
 
     lines.append("Edible-yield pilot adjustments:")
@@ -1051,12 +1423,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--parsed_ingredients", default=str(DEFAULT_PARSED_INGREDIENTS))
     parser.add_argument("--mapping", "--mapping_path", dest="mapping", default=str(DEFAULT_MAPPING))
     parser.add_argument("--fooddb", "--fooddb_path", dest="fooddb", default=str(DEFAULT_FOODDB))
+    parser.add_argument("--servings_adjustment_path", default="")
     parser.add_argument("--output_suffix", "--output-suffix", dest="output_suffix", default="")
     parser.add_argument("--out_cache", default="")
     parser.add_argument("--out_summary", default="")
     parser.add_argument("--out_recipe_audit", default="")
     parser.add_argument("--out_low_coverage", default="")
     parser.add_argument("--out_contributions", default="")
+    parser.add_argument("--out_servings_adjustments", default="")
     return parser.parse_args()
 
 
@@ -1071,6 +1445,12 @@ def main() -> None:
     out_recipe_audit = resolve_output_path(args.out_recipe_audit, OUT_RECIPE_AUDIT, args.output_suffix)
     out_low_coverage = resolve_output_path(args.out_low_coverage, OUT_LOW_COVERAGE, args.output_suffix)
     out_contributions = resolve_output_path(args.out_contributions, OUT_CONTRIBUTIONS, args.output_suffix)
+    out_servings_adjustments = resolve_output_path(
+        args.out_servings_adjustments,
+        OUT_SERVINGS_ADJUSTMENTS,
+        args.output_suffix,
+    )
+    servings_adjustment_path = resolve_servings_adjustment_path(args.servings_adjustment_path, args.output_suffix)
 
     fooddb_lookup = build_fooddb_lookup(food_rows)
     cache_rows, recipe_audit_rows, low_coverage_rows, contribution_rows = build_cache_rows(
@@ -1078,12 +1458,28 @@ def main() -> None:
         mapping_rows,
         fooddb_lookup,
     )
+    servings_adjustments = load_servings_adjustments(servings_adjustment_path)
+    applied_servings_adjustments = apply_servings_adjustments(
+        cache_rows,
+        recipe_audit_rows,
+        servings_adjustments,
+    )
+    low_coverage_rows = [
+        row for row in recipe_audit_rows
+        if clean_text(row.get("cache_status")) != "usable_from_mapped_ingredients"
+        or clean_text(row.get("quality_flags"))
+    ]
 
-    audit_columns = CACHE_COLUMNS + ["is_complete_or_near_complete_meal", "blocking_with_grams_count"]
-    write_csv(out_cache, cache_rows, CACHE_COLUMNS)
+    cache_columns = CACHE_COLUMNS
+    if servings_adjustments or "round10" in clean_text(args.output_suffix).casefold():
+        cache_columns = CACHE_COLUMNS + SERVINGS_ADJUSTMENT_COLUMNS
+    audit_columns = cache_columns + ["is_complete_or_near_complete_meal", "blocking_with_grams_count"]
+    write_csv(out_cache, cache_rows, cache_columns)
     write_csv(out_recipe_audit, recipe_audit_rows, audit_columns)
     write_csv(out_low_coverage, sort_low_coverage(low_coverage_rows), audit_columns)
     write_csv(out_contributions, contribution_rows, CONTRIBUTION_COLUMNS)
+    if servings_adjustments or "round10" in clean_text(args.output_suffix).casefold():
+        write_csv(out_servings_adjustments, applied_servings_adjustments, SERVINGS_ADJUSTMENT_AUDIT_COLUMNS)
 
     summary = build_summary(cache_rows, recipe_audit_rows, contribution_rows, mapping_rows, args.output_suffix)
     out_summary.parent.mkdir(parents=True, exist_ok=True)
@@ -1094,6 +1490,10 @@ def main() -> None:
     print(f"total_recipes={len(cache_rows)}")
     for status, count in status_counts.most_common():
         print(f"{status}={count}")
+    if servings_adjustments or "round10" in clean_text(args.output_suffix).casefold():
+        print(f"servings_adjustments_loaded={len(servings_adjustments)}")
+        print(f"servings_adjustments_applied={len(applied_servings_adjustments)}")
+        print(f"written_servings_adjustments={out_servings_adjustments}")
     print(f"written_cache={out_cache}")
     print(f"written_summary={out_summary}")
 

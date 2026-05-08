@@ -34,6 +34,15 @@ DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT = Path(
 DEFAULT_FOODDB_V1_1_ROUND4_MATCHES_OUT = Path(
     "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round4_strict_safe.csv"
 )
+DEFAULT_FOODDB_V1_1_ROUND5_MATCHES_OUT = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round5_manual_decisions.csv"
+)
+DEFAULT_FOODDB_V1_1_ROUND7_MATCHES_OUT = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round7_macro_blockers.csv"
+)
+DEFAULT_FOODDB_V1_1_ROUND8_MATCHES_OUT = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round8_unit_rules_punctual_mapping.csv"
+)
 ROUND2_FOODDB_APPLIED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round2_additions_applied.csv")
 ROUND2_FOODDB_DEFERRED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round2_additions_deferred.csv")
 ROUND3_FOODDB_APPLIED_AUDIT = Path("data/fooddb/audit/fooddb_v1_1_round3_additions_applied.csv")
@@ -182,6 +191,32 @@ ROUND5_MANUAL_FOOD_IDS = {
     "pork_tenderloin": "food_pork_tenderloin_lean_raw",
 }
 
+ROUND7_MACRO_BLOCKER_FOOD_IDS = {
+    "mayonnaise": "food_mayonnaise_70_fat_and_more_prepacked",
+    "ham": "food_cooked_ham_choice",
+    "bay_scallops": "food_scallop_without_coral_raw",
+    "pork_sausage": "food_sausage_meat_pure_pork_raw",
+}
+
+ROUND8_PUNCTUAL_FOOD_IDS = {
+    "mushrooms_raw": "food_button_mushroom_or_cultivated_mushroom_raw",
+    "asparagus_raw": "food_asparagus_green_raw",
+    "basmati_rice_raw": "food_basmati_rice_raw",
+    "basmati_rice_cooked": "food_rice_basmati_cooked",
+}
+
+ROUND9_FINAL_MAPPING_FOOD_IDS = {
+    "all_purpose_flour": "food_wheat_flour_white_all_purpose_enriched_unbleached",
+    "whole_wheat_flour": "food_wheat_flour_whole_grain_soft_wheat",
+    "salted_cod_fish": "food_cod_atlantic_dried_and_salted",
+    "chicken_meat": "food_chicken_meat_raw",
+    "crabmeat": "food_crab_raw",
+    "morel_mushrooms": "food_morel_raw",
+    "ricotta_cheese": "food_ricotta_cheese",
+    "shiitake_mushrooms_dried": "food_shiitake_mushroom_dried",
+    "sirloin_steak": "food_beef_sirloin_steak_raw",
+}
+
 BASELINE_CURRENT_FOODDB_MAPPING = {
     "accepted_auto": 583,
     "review_needed": 508,
@@ -233,6 +268,12 @@ def resolve_output_path(explicit_path: str, default_path: Path, output_suffix: s
 
 def infer_fooddb_version_used(fooddb_path: Path, output_suffix: str) -> str:
     combined = normalize_match_text(f"{fooddb_path.as_posix()} {output_suffix}")
+    if "round9" in combined:
+        return "fooddb_v1_1_draft_round9"
+    if "round8" in combined:
+        return "fooddb_v1_1_draft_round8"
+    if "round7" in combined:
+        return "fooddb_v1_1_draft_round7"
     if "round5" in combined:
         return "fooddb_v1_1_draft_round5"
     if "round3" in combined:
@@ -874,6 +915,360 @@ def round5_manual_decision_promotion(
     return result
 
 
+def round7_macro_blocker_promotion(
+    ingredient_row: dict[str, str],
+    food_indexes: dict[str, dict[str, list[dict[str, str]]]],
+) -> dict[str, str] | None:
+    ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
+    parsed_name = normalize_match_text(ingredient_row.get("ingredient_name_parsed"))
+    raw_text = normalize_match_text(ingredient_row.get("ingredient_raw_text"))
+    combined_text = normalize_match_text(f"{raw_text} {parsed_name} {ingredient_name}")
+
+    promotion_food_id = ""
+    promotion_note = ""
+    manual_notes = ""
+    status = "accepted_auto"
+    confidence = "medium"
+
+    if ingredient_name == "mayonnaise":
+        promotion_food_id = ROUND7_MACRO_BLOCKER_FOOD_IDS["mayonnaise"]
+        promotion_note = "round7_macro_blocker:mayonnaise_exact"
+        manual_notes = "exact_mayonnaise_70_fat_prepacked; do_not_map_aioli_or_salad_dressing"
+    elif ingredient_name == "ham":
+        if "bacon" in combined_text or "prosciutto" in combined_text or "sausage" in combined_text:
+            return None
+        promotion_food_id = ROUND7_MACRO_BLOCKER_FOOD_IDS["ham"]
+        promotion_note = "round7_macro_blocker:ham_exact"
+        manual_notes = "generic_cooked_ham_macro_draft; do_not_map_bacon_prosciutto_sausage"
+    elif ingredient_name == "bay scallops":
+        promotion_food_id = ROUND7_MACRO_BLOCKER_FOOD_IDS["bay_scallops"]
+        promotion_note = "round7_macro_blocker:bay_scallops_to_scallop_raw"
+        manual_notes = "bay_scallops_collapsed_to_scallop_raw_without_coral_v1_1"
+    elif ingredient_name in {"pork sausage", "mild italian sausage links", "spicy pork sausage"}:
+        promotion_food_id = ROUND7_MACRO_BLOCKER_FOOD_IDS["pork_sausage"]
+        promotion_note = "round7_macro_blocker:pork_sausage_to_generic_pork_sausage"
+        manual_notes = "sausage_variant_collapsed_to_generic_pork_sausage_v1_1"
+        if ingredient_name == "pork sausage":
+            manual_notes = "generic_pork_sausage_meat_raw_macro_draft"
+    elif ingredient_name == "salted cod fish":
+        return empty_result(
+            "review_needed",
+            "round7_deferred",
+            ["round7_deferred:exact_salted_cod_item_missing_do_not_force_generic_cod"],
+        )
+    elif ingredient_name in {"pork neck bones", "pork"}:
+        return empty_result(
+            "review_needed",
+            "round7_deferred",
+            [f"round7_deferred:{ingredient_name.replace(' ', '_')}_not_globally_promoted"],
+        )
+    elif ingredient_name == "spinach pasta dough":
+        return empty_result(
+            "review_needed",
+            "round7_deferred",
+            ["round7_deferred:exact_spinach_pasta_dough_item_missing"],
+        )
+
+    if not promotion_food_id:
+        return None
+
+    food_row = get_by_food_id(food_indexes, promotion_food_id)
+    if not food_row:
+        return empty_result(
+            "review_needed",
+            "round7_deferred",
+            [f"round7_target_missing:{promotion_food_id}"],
+        )
+
+    result = match_result(
+        food_row=food_row,
+        status=status,
+        confidence=confidence,
+        method="round7_macro_blocker",
+        notes=[promotion_note],
+        manual_decision_notes=manual_notes,
+    )
+    if parsed_name and parsed_name != ingredient_name:
+        notes = [note.strip() for note in clean_text(result.get("mapping_notes")).split(";") if note.strip()]
+        notes.append(f"parsed_name={parsed_name}")
+        result["mapping_notes"] = "; ".join(dict.fromkeys(notes))
+    return result
+
+
+def has_forbidden_round8_mushroom_signal(row: dict[str, str]) -> bool:
+    text = normalize_match_text(
+        f"{row.get('ingredient_raw_text', '')} {row.get('ingredient_name_parsed', '')}"
+    )
+    return "mushroom soup" in text or "mushroom sauce" in text
+
+
+def has_forbidden_round8_asparagus_signal(row: dict[str, str]) -> bool:
+    text = normalize_match_text(
+        f"{row.get('ingredient_raw_text', '')} {row.get('ingredient_name_parsed', '')}"
+    )
+    blocked_terms = ["asparagus soup", "asparagus sauce", "pickled asparagus"]
+    return any(term in text for term in blocked_terms)
+
+
+def round8_basmati_rice_key(row: dict[str, str]) -> str:
+    ingredient_name = normalize_match_text(row.get("ingredient_name_normalized"))
+    text = normalize_match_text(
+        f"{row.get('ingredient_raw_text', '')} {row.get('ingredient_name_parsed', '')} {ingredient_name}"
+    )
+    if has_forbidden_rice_signal(row):
+        return ""
+    if "basmati" not in text:
+        return ""
+    if "cooked" in text:
+        return "basmati_rice_cooked"
+    if any(signal in text for signal in ("dry", "uncooked", "raw")):
+        return "basmati_rice_raw"
+    return ""
+
+
+def round8_punctual_mapping_promotion(
+    ingredient_row: dict[str, str],
+    food_indexes: dict[str, dict[str, list[dict[str, str]]]],
+) -> dict[str, str] | None:
+    ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
+    parsed_name = normalize_match_text(ingredient_row.get("ingredient_name_parsed"))
+
+    promotion_food_id = ""
+    promotion_note = ""
+    manual_notes = ""
+
+    if ingredient_name == "mushrooms":
+        if has_forbidden_round8_mushroom_signal(ingredient_row):
+            return None
+        promotion_food_id = ROUND8_PUNCTUAL_FOOD_IDS["mushrooms_raw"]
+        promotion_note = "round8_punctual_mapping:mushrooms_to_raw_button_mushroom"
+        manual_notes = "raw_mushrooms_existing_fooddb_item; do_not_map_mushroom_soup_or_sauce"
+    elif ingredient_name == "asparagus":
+        if has_forbidden_round8_asparagus_signal(ingredient_row):
+            return None
+        promotion_food_id = ROUND8_PUNCTUAL_FOOD_IDS["asparagus_raw"]
+        promotion_note = "round8_punctual_mapping:asparagus_raw_exact"
+        manual_notes = "raw_asparagus_existing_fooddb_item"
+    elif "basmati rice" in ingredient_name:
+        rice_key = round8_basmati_rice_key(ingredient_row)
+        promotion_food_id = ROUND8_PUNCTUAL_FOOD_IDS.get(rice_key, "")
+        if rice_key:
+            promotion_note = f"round8_punctual_mapping:basmati_state_clear:{rice_key}"
+            manual_notes = "basmati_rice_mapped_only_when_cooked_or_dry_state_is_clear"
+        else:
+            return empty_result(
+                "review_needed",
+                "round8_deferred",
+                ["round8_deferred:basmati_rice_state_not_clear"],
+            )
+    elif ingredient_name in {"tomatillo", "tomatillos"}:
+        return empty_result(
+            "review_needed",
+            "round8_deferred",
+            ["round8_deferred:exact_tomatillo_item_missing"],
+        )
+    elif ingredient_name == "whole wheat flour":
+        return empty_result(
+            "review_needed",
+            "round8_deferred",
+            ["round8_deferred:exact_whole_wheat_flour_item_missing"],
+        )
+    elif ingredient_name == "salted cod fish":
+        return empty_result(
+            "review_needed",
+            "round8_deferred",
+            ["round8_deferred:exact_salted_cod_item_missing_do_not_force_generic_cod"],
+        )
+    elif ingredient_name in {"pork neck bones", "pork", "turkey"}:
+        return empty_result(
+            "review_needed",
+            "round8_deferred",
+            [f"round8_deferred:{ingredient_name.replace(' ', '_')}_not_globally_promoted"],
+        )
+    elif ingredient_name == "spinach pasta dough":
+        return empty_result(
+            "review_needed",
+            "round8_deferred",
+            ["round8_deferred:exact_spinach_pasta_dough_item_missing"],
+        )
+
+    if not promotion_food_id:
+        return None
+
+    food_row = get_by_food_id(food_indexes, promotion_food_id)
+    if not food_row:
+        return empty_result(
+            "review_needed",
+            "round8_deferred",
+            [f"round8_target_missing:{promotion_food_id}"],
+        )
+
+    result = match_result(
+        food_row=food_row,
+        status="accepted_auto",
+        confidence="medium",
+        method="round8_punctual_mapping",
+        notes=[promotion_note],
+        manual_decision_notes=manual_notes,
+    )
+    if parsed_name and parsed_name != ingredient_name:
+        notes = [note.strip() for note in clean_text(result.get("mapping_notes")).split(";") if note.strip()]
+        notes.append(f"parsed_name={parsed_name}")
+        result["mapping_notes"] = "; ".join(dict.fromkeys(notes))
+    return result
+
+
+def round9_rice_state_is_unclear(row: dict[str, str]) -> bool:
+    text = normalize_match_text(
+        f"{row.get('ingredient_raw_text', '')} {row.get('ingredient_name_parsed', '')} {row.get('ingredient_name_normalized', '')}"
+    )
+    if has_forbidden_rice_signal(row):
+        return False
+    if "rice" not in text:
+        return False
+    state_signals = ["cooked", "dry", "uncooked", "raw"]
+    return not any(signal in text for signal in state_signals)
+
+
+def round9_all_purpose_flour_key(ingredient_name: str, row: dict[str, str]) -> str:
+    text = normalize_match_text(
+        f"{row.get('ingredient_raw_text', '')} {row.get('ingredient_name_parsed', '')} {ingredient_name}"
+    )
+    if "all purpose flour" in text:
+        return "all_purpose_flour"
+    return ""
+
+
+def round9_final_mapping_promotion(
+    ingredient_row: dict[str, str],
+    food_indexes: dict[str, dict[str, list[dict[str, str]]]],
+) -> dict[str, str] | None:
+    ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
+    parsed_name = normalize_match_text(ingredient_row.get("ingredient_name_parsed"))
+    raw_text = normalize_match_text(ingredient_row.get("ingredient_raw_text"))
+
+    promotion_food_id = ""
+    promotion_note = ""
+    manual_notes = ""
+
+    flour_key = round9_all_purpose_flour_key(ingredient_name, ingredient_row)
+    if flour_key:
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS[flour_key]
+        promotion_note = "round9_final_mapping:exact_all_purpose_flour"
+        manual_notes = "round9_source_added_usda_168936; only_explicit_all_purpose_flour_variants"
+    elif ingredient_name == "whole wheat flour":
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["whole_wheat_flour"]
+        promotion_note = "round9_final_mapping:exact_whole_wheat_flour"
+        manual_notes = "round9_source_added_usda_168944"
+    elif ingredient_name == "salted cod fish":
+        if "salted cod" not in raw_text:
+            return empty_result(
+                "review_needed",
+                "round9_deferred",
+                ["round9_deferred:cod_without_salted_signal_not_promoted"],
+            )
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["salted_cod_fish"]
+        promotion_note = "round9_final_mapping:exact_salted_cod_fish"
+        manual_notes = "round9_source_added_usda_174190; do_not_force_generic_cod"
+    elif ingredient_name == "chicken meat":
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["chicken_meat"]
+        promotion_note = "round9_final_mapping:exact_chicken_meat"
+        manual_notes = "existing_fooddb_exact_chicken_meat_raw; no_count_rule"
+    elif ingredient_name == "sirloin steak":
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["sirloin_steak"]
+        promotion_note = "round9_final_mapping:exact_sirloin_steak"
+        manual_notes = "existing_fooddb_exact_sirloin_steak_raw"
+    elif ingredient_name == "morel mushrooms":
+        if "dried" in raw_text:
+            return empty_result(
+                "review_needed",
+                "round9_deferred",
+                ["round9_deferred:morel_state_not_raw_fresh"],
+            )
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["morel_mushrooms"]
+        promotion_note = "round9_final_mapping:exact_fresh_morel_mushrooms"
+        manual_notes = "existing_fooddb_exact_morel_raw"
+    elif ingredient_name == "shiitake mushrooms":
+        if "dried" not in raw_text:
+            return empty_result(
+                "review_needed",
+                "round9_deferred",
+                ["round9_deferred:shiitake_state_not_dried"],
+            )
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["shiitake_mushrooms_dried"]
+        promotion_note = "round9_final_mapping:exact_dried_shiitake_mushrooms"
+        manual_notes = "existing_fooddb_exact_shiitake_mushroom_dried"
+    elif ingredient_name == "ricotta cheese":
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["ricotta_cheese"]
+        promotion_note = "round9_final_mapping:exact_ricotta_cheese"
+        manual_notes = "existing_fooddb_exact_ricotta; no_new_cup_rule"
+    elif ingredient_name == "crabmeat":
+        if "imitation" in raw_text:
+            return empty_result(
+                "review_needed",
+                "round9_deferred",
+                ["round9_deferred:imitation_crabmeat_is_composed"],
+            )
+        promotion_food_id = ROUND9_FINAL_MAPPING_FOOD_IDS["crabmeat"]
+        promotion_note = "round9_final_mapping:fresh_crabmeat_to_raw_crab"
+        manual_notes = "existing_fooddb_raw_crab_for_fresh_crabmeat"
+    elif ingredient_name in {"tomatillo", "tomatillos"}:
+        return empty_result(
+            "review_needed",
+            "round9_deferred",
+            ["round9_deferred:tomatillo_source_macro_incomplete_or_energy_suspect_low_macro_priority"],
+        )
+    elif ingredient_name == "flour":
+        return empty_result(
+            "review_needed",
+            "round9_deferred",
+            ["round9_deferred:generic_flour_not_forced_to_all_purpose_flour"],
+        )
+    elif round9_rice_state_is_unclear(ingredient_row):
+        return empty_result(
+            "review_needed",
+            "round9_deferred",
+            ["round9_deferred:rice_state_not_clear"],
+        )
+    elif ingredient_name in {"pork neck bones", "pork", "turkey"}:
+        return empty_result(
+            "review_needed",
+            "round9_deferred",
+            [f"round9_deferred:{ingredient_name.replace(' ', '_')}_not_globally_promoted"],
+        )
+    elif ingredient_name == "spinach pasta dough":
+        return empty_result(
+            "review_needed",
+            "round9_deferred",
+            ["round9_deferred:prepared_spinach_pasta_dough_not_fooddb_atomic_item"],
+        )
+
+    if not promotion_food_id:
+        return None
+
+    food_row = get_by_food_id(food_indexes, promotion_food_id)
+    if not food_row:
+        return empty_result(
+            "review_needed",
+            "round9_deferred",
+            [f"round9_target_missing:{promotion_food_id}"],
+        )
+
+    result = match_result(
+        food_row=food_row,
+        status="accepted_auto",
+        confidence="high",
+        method="round9_final_mapping",
+        notes=[promotion_note],
+        manual_decision_notes=manual_notes,
+    )
+    if parsed_name and parsed_name != ingredient_name:
+        notes = [note.strip() for note in clean_text(result.get("mapping_notes")).split(";") if note.strip()]
+        notes.append(f"parsed_name={parsed_name}")
+        result["mapping_notes"] = "; ".join(dict.fromkeys(notes))
+    return result
+
+
 def empty_result(status: str, method: str, notes: list[str]) -> dict[str, str]:
     return {
         "mapped_food_id": "",
@@ -934,6 +1329,9 @@ def attempt_match(
     enable_round3_promotions: bool = False,
     enable_round4_promotions: bool = False,
     enable_round5_promotions: bool = False,
+    enable_round7_promotions: bool = False,
+    enable_round8_promotions: bool = False,
+    enable_round9_promotions: bool = False,
 ) -> dict[str, str]:
     ingredient_name = normalize_match_text(ingredient_row.get("ingredient_name_normalized"))
     if not ingredient_name:
@@ -946,6 +1344,16 @@ def attempt_match(
         round5_result = round5_manual_decision_promotion(ingredient_row, food_indexes)
         if round5_result:
             return gate_review_if_needed(ingredient_row, round5_result)
+
+    if enable_round9_promotions:
+        round9_result = round9_final_mapping_promotion(ingredient_row, food_indexes)
+        if round9_result:
+            return gate_review_if_needed(ingredient_row, round9_result)
+
+    if enable_round7_promotions:
+        round7_result = round7_macro_blocker_promotion(ingredient_row, food_indexes)
+        if round7_result:
+            return gate_review_if_needed(ingredient_row, round7_result)
 
     if " and " in f" {ingredient_name} " or " or " in f" {ingredient_name} ":
         return empty_result("review_needed", "review_candidate", ["compound_or_alternative_ingredient_name"])
@@ -996,6 +1404,11 @@ def attempt_match(
         round3_result = attempt_round3_promotion(ingredient_row, food_indexes)
         if round3_result:
             return gate_review_if_needed(ingredient_row, round3_result)
+
+    if enable_round8_promotions:
+        round8_result = round8_punctual_mapping_promotion(ingredient_row, food_indexes)
+        if round8_result:
+            return gate_review_if_needed(ingredient_row, round8_result)
 
     exact_candidate = exact_key(ingredient_name)
     normalized_candidate = normalize_match_text(ingredient_name)
@@ -1135,6 +1548,12 @@ def load_baseline_counts(path: Path) -> dict[str, int]:
 
 def choose_baseline_path(output_suffix: str) -> Path:
     normalized_suffix = normalize_match_text(output_suffix)
+    if "round9" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND8_MATCHES_OUT.exists():
+        return DEFAULT_FOODDB_V1_1_ROUND8_MATCHES_OUT
+    if "round8" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND7_MATCHES_OUT.exists():
+        return DEFAULT_FOODDB_V1_1_ROUND7_MATCHES_OUT
+    if "round7" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND5_MATCHES_OUT.exists():
+        return DEFAULT_FOODDB_V1_1_ROUND5_MATCHES_OUT
     if "round5" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND4_MATCHES_OUT.exists():
         return DEFAULT_FOODDB_V1_1_ROUND4_MATCHES_OUT
     if "round4" in normalized_suffix and DEFAULT_FOODDB_V1_1_ROUND3_MATCHES_OUT.exists():
@@ -1253,6 +1672,9 @@ def build_summary(
     round3_counts, round3_with_grams_counts = build_method_usage(mapped_rows, "round3_targeted_blocker")
     round4_counts, round4_with_grams_counts = build_method_usage(mapped_rows, "round4_strict_safe")
     round5_counts, round5_with_grams_counts = build_method_usage(mapped_rows, "round5_manual_decision")
+    round7_counts, round7_with_grams_counts = build_method_usage(mapped_rows, "round7_macro_blocker")
+    round8_counts, round8_with_grams_counts = build_method_usage(mapped_rows, "round8_punctual_mapping")
+    round9_counts, round9_with_grams_counts = build_method_usage(mapped_rows, "round9_final_mapping")
     kept_review_reasons = build_kept_review_reasons(mapped_rows)
     round2_applied_rows = load_round2_fooddb_audit(ROUND2_FOODDB_APPLIED_AUDIT)
     round2_deferred_rows = load_round2_fooddb_audit(ROUND2_FOODDB_DEFERRED_AUDIT)
@@ -1359,6 +1781,36 @@ def build_summary(
         lines.extend(f"- {name}: {count}" for name, count in round5_with_grams_counts)
     else:
         lines.append("- none")
+    lines.extend(["", "Round7 macro-blocker decisions in this run:"])
+    if round7_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round7_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round7 macro-blocker decisions with grams:"])
+    if round7_with_grams_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round7_with_grams_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round8 unit-rules/punctual mapping decisions in this run:"])
+    if round8_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round8_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round8 unit-rules/punctual mapping decisions with grams:"])
+    if round8_with_grams_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round8_with_grams_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round9 final mapping decisions in this run:"])
+    if round9_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round9_counts)
+    else:
+        lines.append("- none")
+    lines.extend(["", "Round9 final mapping decisions with grams:"])
+    if round9_with_grams_counts:
+        lines.extend(f"- {name}: {count}" for name, count in round9_with_grams_counts)
+    else:
+        lines.append("- none")
     lines.extend(["", "Round2 Food_DB additions/promotions applied:"])
     if round2_applied_rows:
         lines.extend(
@@ -1447,7 +1899,10 @@ def main() -> None:
     baseline_path = choose_baseline_path(args.output_suffix)
     baseline_counts = load_baseline_counts(baseline_path)
     normalized_suffix = normalize_match_text(args.output_suffix)
-    is_round5 = "round5" in normalized_suffix
+    is_round9 = "round9" in normalized_suffix
+    is_round8 = "round8" in normalized_suffix or is_round9
+    is_round7 = "round7" in normalized_suffix or is_round8
+    is_round5 = "round5" in normalized_suffix or is_round7
     is_round4 = "round4" in normalized_suffix or is_round5
     enable_review_promotions = (
         "review promotions" in normalized_suffix or "round3" in normalized_suffix or is_round4
@@ -1456,6 +1911,9 @@ def main() -> None:
     enable_round3_promotions = "round3" in normalized_suffix or is_round4
     enable_round4_promotions = is_round4
     enable_round5_promotions = is_round5
+    enable_round7_promotions = is_round7
+    enable_round8_promotions = is_round8
+    enable_round9_promotions = is_round9
 
     mapped_rows = [
         output_row(
@@ -1468,6 +1926,9 @@ def main() -> None:
                 enable_round3_promotions,
                 enable_round4_promotions,
                 enable_round5_promotions,
+                enable_round7_promotions,
+                enable_round8_promotions,
+                enable_round9_promotions,
             ),
             fooddb_version_used,
         )

@@ -31,6 +31,18 @@ ROUND5_OUT_DRAFT_PATH = REPO_ROOT / "data" / "fooddb" / "draft" / "fooddb_v1_1_c
 ROUND5_OUT_APPLIED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round5_additions_applied.csv"
 ROUND5_OUT_DEFERRED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round5_additions_deferred.csv"
 ROUND5_OUT_SUMMARY_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round5_summary.txt"
+ROUND7_OUT_DRAFT_PATH = REPO_ROOT / "data" / "fooddb" / "draft" / "fooddb_v1_1_core_master_draft_round7.csv"
+ROUND7_OUT_APPLIED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round7_additions_applied.csv"
+ROUND7_OUT_DEFERRED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round7_additions_deferred.csv"
+ROUND7_OUT_SUMMARY_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round7_summary.txt"
+ROUND8_OUT_DRAFT_PATH = REPO_ROOT / "data" / "fooddb" / "draft" / "fooddb_v1_1_core_master_draft_round8.csv"
+ROUND8_OUT_APPLIED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round8_additions_applied.csv"
+ROUND8_OUT_DEFERRED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round8_additions_deferred.csv"
+ROUND8_OUT_SUMMARY_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round8_summary.txt"
+ROUND9_OUT_DRAFT_PATH = REPO_ROOT / "data" / "fooddb" / "draft" / "fooddb_v1_1_core_master_draft_round9.csv"
+ROUND9_OUT_APPLIED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round9_additions_applied.csv"
+ROUND9_OUT_DEFERRED_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round9_additions_deferred.csv"
+ROUND9_OUT_SUMMARY_PATH = REPO_ROOT / "data" / "fooddb" / "audit" / "fooddb_v1_1_round9_summary.txt"
 
 APPROVED_ADDITIONS = {"green beans", "parmesan cheese", "cornstarch"}
 EXPLICITLY_DEFERRED = {
@@ -135,6 +147,180 @@ ROUND5_EXPLICITLY_DEFERRED = {
     "tomato_sauce": "source_energy_suspicious_possible_kj_or_non_kcal_unit",
 }
 
+ROUND7_EXISTING_ALIAS_TARGETS = {
+    "mayonnaise_exact": "food_mayonnaise_70_fat_and_more_prepacked",
+    "ham_exact": "food_cooked_ham_choice",
+    "bay_scallops_to_scallop_raw": "food_scallop_without_coral_raw",
+    "pork_sausage_exact": "food_sausage_meat_pure_pork_raw",
+    "mild_italian_sausage_to_generic_pork_sausage": "food_sausage_meat_pure_pork_raw",
+    "spicy_pork_sausage_to_generic_pork_sausage": "food_sausage_meat_pure_pork_raw",
+}
+
+ROUND7_ALIAS_NOTES = {
+    "mayonnaise_exact": "round7_macro_blocker; exact_mayonnaise_prepacked_70_fat",
+    "ham_exact": "round7_macro_blocker; exact_cooked_ham_macro_draft",
+    "bay_scallops_to_scallop_raw": "round7_macro_blocker; bay_scallops_collapsed_to_scallop_raw_without_coral",
+    "pork_sausage_exact": "round7_macro_blocker; generic_pork_sausage_meat_raw",
+    "mild_italian_sausage_to_generic_pork_sausage": "round7_macro_blocker; sausage_variant_collapsed_to_generic_pork_sausage_v1_1",
+    "spicy_pork_sausage_to_generic_pork_sausage": "round7_macro_blocker; sausage_variant_collapsed_to_generic_pork_sausage_v1_1",
+}
+
+ROUND7_ALIAS_SAFETY = {
+    "mayonnaise_exact": "safe_auto",
+    "ham_exact": "safe_auto",
+    "bay_scallops_to_scallop_raw": "safe_auto",
+    "pork_sausage_exact": "safe_auto",
+    "mild_italian_sausage_to_generic_pork_sausage": "needs_review",
+    "spicy_pork_sausage_to_generic_pork_sausage": "needs_review",
+}
+
+ROUND7_EXPLICITLY_DEFERRED = {
+    "pork_neck_bones": "pork_neck_bones_need_bone_specific_yield_and_source_keep_deferred",
+    "generic_pork": "generic_pork_remains_broad_keep_review",
+    "generic_beef": "generic_beef_still_not_promoted_globally",
+    "generic_turkey": "generic_turkey_not_globally_promoted",
+    "salted_cod_fish": "exact_salted_cod_item_missing_keep_review",
+    "spinach_pasta_dough": "exact_spinach_pasta_dough_item_missing_keep_review",
+    "rice_vinegar_variants": "vinegar_variants_not_macro_blocker_and_unsafe_for_rice_mapping",
+    "tomato_sauce": "source_energy_suspicious_possible_kj_or_non_kcal_unit",
+    "ambiguous_processed_dishes": "do_not_add_composed_recipes_as_fooddb_items",
+}
+
+ROUND8_EXISTING_ALIAS_TARGETS = {
+    "mushrooms_raw": "food_button_mushroom_or_cultivated_mushroom_raw",
+    "asparagus_raw": "food_asparagus_green_raw",
+    "basmati_rice_raw": "food_basmati_rice_raw",
+    "basmati_rice_cooked": "food_rice_basmati_cooked",
+}
+
+ROUND8_ALIAS_NOTES = {
+    "mushrooms_raw": "round8_punctual_mapping; exact_raw_button_mushroom_existing",
+    "asparagus_raw": "round8_punctual_mapping; exact_raw_asparagus_existing",
+    "basmati_rice_raw": "round8_punctual_mapping; exact_raw_basmati_rice_existing",
+    "basmati_rice_cooked": "round8_punctual_mapping; exact_cooked_basmati_rice_existing",
+}
+
+ROUND8_ALIAS_SAFETY = {
+    "mushrooms_raw": "safe_auto",
+    "asparagus_raw": "safe_auto",
+    "basmati_rice_raw": "safe_auto",
+    "basmati_rice_cooked": "safe_auto",
+}
+
+ROUND8_EXPLICITLY_DEFERRED = {
+    "tomatillos_raw": "exact_tomatillo_item_missing_keep_unmapped",
+    "whole_wheat_flour": "exact_whole_wheat_flour_item_missing_keep_unmapped",
+    "salted_cod_fish": "exact_salted_cod_item_missing_keep_review",
+    "pork_neck_bones": "pork_neck_bones_need_bone_specific_yield_and_source_keep_deferred",
+    "generic_pork": "generic_pork_remains_broad_keep_review",
+    "generic_beef": "generic_beef_still_not_promoted_globally",
+    "generic_turkey": "generic_turkey_not_globally_promoted",
+    "spinach_pasta_dough": "exact_spinach_pasta_dough_item_missing_keep_review",
+    "tomato_sauce": "source_energy_suspicious_possible_kj_or_non_kcal_unit",
+    "rice_vinegar_variants": "vinegar_variants_not_macro_blocker_and_unsafe_for_rice_mapping",
+    "prepared_or_composed_dishes": "do_not_add_composed_recipes_as_fooddb_items",
+}
+
+ROUND9_SOURCE_ADDITIONS = {
+    "all purpose flour": {
+        "suggested_food_id": "food_wheat_flour_white_all_purpose_enriched_unbleached",
+        "suggested_canonical_name": "wheat_flour_white_all_purpose_enriched_unbleached",
+        "suggested_display_name": "Wheat flour, white, all-purpose, enriched, unbleached",
+        "suggested_food_group": "cereal grains and pasta",
+        "suggested_role": "carb_ingredient",
+        "source_used": "data/fooddb/source/comprehensive_foods_usda.csv",
+        "source_row_reference": "usda:168936",
+        "energy_kcal_100": "364.0",
+        "protein_g_100": "10.3",
+        "carbs_g_100": "76.3",
+        "fat_g_100": "0.98",
+        "frequency_in_v1_1": "8",
+        "rows_with_grams": "8",
+        "total_grams_affected": "663.75",
+        "proposed_action": "add_to_fooddb_round9_draft",
+        "safety": "safe_auto",
+        "review_notes": "round9_final_mapping; exact_all_purpose_flour_source_macro_sane",
+        "example_raw_texts": "1 tablespoon all-purpose flour | 2 cups all-purpose flour | 1/2 cup all-purpose flour for coating",
+        "example_recipes": "Creamy Morel Mushroom Soup | Mom's Best Waffles | Braised Beef Short Ribs",
+    },
+    "whole wheat flour": {
+        "suggested_food_id": "food_wheat_flour_whole_grain_soft_wheat",
+        "suggested_canonical_name": "wheat_flour_whole_grain_soft_wheat",
+        "suggested_display_name": "Wheat flour, whole-grain, soft wheat",
+        "suggested_food_group": "cereal grains and pasta",
+        "suggested_role": "carb_ingredient",
+        "source_used": "data/fooddb/source/comprehensive_foods_usda.csv",
+        "source_row_reference": "usda:168944",
+        "energy_kcal_100": "332.0",
+        "protein_g_100": "9.61",
+        "carbs_g_100": "74.5",
+        "fat_g_100": "1.95",
+        "frequency_in_v1_1": "2",
+        "rows_with_grams": "2",
+        "total_grams_affected": "660",
+        "proposed_action": "add_to_fooddb_round9_draft",
+        "safety": "safe_auto",
+        "review_notes": "round9_final_mapping; exact_whole_wheat_flour_source_macro_sane",
+        "example_raw_texts": "5 cups whole wheat flour | 1/2 cup whole wheat flour",
+        "example_recipes": "Bacon-Flavored Dog Biscuits | Harvest Patties",
+    },
+    "salted cod fish": {
+        "suggested_food_id": "food_cod_atlantic_dried_and_salted",
+        "suggested_canonical_name": "cod_atlantic_dried_and_salted",
+        "suggested_display_name": "Fish, cod, Atlantic, dried and salted",
+        "suggested_food_group": "meat, fish, eggs and alternatives",
+        "suggested_role": "protein",
+        "source_used": "data/fooddb/source/comprehensive_foods_usda.csv",
+        "source_row_reference": "usda:174190",
+        "energy_kcal_100": "290.0",
+        "protein_g_100": "62.8",
+        "carbs_g_100": "0.0",
+        "fat_g_100": "2.37",
+        "frequency_in_v1_1": "1",
+        "rows_with_grams": "1",
+        "total_grams_affected": "907.18",
+        "proposed_action": "add_to_fooddb_round9_draft",
+        "safety": "safe_auto",
+        "review_notes": "round9_final_mapping; exact_salted_cod_source_macro_sane; do_not_force_generic_cod",
+        "example_raw_texts": "2 pounds salted cod fish",
+        "example_recipes": "Portuguese Cod Fish Casserole",
+    },
+}
+
+ROUND9_EXISTING_ALIAS_TARGETS = {
+    "chicken meat": "food_chicken_meat_raw",
+    "crabmeat": "food_crab_raw",
+    "morel mushrooms": "food_morel_raw",
+    "ricotta cheese": "food_ricotta_cheese",
+    "shiitake mushrooms": "food_shiitake_mushroom_dried",
+    "sirloin steak": "food_beef_sirloin_steak_raw",
+}
+
+ROUND9_ALIAS_NOTES = {
+    "chicken meat": "round9_final_mapping; exact_chicken_meat_existing_fooddb",
+    "crabmeat": "round9_final_mapping; fresh_crabmeat_to_raw_crab_existing_fooddb",
+    "morel mushrooms": "round9_final_mapping; exact_fresh_morel_mushrooms_existing_fooddb",
+    "ricotta cheese": "round9_final_mapping; exact_ricotta_existing_fooddb_no_new_cup_rule",
+    "shiitake mushrooms": "round9_final_mapping; exact_dried_shiitake_existing_fooddb",
+    "sirloin steak": "round9_final_mapping; exact_sirloin_steak_existing_fooddb",
+}
+
+ROUND9_EXPLICITLY_DEFERRED = {
+    "tomatillos_raw": "exact_tomatillo_source_exists_but_macro_source_incomplete_or_energy_suspect_keep_deferred_low_macro",
+    "cod_fish_raw": "no_non_salted_cod_blocker_in_round9_do_not_add_unused_generic_cod",
+    "flour_generic": "generic_flour_not_promoted_to_all_purpose_without_exact_name",
+    "rice_state_unclear": "remaining_rice_or_basmati_rows_lack_explicit_cooked_or_dry_state",
+    "pork_neck_bones": "pork_neck_bones_need_bone_specific_yield_and_source_keep_deferred",
+    "generic_pork": "generic_pork_remains_broad_keep_review",
+    "generic_beef": "generic_beef_still_not_promoted_globally",
+    "generic_turkey": "generic_turkey_not_globally_promoted",
+    "spinach_pasta_dough": "prepared_dough_not_fooddb_atomic_item",
+    "tomato_sauce": "source_energy_suspicious_possible_kj_or_non_kcal_unit",
+    "rice_vinegar_variants": "vinegar_variants_not_macro_blocker_and_unsafe_for_rice_mapping",
+    "prepared_or_composed_dishes": "do_not_add_composed_recipes_as_fooddb_items",
+    "meat_count_or_piece_rows": "no_cod_fish_pork_beef_turkey_count_rules_without_edible_yield_decision",
+}
+
 MAX_PLAUSIBLE_ENERGY_KCAL_100G = 900.0
 MIN_MACRO_ENERGY_RATIO = 0.55
 MAX_MACRO_ENERGY_RATIO = 1.55
@@ -209,6 +395,60 @@ ADDITION_PROFILES = {
         "helper_is_vegetarian": "False",
         "helper_is_vegan": "False",
         "helper_protein_bucket": "",
+        "helper_carb_bucket": "",
+        "helper_veg_bucket": "",
+    },
+    "all purpose flour": {
+        "food_family_name": "Wheat flour",
+        "entity_level": "semi_atomic",
+        "food_group": "cereal grains and pasta",
+        "food_subgroup": "flours and starches",
+        "food_subgroup_detail": "wheat flours",
+        "processing_state": "dry",
+        "helper_use_as_protein": "False",
+        "helper_use_as_carb_side": "False",
+        "helper_use_as_veg_side": "False",
+        "helper_is_sweet": "False",
+        "helper_is_salty": "False",
+        "helper_is_vegetarian": "True",
+        "helper_is_vegan": "True",
+        "helper_protein_bucket": "",
+        "helper_carb_bucket": "grain",
+        "helper_veg_bucket": "",
+    },
+    "whole wheat flour": {
+        "food_family_name": "Wheat flour",
+        "entity_level": "semi_atomic",
+        "food_group": "cereal grains and pasta",
+        "food_subgroup": "flours and starches",
+        "food_subgroup_detail": "whole grain wheat flours",
+        "processing_state": "dry",
+        "helper_use_as_protein": "False",
+        "helper_use_as_carb_side": "False",
+        "helper_use_as_veg_side": "False",
+        "helper_is_sweet": "False",
+        "helper_is_salty": "False",
+        "helper_is_vegetarian": "True",
+        "helper_is_vegan": "True",
+        "helper_protein_bucket": "",
+        "helper_carb_bucket": "grain",
+        "helper_veg_bucket": "",
+    },
+    "salted cod fish": {
+        "food_family_name": "Cod",
+        "entity_level": "atomic",
+        "food_group": "meat, fish, eggs and alternatives",
+        "food_subgroup": "fish",
+        "food_subgroup_detail": "preserved fish",
+        "processing_state": "dried_salted",
+        "helper_use_as_protein": "True",
+        "helper_use_as_carb_side": "False",
+        "helper_use_as_veg_side": "False",
+        "helper_is_sweet": "False",
+        "helper_is_salty": "True",
+        "helper_is_vegetarian": "False",
+        "helper_is_vegan": "False",
+        "helper_protein_bucket": "fish",
         "helper_carb_bucket": "",
         "helper_veg_bucket": "",
     },
@@ -474,6 +714,10 @@ def build_audit_row(
             "alias_to_existing_round2",
             "alias_to_existing_round3",
             "alias_to_existing_round5",
+            "alias_to_existing_round7",
+            "alias_to_existing_round8",
+            "applied_to_round9_draft",
+            "alias_to_existing_round9",
         }
         else "not_applied",
         "sanity_notes": "; ".join(sanity_notes),
@@ -946,6 +1190,345 @@ def build_round5_draft(
     }
 
 
+def build_round7_draft(
+    base_fooddb_path: Path,
+    out_draft_path: Path,
+    out_applied_path: Path,
+    out_deferred_path: Path,
+    out_summary_path: Path,
+) -> dict[str, object]:
+    base_rows, fooddb_fields = read_csv(base_fooddb_path)
+    applied_rows: list[dict[str, object]] = []
+    deferred_rows: list[dict[str, object]] = []
+
+    for alias_key, food_id in sorted(ROUND7_EXISTING_ALIAS_TARGETS.items()):
+        food_row = find_food_row_by_id(base_rows, food_id)
+        source_candidate = {
+            "ingredient_name_normalized": alias_key,
+            "suggested_food_id": food_id,
+            "safety": ROUND7_ALIAS_SAFETY.get(alias_key, "needs_review"),
+            "review_notes": ROUND7_ALIAS_NOTES.get(alias_key, "round7_macro_blocker"),
+        }
+        if not food_row:
+            deferred_rows.append(
+                build_audit_row(
+                    source_candidate,
+                    "deferred",
+                    ["round7_existing_alias_target_missing"],
+                    None,
+                    "safe_existing_fooddb_item_not_found",
+                )
+            )
+            continue
+        macro_values = macro_values_from_fooddb_row(food_row)
+        if not macro_values:
+            deferred_rows.append(
+                build_audit_row(
+                    build_alias_candidate(alias_key, food_row, source_candidate),
+                    "deferred",
+                    ["existing_fooddb_item_missing_macros"],
+                    None,
+                    "existing_fooddb_item_missing_required_macros",
+                )
+            )
+            continue
+        applied_rows.append(
+            build_audit_row(
+                build_alias_candidate(alias_key, food_row, source_candidate),
+                "alias_to_existing_round7",
+                [ROUND7_ALIAS_NOTES.get(alias_key, "round7_macro_blocker")],
+                macro_values,
+            )
+        )
+
+    for ingredient_name, reason in sorted(ROUND7_EXPLICITLY_DEFERRED.items()):
+        deferred_rows.append(
+            build_audit_row(
+                {"ingredient_name_normalized": ingredient_name, "safety": "needs_review"},
+                "deferred",
+                ["not_appended_in_round7_macro_blocker_pass"],
+                None,
+                reason,
+            )
+        )
+
+    audit_fields = [
+        "ingredient_name_normalized",
+        "suggested_food_id",
+        "suggested_canonical_name",
+        "suggested_display_name",
+        "suggested_food_group",
+        "suggested_role",
+        "source_used",
+        "source_row_reference",
+        "energy_kcal_100g",
+        "protein_g_100g",
+        "carbs_g_100g",
+        "fat_g_100g",
+        "frequency_in_v1_1",
+        "rows_with_grams",
+        "total_grams_affected",
+        "proposed_action",
+        "final_action",
+        "safety",
+        "sanity_status",
+        "sanity_notes",
+        "defer_reason",
+        "review_notes",
+        "example_raw_texts",
+        "example_recipes",
+    ]
+
+    write_csv(out_draft_path, base_rows, fooddb_fields)
+    write_csv(out_applied_path, applied_rows, audit_fields)
+    write_csv(out_deferred_path, deferred_rows, audit_fields)
+    write_round7_summary(out_summary_path, base_rows, applied_rows, deferred_rows)
+
+    return {
+        "current_count": len(base_rows),
+        "applied_count": len(applied_rows),
+        "deferred_count": len(deferred_rows),
+        "final_count": len(base_rows),
+        "applied_rows": applied_rows,
+        "deferred_rows": deferred_rows,
+    }
+
+
+def build_round8_draft(
+    base_fooddb_path: Path,
+    out_draft_path: Path,
+    out_applied_path: Path,
+    out_deferred_path: Path,
+    out_summary_path: Path,
+) -> dict[str, object]:
+    base_rows, fooddb_fields = read_csv(base_fooddb_path)
+    applied_rows: list[dict[str, object]] = []
+    deferred_rows: list[dict[str, object]] = []
+
+    for alias_key, food_id in sorted(ROUND8_EXISTING_ALIAS_TARGETS.items()):
+        food_row = find_food_row_by_id(base_rows, food_id)
+        source_candidate = {
+            "ingredient_name_normalized": alias_key,
+            "suggested_food_id": food_id,
+            "safety": ROUND8_ALIAS_SAFETY.get(alias_key, "needs_review"),
+            "review_notes": ROUND8_ALIAS_NOTES.get(alias_key, "round8_punctual_mapping"),
+        }
+        if not food_row:
+            deferred_rows.append(
+                build_audit_row(
+                    source_candidate,
+                    "deferred",
+                    ["round8_existing_alias_target_missing"],
+                    None,
+                    "safe_existing_fooddb_item_not_found",
+                )
+            )
+            continue
+        macro_values = macro_values_from_fooddb_row(food_row)
+        if not macro_values:
+            deferred_rows.append(
+                build_audit_row(
+                    build_alias_candidate(alias_key, food_row, source_candidate),
+                    "deferred",
+                    ["existing_fooddb_item_missing_macros"],
+                    None,
+                    "existing_fooddb_item_missing_required_macros",
+                )
+            )
+            continue
+        applied_rows.append(
+            build_audit_row(
+                build_alias_candidate(alias_key, food_row, source_candidate),
+                "alias_to_existing_round8",
+                [ROUND8_ALIAS_NOTES.get(alias_key, "round8_punctual_mapping")],
+                macro_values,
+            )
+        )
+
+    for ingredient_name, reason in sorted(ROUND8_EXPLICITLY_DEFERRED.items()):
+        deferred_rows.append(
+            build_audit_row(
+                {"ingredient_name_normalized": ingredient_name, "safety": "needs_review"},
+                "deferred",
+                ["not_appended_in_round8_unit_rules_punctual_mapping_pass"],
+                None,
+                reason,
+            )
+        )
+
+    audit_fields = [
+        "ingredient_name_normalized",
+        "suggested_food_id",
+        "suggested_canonical_name",
+        "suggested_display_name",
+        "suggested_food_group",
+        "suggested_role",
+        "source_used",
+        "source_row_reference",
+        "energy_kcal_100g",
+        "protein_g_100g",
+        "carbs_g_100g",
+        "fat_g_100g",
+        "frequency_in_v1_1",
+        "rows_with_grams",
+        "total_grams_affected",
+        "proposed_action",
+        "final_action",
+        "safety",
+        "sanity_status",
+        "sanity_notes",
+        "defer_reason",
+        "review_notes",
+        "example_raw_texts",
+        "example_recipes",
+    ]
+
+    write_csv(out_draft_path, base_rows, fooddb_fields)
+    write_csv(out_applied_path, applied_rows, audit_fields)
+    write_csv(out_deferred_path, deferred_rows, audit_fields)
+    write_round8_summary(out_summary_path, base_rows, applied_rows, deferred_rows)
+
+    return {
+        "current_count": len(base_rows),
+        "applied_count": len(applied_rows),
+        "deferred_count": len(deferred_rows),
+        "final_count": len(base_rows),
+        "applied_rows": applied_rows,
+        "deferred_rows": deferred_rows,
+    }
+
+
+def build_round9_draft(
+    base_fooddb_path: Path,
+    out_draft_path: Path,
+    out_applied_path: Path,
+    out_deferred_path: Path,
+    out_summary_path: Path,
+) -> dict[str, object]:
+    base_rows, fooddb_fields = read_csv(base_fooddb_path)
+    current_food_ids = {row.get("food_id", "") for row in base_rows}
+    current_canonical_names = {row.get("canonical_name", "") for row in base_rows}
+    applied_rows: list[dict[str, object]] = []
+    deferred_rows: list[dict[str, object]] = []
+    new_fooddb_rows: list[dict[str, str]] = []
+
+    for ingredient_name, source_candidate in sorted(ROUND9_SOURCE_ADDITIONS.items()):
+        candidate = dict(source_candidate)
+        candidate["ingredient_name_normalized"] = ingredient_name
+        sanity_ok, sanity_notes, macro_values = sanity_check(candidate)
+        suggested_food_id = candidate.get("suggested_food_id", "")
+        suggested_canonical_name = candidate.get("suggested_canonical_name", "")
+        if suggested_food_id in current_food_ids or suggested_canonical_name in current_canonical_names:
+            deferred_rows.append(
+                build_audit_row(candidate, "deferred", sanity_notes, macro_values, "already_exists_in_round8_fooddb")
+            )
+            continue
+        if not sanity_ok:
+            deferred_rows.append(
+                build_audit_row(candidate, "deferred", sanity_notes, macro_values, "failed_macro_sanity_checks")
+            )
+            continue
+
+        new_row = build_fooddb_row(candidate, fooddb_fields, macro_values)
+        new_fooddb_rows.append(new_row)
+        applied_rows.append(build_audit_row(candidate, "applied_to_round9_draft", sanity_notes, macro_values))
+
+    draft_rows = base_rows + new_fooddb_rows
+
+    for ingredient_name, food_id in sorted(ROUND9_EXISTING_ALIAS_TARGETS.items()):
+        food_row = find_food_row_by_id(draft_rows, food_id)
+        source_candidate = {
+            "ingredient_name_normalized": ingredient_name,
+            "suggested_food_id": food_id,
+            "safety": "safe_auto",
+            "review_notes": ROUND9_ALIAS_NOTES.get(ingredient_name, "round9_final_mapping"),
+        }
+        if not food_row:
+            deferred_rows.append(
+                build_audit_row(
+                    source_candidate,
+                    "deferred",
+                    ["round9_existing_alias_target_missing"],
+                    None,
+                    "safe_existing_fooddb_item_not_found",
+                )
+            )
+            continue
+        macro_values = macro_values_from_fooddb_row(food_row)
+        if not macro_values:
+            deferred_rows.append(
+                build_audit_row(
+                    build_alias_candidate(ingredient_name, food_row, source_candidate),
+                    "deferred",
+                    ["existing_fooddb_item_missing_macros"],
+                    None,
+                    "existing_fooddb_item_missing_required_macros",
+                )
+            )
+            continue
+        applied_rows.append(
+            build_audit_row(
+                build_alias_candidate(ingredient_name, food_row, source_candidate),
+                "alias_to_existing_round9",
+                [ROUND9_ALIAS_NOTES.get(ingredient_name, "round9_final_mapping")],
+                macro_values,
+            )
+        )
+
+    for ingredient_name, reason in sorted(ROUND9_EXPLICITLY_DEFERRED.items()):
+        deferred_rows.append(
+            build_audit_row(
+                {"ingredient_name_normalized": ingredient_name, "safety": "needs_review"},
+                "deferred",
+                ["not_appended_in_round9_final_mapping_pass"],
+                None,
+                reason,
+            )
+        )
+
+    audit_fields = [
+        "ingredient_name_normalized",
+        "suggested_food_id",
+        "suggested_canonical_name",
+        "suggested_display_name",
+        "suggested_food_group",
+        "suggested_role",
+        "source_used",
+        "source_row_reference",
+        "energy_kcal_100g",
+        "protein_g_100g",
+        "carbs_g_100g",
+        "fat_g_100g",
+        "frequency_in_v1_1",
+        "rows_with_grams",
+        "total_grams_affected",
+        "proposed_action",
+        "final_action",
+        "safety",
+        "sanity_status",
+        "sanity_notes",
+        "defer_reason",
+        "review_notes",
+        "example_raw_texts",
+        "example_recipes",
+    ]
+
+    write_csv(out_draft_path, draft_rows, fooddb_fields)
+    write_csv(out_applied_path, applied_rows, audit_fields)
+    write_csv(out_deferred_path, deferred_rows, audit_fields)
+    write_round9_summary(out_summary_path, base_rows, new_fooddb_rows, applied_rows, deferred_rows)
+
+    return {
+        "current_count": len(base_rows),
+        "applied_count": len(applied_rows),
+        "deferred_count": len(deferred_rows),
+        "final_count": len(draft_rows),
+        "appended_count": len(new_fooddb_rows),
+        "applied_rows": applied_rows,
+        "deferred_rows": deferred_rows,
+    }
+
+
 def write_summary(
     path: Path,
     current_rows: list[dict[str, str]],
@@ -1139,11 +1722,162 @@ def write_round5_summary(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_round7_summary(
+    path: Path,
+    base_rows: list[dict[str, str]],
+    applied_rows: list[dict[str, object]],
+    deferred_rows: list[dict[str, object]],
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines: list[str] = []
+    lines.append("Food_DB v1.1 round7 macro-blocker summary")
+    lines.append("=" * 50)
+    lines.append("")
+    lines.append(f"Base Food_DB round5 row count: {len(base_rows)}")
+    lines.append("Round7 new rows appended: 0")
+    lines.append(f"Round7 alias/manual decisions applied: {len(applied_rows)}")
+    lines.append(f"Round7 deferred decisions: {len(deferred_rows)}")
+    lines.append(f"Final Food_DB round7 draft row count: {len(base_rows)}")
+    lines.append("")
+
+    lines.append("Round7 applied")
+    lines.append("-" * 14)
+    if applied_rows:
+        for row in applied_rows:
+            lines.append(
+                f"- {row['ingredient_name_normalized']} -> {row['suggested_food_id']} | "
+                f"{row['energy_kcal_100g']} kcal, {row['protein_g_100g']}g protein, "
+                f"{row['carbs_g_100g']}g carbs, {row['fat_g_100g']}g fat / 100g | "
+                f"safety={row['safety']} | notes={row['sanity_notes']}"
+            )
+    else:
+        lines.append("- none")
+    lines.append("")
+
+    lines.append("Round7 deferred")
+    lines.append("-" * 15)
+    if deferred_rows:
+        for row in deferred_rows:
+            lines.append(f"- {row['ingredient_name_normalized']} | reason={row['defer_reason']}")
+    else:
+        lines.append("- none")
+    lines.append("")
+    lines.append("Recommended next patch")
+    lines.append("-" * 22)
+    lines.append("- Rerun mapping with round7 macro-blocker decisions, then rebuild nutrition cache draft.")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_round8_summary(
+    path: Path,
+    base_rows: list[dict[str, str]],
+    applied_rows: list[dict[str, object]],
+    deferred_rows: list[dict[str, object]],
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines: list[str] = []
+    lines.append("Food_DB v1.1 round8 unit-rules/punctual-mapping summary")
+    lines.append("=" * 62)
+    lines.append("")
+    lines.append(f"Base Food_DB round7 row count: {len(base_rows)}")
+    lines.append("Round8 new rows appended: 0")
+    lines.append(f"Round8 alias/manual decisions applied: {len(applied_rows)}")
+    lines.append(f"Round8 deferred decisions: {len(deferred_rows)}")
+    lines.append(f"Final Food_DB round8 draft row count: {len(base_rows)}")
+    lines.append("")
+
+    lines.append("Round8 applied")
+    lines.append("-" * 14)
+    if applied_rows:
+        for row in applied_rows:
+            lines.append(
+                f"- {row['ingredient_name_normalized']} -> {row['suggested_food_id']} | "
+                f"{row['energy_kcal_100g']} kcal, {row['protein_g_100g']}g protein, "
+                f"{row['carbs_g_100g']}g carbs, {row['fat_g_100g']}g fat / 100g | "
+                f"safety={row['safety']} | notes={row['sanity_notes']}"
+            )
+    else:
+        lines.append("- none")
+    lines.append("")
+
+    lines.append("Round8 deferred")
+    lines.append("-" * 15)
+    if deferred_rows:
+        for row in deferred_rows:
+            lines.append(f"- {row['ingredient_name_normalized']} | reason={row['defer_reason']}")
+    else:
+        lines.append("- none")
+    lines.append("")
+    lines.append("Recommended next patch")
+    lines.append("-" * 22)
+    lines.append(
+        "- Rerun mapping with round8 punctual decisions and round8 unit rules, then rebuild nutrition cache draft."
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_round9_summary(
+    path: Path,
+    base_rows: list[dict[str, str]],
+    new_fooddb_rows: list[dict[str, str]],
+    applied_rows: list[dict[str, object]],
+    deferred_rows: list[dict[str, object]],
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    alias_rows = [row for row in applied_rows if row.get("final_action") == "alias_to_existing_round9"]
+    appended_rows = [row for row in applied_rows if row.get("final_action") == "applied_to_round9_draft"]
+
+    lines: list[str] = []
+    lines.append("Food_DB v1.1 round9 final mapping/source summary")
+    lines.append("=" * 56)
+    lines.append("")
+    lines.append(f"Base Food_DB round8 row count: {len(base_rows)}")
+    lines.append(f"Round9 new rows appended: {len(new_fooddb_rows)}")
+    lines.append(f"Round9 source additions applied: {len(appended_rows)}")
+    lines.append(f"Round9 alias/manual decisions applied: {len(alias_rows)}")
+    lines.append(f"Round9 deferred decisions: {len(deferred_rows)}")
+    lines.append(f"Final Food_DB round9 draft row count: {len(base_rows) + len(new_fooddb_rows)}")
+    lines.append("")
+
+    lines.append("Round9 applied")
+    lines.append("-" * 14)
+    if applied_rows:
+        for row in applied_rows:
+            lines.append(
+                f"- {row['ingredient_name_normalized']} | {row['final_action']} | "
+                f"{row['suggested_food_id']} | {row['suggested_canonical_name']} | "
+                f"{row['energy_kcal_100g']} kcal, {row['protein_g_100g']}g protein, "
+                f"{row['carbs_g_100g']}g carbs, {row['fat_g_100g']}g fat / 100g | "
+                f"safety={row['safety']} | notes={row['sanity_notes']}"
+            )
+    else:
+        lines.append("- none")
+    lines.append("")
+
+    lines.append("Round9 deferred")
+    lines.append("-" * 15)
+    if deferred_rows:
+        for row in deferred_rows:
+            lines.append(f"- {row['ingredient_name_normalized']} | reason={row['defer_reason']}")
+    else:
+        lines.append("- none")
+    lines.append("")
+    lines.append("Recommended next patch")
+    lines.append("-" * 22)
+    lines.append(
+        "- Rerun mapping/nutrition cache with round9, then stop mapping passes unless the gain is unexpectedly large."
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build a minimal Food_DB v1.1 draft from safe gap additions.")
     parser.add_argument("--round2", action="store_true", help="Build the round2 draft/audit outputs.")
     parser.add_argument("--round3", action="store_true", help="Build the round3 targeted blocker draft/audit outputs.")
     parser.add_argument("--round5", action="store_true", help="Build the round5 manual-decision draft/audit outputs.")
+    parser.add_argument("--round7", action="store_true", help="Build the round7 macro-blocker draft/audit outputs.")
+    parser.add_argument("--round8", action="store_true", help="Build the round8 unit-rules/punctual-mapping draft/audit outputs.")
+    parser.add_argument("--round9", action="store_true", help="Build the round9 final mapping/source draft/audit outputs.")
     parser.add_argument("--current_fooddb", default=str(CURRENT_FOODDB_PATH))
     parser.add_argument("--gap_candidates", default=str(GAP_CANDIDATES_PATH))
     parser.add_argument("--gap_review", default=str(GAP_REVIEW_PATH))
@@ -1156,6 +1890,55 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if args.round9:
+        result = build_round9_draft(
+            ROUND8_OUT_DRAFT_PATH if args.current_fooddb == str(CURRENT_FOODDB_PATH) else Path(args.current_fooddb),
+            ROUND9_OUT_DRAFT_PATH if args.out_draft == str(OUT_DRAFT_PATH) else Path(args.out_draft),
+            ROUND9_OUT_APPLIED_PATH if args.out_applied == str(OUT_APPLIED_PATH) else Path(args.out_applied),
+            ROUND9_OUT_DEFERRED_PATH if args.out_deferred == str(OUT_DEFERRED_PATH) else Path(args.out_deferred),
+            ROUND9_OUT_SUMMARY_PATH if args.out_summary == str(OUT_SUMMARY_PATH) else Path(args.out_summary),
+        )
+        print("Food_DB v1.1 round9 draft built")
+        print(f"base_rows={result['current_count']}")
+        print(f"round9_new_rows={result['appended_count']}")
+        print(f"round9_applied_decisions={result['applied_count']}")
+        print(f"round9_deferred={result['deferred_count']}")
+        print(f"final_rows={result['final_count']}")
+        print(f"draft={ROUND9_OUT_DRAFT_PATH if args.out_draft == str(OUT_DRAFT_PATH) else args.out_draft}")
+        return
+
+    if args.round8:
+        result = build_round8_draft(
+            ROUND7_OUT_DRAFT_PATH if args.current_fooddb == str(CURRENT_FOODDB_PATH) else Path(args.current_fooddb),
+            ROUND8_OUT_DRAFT_PATH if args.out_draft == str(OUT_DRAFT_PATH) else Path(args.out_draft),
+            ROUND8_OUT_APPLIED_PATH if args.out_applied == str(OUT_APPLIED_PATH) else Path(args.out_applied),
+            ROUND8_OUT_DEFERRED_PATH if args.out_deferred == str(OUT_DEFERRED_PATH) else Path(args.out_deferred),
+            ROUND8_OUT_SUMMARY_PATH if args.out_summary == str(OUT_SUMMARY_PATH) else Path(args.out_summary),
+        )
+        print("Food_DB v1.1 round8 draft built")
+        print(f"base_rows={result['current_count']}")
+        print(f"round8_manual_decisions={result['applied_count']}")
+        print(f"round8_deferred={result['deferred_count']}")
+        print(f"final_rows={result['final_count']}")
+        print(f"draft={ROUND8_OUT_DRAFT_PATH if args.out_draft == str(OUT_DRAFT_PATH) else args.out_draft}")
+        return
+
+    if args.round7:
+        result = build_round7_draft(
+            ROUND5_OUT_DRAFT_PATH if args.current_fooddb == str(CURRENT_FOODDB_PATH) else Path(args.current_fooddb),
+            ROUND7_OUT_DRAFT_PATH if args.out_draft == str(OUT_DRAFT_PATH) else Path(args.out_draft),
+            ROUND7_OUT_APPLIED_PATH if args.out_applied == str(OUT_APPLIED_PATH) else Path(args.out_applied),
+            ROUND7_OUT_DEFERRED_PATH if args.out_deferred == str(OUT_DEFERRED_PATH) else Path(args.out_deferred),
+            ROUND7_OUT_SUMMARY_PATH if args.out_summary == str(OUT_SUMMARY_PATH) else Path(args.out_summary),
+        )
+        print("Food_DB v1.1 round7 draft built")
+        print(f"base_rows={result['current_count']}")
+        print(f"round7_manual_decisions={result['applied_count']}")
+        print(f"round7_deferred={result['deferred_count']}")
+        print(f"final_rows={result['final_count']}")
+        print(f"draft={ROUND7_OUT_DRAFT_PATH if args.out_draft == str(OUT_DRAFT_PATH) else args.out_draft}")
+        return
+
     if args.round5:
         result = build_round5_draft(
             ROUND3_OUT_DRAFT_PATH if args.current_fooddb == str(CURRENT_FOODDB_PATH) else Path(args.current_fooddb),

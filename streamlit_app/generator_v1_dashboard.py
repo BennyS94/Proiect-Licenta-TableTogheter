@@ -18,8 +18,32 @@ from src.generator_v1.candidate_filter import (
     build_household_preference_context,
     filter_recipe_candidates,
 )
-from src.generator_v1.data_loader import load_fooddb_current, load_recipe_candidate_pool
+from src.generator_v1.data_loader import (
+    DEFAULT_INGREDIENTS_PATH,
+    DEFAULT_NUTRITION_PATH,
+    DEFAULT_RECIPES_PATH,
+    PILOT_CURRENT_PROFILE,
+    V1_1_GENERATOR_READY_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_PROFILE,
+    V1_1_GENERATOR_READY_RECIPES_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_PROFILE,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_RECIPES_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_RECIPES_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_RECIPES_PATH,
+    load_fooddb_current,
+    load_recipe_candidate_pool,
+)
 from src.generator_v1.day_selector import select_one_day_plan
+from src.generator_v1.day_selector_balanced import select_one_day_plan_balanced
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.nutrition_cache_diagnostics import (
     build_nutrition_cache_diagnostics,
@@ -34,17 +58,73 @@ from src.generator_v1.target_builder import NutritionTarget, build_nutrition_tar
 
 
 PROFILE_PATH = Path("profiles/member_profile_demo_v1.json")
-SESSION_SCHEMA_VERSION = 7
+SESSION_SCHEMA_VERSION = 15
 SESSION_SCHEMA_KEY = "generator_v1_dashboard_schema_version"
 SESSION_MENUS_KEY = "generator_v1_generated_menus"
 SESSION_FEEDBACK_KEY = "generator_v1_feedback_events"
+SESSION_DATASET_PROFILE_KEY = "generator_v1_dataset_profile"
+SESSION_SELECTION_MODE_KEY = "generator_v1_selection_mode"
+SESSION_ALTERNATIVE_COUNT_KEY = "generator_v1_alternative_count"
+SESSION_DIVERSITY_MODE_KEY = "generator_v1_diversity_mode"
+SESSION_PORTION_POLICY_KEY = "generator_v1_portion_policy"
 RECENT_MENUS_FOR_VARIATION = 2
+V1_1_RECOMMENDED_SELECTION_MODE = "balanced_day"
+V1_1_RECOMMENDED_ALTERNATIVE_COUNT = 3
+V1_1_RECOMMENDED_DIVERSITY_MODE = "none"
+V1_1_RECOMMENDED_PORTION_POLICY = "target_aware"
+
+SELECTION_MODE_OPTIONS = {
+    "Greedy": "greedy",
+    "Balanced day": "balanced_day",
+}
+ALTERNATIVE_COUNT_OPTIONS = [1, 2, 3]
+DIVERSITY_MODE_OPTIONS = ["none", "soft", "avoid_recent"]
+PORTION_POLICY_OPTIONS = ["standard", "expanded_safe", "target_aware"]
+
+DATASET_OPTIONS = {
+    "Pilot current": {
+        "dataset_profile": PILOT_CURRENT_PROFILE,
+        "recipes_path": DEFAULT_RECIPES_PATH,
+        "ingredients_path": DEFAULT_INGREDIENTS_PATH,
+        "nutrition_path": DEFAULT_NUTRITION_PATH,
+        "is_draft": False,
+    },
+    "Recipes_DB v1.1 generator-ready draft": {
+        "dataset_profile": V1_1_GENERATOR_READY_PROFILE,
+        "recipes_path": V1_1_GENERATOR_READY_RECIPES_PATH,
+        "ingredients_path": V1_1_GENERATOR_READY_INGREDIENTS_PATH,
+        "nutrition_path": V1_1_GENERATOR_READY_NUTRITION_PATH,
+        "is_draft": True,
+    },
+    "Recipes_DB v1.1 generator-ready slot-checked draft": {
+        "dataset_profile": V1_1_GENERATOR_READY_SLOT_CHECKED_PROFILE,
+        "recipes_path": V1_1_GENERATOR_READY_SLOT_CHECKED_RECIPES_PATH,
+        "ingredients_path": V1_1_GENERATOR_READY_SLOT_CHECKED_INGREDIENTS_PATH,
+        "nutrition_path": V1_1_GENERATOR_READY_SLOT_CHECKED_NUTRITION_PATH,
+        "is_draft": True,
+    },
+    "Recipes_DB v1.1 generator-ready slot-checked time-enriched draft": {
+        "dataset_profile": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE,
+        "recipes_path": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_RECIPES_PATH,
+        "ingredients_path": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_INGREDIENTS_PATH,
+        "nutrition_path": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_NUTRITION_PATH,
+        "is_draft": True,
+    },
+    "Recipes_DB v1.1 generator-ready time-enriched snack-curated draft": {
+        "dataset_profile": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
+        "recipes_path": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_RECIPES_PATH,
+        "ingredients_path": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_INGREDIENTS_PATH,
+        "nutrition_path": V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_NUTRITION_PATH,
+        "is_draft": True,
+    },
+}
 
 PIPELINE_STEPS = [
     "profile_loader.py",
     "target_builder.py",
     "data_loader.py",
     "candidate_filter.py",
+    "portion_policy.py",
     "slot_candidates.py",
     "recipe_time_adapter.py",
     "time_fit.py",
@@ -55,6 +135,7 @@ PIPELINE_STEPS = [
     "pilot_nutrition_overlay.py",
     "score_preview.py",
     "day_selector.py",
+    "day_selector_balanced.py",
     "plan_validator.py",
     "plan_audit.py",
 ]
@@ -74,12 +155,29 @@ def main() -> None:
 
     with content_col:
         st.title("TableTogether / Generator v1 Test Dashboard")
+        dataset_config = _render_dataset_selector()
+        selection_mode = _render_selection_mode_selector()
+        alternative_count, diversity_mode = _render_alternative_controls(selection_mode)
+        portion_policy = _render_portion_policy_selector()
         st.button(
             "Generate",
             type="primary",
             on_click=_generate_and_store_latest_menu,
             use_container_width=False,
         )
+        st.caption(f"Selected dataset profile: {dataset_config['dataset_profile']}")
+        st.caption(f"Selection mode: {selection_mode}")
+        st.caption(f"Portion policy: {portion_policy}")
+        st.caption(f"Alternatives: {alternative_count}; diversity: {diversity_mode}")
+        if dataset_config["is_draft"]:
+            st.warning("Recipes_DB v1.1 generator-ready is draft/test data, not current production.")
+        if (
+            dataset_config["dataset_profile"]
+            == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE
+        ):
+            st.info(
+                "Recommended for v1.1 testing: Balanced day + target_aware + 3 alternatives."
+            )
 
         generated_menus = st.session_state[SESSION_MENUS_KEY]
         if not generated_menus:
@@ -99,19 +197,171 @@ def main() -> None:
             _render_plan("Previous menu", generated_menus[1], enable_feedback=False)
 
 
+def _render_dataset_selector() -> dict[str, Any]:
+    labels = list(DATASET_OPTIONS)
+    current_profile = st.session_state.get(SESSION_DATASET_PROFILE_KEY, PILOT_CURRENT_PROFILE)
+    current_label = _label_for_dataset_profile(current_profile)
+    selected_label = st.selectbox(
+        "Dataset",
+        labels,
+        index=labels.index(current_label),
+        help="Alege sursa de retete folosita la urmatoarea generare.",
+    )
+    selected_config = DATASET_OPTIONS[selected_label]
+    selected_profile = str(selected_config["dataset_profile"])
+    if selected_profile != current_profile:
+        st.session_state[SESSION_DATASET_PROFILE_KEY] = selected_profile
+        st.session_state[SESSION_MENUS_KEY] = []
+        _apply_dataset_recommendations(selected_profile)
+    return selected_config
+
+
+def _apply_dataset_recommendations(dataset_profile: str) -> None:
+    if dataset_profile == PILOT_CURRENT_PROFILE:
+        st.session_state[SESSION_SELECTION_MODE_KEY] = "greedy"
+        st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = 1
+        st.session_state[SESSION_DIVERSITY_MODE_KEY] = "none"
+        st.session_state[SESSION_PORTION_POLICY_KEY] = "standard"
+        return
+    if dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE:
+        st.session_state[SESSION_SELECTION_MODE_KEY] = V1_1_RECOMMENDED_SELECTION_MODE
+        st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = V1_1_RECOMMENDED_ALTERNATIVE_COUNT
+        st.session_state[SESSION_DIVERSITY_MODE_KEY] = V1_1_RECOMMENDED_DIVERSITY_MODE
+        st.session_state[SESSION_PORTION_POLICY_KEY] = V1_1_RECOMMENDED_PORTION_POLICY
+
+
+def _render_selection_mode_selector() -> str:
+    labels = list(SELECTION_MODE_OPTIONS)
+    current_mode = st.session_state.get(SESSION_SELECTION_MODE_KEY, "greedy")
+    current_label = _label_for_selection_mode(current_mode)
+    selected_label = st.selectbox(
+        "Selection mode",
+        labels,
+        index=labels.index(current_label),
+        help="Greedy pastreaza comportamentul curent; Balanced day optimizeaza macro-urile la nivel de zi.",
+    )
+    selected_mode = SELECTION_MODE_OPTIONS[selected_label]
+    if selected_mode != current_mode:
+        st.session_state[SESSION_SELECTION_MODE_KEY] = selected_mode
+        st.session_state[SESSION_MENUS_KEY] = []
+    return selected_mode
+
+
+def _render_alternative_controls(selection_mode: str) -> tuple[int, str]:
+    current_count = int(st.session_state.get(SESSION_ALTERNATIVE_COUNT_KEY, 1))
+    if current_count not in ALTERNATIVE_COUNT_OPTIONS:
+        current_count = 1
+    selected_count = st.selectbox(
+        "Alternative count",
+        ALTERNATIVE_COUNT_OPTIONS,
+        index=ALTERNATIVE_COUNT_OPTIONS.index(current_count),
+        disabled=selection_mode != "balanced_day",
+        help="Pentru Balanced day, genereaza pana la 3 variante deterministe.",
+    )
+
+    current_mode = str(st.session_state.get(SESSION_DIVERSITY_MODE_KEY, "none"))
+    if current_mode not in DIVERSITY_MODE_OPTIONS:
+        current_mode = "none"
+    selected_mode = st.selectbox(
+        "Diversity mode",
+        DIVERSITY_MODE_OPTIONS,
+        index=DIVERSITY_MODE_OPTIONS.index(current_mode),
+        disabled=selection_mode != "balanced_day",
+        help="avoid_recent aplica o penalizare mica pentru retetele din ultimele doua meniuri.",
+    )
+    if selection_mode != "balanced_day":
+        selected_count = 1
+        selected_mode = "none"
+    if (
+        selected_count != st.session_state.get(SESSION_ALTERNATIVE_COUNT_KEY)
+        or selected_mode != st.session_state.get(SESSION_DIVERSITY_MODE_KEY)
+    ):
+        st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = selected_count
+        st.session_state[SESSION_DIVERSITY_MODE_KEY] = selected_mode
+        st.session_state[SESSION_MENUS_KEY] = []
+    return int(selected_count), str(selected_mode)
+
+
+def _render_portion_policy_selector() -> str:
+    current_policy = str(st.session_state.get(SESSION_PORTION_POLICY_KEY, "standard"))
+    if current_policy not in PORTION_POLICY_OPTIONS:
+        current_policy = "standard"
+    selected_policy = st.selectbox(
+        "Portion policy",
+        PORTION_POLICY_OPTIONS,
+        index=PORTION_POLICY_OPTIONS.index(current_policy),
+        help="standard pastreaza multiplicatorii curenti; target_aware este doar pentru testare v1.1.",
+    )
+    if selected_policy != current_policy:
+        st.session_state[SESSION_PORTION_POLICY_KEY] = selected_policy
+        st.session_state[SESSION_MENUS_KEY] = []
+    return str(selected_policy)
+
+
+def _current_dataset_config() -> dict[str, Any]:
+    profile = st.session_state.get(SESSION_DATASET_PROFILE_KEY, PILOT_CURRENT_PROFILE)
+    label = _label_for_dataset_profile(profile)
+    return DATASET_OPTIONS[label]
+
+
+def _current_selection_mode() -> str:
+    return str(st.session_state.get(SESSION_SELECTION_MODE_KEY, "greedy"))
+
+
+def _current_alternative_count() -> int:
+    value = int(st.session_state.get(SESSION_ALTERNATIVE_COUNT_KEY, 1))
+    return value if value in ALTERNATIVE_COUNT_OPTIONS else 1
+
+
+def _current_diversity_mode() -> str:
+    value = str(st.session_state.get(SESSION_DIVERSITY_MODE_KEY, "none"))
+    return value if value in DIVERSITY_MODE_OPTIONS else "none"
+
+
+def _current_portion_policy() -> str:
+    value = str(st.session_state.get(SESSION_PORTION_POLICY_KEY, "standard"))
+    return value if value in PORTION_POLICY_OPTIONS else "standard"
+
+
+def _label_for_dataset_profile(profile: object) -> str:
+    profile_text = str(profile or PILOT_CURRENT_PROFILE)
+    for label, config in DATASET_OPTIONS.items():
+        if config["dataset_profile"] == profile_text:
+            return label
+    return "Pilot current"
+
+
+def _label_for_selection_mode(mode: object) -> str:
+    mode_text = str(mode or "greedy")
+    for label, value in SELECTION_MODE_OPTIONS.items():
+        if value == mode_text:
+            return label
+    return "Greedy"
+
+
 def _generate_and_store_latest_menu() -> None:
     stored_menus = st.session_state.get(SESSION_MENUS_KEY, [])
-    blocked_recipe_ids = _recent_recipe_ids(stored_menus)
-    latest_menu = _build_generator_result(blocked_recipe_ids=blocked_recipe_ids)
+    recent_recipe_ids = _recent_recipe_ids(stored_menus)
+    latest_menu = _build_generator_result(recent_recipe_ids=recent_recipe_ids)
     st.session_state[SESSION_MENUS_KEY] = [latest_menu, *stored_menus]
 
 
 def _build_generator_result(
-    blocked_recipe_ids: set[str] | None = None,
+    recent_recipe_ids: set[str] | None = None,
 ) -> dict[str, Any]:
+    dataset_config = _current_dataset_config()
+    selection_mode = _current_selection_mode()
+    alternative_count = _current_alternative_count()
+    diversity_mode = _current_diversity_mode()
+    portion_policy = _current_portion_policy()
     profile = load_member_profile(PROFILE_PATH)
     target = build_nutrition_target(profile)
-    pool = load_recipe_candidate_pool()
+    pool = load_recipe_candidate_pool(
+        recipes_path=dataset_config["recipes_path"],
+        ingredients_path=dataset_config["ingredients_path"],
+        nutrition_path=dataset_config["nutrition_path"],
+        dataset_profile=str(dataset_config["dataset_profile"]),
+    )
     fooddb = load_fooddb_current()
     preference_context = build_household_preference_context(profile)
     filtered_candidates = filter_recipe_candidates(
@@ -125,6 +375,7 @@ def _build_generator_result(
         time_sensitivity=preference_context.time_sensitivity,
         ingredients=pool.ingredients,
         fooddb=fooddb,
+        portion_policy_mode=portion_policy,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
@@ -136,11 +387,22 @@ def _build_generator_result(
         candidates=pool.candidates,
         eligible_candidates=pool.eligible_candidates,
     )
-    selection_candidates = _without_recipe_ids(slot_candidates, blocked_recipe_ids or set())
+    selection_candidates = (
+        slot_candidates
+        if selection_mode == "balanced_day"
+        else _without_recipe_ids(slot_candidates, recent_recipe_ids or set())
+    )
     slot_order = _slot_order(target)
-    plan = select_one_day_plan(
-        slot_candidates_by_slot=_slot_candidates_by_slot(selection_candidates, slot_order),
+    plan = _select_one_day_plan(
+        selection_mode=selection_mode,
+        slot_candidates=selection_candidates,
+        target=target,
         slot_order=slot_order,
+        selector_config=_balanced_selector_config(
+            alternative_count=alternative_count,
+            diversity_mode=diversity_mode,
+            recent_recipe_ids=recent_recipe_ids or set(),
+        ),
     )
     ingredient_diagnostics = build_ingredient_diagnostics(
         recipes_df=pool.recipes,
@@ -162,12 +424,22 @@ def _build_generator_result(
     plan["pilot_servings_diagnostics"] = pilot_servings_diagnostics
     plan["validation"] = validate_one_day_plan(plan, target)
     plan["pool_summary"] = {
+        "dataset_profile": dataset_config["dataset_profile"],
+        "recipes_path": str(dataset_config["recipes_path"]),
+        "ingredients_path": str(dataset_config["ingredients_path"]),
+        "nutrition_path": str(dataset_config["nutrition_path"]),
         "total_recipes_loaded": len(pool.candidates),
         "eligible_candidate_count": len(pool.eligible_candidates),
         "filtered_candidate_count": len(filtered_candidates),
         "slot_candidate_count": len(slot_candidates),
+        "selection_mode": selection_mode,
+        "portion_policy": portion_policy,
+        "alternative_count": alternative_count,
+        "diversity_mode": diversity_mode,
+        "recent_recipe_id_count": len(recent_recipe_ids or set()),
+        "loader_warnings": pool.loader_diagnostics.get("warnings", []),
     }
-    plan["dashboard_blocked_recipe_ids"] = sorted(blocked_recipe_ids or set())
+    plan["dashboard_recent_recipe_ids"] = sorted(recent_recipe_ids or set())
     return plan
 
 
@@ -187,6 +459,9 @@ def _render_plan(
         st.success(f"Validation status: {status}")
     else:
         st.warning(f"Validation status: {status}")
+    _render_pool_summary(plan.get("pool_summary", {}))
+    _render_selector_diagnostics(plan.get("selector_diagnostics", {}))
+    _render_plan_alternatives(plan.get("alternatives", []))
 
     metric_cols = st.columns(6)
     metric_cols[0].metric("Kcal", _format_number(totals.get("total_kcal")))
@@ -229,6 +504,106 @@ def _render_plan(
     _render_ingredient_diagnostics(plan.get("ingredient_diagnostics", {}))
 
 
+def _render_pool_summary(pool_summary: dict[str, Any]) -> None:
+    if not pool_summary:
+        return
+    cols = st.columns(5)
+    cols[0].metric("Dataset", str(pool_summary.get("dataset_profile", "unknown")))
+    cols[1].metric("Mode", str(pool_summary.get("selection_mode", "greedy")))
+    cols[2].metric("Loaded recipes", pool_summary.get("total_recipes_loaded", 0))
+    cols[3].metric("Eligible", pool_summary.get("eligible_candidate_count", 0))
+    cols[4].metric("Filtered", pool_summary.get("filtered_candidate_count", 0))
+    st.caption(
+        "Portion policy: "
+        f"{pool_summary.get('portion_policy', 'standard')}; "
+        "Alternatives: "
+        f"{pool_summary.get('alternative_count', 1)}; "
+        f"diversity={pool_summary.get('diversity_mode', 'none')}; "
+        f"recent recipes={pool_summary.get('recent_recipe_id_count', 0)}"
+    )
+    warnings = pool_summary.get("loader_warnings") or []
+    if warnings:
+        st.warning("Loader warnings: " + "; ".join(str(item) for item in warnings))
+
+
+def _render_selector_diagnostics(diagnostics: object) -> None:
+    if not isinstance(diagnostics, dict) or diagnostics.get("selector_mode") != "balanced_day":
+        return
+    with st.expander("Balanced day selector diagnostics", expanded=False):
+        metric_cols = st.columns(6)
+        metric_cols[0].metric("Day loss", _format_number(diagnostics.get("day_loss")))
+        metric_cols[1].metric("Kcal loss", _format_number(diagnostics.get("kcal_loss")))
+        metric_cols[2].metric("Protein loss", _format_number(diagnostics.get("protein_loss")))
+        metric_cols[3].metric("Carbs loss", _format_number(diagnostics.get("carbs_loss")))
+        metric_cols[4].metric("Fat loss", _format_number(diagnostics.get("fat_loss")))
+        metric_cols[5].metric(
+            "Evaluated",
+            diagnostics.get("evaluated_combination_count", 0),
+        )
+        st.write(
+            "Shortlist counts: "
+            + _format_counts(
+                diagnostics.get("candidate_count_per_slot_after_shortlist", {})
+            )
+        )
+        warnings = diagnostics.get("selector_warnings") or []
+        if warnings:
+            st.write("Warnings: " + "; ".join(str(item) for item in warnings))
+        st.write(
+            "Base/adjusted: "
+            f"{_format_number(diagnostics.get('base_day_loss'))} / "
+            f"{_format_number(diagnostics.get('adjusted_day_loss'))}"
+        )
+        st.write(
+            "Diversity penalties: "
+            + _format_counts(diagnostics.get("diversity_penalties", {}))
+        )
+        recent_ids = diagnostics.get("recent_recipe_ids_considered") or []
+        if recent_ids:
+            st.write("Recent recipe ids considered: " + ", ".join(str(item) for item in recent_ids))
+
+
+def _render_plan_alternatives(alternatives: object) -> None:
+    if not isinstance(alternatives, list) or len(alternatives) <= 1:
+        return
+    with st.expander("Balanced day alternatives", expanded=False):
+        rows = []
+        for alternative in alternatives:
+            if not isinstance(alternative, dict):
+                continue
+            totals = alternative.get("day_totals", {})
+            penalties = alternative.get("diversity_penalties", {})
+            selected_meals = alternative.get("selected_meals", [])
+            rows.append(
+                {
+                    "rank": alternative.get("alternative_rank"),
+                    "base_day_loss": alternative.get("base_day_loss"),
+                    "adjusted_day_loss": alternative.get("adjusted_day_loss"),
+                    "kcal": totals.get("total_kcal"),
+                    "protein_g": totals.get("total_protein_g"),
+                    "carbs_g": totals.get("total_carbs_g"),
+                    "fat_g": totals.get("total_fat_g"),
+                    "diversity_penalty": (
+                        penalties.get("total_diversity_penalty")
+                        if isinstance(penalties, dict)
+                        else 0
+                    ),
+                    "recent_repeats": (
+                        penalties.get("recent_recipe_count")
+                        if isinstance(penalties, dict)
+                        else 0
+                    ),
+                    "recipes": " | ".join(
+                        str(meal.get("display_name"))
+                        for meal in selected_meals
+                        if isinstance(meal, dict)
+                    ),
+                }
+            )
+        if rows:
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+
 def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
     rows = []
     for meal in selected_meals:
@@ -241,6 +616,10 @@ def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
                     _meal_portion_grams_estimated(meal)
                 ),
                 "portion_grams_source": meal.get("portion_grams_source"),
+                "portion_policy": meal.get("portion_policy_mode"),
+                "portion_policy_warnings": _format_reasons(
+                    meal.get("portion_policy_warnings")
+                ),
                 "original_portion_g_estimated": _format_estimated_grams(
                     meal.get("original_portion_grams_estimated")
                 ),
@@ -306,6 +685,9 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
                 f"portion_grams_estimated="
                 f"{_format_estimated_grams(_meal_portion_grams_estimated(meal))}, "
                 f"portion_grams_source={meal.get('portion_grams_source')}, "
+                f"portion_policy={meal.get('portion_policy_mode')}, "
+                "portion_policy_warnings="
+                f"{_format_reasons(meal.get('portion_policy_warnings'))}, "
                 "original_portion_grams_estimated="
                 f"{_format_estimated_grams(meal.get('original_portion_grams_estimated'))}, "
                 "overlay_portion_grams_estimated="
@@ -743,11 +1125,26 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_SCHEMA_KEY] = SESSION_SCHEMA_VERSION
         st.session_state[SESSION_MENUS_KEY] = []
         st.session_state[SESSION_FEEDBACK_KEY] = []
+        st.session_state[SESSION_DATASET_PROFILE_KEY] = PILOT_CURRENT_PROFILE
+        st.session_state[SESSION_SELECTION_MODE_KEY] = "greedy"
+        st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = 1
+        st.session_state[SESSION_DIVERSITY_MODE_KEY] = "none"
+        st.session_state[SESSION_PORTION_POLICY_KEY] = "standard"
         return
     if SESSION_MENUS_KEY not in st.session_state:
         st.session_state[SESSION_MENUS_KEY] = []
     if SESSION_FEEDBACK_KEY not in st.session_state:
         st.session_state[SESSION_FEEDBACK_KEY] = []
+    if SESSION_DATASET_PROFILE_KEY not in st.session_state:
+        st.session_state[SESSION_DATASET_PROFILE_KEY] = PILOT_CURRENT_PROFILE
+    if SESSION_SELECTION_MODE_KEY not in st.session_state:
+        st.session_state[SESSION_SELECTION_MODE_KEY] = "greedy"
+    if SESSION_ALTERNATIVE_COUNT_KEY not in st.session_state:
+        st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = 1
+    if SESSION_DIVERSITY_MODE_KEY not in st.session_state:
+        st.session_state[SESSION_DIVERSITY_MODE_KEY] = "none"
+    if SESSION_PORTION_POLICY_KEY not in st.session_state:
+        st.session_state[SESSION_PORTION_POLICY_KEY] = "standard"
 
 
 def _slot_order(target: NutritionTarget) -> list[str]:
@@ -764,6 +1161,44 @@ def _slot_candidates_by_slot(
     return {
         slot: slot_candidates.loc[slot_candidates["slot"].eq(slot)].copy()
         for slot in slot_order
+    }
+
+
+def _select_one_day_plan(
+    selection_mode: str,
+    slot_candidates: pd.DataFrame,
+    target: NutritionTarget,
+    slot_order: list[str],
+    selector_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    candidates_by_slot = _slot_candidates_by_slot(slot_candidates, slot_order)
+    if selection_mode == "balanced_day":
+        return select_one_day_plan_balanced(
+            slot_candidates_by_slot=candidates_by_slot,
+            target=target,
+            slot_order=slot_order,
+            config=selector_config,
+        )
+    plan = select_one_day_plan(
+        slot_candidates_by_slot=candidates_by_slot,
+        slot_order=slot_order,
+    )
+    plan["selector_mode"] = "greedy"
+    plan["selector_diagnostics"] = {"selector_mode": "greedy"}
+    return plan
+
+
+def _balanced_selector_config(
+    alternative_count: int,
+    diversity_mode: str,
+    recent_recipe_ids: set[str],
+) -> dict[str, Any]:
+    count = max(1, min(3, int(alternative_count)))
+    return {
+        "return_alternatives": count > 1,
+        "alternative_count": count,
+        "diversity_mode": diversity_mode,
+        "recent_recipe_ids": sorted(recent_recipe_ids),
     }
 
 

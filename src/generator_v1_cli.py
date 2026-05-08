@@ -9,6 +9,23 @@ from src.generator_v1.data_loader import (
     DEFAULT_INGREDIENTS_PATH,
     DEFAULT_NUTRITION_PATH,
     DEFAULT_RECIPES_PATH,
+    PILOT_CURRENT_PROFILE,
+    V1_1_GENERATOR_READY_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_PROFILE,
+    V1_1_GENERATOR_READY_RECIPES_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_PROFILE,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_RECIPES_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_RECIPES_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_RECIPES_PATH,
     load_fooddb_current,
     load_recipe_candidate_pool,
 )
@@ -18,6 +35,7 @@ from src.generator_v1.candidate_filter import (
 )
 from src.generator_v1.candidate_diagnostics import build_candidate_diagnostics
 from src.generator_v1.day_selector import select_one_day_plan
+from src.generator_v1.day_selector_balanced import select_one_day_plan_balanced
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.nutrition_cache_diagnostics import (
     build_nutrition_cache_diagnostics,
@@ -36,6 +54,9 @@ from src.generator_v1.slot_candidates import build_slot_candidates
 from src.generator_v1.target_builder import NutritionTarget, build_nutrition_target
 
 
+V1_1_RECOMMENDED_TEST_PRESET = "v1_1_recommended_test"
+
+
 def main() -> None:
     args = _parse_args()
     profile = load_member_profile(args.profile)
@@ -44,6 +65,7 @@ def main() -> None:
         recipes_path=args.recipes,
         ingredients_path=args.ingredients,
         nutrition_path=args.nutrition,
+        dataset_profile=args.dataset_profile,
     )
     fooddb = load_fooddb_current()
     preference_context = build_household_preference_context(profile)
@@ -58,6 +80,7 @@ def main() -> None:
         time_sensitivity=preference_context.time_sensitivity,
         ingredients=pool.ingredients,
         fooddb=fooddb,
+        portion_policy_mode=args.portion_policy,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
@@ -70,15 +93,18 @@ def main() -> None:
         eligible_candidates=pool.eligible_candidates,
     )
 
+    _print_dataset_summary(args, pool)
     _print_target_summary(target)
     _print_pool_summary(pool.candidates, pool.eligible_candidates)
     _print_slot_candidate_summary(filtered_candidates, slot_candidates)
     _print_candidate_diagnostics(candidate_diagnostics)
     if args.show_nutrition_diagnostics:
         _print_nutrition_cache_diagnostics(nutrition_cache_diagnostics)
-    plan = select_one_day_plan(
-        slot_candidates_by_slot=_slot_candidates_by_slot(slot_candidates, _slot_order(target)),
-        slot_order=_slot_order(target),
+    plan = _select_one_day_plan(
+        selection_mode=args.selection_mode,
+        slot_candidates=slot_candidates,
+        target=target,
+        selector_config=_balanced_selector_config(args),
     )
     plan["target"] = _target_to_dict(target)
     plan["candidate_diagnostics"] = candidate_diagnostics
@@ -101,6 +127,8 @@ def main() -> None:
             selected_recipe_ids=_selected_recipe_ids(plan),
         )
     _print_selected_day_plan(plan)
+    _print_selector_diagnostics(plan)
+    _print_plan_alternatives(plan)
     _print_validation(plan["validation"])
     if servings_diagnostics is not None:
         _print_servings_diagnostics(servings_diagnostics)
@@ -115,9 +143,42 @@ def main() -> None:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Smoke test pentru Generator v1.")
     parser.add_argument("--profile", required=True, type=Path)
-    parser.add_argument("--recipes", default=DEFAULT_RECIPES_PATH, type=Path)
-    parser.add_argument("--ingredients", default=DEFAULT_INGREDIENTS_PATH, type=Path)
-    parser.add_argument("--nutrition", default=DEFAULT_NUTRITION_PATH, type=Path)
+    parser.add_argument(
+        "--dataset_profile",
+        choices=[
+            PILOT_CURRENT_PROFILE,
+            V1_1_GENERATOR_READY_PROFILE,
+            V1_1_GENERATOR_READY_SLOT_CHECKED_PROFILE,
+            V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE,
+            V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
+        ],
+        default=PILOT_CURRENT_PROFILE,
+    )
+    parser.add_argument(
+        "--test_preset",
+        choices=["none", V1_1_RECOMMENDED_TEST_PRESET],
+        default="none",
+    )
+    parser.add_argument("--recipes", default=None, type=Path)
+    parser.add_argument("--ingredients", default=None, type=Path)
+    parser.add_argument("--nutrition", default=None, type=Path)
+    parser.add_argument(
+        "--selection_mode",
+        choices=["greedy", "balanced_day"],
+        default="greedy",
+    )
+    parser.add_argument("--alternative_count", default=1, type=int)
+    parser.add_argument(
+        "--diversity_mode",
+        choices=["none", "soft", "avoid_recent"],
+        default="none",
+    )
+    parser.add_argument("--recent_recipe_ids", default="", type=str)
+    parser.add_argument(
+        "--portion_policy",
+        choices=["standard", "expanded_safe", "target_aware"],
+        default="standard",
+    )
     parser.add_argument("--out_csv", default=Path("outputs/generator_v1_plan.csv"), type=Path)
     parser.add_argument("--out_json", default=Path("outputs/generator_v1_plan.json"), type=Path)
     parser.add_argument("--out_txt", default=Path("outputs/generator_v1_readable.txt"), type=Path)
@@ -126,7 +187,78 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--show_ingredient_diagnostics", action="store_true")
     parser.add_argument("--show_servings_diagnostics", action="store_true")
     parser.add_argument("--show_pilot_nutrition_overlay", action="store_true")
-    return parser.parse_args()
+    args = parser.parse_args()
+    _apply_test_preset(args)
+    _resolve_dataset_paths(args)
+    return args
+
+
+def _apply_test_preset(args: argparse.Namespace) -> None:
+    if args.test_preset != V1_1_RECOMMENDED_TEST_PRESET:
+        return
+    args.dataset_profile = V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE
+    args.selection_mode = "balanced_day"
+    args.portion_policy = "target_aware"
+    args.alternative_count = 3
+    args.diversity_mode = "none"
+
+
+def _resolve_dataset_paths(args: argparse.Namespace) -> None:
+    if args.dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE:
+        args.recipes = args.recipes or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_RECIPES_PATH
+        args.ingredients = (
+            args.ingredients
+            or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_INGREDIENTS_PATH
+        )
+        args.nutrition = args.nutrition or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_NUTRITION_PATH
+        return
+    if args.dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE:
+        args.recipes = args.recipes or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_NUTRITION_PATH
+        return
+    if args.dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_PROFILE:
+        args.recipes = args.recipes or V1_1_GENERATOR_READY_SLOT_CHECKED_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_1_GENERATOR_READY_SLOT_CHECKED_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_1_GENERATOR_READY_SLOT_CHECKED_NUTRITION_PATH
+        return
+    if args.dataset_profile == V1_1_GENERATOR_READY_PROFILE:
+        args.recipes = args.recipes or V1_1_GENERATOR_READY_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_1_GENERATOR_READY_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_1_GENERATOR_READY_NUTRITION_PATH
+        return
+    args.recipes = args.recipes or DEFAULT_RECIPES_PATH
+    args.ingredients = args.ingredients or DEFAULT_INGREDIENTS_PATH
+    args.nutrition = args.nutrition or DEFAULT_NUTRITION_PATH
+
+
+def _print_dataset_summary(args: argparse.Namespace, pool: object) -> None:
+    print("Dataset profile")
+    print(f"  test_preset={args.test_preset}")
+    print(f"  dataset_profile={args.dataset_profile}")
+    print(f"  selection_mode={args.selection_mode}")
+    print(f"  portion_policy={args.portion_policy}")
+    print(f"  alternative_count={args.alternative_count}")
+    print(f"  diversity_mode={args.diversity_mode}")
+    recent_recipe_ids = _parse_recent_recipe_ids(args.recent_recipe_ids)
+    if recent_recipe_ids:
+        print(f"  recent_recipe_ids={','.join(recent_recipe_ids)}")
+    if args.dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE:
+        is_recommended = (
+            args.selection_mode == "balanced_day"
+            and args.portion_policy == "target_aware"
+            and int(args.alternative_count or 1) == 3
+            and args.diversity_mode == "none"
+        )
+        print("  recommended_for_v1_1_testing=balanced_day + target_aware + alternative_count=3")
+        print(f"  v1_1_recommended_test_active={is_recommended}")
+    print(f"  recipes_path={args.recipes}")
+    print(f"  ingredients_path={args.ingredients}")
+    print(f"  nutrition_path={args.nutrition}")
+    diagnostics = getattr(pool, "loader_diagnostics", {})
+    warnings = diagnostics.get("warnings") if isinstance(diagnostics, dict) else None
+    if warnings:
+        print(f"  loader_warnings={'; '.join(str(item) for item in warnings)}")
 
 
 def _print_target_summary(target: NutritionTarget) -> None:
@@ -313,9 +445,10 @@ def _print_slot_candidate_summary(
 
 
 def _format_number(value: object, decimals: int = 1) -> str:
-    if pd.isna(value):
+    numeric_value = pd.to_numeric(value, errors="coerce")
+    if pd.isna(numeric_value):
         return "missing"
-    return f"{float(value):.{decimals}f}"
+    return f"{float(numeric_value):.{decimals}f}"
 
 
 def _format_reasons(value: object) -> str:
@@ -357,8 +490,51 @@ def _target_to_dict(target: NutritionTarget) -> dict[str, object]:
     }
 
 
+def _select_one_day_plan(
+    selection_mode: str,
+    slot_candidates: pd.DataFrame,
+    target: NutritionTarget,
+    selector_config: dict[str, object] | None = None,
+) -> dict[str, object]:
+    slot_order = _slot_order(target)
+    candidates_by_slot = _slot_candidates_by_slot(slot_candidates, slot_order)
+    if selection_mode == "balanced_day":
+        return select_one_day_plan_balanced(
+            slot_candidates_by_slot=candidates_by_slot,
+            target=target,
+            slot_order=slot_order,
+            config=selector_config,
+        )
+    plan = select_one_day_plan(
+        slot_candidates_by_slot=candidates_by_slot,
+        slot_order=slot_order,
+    )
+    plan["selector_mode"] = "greedy"
+    plan["selector_diagnostics"] = {"selector_mode": "greedy"}
+    return plan
+
+
+def _balanced_selector_config(args: argparse.Namespace) -> dict[str, object]:
+    alternative_count = max(1, int(args.alternative_count or 1))
+    return {
+        "return_alternatives": alternative_count > 1,
+        "alternative_count": alternative_count,
+        "diversity_mode": args.diversity_mode,
+        "recent_recipe_ids": _parse_recent_recipe_ids(args.recent_recipe_ids),
+    }
+
+
+def _parse_recent_recipe_ids(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in str(value).split(",") if item.strip()]
+
+
 def _print_selected_day_plan(plan: dict[str, object]) -> None:
     print("Selected one-day plan preview")
+    print(f"  selector_mode={plan.get('selector_mode', 'greedy')}")
+    if plan.get("alternatives"):
+        print("  selected_alternative_rank=1")
     for meal in plan.get("selected_meals", []):
         print(
             "  "
@@ -368,6 +544,7 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
             f"portion={_format_number(meal['portion_multiplier'])}, "
             f"portion_g_est={_format_number(meal['portion_grams_estimated'], decimals=0)}, "
             f"portion_g_source={_safe_text(meal.get('portion_grams_source'))}, "
+            f"portion_policy={_safe_text(meal.get('portion_policy_mode'))}, "
             "original_portion_g_est="
             f"{_format_number(meal.get('original_portion_grams_estimated'), decimals=0)}, "
             "overlay_portion_g_est="
@@ -383,10 +560,15 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
             f"{_format_number(meal['original_effective_time_min_for_scoring'], decimals=0)}, "
             f"has_long_passive_time={meal['has_long_passive_time']}, "
             f"uses_pilot_time_fallback={meal['uses_pilot_time_fallback']}, "
+            f"time_estimation_reasons={_format_reasons(meal.get('time_estimation_reasons'))}, "
             f"nutrition_quality={_format_number(meal['nutrition_quality'], decimals=2)}, "
             f"is_nutrition_suspicious={meal['is_nutrition_suspicious']}, "
             f"is_slot_suspicious={meal.get('is_slot_suspicious')}, "
             f"score_preview={_format_number(meal['score_preview'], decimals=2)}, "
+            "portion_policy_reasons="
+            f"{_format_reasons(meal.get('portion_policy_reasons'))}, "
+            "portion_policy_warnings="
+            f"{_format_reasons(meal.get('portion_policy_warnings'))}, "
             f"slot_fit_reasons={_format_reasons(meal['slot_fit_reasons'])}, "
             "slot_suspicion_reasons="
             f"{_format_reasons(meal.get('slot_suspicion_reasons'))}, "
@@ -412,6 +594,82 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
         print("  warnings=" + " | ".join(str(warning) for warning in warnings))
     else:
         print("  warnings=none")
+
+
+def _print_selector_diagnostics(plan: dict[str, object]) -> None:
+    diagnostics = plan.get("selector_diagnostics")
+    if not isinstance(diagnostics, dict):
+        return
+    if diagnostics.get("selector_mode") != "balanced_day":
+        return
+
+    print("Balanced day selector diagnostics")
+    for field in (
+        "day_loss",
+        "base_day_loss",
+        "adjusted_day_loss",
+        "macro_day_loss",
+        "kcal_loss",
+        "protein_loss",
+        "carbs_loss",
+        "fat_loss",
+        "average_score_preview",
+        "evaluated_combination_count",
+        "possible_combination_count_after_shortlist",
+    ):
+        print(f"  {field}={diagnostics.get(field)}")
+    before = diagnostics.get("candidate_count_per_slot_before_shortlist")
+    after = diagnostics.get("candidate_count_per_slot_after_shortlist")
+    print(f"  shortlist_before={_format_counts(before)}")
+    print(f"  shortlist_after={_format_counts(after)}")
+    print(f"  diversity_mode={diagnostics.get('diversity_mode', 'none')}")
+    print(
+        "  recent_recipe_ids_considered="
+        + ",".join(str(item) for item in diagnostics.get("recent_recipe_ids_considered", []))
+    )
+    print(f"  alternative_count_returned={diagnostics.get('alternative_count_returned')}")
+    penalties = diagnostics.get("diversity_penalties", {})
+    if isinstance(penalties, dict):
+        print(f"  diversity_penalties={_format_counts(penalties)}")
+    warnings = diagnostics.get("selector_warnings") or []
+    if warnings:
+        print("  selector_warnings=" + " | ".join(str(item) for item in warnings))
+
+
+def _print_plan_alternatives(plan: dict[str, object]) -> None:
+    alternatives = plan.get("alternatives")
+    if not isinstance(alternatives, list) or len(alternatives) <= 1:
+        return
+    print("Balanced day alternatives")
+    for alternative in alternatives:
+        if not isinstance(alternative, dict):
+            continue
+        totals = alternative.get("day_totals", {})
+        meals = alternative.get("selected_meals", [])
+        recipe_text = " | ".join(
+            f"{meal.get('slot')}:{meal.get('display_name')}"
+            for meal in meals
+            if isinstance(meal, dict)
+        )
+        penalties = alternative.get("diversity_penalties", {})
+        print(
+            "  "
+            f"alternative #{alternative.get('alternative_rank')}: "
+            f"base_day_loss={alternative.get('base_day_loss')}, "
+            f"adjusted_day_loss={alternative.get('adjusted_day_loss')}, "
+            f"kcal={_format_number(totals.get('total_kcal'))}, "
+            f"protein_g={_format_number(totals.get('total_protein_g'))}, "
+            f"carbs_g={_format_number(totals.get('total_carbs_g'))}, "
+            f"fat_g={_format_number(totals.get('total_fat_g'))}, "
+            f"diversity_penalty={_safe_penalty(penalties)}, "
+            f"recipes={recipe_text}"
+        )
+
+
+def _safe_penalty(value: object) -> object:
+    if not isinstance(value, dict):
+        return "missing"
+    return value.get("total_diversity_penalty", 0.0)
 
 
 def _print_candidate_diagnostics(diagnostics: dict[str, dict[str, object]]) -> None:

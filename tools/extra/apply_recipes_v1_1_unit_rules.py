@@ -24,6 +24,22 @@ ROUND5_OUT_PARSED = Path("data/recipesdb/draft/recipes_v1_1_ingredients_parsed_u
 ROUND5_OUT_SUMMARY = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_summary_round5.txt")
 ROUND5_OUT_APPLIED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_applied_round5.csv")
 ROUND5_OUT_DEFERRED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_deferred_round5.csv")
+ROUND7_MAPPING = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round7_macro_blockers.csv"
+)
+ROUND7_FOODDB = Path("data/fooddb/draft/fooddb_v1_1_core_master_draft_round7.csv")
+ROUND8_OUT_PARSED = Path("data/recipesdb/draft/recipes_v1_1_ingredients_parsed_unit_rules_round8.csv")
+ROUND8_OUT_SUMMARY = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_summary_round8.txt")
+ROUND8_OUT_APPLIED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_applied_round8.csv")
+ROUND8_OUT_DEFERRED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_deferred_round8.csv")
+ROUND8_MAPPING = Path(
+    "data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round8_unit_rules_punctual_mapping.csv"
+)
+ROUND8_FOODDB = Path("data/fooddb/draft/fooddb_v1_1_core_master_draft_round8.csv")
+ROUND9_OUT_PARSED = Path("data/recipesdb/draft/recipes_v1_1_ingredients_parsed_unit_rules_round9.csv")
+ROUND9_OUT_SUMMARY = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_summary_round9.txt")
+ROUND9_OUT_APPLIED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_applied_round9.csv")
+ROUND9_OUT_DEFERRED = Path("data/recipesdb/audit/recipes_v1_1_unit_rules_deferred_round9.csv")
 
 APPLIED_COLUMNS = [
     "recipe_id_candidate",
@@ -71,6 +87,8 @@ UNIT_ALIASES = {
     "whole": "count",
     "stick": "stick",
     "sticks": "stick",
+    "spear": "spear",
+    "spears": "spear",
 }
 
 EXPLICIT_GRAMS_PER_UNIT = {
@@ -105,6 +123,17 @@ EXPLICIT_GRAMS_PER_UNIT = {
     ("salted butter", "tablespoon"): (14.2, "butter_tablespoon_density_round5"),
     ("salted butter", "cup"): (227.0, "butter_cup_weight_round5"),
     ("salted butter", "stick"): (113.0, "butter_stick_weight_round5"),
+    ("mayonnaise", "teaspoon"): (4.7, "mayonnaise_teaspoon_density_round8"),
+    ("mayonnaise", "tablespoon"): (14.0, "mayonnaise_tablespoon_density_round8"),
+    ("mayonnaise", "cup"): (230.0, "mayonnaise_cup_weight_round8"),
+    ("flour", "cup"): (120.0, "flour_cup_weight_round8"),
+    ("flour", "tablespoon"): (7.5, "flour_tablespoon_weight_round8"),
+    ("all purpose flour", "cup"): (120.0, "flour_cup_weight_round8"),
+    ("all purpose flour", "tablespoon"): (7.5, "flour_tablespoon_weight_round8"),
+    ("whole wheat flour", "cup"): (120.0, "whole_wheat_flour_cup_weight_round8"),
+    ("whole wheat flour", "tablespoon"): (7.5, "whole_wheat_flour_tablespoon_weight_round8"),
+    ("mozzarella cheese", "cup"): (112.0, "mozzarella_cheese_cup_weight_round8"),
+    ("shredded mozzarella cheese", "cup"): (112.0, "shredded_mozzarella_cheese_cup_weight_round8"),
 }
 
 DRIED_HERB_RULES = {
@@ -124,6 +153,8 @@ PACKAGE_UNITS = {"can", "jar", "package", "packet", "bag", "bottle", "container"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Aplica reguli conservative unit-to-grams pentru Recipes_DB v1.1.")
     parser.add_argument("--round5", action="store_true", help="Scrie outputurile separate pentru round5.")
+    parser.add_argument("--round8", action="store_true", help="Scrie outputurile separate pentru round8.")
+    parser.add_argument("--round9", action="store_true", help="Scrie outputurile separate pentru round9.")
     parser.add_argument("--ingredients", "--ingredients_path", dest="ingredients", default=str(DEFAULT_PARSED_INGREDIENTS))
     parser.add_argument("--mapping", "--mapping_path", dest="mapping", default=str(DEFAULT_MAPPING))
     parser.add_argument("--fooddb", "--fooddb_path", dest="fooddb", default=str(DEFAULT_FOODDB))
@@ -218,6 +249,41 @@ def is_fresh_garlic_candidate(row: dict[str, str]) -> bool:
     return parsed in {"garlic", "minced garlic", "fresh garlic", "fresh minced garlic"} or "garlic" in parsed
 
 
+def has_forbidden_round8_rice_signal(text: str) -> bool:
+    blocked_terms = [
+        "rice vinegar",
+        "rice wine",
+        "rice flour",
+        "rice noodle",
+        "rice noodles",
+        "rice paper",
+        "rice wrapper",
+        "rice wrappers",
+        "rice vermicelli",
+    ]
+    return any(term in text for term in blocked_terms)
+
+
+def round8_rice_rule(name: str, raw: str, unit: str, quantity_value: float) -> tuple[float | None, str, str]:
+    if unit != "cup" or "rice" not in name:
+        return None, "", ""
+    if has_forbidden_round8_rice_signal(raw):
+        return None, "", ""
+    cooked_signal = "cooked" in raw
+    raw_signal = any(signal in raw for signal in ("dry", "uncooked", "raw"))
+    if "basmati" in name or "basmati" in raw:
+        if cooked_signal:
+            return quantity_value * 158.0, "cooked_basmati_rice_cup", "cooked_basmati_rice_cup_weight_round8"
+        if raw_signal:
+            return quantity_value * 185.0, "dry_basmati_rice_cup", "dry_basmati_rice_cup_weight_round8"
+        return None, "", ""
+    if name in {"cooked rice", "cooked white rice"} or (cooked_signal and name in {"rice", "white rice"}):
+        return quantity_value * 158.0, "cooked_white_rice_cup", "cooked_white_rice_cup_weight_round8"
+    if name in {"dry white rice", "uncooked white rice"} or (raw_signal and name in {"rice", "white rice"}):
+        return quantity_value * 185.0, "dry_white_rice_cup", "dry_white_rice_cup_weight_round8"
+    return None, "", ""
+
+
 def find_unit_rule(row: dict[str, str]) -> tuple[float | None, str, str, str]:
     quantity_value = parse_float(row.get("quantity_value"))
     if quantity_value is None or quantity_value <= 0:
@@ -237,6 +303,26 @@ def find_unit_rule(row: dict[str, str]) -> tuple[float | None, str, str, str]:
         if name == "water":
             reason = f"{reason}; no_macro_impact_but_weight_diagnostic"
         return quantity_value * grams_per_unit, f"{name}_{unit}", reason, ""
+
+    rice_grams, rice_rule_key, rice_reason = round8_rice_rule(name, raw, unit, quantity_value)
+    if rice_grams is not None:
+        return rice_grams, rice_rule_key, rice_reason, ""
+
+    if name == "mushrooms" and unit == "cup":
+        if "mushroom soup" in raw or "mushroom sauce" in raw:
+            return None, "", "mushroom_prepared_dish_deferred", ""
+        if "sliced" in raw or "chopped" in raw:
+            return quantity_value * 70.0, "mushrooms_sliced_or_chopped_cup", "mushrooms_sliced_or_chopped_cup_weight_round8", ""
+
+    if name == "asparagus" and unit in {"spear", "count", "cup"}:
+        grams_per_unit = 16.0 if unit in {"spear", "count"} else 134.0
+        return quantity_value * grams_per_unit, f"asparagus_{unit}", "asparagus_explicit_household_weight_round8", ""
+
+    if name in {"tomatillo", "tomatillos"}:
+        if unit == "count":
+            return quantity_value * 34.0, "tomatillo_count", "tomatillo_count_weight_round8", ""
+        if unit == "cup" and "chopped" in raw:
+            return quantity_value * 132.0, "tomatillo_chopped_cup", "tomatillo_chopped_cup_weight_round8", ""
 
     if is_fresh_garlic_candidate(row) and unit in {"clove", "teaspoon", "tablespoon"}:
         grams_per_unit = {"clove": 3.0, "teaspoon": 2.8, "tablespoon": 8.4}[unit]
@@ -465,6 +551,38 @@ def main() -> None:
             out_applied = ROUND5_OUT_APPLIED
         if args.out_deferred == str(DEFAULT_OUT_DEFERRED):
             out_deferred = ROUND5_OUT_DEFERRED
+
+    if args.round8:
+        if args.ingredients == str(DEFAULT_PARSED_INGREDIENTS):
+            ingredients_path = ROUND5_OUT_PARSED
+        if args.mapping == str(DEFAULT_MAPPING):
+            mapping_path = ROUND7_MAPPING
+        if args.fooddb == str(DEFAULT_FOODDB):
+            fooddb_path = ROUND7_FOODDB
+        if args.out_ingredients == str(DEFAULT_OUT_PARSED):
+            out_ingredients = ROUND8_OUT_PARSED
+        if args.out_summary == str(DEFAULT_OUT_SUMMARY):
+            out_summary = ROUND8_OUT_SUMMARY
+        if args.out_applied == str(DEFAULT_OUT_APPLIED):
+            out_applied = ROUND8_OUT_APPLIED
+        if args.out_deferred == str(DEFAULT_OUT_DEFERRED):
+            out_deferred = ROUND8_OUT_DEFERRED
+
+    if args.round9:
+        if args.ingredients == str(DEFAULT_PARSED_INGREDIENTS):
+            ingredients_path = ROUND8_OUT_PARSED
+        if args.mapping == str(DEFAULT_MAPPING):
+            mapping_path = ROUND8_MAPPING
+        if args.fooddb == str(DEFAULT_FOODDB):
+            fooddb_path = ROUND8_FOODDB
+        if args.out_ingredients == str(DEFAULT_OUT_PARSED):
+            out_ingredients = ROUND9_OUT_PARSED
+        if args.out_summary == str(DEFAULT_OUT_SUMMARY):
+            out_summary = ROUND9_OUT_SUMMARY
+        if args.out_applied == str(DEFAULT_OUT_APPLIED):
+            out_applied = ROUND9_OUT_APPLIED
+        if args.out_deferred == str(DEFAULT_OUT_DEFERRED):
+            out_deferred = ROUND9_OUT_DEFERRED
 
     ingredient_rows, ingredient_fieldnames = read_csv_rows(ingredients_path)
     mapping_rows, _ = read_csv_rows(mapping_path)

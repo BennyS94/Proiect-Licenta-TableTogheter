@@ -29,6 +29,12 @@ def write_plan_csv(plan: dict[str, Any], out_csv: str | Path) -> None:
             row.get("pilot_nutrition_overlay_reasons")
         )
         row["overlay_aliases_used"] = _format_reasons(row.get("overlay_aliases_used"))
+        row["portion_policy_reasons"] = _format_reasons(
+            row.get("portion_policy_reasons")
+        )
+        row["portion_policy_warnings"] = _format_reasons(
+            row.get("portion_policy_warnings")
+        )
         rows.append(row)
     pd.DataFrame(rows, columns=SELECTED_MEAL_FIELDS).to_csv(output_path, index=False)
 
@@ -54,10 +60,13 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
     warnings = plan.get("warnings", [])
     validation = plan.get("validation", {})
     diagnostics = plan.get("candidate_diagnostics", {})
+    selector_mode = plan.get("selector_mode", "greedy")
+    selector_diagnostics = plan.get("selector_diagnostics", {})
     lines = [
         "Generator v1 one-day plan preview",
         "Status: " + str(validation.get("validation_status", "not_validated")),
         "Valid checkpoint 1: " + str(validation.get("is_valid_for_checkpoint_1", False)),
+        "Selector mode: " + str(selector_mode),
         "",
         "Nutrition target",
         f"kcal={_fmt(target.get('kcal'))}",
@@ -76,6 +85,7 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                     f"({meal.get('recipe_id')}, portion={_fmt(meal.get('portion_multiplier'))}, "
                     f"grams_estimated={_fmt(meal.get('portion_grams_estimated'), decimals=0)}, "
                     f"grams_source={meal.get('portion_grams_source')}, "
+                    f"portion_policy={meal.get('portion_policy_mode')}, "
                     "original_grams_estimated="
                     f"{_fmt(meal.get('original_portion_grams_estimated'), decimals=0)}, "
                     "overlay_grams_estimated="
@@ -114,6 +124,14 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                     f"slot_suspicious={meal.get('is_slot_suspicious')}"
                 ),
                 f"  slot_fit_reasons={_format_reasons(meal.get('slot_fit_reasons'))}",
+                (
+                    "  portion_policy_reasons="
+                    + _format_reasons(meal.get("portion_policy_reasons"))
+                ),
+                (
+                    "  portion_policy_warnings="
+                    + _format_reasons(meal.get("portion_policy_warnings"))
+                ),
                 (
                     "  slot_suspicion_reasons="
                     + _format_reasons(meal.get("slot_suspicion_reasons"))
@@ -158,6 +176,98 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
         ]
     )
     lines.extend([str(warning) for warning in validation.get("validation_warnings", [])] or ["none"])
+    if isinstance(selector_diagnostics, dict) and selector_diagnostics:
+        lines.extend(
+            [
+                "",
+                "Selector diagnostics",
+                f"selector_mode={selector_diagnostics.get('selector_mode', selector_mode)}",
+            ]
+        )
+        if selector_diagnostics.get("selector_mode") == "balanced_day":
+            lines.extend(
+                [
+                    f"day_loss={_fmt(selector_diagnostics.get('day_loss'), decimals=4)}",
+                    (
+                        "base_day_loss="
+                        f"{_fmt(selector_diagnostics.get('base_day_loss'), decimals=4)}"
+                    ),
+                    (
+                        "adjusted_day_loss="
+                        f"{_fmt(selector_diagnostics.get('adjusted_day_loss'), decimals=4)}"
+                    ),
+                    f"kcal_loss={_fmt(selector_diagnostics.get('kcal_loss'), decimals=4)}",
+                    f"protein_loss={_fmt(selector_diagnostics.get('protein_loss'), decimals=4)}",
+                    f"carbs_loss={_fmt(selector_diagnostics.get('carbs_loss'), decimals=4)}",
+                    f"fat_loss={_fmt(selector_diagnostics.get('fat_loss'), decimals=4)}",
+                    (
+                        "diversity_mode="
+                        f"{selector_diagnostics.get('diversity_mode', 'none')}"
+                    ),
+                    (
+                        "recent_recipe_ids_considered="
+                        + _format_list(
+                            selector_diagnostics.get(
+                                "recent_recipe_ids_considered",
+                                [],
+                            )
+                        )
+                    ),
+                    (
+                        "diversity_penalties="
+                        + _format_counts(
+                            selector_diagnostics.get("diversity_penalties", {})
+                        )
+                    ),
+                    (
+                        "evaluated_combination_count="
+                        f"{selector_diagnostics.get('evaluated_combination_count')}"
+                    ),
+                    (
+                        "candidate_count_per_slot_after_shortlist="
+                        + _format_counts(
+                            selector_diagnostics.get(
+                                "candidate_count_per_slot_after_shortlist",
+                                {},
+                            )
+                        )
+                    ),
+                ]
+            )
+    alternatives = plan.get("alternatives")
+    if isinstance(alternatives, list) and alternatives:
+        lines.extend(["", "Balanced alternatives"])
+        for alternative in alternatives:
+            if not isinstance(alternative, dict):
+                continue
+            totals = alternative.get("day_totals", {})
+            meals = alternative.get("selected_meals", [])
+            recipe_ids = [
+                str(meal.get("recipe_id", ""))
+                for meal in meals
+                if isinstance(meal, dict)
+            ]
+            lines.extend(
+                [
+                    (
+                        f"alternative #{alternative.get('alternative_rank')}: "
+                        f"base_day_loss={_fmt(alternative.get('base_day_loss'), decimals=4)}, "
+                        "adjusted_day_loss="
+                        f"{_fmt(alternative.get('adjusted_day_loss'), decimals=4)}, "
+                        f"kcal={_fmt(totals.get('total_kcal'))}, "
+                        f"protein_g={_fmt(totals.get('total_protein_g'))}, "
+                        f"carbs_g={_fmt(totals.get('total_carbs_g'))}, "
+                        f"fat_g={_fmt(totals.get('total_fat_g'))}"
+                    ),
+                    "  selected_recipe_ids=" + _format_list(recipe_ids),
+                    (
+                        "  diversity_penalties="
+                        + _format_counts(
+                            alternative.get("diversity_penalties", {})
+                        )
+                    ),
+                ]
+            )
     lines.extend(
         [
             "",
@@ -208,6 +318,18 @@ def _format_reasons(value: object) -> str:
     if value is None:
         return ""
     return str(value)
+
+
+def _format_counts(value: object) -> str:
+    if not isinstance(value, dict) or not value:
+        return "none"
+    return ", ".join(f"{key}:{item}" for key, item in value.items())
+
+
+def _format_list(value: object) -> str:
+    if not isinstance(value, list) or not value:
+        return "none"
+    return ", ".join(str(item) for item in value)
 
 
 def _fmt(value: object, decimals: int = 1) -> str:

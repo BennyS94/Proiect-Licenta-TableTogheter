@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Iterable
 
 import pandas as pd
@@ -7,6 +8,12 @@ import pandas as pd
 from src.generator_v1.macro_fit import macro_fit
 from src.generator_v1.nutrition_quality import compute_nutrition_quality
 from src.generator_v1.pilot_nutrition_overlay import compute_pilot_overlay_nutrition
+from src.generator_v1.portion_policy import (
+    PortionPolicyDecision,
+    STANDARD_PORTION_MULTIPLIERS,
+    get_portion_policy_decision,
+    warnings_for_multiplier,
+)
 from src.generator_v1.recipe_time_adapter import compute_time_features
 from src.generator_v1.score_preview import compute_score_preview
 from src.generator_v1.slot_fit import compute_slot_fit
@@ -14,16 +21,17 @@ from src.generator_v1.target_builder import NutritionTarget
 from src.generator_v1.time_fit import household_time_fit
 
 
-PORTION_MULTIPLIERS = (0.8, 1.0, 1.2)
+PORTION_MULTIPLIERS = tuple(STANDARD_PORTION_MULTIPLIERS)
 
 
 def build_slot_candidates(
     target: NutritionTarget,
     filtered_candidates: pd.DataFrame,
     time_sensitivity: str = "normal",
-    portion_multipliers: Iterable[float] = PORTION_MULTIPLIERS,
+    portion_multipliers: Iterable[float] | None = None,
     ingredients: pd.DataFrame | None = None,
     fooddb: pd.DataFrame | None = None,
+    portion_policy_mode: str = "standard",
 ) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     if filtered_candidates.empty:
@@ -32,6 +40,8 @@ def build_slot_candidates(
     for slot in target.slot_targets:
         slot_target = target.slot_targets[slot]
         for _, recipe in filtered_candidates.iterrows():
+            if not _slot_allowed_for_recipe(recipe, slot):
+                continue
             recipe_ingredients = _ingredients_for_recipe(recipe, ingredients)
             overlay = compute_pilot_overlay_nutrition(
                 recipe_row=recipe,
@@ -49,8 +59,18 @@ def build_slot_candidates(
             overlay_serving_weight_g_estimated = _overlay_serving_weight_g_estimated(
                 overlay
             )
-            for portion_multiplier in portion_multipliers:
-                macro_values = _macro_values(recipe, overlay)
+            macro_values = _macro_values(recipe, overlay)
+            policy_decision = _portion_policy_decision(
+                slot=slot,
+                recipe=recipe,
+                macro_values=macro_values,
+                serving_weight_g_estimated=serving_weight_g_estimated,
+                overlay_serving_weight_g_estimated=overlay_serving_weight_g_estimated,
+                slot_target=slot_target,
+                portion_multipliers=portion_multipliers,
+                portion_policy_mode=portion_policy_mode,
+            )
+            for portion_multiplier in policy_decision.multipliers:
                 original_portion_grams_estimated = _scaled_optional(
                     serving_weight_g_estimated,
                     portion_multiplier,
@@ -79,6 +99,8 @@ def build_slot_candidates(
                     "recipe_kind": recipe.get("recipe_kind"),
                     "recipe_category": recipe.get("recipe_category"),
                     "recipe_subcategory": recipe.get("recipe_subcategory"),
+                    "allowed_slots_json": recipe.get("allowed_slots_json"),
+                    "slot_policy_reason": recipe.get("slot_policy_reason"),
                     "portion_multiplier": float(portion_multiplier),
                     "serving_weight_g_estimated": serving_weight_g_estimated,
                     "portion_grams_estimated": portion_fields["portion_grams_estimated"],
@@ -86,6 +108,13 @@ def build_slot_candidates(
                     "overlay_serving_weight_g_estimated": overlay_serving_weight_g_estimated,
                     "overlay_portion_grams_estimated": overlay_portion_grams_estimated,
                     "portion_grams_source": portion_fields["portion_grams_source"],
+                    "portion_policy_mode": policy_decision.mode,
+                    "portion_policy_reasons": policy_decision.reasons,
+                    "portion_policy_warnings": warnings_for_multiplier(
+                        policy_decision,
+                        float(portion_multiplier),
+                    ),
+                    "portion_multiplier_allowed_by_policy": True,
                     "original_energy_kcal_per_serving": _to_float(
                         recipe.get("energy_kcal_per_serving")
                     ),
@@ -182,6 +211,11 @@ def _slot_candidate_columns() -> list[str]:
         "slot",
         "recipe_id",
         "display_name",
+        "recipe_kind",
+        "recipe_category",
+        "recipe_subcategory",
+        "allowed_slots_json",
+        "slot_policy_reason",
         "portion_multiplier",
         "serving_weight_g_estimated",
         "portion_grams_estimated",
@@ -189,6 +223,10 @@ def _slot_candidate_columns() -> list[str]:
         "overlay_serving_weight_g_estimated",
         "overlay_portion_grams_estimated",
         "portion_grams_source",
+        "portion_policy_mode",
+        "portion_policy_reasons",
+        "portion_policy_warnings",
+        "portion_multiplier_allowed_by_policy",
         "original_energy_kcal_per_serving",
         "original_protein_g_per_serving",
         "original_carbs_g_per_serving",
@@ -241,6 +279,58 @@ def _slot_candidate_columns() -> list[str]:
     ]
 
 
+def _portion_policy_decision(
+    slot: str,
+    recipe: pd.Series,
+    macro_values: dict[str, object],
+    serving_weight_g_estimated: float | None,
+    overlay_serving_weight_g_estimated: float | None,
+    slot_target: dict[str, object],
+    portion_multipliers: Iterable[float] | None,
+    portion_policy_mode: str,
+) -> PortionPolicyDecision:
+    if portion_multipliers is not None:
+        multipliers = _sorted_unique_floats(portion_multipliers)
+        return PortionPolicyDecision(
+            mode="custom",
+            multipliers=multipliers or list(PORTION_MULTIPLIERS),
+            reasons=["explicit_portion_multipliers"],
+            warnings_by_multiplier={},
+        )
+
+    policy_payload = {
+        **recipe.to_dict(),
+        **macro_values,
+        "serving_weight_g_estimated": (
+            overlay_serving_weight_g_estimated
+            if overlay_serving_weight_g_estimated is not None
+            else serving_weight_g_estimated
+        ),
+        "overlay_serving_weight_g_estimated": overlay_serving_weight_g_estimated,
+    }
+    return get_portion_policy_decision(
+        slot=slot,
+        recipe_row_or_candidate=policy_payload,
+        slot_target=slot_target,
+        mode=portion_policy_mode,
+    )
+
+
+def _sorted_unique_floats(values: Iterable[float]) -> list[float]:
+    result: list[float] = []
+    seen: set[float] = set()
+    for value in values:
+        numeric_value = _to_float(value)
+        if numeric_value is None or numeric_value <= 0:
+            continue
+        rounded = round(numeric_value, 4)
+        if rounded in seen:
+            continue
+        seen.add(rounded)
+        result.append(rounded)
+    return sorted(result)
+
+
 def _ingredients_for_recipe(
     recipe: pd.Series,
     ingredients: pd.DataFrame | None,
@@ -251,6 +341,30 @@ def _ingredients_for_recipe(
     if not recipe_id:
         return pd.DataFrame()
     return ingredients.loc[ingredients["recipe_id"].astype(str).eq(recipe_id)].copy()
+
+
+def _slot_allowed_for_recipe(recipe: pd.Series, slot: str) -> bool:
+    if "allowed_slots_json" not in recipe.index:
+        return True
+    allowed_slots = _parse_allowed_slots(recipe.get("allowed_slots_json"))
+    if allowed_slots is None:
+        return True
+    return str(slot).strip().lower() in allowed_slots
+
+
+def _parse_allowed_slots(value: object) -> set[str] | None:
+    if value is None or pd.isna(value):
+        return None
+    text = str(value).strip()
+    if not text:
+        return set()
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        parsed = [part.strip() for part in text.split(",") if part.strip()]
+    if not isinstance(parsed, list):
+        return set()
+    return {str(item).strip().lower() for item in parsed if str(item).strip()}
 
 
 def _macro_values(recipe: pd.Series, overlay: dict[str, object]) -> dict[str, object]:
