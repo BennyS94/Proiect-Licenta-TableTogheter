@@ -22,6 +22,47 @@ Acest pipeline permite obtinerea unui plan functional si ofera deja o baza pract
 
 Nota operationala: codul generatorului vechi este izolat pentru referinta in `src/legacy/`. Lucrul activ pentru Generator v1 este separat in `src/generator_v1/` si `src/generator_v1_cli.py`.
 
+## 2.1. Generator v1 demo status
+
+Generator v1 este acum demo/testing-ready pentru un profil activ si pentru un draft multi-day de 3 zile.
+
+Datasetul recomandat pentru demo este:
+- `dataset_profile=v1_2_demo_final`
+- path: `data/recipesdb/draft/v1_2_demo_final/`
+- total recipes: `266`
+- active recipes: `261`
+- sursa: `v1_2_demo_candidate_round48_cleaned`
+- status: demo-final draft, nu productie/current
+
+Config demo recomandat:
+- `selection_mode=balanced_day`
+- `portion_policy=target_aware`
+- `meal_realism_mode=practical`
+- `quality_gate=demo_safe`
+- `days=3`
+- `multi_day_mode=global_alternatives_3_day`
+- `multi_day_no_repeat_policy=hard`
+- `day_candidate_builder=direct_from_slots`
+- `profile_guard=demo`
+
+Smoke-ul curent pentru acest pachet:
+- one-day valid/accept = true
+- three-day valid = 3/3
+- accept = 3/3
+- repeated recipes = 0
+- `multi_day_loss=0.006322`
+
+`profile_guard` este un strat de protectie pentru demo. Profilul edge `sedentary_lose_fast_with_snack` cu `target_kcal=1227.8` este blocat in modul `demo`; modul `permissive` avertizeaza si continua. Guard-ul nu schimba formulele din `target_builder`.
+
+Limitari explicite ale demo-ului curent:
+- fara OR-Tools / KNN ca motor principal / MILP
+- fara grocery/price in Generator v1 demo
+- fara household multi-member simultan
+- family-level variety este inca imperfecta
+- unele outlier risks raman cu warnings
+- `data/recipesdb/current` ramane neatins
+- `data/fooddb/current` ramane neatins
+
 ## 3. Current data model reality
 
 Modelul actual este construit peste un dataset nutritional prelucrat, imbogatit cu clasificari suplimentare si semnale utile pentru generare. In aceasta forma, baza de date curenta este suficienta pentru rularea pipeline-ului existent, dar nu separa inca suficient de clar:

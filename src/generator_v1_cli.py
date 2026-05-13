@@ -14,10 +14,22 @@ from src.generator_v1.data_loader import (
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_INGREDIENTS_PATH,
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_NUTRITION_PATH,
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_INGREDIENTS_PATH,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_NUTRITION_PATH,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_RECIPES_PATH,
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_RECIPES_PATH,
     V1_2_DEMO_CANDIDATE_NUTRITION_PATH,
     V1_2_DEMO_CANDIDATE_PROFILE,
     V1_2_DEMO_CANDIDATE_RECIPES_PATH,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_INGREDIENTS_PATH,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_NUTRITION_PATH,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_RECIPES_PATH,
+    V1_2_DEMO_FINAL_INGREDIENTS_PATH,
+    V1_2_DEMO_FINAL_NUTRITION_PATH,
+    V1_2_DEMO_FINAL_PROFILE,
+    V1_2_DEMO_FINAL_RECIPES_PATH,
     V1_1_GENERATOR_READY_INGREDIENTS_PATH,
     V1_1_GENERATOR_READY_NUTRITION_PATH,
     V1_1_GENERATOR_READY_PROFILE,
@@ -101,6 +113,7 @@ from src.generator_v1.plan_audit import (
 )
 from src.generator_v1.plan_quality_gate import evaluate_plan_quality
 from src.generator_v1.plan_validator import validate_one_day_plan
+from src.generator_v1.profile_guard import evaluate_profile_guard
 from src.generator_v1.profile_loader import load_member_profile
 from src.generator_v1.reroll_policy import select_quality_gated_reroll
 from src.generator_v1.slot_candidates import build_slot_candidates
@@ -114,6 +127,16 @@ def main() -> None:
     args = _parse_args()
     profile = load_member_profile(args.profile)
     target = build_nutrition_target(profile)
+    profile_guard_result = _profile_guard_result(args, profile, target)
+    if _profile_guard_blocks(profile_guard_result, args):
+        _print_target_summary(target)
+        _print_profile_guard(profile_guard_result, args)
+        print(
+            "Generation blocked by profile_guard=demo. "
+            "Use --allow_unsupported_profile only for explicit aggressive-cut tests."
+        )
+        return
+
     pool = load_recipe_candidate_pool(
         recipes_path=args.recipes,
         ingredients_path=args.ingredients,
@@ -148,6 +171,7 @@ def main() -> None:
 
     _print_dataset_summary(args, pool)
     _print_target_summary(target)
+    _print_profile_guard(profile_guard_result, args)
     _print_pool_summary(pool.candidates, pool.eligible_candidates)
     _print_slot_candidate_summary(filtered_candidates, slot_candidates)
     _print_candidate_diagnostics(candidate_diagnostics)
@@ -164,6 +188,8 @@ def main() -> None:
         )
         multi_day_plan["candidate_diagnostics"] = candidate_diagnostics
         multi_day_plan["nutrition_cache_diagnostics"] = nutrition_cache_diagnostics
+        if profile_guard_result is not None:
+            multi_day_plan["profile_guard"] = profile_guard_result
         multi_day_plan["pool_summary"] = _pool_summary(args, pool, filtered_candidates, slot_candidates)
         _print_multi_day_plan(multi_day_plan)
         if not args.no_write_outputs:
@@ -192,6 +218,8 @@ def main() -> None:
         )
     plan["target"] = _target_to_dict(target)
     plan["candidate_diagnostics"] = candidate_diagnostics
+    if profile_guard_result is not None:
+        plan["profile_guard"] = profile_guard_result
     plan["validation"] = validate_one_day_plan(plan, target)
     if args.quality_gate == "demo_safe" and "quality_gate" not in plan:
         plan["quality_gate"] = evaluate_plan_quality(
@@ -257,6 +285,9 @@ def _parse_args() -> argparse.Namespace:
             V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE,
             V1_2_DEMO_CANDIDATE_PROFILE,
             V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+            V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+            V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+            V1_2_DEMO_FINAL_PROFILE,
         ],
         default=PILOT_CURRENT_PROFILE,
     )
@@ -318,6 +349,12 @@ def _parse_args() -> argparse.Namespace:
         default=None,
     )
     parser.add_argument("--direct_slot_shortlist_size", default=12, type=int)
+    parser.add_argument(
+        "--profile_guard",
+        choices=["off", "demo", "permissive"],
+        default="off",
+    )
+    parser.add_argument("--allow_unsupported_profile", action="store_true")
     parser.add_argument("--out_csv", default=Path("outputs/generator_v1_plan.csv"), type=Path)
     parser.add_argument("--out_json", default=Path("outputs/generator_v1_plan.json"), type=Path)
     parser.add_argument("--out_txt", default=Path("outputs/generator_v1_readable.txt"), type=Path)
@@ -374,6 +411,30 @@ def _apply_multi_day_defaults(args: argparse.Namespace) -> None:
 
 
 def _resolve_dataset_paths(args: argparse.Namespace) -> None:
+    if args.dataset_profile == V1_2_DEMO_FINAL_PROFILE:
+        args.recipes = args.recipes or V1_2_DEMO_FINAL_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_2_DEMO_FINAL_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_2_DEMO_FINAL_NUTRITION_PATH
+        return
+    if args.dataset_profile == V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE:
+        args.recipes = args.recipes or V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_NUTRITION_PATH
+        return
+    if args.dataset_profile == V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE:
+        args.recipes = (
+            args.recipes
+            or V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_RECIPES_PATH
+        )
+        args.ingredients = (
+            args.ingredients
+            or V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_INGREDIENTS_PATH
+        )
+        args.nutrition = (
+            args.nutrition
+            or V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_NUTRITION_PATH
+        )
+        return
     if args.dataset_profile == V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE:
         args.recipes = args.recipes or V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_RECIPES_PATH
         args.ingredients = args.ingredients or V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_INGREDIENTS_PATH
@@ -478,6 +539,8 @@ def _print_dataset_summary(args: argparse.Namespace, pool: object) -> None:
     print(f"  multi_day_speed_mode={args.multi_day_speed_mode}")
     print(f"  day_candidate_builder={args.day_candidate_builder or 'auto'}")
     print(f"  direct_slot_shortlist_size={args.direct_slot_shortlist_size}")
+    print(f"  profile_guard={args.profile_guard}")
+    print(f"  allow_unsupported_profile={args.allow_unsupported_profile}")
     recent_recipe_ids = _parse_recent_recipe_ids(args.recent_recipe_ids)
     if recent_recipe_ids:
         print(f"  recent_recipe_ids={','.join(recent_recipe_ids)}")
@@ -493,6 +556,9 @@ def _print_dataset_summary(args: argparse.Namespace, pool: object) -> None:
         V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE,
         V1_2_DEMO_CANDIDATE_PROFILE,
         V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+        V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+        V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+        V1_2_DEMO_FINAL_PROFILE,
     }:
         is_recommended = (
             args.selection_mode == "balanced_day"
@@ -536,6 +602,68 @@ def _print_target_summary(target: NutritionTarget) -> None:
             f"carbs_g={values['carbs_g']:.1f}, "
             f"fat_g={values['fat_g']:.1f}"
         )
+
+
+def _profile_guard_result(
+    args: argparse.Namespace,
+    profile: dict[str, object],
+    target: NutritionTarget,
+) -> dict[str, object] | None:
+    if args.profile_guard == "off":
+        return None
+    return evaluate_profile_guard(
+        profile=profile,
+        target=target,
+        meal_config=profile.get("meal_config") or {},
+        mode=args.profile_guard,
+    )
+
+
+def _profile_guard_blocks(
+    guard_result: dict[str, object] | None,
+    args: argparse.Namespace,
+) -> bool:
+    if not guard_result:
+        return False
+    return bool(guard_result.get("should_block_generation")) and not bool(
+        args.allow_unsupported_profile
+    )
+
+
+def _print_profile_guard(
+    guard_result: dict[str, object] | None,
+    args: argparse.Namespace,
+) -> None:
+    if guard_result is None:
+        return
+    print("Profile guard")
+    print(f"  profile_guard={args.profile_guard}")
+    print(
+        "  profile_guard_status="
+        f"{guard_result.get('profile_guard_status')}"
+    )
+    print(
+        "  profile_guard_reasons="
+        + _format_reasons(guard_result.get("profile_guard_reasons"))
+    )
+    print(
+        "  profile_guard_recommendations="
+        + _format_reasons(guard_result.get("profile_guard_recommendations"))
+    )
+    print(
+        "  should_block_generation="
+        f"{guard_result.get('should_block_generation')}"
+    )
+    print(
+        "  allow_unsupported_profile="
+        f"{args.allow_unsupported_profile}"
+    )
+    print(
+        "  suggested_adjustments="
+        + _format_suggested_adjustments(guard_result.get("suggested_adjustments"))
+    )
+    if guard_result.get("should_block_generation") and args.allow_unsupported_profile:
+        print("  unsupported_profile_override=True")
 
 
 def _print_pool_summary(candidates: pd.DataFrame, eligible_candidates: pd.DataFrame) -> None:
@@ -856,6 +984,8 @@ def _pool_summary(
         "multi_day_speed_mode": args.multi_day_speed_mode,
         "day_candidate_builder": args.day_candidate_builder or "auto",
         "direct_slot_shortlist_size": args.direct_slot_shortlist_size,
+        "profile_guard": args.profile_guard,
+        "allow_unsupported_profile": args.allow_unsupported_profile,
         "loader_warnings": pool.loader_diagnostics.get("warnings", []),
     }
 
@@ -1487,6 +1617,12 @@ def _format_counts(value: object) -> str:
     if not isinstance(value, dict) or not value:
         return "none"
     return ", ".join(f"{key}:{item}" for key, item in value.items())
+
+
+def _format_suggested_adjustments(value: object) -> str:
+    if not isinstance(value, dict) or not value:
+        return "none"
+    return "; ".join(f"{key}={item}" for key, item in value.items())
 
 
 def _safe_text(value: object) -> str:

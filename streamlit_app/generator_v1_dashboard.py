@@ -28,10 +28,22 @@ from src.generator_v1.data_loader import (
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_INGREDIENTS_PATH,
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_NUTRITION_PATH,
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_INGREDIENTS_PATH,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_NUTRITION_PATH,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_RECIPES_PATH,
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_RECIPES_PATH,
     V1_2_DEMO_CANDIDATE_NUTRITION_PATH,
     V1_2_DEMO_CANDIDATE_PROFILE,
     V1_2_DEMO_CANDIDATE_RECIPES_PATH,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_INGREDIENTS_PATH,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_NUTRITION_PATH,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_RECIPES_PATH,
+    V1_2_DEMO_FINAL_INGREDIENTS_PATH,
+    V1_2_DEMO_FINAL_NUTRITION_PATH,
+    V1_2_DEMO_FINAL_PROFILE,
+    V1_2_DEMO_FINAL_RECIPES_PATH,
     V1_1_GENERATOR_READY_INGREDIENTS_PATH,
     V1_1_GENERATOR_READY_NUTRITION_PATH,
     V1_1_GENERATOR_READY_PROFILE,
@@ -100,6 +112,7 @@ from src.generator_v1.pilot_servings_estimator import (
 )
 from src.generator_v1.plan_validator import validate_one_day_plan
 from src.generator_v1.plan_quality_gate import evaluate_plan_quality
+from src.generator_v1.profile_guard import evaluate_profile_guard
 from src.generator_v1.profile_loader import load_member_profile
 from src.generator_v1.reroll_policy import select_quality_gated_reroll
 from src.generator_v1.slot_candidates import build_slot_candidates
@@ -129,6 +142,8 @@ SESSION_DAY_CANDIDATE_POOL_SIZE_KEY = "generator_v1_day_candidate_pool_size"
 SESSION_MULTIDAY_SPEED_MODE_KEY = "generator_v1_multiday_speed_mode"
 SESSION_DAY_CANDIDATE_BUILDER_KEY = "generator_v1_day_candidate_builder"
 SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY = "generator_v1_direct_slot_shortlist_size"
+SESSION_PROFILE_GUARD_KEY = "generator_v1_profile_guard"
+SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY = "generator_v1_allow_unsupported_profile"
 RECENT_MENUS_FOR_VARIATION = 2
 V1_1_RECOMMENDED_SELECTION_MODE = "balanced_day"
 V1_1_RECOMMENDED_ALTERNATIVE_COUNT = 3
@@ -152,6 +167,7 @@ DAY_CANDIDATE_POOL_SIZE_OPTIONS = [50, 75, 100, 150]
 MULTI_DAY_SPEED_MODE_OPTIONS = ["fast", "quality"]
 DAY_CANDIDATE_BUILDER_OPTIONS = ["direct_from_slots", "balanced_repeated"]
 DIRECT_SLOT_SHORTLIST_SIZE_OPTIONS = [8, 10, 12, 15]
+PROFILE_GUARD_OPTIONS = ["off", "demo", "permissive"]
 
 DATASET_OPTIONS = {
     "Pilot current": {
@@ -259,11 +275,33 @@ DATASET_OPTIONS = {
         "nutrition_path": V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_NUTRITION_PATH,
         "is_draft": True,
     },
+    "Recipes_DB v1.2 demo candidate + manual batch2 Round46 QA": {
+        "dataset_profile": V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+        "recipes_path": V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_RECIPES_PATH,
+        "ingredients_path": V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_INGREDIENTS_PATH,
+        "nutrition_path": V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_NUTRITION_PATH,
+        "is_draft": True,
+    },
+    "Recipes_DB v1.2 demo candidate Round48 cleaned": {
+        "dataset_profile": V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+        "recipes_path": V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_RECIPES_PATH,
+        "ingredients_path": V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_INGREDIENTS_PATH,
+        "nutrition_path": V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_NUTRITION_PATH,
+        "is_draft": True,
+    },
+    "Recipes_DB v1.2 demo-final draft": {
+        "dataset_profile": V1_2_DEMO_FINAL_PROFILE,
+        "recipes_path": V1_2_DEMO_FINAL_RECIPES_PATH,
+        "ingredients_path": V1_2_DEMO_FINAL_INGREDIENTS_PATH,
+        "nutrition_path": V1_2_DEMO_FINAL_NUTRITION_PATH,
+        "is_draft": True,
+    },
 }
 
 PIPELINE_STEPS = [
     "profile_loader.py",
     "target_builder.py",
+    "profile_guard.py",
     "data_loader.py",
     "candidate_filter.py",
     "portion_policy.py",
@@ -308,6 +346,7 @@ def main() -> None:
         portion_policy = _render_portion_policy_selector()
         meal_realism_mode = _render_meal_realism_selector()
         quality_gate = _render_quality_gate_selector()
+        profile_guard = _render_profile_guard_selector(dataset_config)
         multi_day_mode = _render_multi_day_mode_selector()
         no_repeat_policy = _render_multi_day_no_repeat_policy_selector()
         day_candidate_pool_size = _render_day_candidate_pool_size_selector()
@@ -316,30 +355,43 @@ def main() -> None:
         direct_slot_shortlist_size = _render_direct_slot_shortlist_size_selector()
         active_config = _current_generation_config(dataset_config)
         _render_active_generation_config(active_config)
+        guard_profile = load_member_profile(PROFILE_PATH)
+        guard_target = build_nutrition_target(guard_profile)
+        profile_guard_result = _dashboard_profile_guard_result(
+            dataset_config=dataset_config,
+            profile=guard_profile,
+            target=guard_target,
+        )
+        _render_profile_guard_status(profile_guard_result)
+        generation_blocked = _dashboard_profile_guard_blocks(profile_guard_result)
         button_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.8])
         button_cols[0].button(
             "Generate 1 day",
             type="primary",
             on_click=_generate_and_store_one_day_menu,
             use_container_width=True,
+            disabled=generation_blocked,
         )
         button_cols[1].button(
             "Generate 3 days",
             type="secondary",
             on_click=_generate_and_store_three_day_plan,
             use_container_width=True,
+            disabled=generation_blocked,
         )
         button_cols[2].button(
             "Generate best",
             type="secondary",
             on_click=_generate_and_store_best_menu,
             use_container_width=True,
+            disabled=generation_blocked,
         )
         button_cols[3].button(
             "Generate varied",
             type="secondary",
             on_click=_generate_and_store_varied_menu,
             use_container_width=True,
+            disabled=generation_blocked,
         )
         button_cols[4].button(
             "Clear generated menu history",
@@ -352,6 +404,7 @@ def main() -> None:
         st.caption(f"Portion policy: {portion_policy}")
         st.caption(f"Meal realism mode: {meal_realism_mode}")
         st.caption(f"Quality gate: {quality_gate}")
+        st.caption(f"Profile guard: {profile_guard}")
         st.caption(f"Alternatives: {alternative_count}; diversity: {diversity_mode}")
         st.caption(f"3-day mode: {multi_day_mode}")
         st.caption(
@@ -391,6 +444,9 @@ def main() -> None:
                 V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE,
                 V1_2_DEMO_CANDIDATE_PROFILE,
                 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+                V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+                V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+                V1_2_DEMO_FINAL_PROFILE,
             }
         ):
             st.info(
@@ -459,7 +515,15 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
         st.session_state[SESSION_MULTIDAY_SPEED_MODE_KEY] = "fast"
         st.session_state[SESSION_DAY_CANDIDATE_BUILDER_KEY] = "direct_from_slots"
         st.session_state[SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY] = 12
+        st.session_state[SESSION_PROFILE_GUARD_KEY] = "off"
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
         return
+    if _is_v1_2_demo_dataset(dataset_profile):
+        st.session_state[SESSION_PROFILE_GUARD_KEY] = "demo"
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+    else:
+        st.session_state[SESSION_PROFILE_GUARD_KEY] = "off"
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
     if dataset_profile in {
         V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE,
         V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_PROFILE,
@@ -469,6 +533,9 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
         V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE,
         V1_2_DEMO_CANDIDATE_PROFILE,
         V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+        V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+        V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+        V1_2_DEMO_FINAL_PROFILE,
     }:
         st.session_state[SESSION_MULTIDAY_NO_REPEAT_POLICY_KEY] = "hard"
         st.session_state[SESSION_DAY_CANDIDATE_POOL_SIZE_KEY] = 50
@@ -487,6 +554,9 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
         V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE,
         V1_2_DEMO_CANDIDATE_PROFILE,
         V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+        V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+        V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+        V1_2_DEMO_FINAL_PROFILE,
     }:
         st.session_state[SESSION_SELECTION_MODE_KEY] = V1_1_RECOMMENDED_SELECTION_MODE
         st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = V1_1_RECOMMENDED_ALTERNATIVE_COUNT
@@ -504,6 +574,9 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
             V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE,
             V1_2_DEMO_CANDIDATE_PROFILE,
             V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
+            V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
+            V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
+            V1_2_DEMO_FINAL_PROFILE,
         }:
             st.session_state[SESSION_MULTIDAY_NO_REPEAT_POLICY_KEY] = "prefer"
             st.session_state[SESSION_DAY_CANDIDATE_POOL_SIZE_KEY] = 75
@@ -606,6 +679,20 @@ def _render_quality_gate_selector() -> str:
     return str(selected_mode)
 
 
+def _render_profile_guard_selector(dataset_config: dict[str, Any]) -> str:
+    current_mode = _current_profile_guard_mode(dataset_config)
+    selected_mode = st.selectbox(
+        "Profile guard",
+        PROFILE_GUARD_OPTIONS,
+        index=PROFILE_GUARD_OPTIONS.index(current_mode),
+        help="demo blocheaza profilurile extreme pentru demo; permissive doar avertizeaza.",
+    )
+    if selected_mode != current_mode:
+        st.session_state[SESSION_PROFILE_GUARD_KEY] = selected_mode
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+    return str(selected_mode)
+
+
 def _render_multi_day_mode_selector() -> str:
     current_mode = _current_multi_day_mode()
     selected_mode = st.selectbox(
@@ -696,6 +783,10 @@ def _current_dataset_config() -> dict[str, Any]:
     return DATASET_OPTIONS[label]
 
 
+def _is_v1_2_demo_dataset(dataset_profile: object) -> bool:
+    return str(dataset_profile or "").startswith("v1_2_demo")
+
+
 def _current_selection_mode() -> str:
     return str(st.session_state.get(SESSION_SELECTION_MODE_KEY, "greedy"))
 
@@ -723,6 +814,19 @@ def _current_meal_realism_mode() -> str:
 def _current_quality_gate() -> str:
     value = str(st.session_state.get(SESSION_QUALITY_GATE_KEY, "off"))
     return value if value in QUALITY_GATE_OPTIONS else "off"
+
+
+def _current_profile_guard_mode(
+    dataset_config: dict[str, Any] | None = None,
+) -> str:
+    config = dataset_config or _current_dataset_config()
+    default_mode = "demo" if _is_v1_2_demo_dataset(config["dataset_profile"]) else "off"
+    value = str(st.session_state.get(SESSION_PROFILE_GUARD_KEY, default_mode))
+    return value if value in PROFILE_GUARD_OPTIONS else default_mode
+
+
+def _current_allow_unsupported_profile() -> bool:
+    return bool(st.session_state.get(SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY, False))
 
 
 def _current_multi_day_mode() -> str:
@@ -790,6 +894,8 @@ def _current_generation_config(
         "multi_day_speed_mode": _current_multi_day_speed_mode(),
         "day_candidate_builder": _current_day_candidate_builder(),
         "direct_slot_shortlist_size": _current_direct_slot_shortlist_size(),
+        "profile_guard": _current_profile_guard_mode(config),
+        "allow_unsupported_profile": _current_allow_unsupported_profile(),
     }
 
 
@@ -829,6 +935,10 @@ def _menu_generation_config(menu: dict[str, Any]) -> dict[str, Any]:
             "direct_slot_shortlist_size": pool_summary.get(
                 "direct_slot_shortlist_size"
             ),
+            "profile_guard": pool_summary.get("profile_guard"),
+            "allow_unsupported_profile": pool_summary.get(
+                "allow_unsupported_profile"
+            ),
         }
     )
 
@@ -847,6 +957,7 @@ def _normalise_generation_config(config: dict[str, Any]) -> dict[str, Any]:
         ),
         "multi_day_speed_mode": str(config.get("multi_day_speed_mode", "")),
         "day_candidate_builder": str(config.get("day_candidate_builder", "")),
+        "profile_guard": str(config.get("profile_guard", "")),
     }
     try:
         normalised["alternative_count"] = int(config.get("alternative_count", 1))
@@ -864,6 +975,9 @@ def _normalise_generation_config(config: dict[str, Any]) -> dict[str, Any]:
         )
     except (TypeError, ValueError):
         normalised["direct_slot_shortlist_size"] = 12
+    normalised["allow_unsupported_profile"] = bool(
+        config.get("allow_unsupported_profile", False)
+    )
     return normalised
 
 
@@ -909,6 +1023,98 @@ def _label_for_selection_mode(mode: object) -> str:
         if value == mode_text:
             return label
     return "Greedy"
+
+
+def _dashboard_profile_guard_result(
+    dataset_config: dict[str, Any],
+    profile: dict[str, Any],
+    target: NutritionTarget,
+) -> dict[str, Any] | None:
+    mode = _current_profile_guard_mode(dataset_config)
+    if mode == "off":
+        return None
+    return evaluate_profile_guard(
+        profile=profile,
+        target=target,
+        meal_config=profile.get("meal_config") or {},
+        mode=mode,
+    )
+
+
+def _render_profile_guard_status(guard_result: dict[str, Any] | None) -> None:
+    if guard_result is None:
+        st.caption("profile_guard=off")
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+        return
+
+    status = str(guard_result.get("profile_guard_status", "missing"))
+    should_block = bool(guard_result.get("should_block_generation", False))
+    st.markdown("#### Profile guard")
+    metric_cols = st.columns(3)
+    metric_cols[0].metric("Status", status)
+    metric_cols[1].metric("Block", str(should_block))
+    metric_cols[2].metric(
+        "Override",
+        str(_current_allow_unsupported_profile()),
+    )
+
+    message = (
+        "Reasons: "
+        f"{_format_reasons(guard_result.get('profile_guard_reasons'))}; "
+        "recommendations: "
+        f"{_format_reasons(guard_result.get('profile_guard_recommendations'))}"
+    )
+    if status == "unsupported_for_demo" and should_block:
+        st.error(message)
+    elif status in {"unsupported_for_demo", "edge_needs_warning"}:
+        st.warning(message)
+    else:
+        st.success(message)
+
+    suggestions = _profile_guard_suggestion_rows(
+        guard_result.get("suggested_adjustments")
+    )
+    if suggestions:
+        st.dataframe(
+            pd.DataFrame(suggestions),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    if status == "unsupported_for_demo":
+        st.checkbox(
+            "Allow aggressive/unsupported profile test",
+            key=SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY,
+            help="Permite generarea doar pentru testare explicita a profilurilor extreme.",
+        )
+    else:
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+
+
+def _profile_guard_suggestion_rows(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, dict) or not value:
+        return []
+    labels = {
+        "remove_snack": "remove snack",
+        "goal_speed": "use slower goal speed",
+        "activity_level": "avoid sedentary + fast loss for demo",
+        "use_aggressive_cut_test_mode": "explicit aggressive-cut test mode",
+    }
+    rows: list[dict[str, Any]] = []
+    for key, item in value.items():
+        rows.append(
+            {
+                "suggested_adjustment": labels.get(str(key), str(key)),
+                "value": str(item),
+            }
+        )
+    return rows
+
+
+def _dashboard_profile_guard_blocks(guard_result: dict[str, Any] | None) -> bool:
+    if not guard_result:
+        return False
+    return bool(guard_result.get("should_block_generation")) and not _current_allow_unsupported_profile()
 
 
 def _generate_and_store_best_menu() -> None:
@@ -1005,6 +1211,11 @@ def _build_multi_day_result(
     generation_started = time.perf_counter()
     profile = load_member_profile(PROFILE_PATH)
     target = build_nutrition_target(profile)
+    profile_guard_result = _dashboard_profile_guard_result(
+        dataset_config=dataset_config,
+        profile=profile,
+        target=target,
+    )
     pool = load_recipe_candidate_pool(
         recipes_path=dataset_config["recipes_path"],
         ingredients_path=dataset_config["ingredients_path"],
@@ -1076,6 +1287,8 @@ def _build_multi_day_result(
         "multi_day_speed_mode": multi_day_speed_mode,
         "day_candidate_builder": day_candidate_builder,
         "direct_slot_shortlist_size": direct_slot_shortlist_size,
+        "profile_guard": _current_profile_guard_mode(dataset_config),
+        "allow_unsupported_profile": _current_allow_unsupported_profile(),
     }
     plan["run_id"] = run_id
     plan["generated_at"] = generated_at
@@ -1083,6 +1296,8 @@ def _build_multi_day_result(
     plan["generation_config"] = generation_config
     plan["generation_config_used"] = generation_config
     plan["generation_runtime_seconds"] = generation_seconds
+    if profile_guard_result is not None:
+        plan["profile_guard"] = profile_guard_result
     plan["candidate_diagnostics"] = candidate_diagnostics
     plan["nutrition_cache_diagnostics"] = nutrition_cache_diagnostics
     plan["pool_summary"] = {
@@ -1109,6 +1324,13 @@ def _build_multi_day_result(
         "multi_day_speed_mode": multi_day_speed_mode,
         "day_candidate_builder": day_candidate_builder,
         "direct_slot_shortlist_size": direct_slot_shortlist_size,
+        "profile_guard": _current_profile_guard_mode(dataset_config),
+        "allow_unsupported_profile": _current_allow_unsupported_profile(),
+        "profile_guard_status": (
+            profile_guard_result.get("profile_guard_status")
+            if profile_guard_result
+            else "off"
+        ),
         "generation_runtime_seconds": generation_seconds,
         "loader_warnings": pool.loader_diagnostics.get("warnings", []),
     }
@@ -1136,6 +1358,11 @@ def _build_generator_result(
     run_id = run_id or f"streamlit-{generated_at}"
     profile = load_member_profile(PROFILE_PATH)
     target = build_nutrition_target(profile)
+    profile_guard_result = _dashboard_profile_guard_result(
+        dataset_config=dataset_config,
+        profile=profile,
+        target=target,
+    )
     pool = load_recipe_candidate_pool(
         recipes_path=dataset_config["recipes_path"],
         ingredients_path=dataset_config["ingredients_path"],
@@ -1218,6 +1445,8 @@ def _build_generator_result(
         selected_recipe_ids=_selected_recipe_ids(plan),
     )
     plan["target"] = _target_to_dict(target)
+    if profile_guard_result is not None:
+        plan["profile_guard"] = profile_guard_result
     plan["candidate_diagnostics"] = candidate_diagnostics
     plan["nutrition_cache_diagnostics"] = nutrition_cache_diagnostics
     plan["ingredient_diagnostics"] = ingredient_diagnostics
@@ -1262,6 +1491,13 @@ def _build_generator_result(
         "quality_gate_status": plan.get("quality_gate_status"),
         "quality_gate_selected_mode": plan.get("quality_gate_selected_mode"),
         "quality_gate_fallback_used": plan.get("quality_gate_fallback_used", False),
+        "profile_guard": _current_profile_guard_mode(dataset_config),
+        "allow_unsupported_profile": _current_allow_unsupported_profile(),
+        "profile_guard_status": (
+            profile_guard_result.get("profile_guard_status")
+            if profile_guard_result
+            else "off"
+        ),
         "alternative_count": alternative_count,
         "diversity_mode": diversity_mode,
         "recent_recipe_id_count": len(recent_recipe_ids or set()),
@@ -1518,7 +1754,10 @@ def _render_pool_summary(pool_summary: dict[str, Any]) -> None:
         f"recent recipes={pool_summary.get('recent_recipe_id_count', 0)}; "
         f"multi-day speed={pool_summary.get('multi_day_speed_mode', 'n/a')}; "
         f"builder={pool_summary.get('day_candidate_builder', 'n/a')}; "
-        f"direct shortlist={pool_summary.get('direct_slot_shortlist_size', 'n/a')}"
+        f"direct shortlist={pool_summary.get('direct_slot_shortlist_size', 'n/a')}; "
+        f"profile_guard={pool_summary.get('profile_guard', 'off')}; "
+        "allow_unsupported_profile="
+        f"{pool_summary.get('allow_unsupported_profile', False)}"
     )
     warnings = pool_summary.get("loader_warnings") or []
     if warnings:
@@ -2382,6 +2621,8 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_MULTIDAY_SPEED_MODE_KEY] = "fast"
         st.session_state[SESSION_DAY_CANDIDATE_BUILDER_KEY] = "direct_from_slots"
         st.session_state[SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY] = 12
+        st.session_state[SESSION_PROFILE_GUARD_KEY] = "off"
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
         return
     if SESSION_MENUS_KEY not in st.session_state:
         st.session_state[SESSION_MENUS_KEY] = []
@@ -2429,6 +2670,10 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_DAY_CANDIDATE_BUILDER_KEY] = "direct_from_slots"
     if SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY not in st.session_state:
         st.session_state[SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY] = 12
+    if SESSION_PROFILE_GUARD_KEY not in st.session_state:
+        st.session_state[SESSION_PROFILE_GUARD_KEY] = _current_profile_guard_mode()
+    if SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY not in st.session_state:
+        st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
 
 
 def _slot_order(target: NutritionTarget) -> list[str]:

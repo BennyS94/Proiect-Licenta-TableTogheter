@@ -16,11 +16,11 @@ Model conceptual minim:
 - `feedback_event`
 
 Checkpoint-uri:
-- Checkpoint 0: contract generator, profil, `nutrition_target`, feedback, hard filters, scoring
-- Checkpoint 1: 1 household + 1 `member_profile` activ + 1 zi
-- Checkpoint 2: retete realiste + feedback minim + polish pe pilot
-- Checkpoint 3: extindere la mai multe zile
-- Checkpoint 4: uniformizare, ingredient reuse, grocery realism
+- Checkpoint 0: contract generator, profil, `nutrition_target`, feedback, hard filters, scoring - conceptual complet
+- Checkpoint 1: 1 household + 1 `member_profile` activ + 1 zi - demo/testing-ready pe Generator v1
+- Checkpoint 2: multi-day v1 draft + demo polish - implementat/demo-ready pentru 3 zile
+- Checkpoint 3: feedback + UI polish si family-level variety polish
+- Checkpoint 4: pregatire grocery/list si source verification suplimentar
 - Checkpoint 5: household generation cu mai multe profile active simultan
 
 Rolul KNN:
@@ -30,3 +30,31 @@ Rolul KNN:
 Rolul Streamlit:
 - unealta de testare rapida
 - nu produs final
+
+Stare demo curenta:
+- dataset demo: `v1_2_demo_final`
+- path: `data/recipesdb/draft/v1_2_demo_final/`
+- total recipes: `266`
+- active recipes: `261`
+- sursa: `v1_2_demo_candidate_round48_cleaned`
+- status: demo-final draft, nu productie/current
+- `data/recipesdb/current` ramane neatins
+- `data/fooddb/current` ramane neatins
+
+Config demo recomandat:
+- `dataset_profile=v1_2_demo_final`
+- `selection_mode=balanced_day`
+- `portion_policy=target_aware`
+- `meal_realism_mode=practical`
+- `quality_gate=demo_safe`
+- `days=3`
+- `multi_day_mode=global_alternatives_3_day`
+- `multi_day_no_repeat_policy=hard`
+- `day_candidate_builder=direct_from_slots`
+- `profile_guard=demo`
+
+Explicit in afara scope-ului demo curent:
+- fara OR-Tools / KNN ca motor principal / MILP
+- fara grocery/price
+- fara household multi-member simultan
+- `profile_guard` este strat de protectie demo, nu schimbare de formula target

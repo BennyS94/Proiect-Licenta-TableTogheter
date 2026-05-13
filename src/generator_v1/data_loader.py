@@ -130,6 +130,33 @@ V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_INGREDIENTS_PATH = Path(
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_NUTRITION_PATH = Path(
     "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/recipe_nutrition_cache.csv"
 )
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round46_qa/recipes.csv"
+)
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round46_qa/recipe_ingredients.csv"
+)
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round46_qa/recipe_nutrition_cache.csv"
+)
+V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round48_cleaned/recipes.csv"
+)
+V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round48_cleaned/recipe_ingredients.csv"
+)
+V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round48_cleaned/recipe_nutrition_cache.csv"
+)
+V1_2_DEMO_FINAL_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_final/recipes.csv"
+)
+V1_2_DEMO_FINAL_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_final/recipe_ingredients.csv"
+)
+V1_2_DEMO_FINAL_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_final/recipe_nutrition_cache.csv"
+)
 
 PILOT_CURRENT_PROFILE = "pilot_current"
 V1_1_GENERATOR_READY_PROFILE = "v1_1_generator_ready"
@@ -160,6 +187,11 @@ V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE = (
 )
 V1_2_DEMO_CANDIDATE_PROFILE = "v1_2_demo_candidate"
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE = "v1_2_demo_candidate_manual_batch2"
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE = (
+    "v1_2_demo_candidate_manual_batch2_round46_qa"
+)
+V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE = "v1_2_demo_candidate_round48_cleaned"
+V1_2_DEMO_FINAL_PROFILE = "v1_2_demo_final"
 
 DATASET_PROFILE_PRESETS = {
     PILOT_CURRENT_PROFILE: {
@@ -321,6 +353,45 @@ DATASET_PROFILE_PRESETS = {
         "require_per_serving_macros": True,
     },
     V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_DEMO_FINAL_PROFILE: {
         "allowed_scope_statuses": {
             "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
             "v1_1_generator_ready_draft",

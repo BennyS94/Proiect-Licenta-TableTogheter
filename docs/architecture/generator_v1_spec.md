@@ -3,7 +3,7 @@
 ## 1. Scopul documentului
 
 Acest document fixeaza deciziile de arhitectura si contractele operationale pentru Generator v1.
-Scopul este de a produce o versiune functionala, testabila si extensibila, limitata initial la un singur household, un singur member_profile activ si o singura zi.
+Scopul este de a produce o versiune functionala, testabila si extensibila. Starea curenta include demo/testing pentru o zi si un draft multi-day de 3 zile, dar ramane limitata la un singur household si un singur member_profile activ.
 
 ---
 
@@ -12,7 +12,8 @@ Scopul este de a produce o versiune functionala, testabila si extensibila, limit
 Generatorul v1 este:
 - recipe-based, deterministic, scoring-based si modular
 - proiectat pentru testare rapida (Streamlit) si iteratie pe pilot
-- limitat la 1 household + 1 member_profile activ + 1 zi
+- limitat la 1 household + 1 member_profile activ
+- demo/testing-ready pentru 1 zi si demo-ready pentru multi-day v1 draft de 3 zile
 
 Unitatea principala de selectie este reteta (`recipe`).
 
@@ -20,8 +21,8 @@ Datele principale consumate:
 - `recipes`, `recipe_ingredients`, `recipe_nutrition_cache`, `member_profile`, `nutrition_target`, `household_preference_context`
 
 Decizii arhitecturale importante:
-- NU folosim OR-Tools/MILP in v1
-- KNN nu este motorul principal in v1 (doar strat auxiliar)
+- NU folosim OR-Tools/MILP in Generator v1 demo
+- KNN nu este motorul principal in v1 (doar strat auxiliar viitor)
 - Nu se rescrie structura retetelor; se permit doar multiplicatori de portie
 
 ---
@@ -35,10 +36,12 @@ Generatorul construieste planul pe baza de `recipes` si metadate asociate. Fieca
 ## 4. Ce NU face generatorul v1
 
 - household optimization complet multi-profile
-- planificare multi-day
+- household multi-member simultan
 - grocery/price estimation
 - folosirea KNN ca motor principal
+- OR-Tools / MILP / CP-SAT
 - rescrierea automata a retetelor sau componentizare automata
+- promovarea automata a dataseturilor draft in `current`
 
 Generatorul poate ajusta portiile retetelor prin multiplicatori (ex. 0.8x/1.0x/1.2x), dar nu modifica lista de ingrediente.
 
@@ -293,6 +296,58 @@ Extensii viitoare: acumulare preferinte familie/ingredient
 
 ---
 
+## 23.1. Dataset demo v1.2
+
+Datasetul demo curent este:
+- `dataset_profile=v1_2_demo_final`
+- path: `data/recipesdb/draft/v1_2_demo_final/`
+- total recipes: `266`
+- active recipes: `261`
+- sursa: `v1_2_demo_candidate_round48_cleaned`
+- status: demo-final draft, nu productie/current
+
+Datele `data/recipesdb/current` si `data/fooddb/current` raman neatinse de acest pachet demo.
+
+Config recomandat pentru demo:
+- `selection_mode=balanced_day`
+- `portion_policy=target_aware`
+- `meal_realism_mode=practical`
+- `quality_gate=demo_safe`
+- `days=3`
+- `multi_day_mode=global_alternatives_3_day`
+- `multi_day_no_repeat_policy=hard`
+- `day_candidate_builder=direct_from_slots`
+- `profile_guard=demo`
+
+Smoke curent:
+- one-day valid/accept = true
+- three-day valid = 3/3
+- accept = 3/3
+- repeated recipes = 0
+- `multi_day_loss=0.006322`
+
+---
+
+## 23.2. Profile guard
+
+`profile_guard` este un strat de avertizare/blocare pentru demo. Nu modifica targeturile si nu modifica profilul.
+
+Moduri:
+- `off`: comportament vechi, fara guard
+- `demo`: blocheaza profilurile unsupported pentru demo
+- `permissive`: avertizeaza, dar permite generarea
+
+Reguli principale:
+- `target_kcal < 1300` => `unsupported_for_demo`; in modul `demo` blocheaza generarea daca nu exista override explicit
+- `target_kcal < 1400` cu snack activ => cel putin `edge_needs_warning`
+- `goal=lose`, `goal_speed=fast`, `activity_level=sedentary` => cel putin `edge_needs_warning`
+
+Exemplu validat:
+- profilul `sedentary_lose_fast_with_snack`, `target_kcal=1227.8`, este blocat in `profile_guard=demo`
+- acelasi profil avertizeaza si continua in `profile_guard=permissive`
+
+---
+
 ## 24. Module logice recomandate
 
 - `target_builder` (calc nutrition_target)
@@ -328,11 +383,11 @@ Extensii viitoare: acumulare preferinte familie/ingredient
 
 ## 28. Checkpoint-uri
 
-- Checkpoint 0: contract generator, profil, nutrition_target, feedback, hard filters, scoring (acum)
-- Checkpoint 1: 1 household + 1 member_profile activ + 1 zi
-- Checkpoint 2: retete realiste + feedback minim + polish pe pilot
-- Checkpoint 3: extindere la mai multe zile
-- Checkpoint 4: ingredient reuse, grocery realism
+- Checkpoint 0: contract generator, profil, nutrition_target, feedback, hard filters, scoring - conceptual complet
+- Checkpoint 1: 1 household + 1 member_profile activ + 1 zi - demo/testing-ready
+- Checkpoint 2: multi-day v1 draft + demo polish - implementat/demo-ready
+- Checkpoint 3: feedback + UI polish si family-level variety polish
+- Checkpoint 4: source verification suplimentar si pregatire grocery/list
 - Checkpoint 5: household generation multi-profile
 
 ---
@@ -352,5 +407,5 @@ Extensii viitoare: acumulare preferinte familie/ingredient
 
 ## 31. Concluzie
 
-Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven, limitat la 1 household + 1 profile + 1 zi. Urmatorul pas este implementarea Checkpoint 1 conform roadmap-ului.
+Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven, limitat la 1 household + 1 profile activ. Checkpoint 1 si Checkpoint 2 sunt demo-ready pe pachetul `v1_2_demo_final`; urmatorii pasi tin de feedback, polish de varietate, source verification, grocery/list si household multi-member ulterior.
 

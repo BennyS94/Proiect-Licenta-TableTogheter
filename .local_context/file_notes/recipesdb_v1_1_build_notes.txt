@@ -1882,3 +1882,178 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Deferred / next source batch:
   - Keep `garbanzo_beans`, `coconut_milk`, `baby_lima_beans`, `beef_chuck`, `beef_chuck_roast`, `chili_without_beans`, `cubed_beef_stew_meat`, `lamb_or_mutton_breast_chops`, `pork_and_beans`, `red_beans`, `romano_beans`, and `unsweetened_coconut_milk` unapplied until state/source ambiguity is resolved.
   - Next batch should prioritize common blockers that recover multiple strong recipes, not isolated or ambiguous processed/generic items.
+
+## 54. Round45 / v1.2 final demo readiness after Food_DB batch2 - 2026-05-13
+- Scope:
+  - Audited `v1_2_demo_candidate_manual_batch2` as the final v1.2 demo draft candidate.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, recipes, Food_DB additions, or generator logic were changed.
+- Final readiness:
+  - Dataset path: `data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/`
+  - Recipe count: `266`
+  - Final readiness status: `demo_final_draft_ready_with_risks`
+  - Strong generator-ready estimate: `142`
+  - Cache status: `263` usable, `3` partial.
+- Inventory:
+  - Slot counts: `breakfast=76`, `lunch=170`, `dinner=170`, `snack=20`
+  - Main protein counts include `chicken=73`, `egg=58`, `beef=44`, `pork=29`, `dairy=23`, `fish=20`, `turkey=10`, `legume=8`.
+- Smoke results:
+  - One-day smoke: `valid`, `accept`, no realism flags, verdict `one_day_good`.
+  - Three-day smoke: `valid=3/3`, `accept=3/3`, `review=0`, `repeated=0`, `unique=12`, `multi_day_loss=0.006322`, verdict `multi_day_good`.
+  - CLI validation with hard no-repeat/direct builder matched the batch2 result.
+- Known limitations:
+  - Semantic family variety remains weak in the latest plan, with breakfast oatmeal family repeated across all three days.
+  - Macro/family risk counts include `very_high_fat_share=40`, `main_carbs_under_10g=33`, `semantic_family_variety_latest_plan=3`, `breakfast_over_850_kcal=3`, `main_protein_under_10g=3`, and `suspicious_portion_weight=1`.
+  - Food_DB batch2 still has `12` needs_review rows with raw/cooked/canned/dry or processed-item ambiguity.
+- Freeze recommendation:
+  - Freeze as v1.2 final demo draft candidate for license/demo use.
+  - Do not promote to `current` or production without a separate QA/promotion pass.
+  - Next work should be documentation/demo framing after approval, family-level variety policy, Food_DB source batch3, feedback integration, or UI/demo polish.
+
+## 55. Round46 / v1.2 demo candidate QA partial cache and macro outliers - 2026-05-13
+- Scope:
+  - Audited `v1_2_demo_candidate_manual_batch2` for partial nutrition cache rows and severe macro outliers.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, new recipes, Food_DB additions, web scraping, invented nutrition values, or generator logic were changed.
+- Partial cache audit:
+  - Partial cache recipes: `3`
+  - Actions: `needs_manual_review=2`, `needs_source=1`
+  - No partial cache recipe had an explicit low-risk automatic repair.
+- Macro outlier audit:
+  - Outlier rows: `86`
+  - Counts: `very_high_fat_share=40`, `main_carbs_under_10g=33`, `suspicious_high_kcal=6`, `main_protein_under_10g=3`, `breakfast_over_850_kcal=3`, `suspicious_serving_size=1`.
+  - Classifications: `keep_with_warning=48`, `likely_mapping_issue=19`, `likely_legitimate=7`, `likely_servings_issue=7`, `needs_manual_review=3`, `likely_recipe_semantic_issue=2`.
+- Safe repairs:
+  - Safe automatic repair candidates: `0`
+  - Applied repairs: `0`
+  - Deferred/manual review items: `89`
+  - Because no safe repairs existed, the Round46 QA dataset was materialized unchanged from batch2.
+- New QA dataset/profile:
+  - Dataset profile: `v1_2_demo_candidate_manual_batch2_round46_qa`
+  - Dataset path: `data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round46_qa/`
+  - Recipe count: `266`
+  - Cache status remains `263` usable and `3` partial.
+- Multi-day impact:
+  - Before QA: `recipes=266`, `valid=3/3`, `accept=3/3`, `review=0`, `repeated=0`, `multi_day_loss=0.006322`.
+  - After QA: `recipes=266`, `valid=3/3`, `accept=3/3`, `review=0`, `repeated=0`, `multi_day_loss=0.006322`.
+  - Selected risky recipe count stayed `0`.
+- Recommendation:
+  - Keep dataset as `demo_ready_with_risks`; Round46 did not reduce risks because applying fixes would require manual/source decisions.
+  - Next useful work is Food_DB source batch3 or manual review/exclusion of risky outliers.
+  - Family-level variety remains a separate generator/design task, not a data repair.
+
+## 56. Round47 / scenario risk exposure and manual outlier review plan - 2026-05-13
+- Scope:
+  - Audited risk exposure for `v1_2_demo_candidate_manual_batch2_round46_qa` across 10 multi-day scenarios.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, repairs, exclusions, Food_DB additions, web scraping, or generator logic were changed.
+- Scenario risk exposure:
+  - Scenario count: `10`
+  - Valid scenario count: `10`
+  - Accept days: `27`
+  - Review days: `0`
+  - Reject/bad days: `3`
+  - Selected risky meals: `9`
+  - Selected risky recipes: `8`
+  - Normal-case risky meals: `0`
+  - Edge-case risky meals: `9`
+  - Selected risk types: `main_carbs_under_10g=6`, `very_high_fat_share=3`
+  - Strict verdict: `demo_risk_high`, driven by the `sedentary_lose_fast_with_snack` edge scenario (`target_kcal=1227.8`) producing 3 reject days and 8 risky meals.
+- Risky recipes selected:
+  - `Potato Leek Latkes`
+  - `Ground Turkey and Zucchini Skillet`
+  - `Air Fryer Lemon Garlic Parmesan Chicken`
+  - `Lemon Chicken Gnocchi`
+  - `One Pot Turmeric Chicken and Rice`
+  - `My Big Fat Greek Omelet`
+  - `Hot Honey Feta Chicken Skewers`
+  - `Low-Carb Meatloaf`
+- Manual outlier review plan:
+  - Risky/outlier recipe rows grouped into `69` review recipes.
+  - Review priorities: `high=21`, `low=48`.
+  - Recommended actions: `keep_with_warning=43`, `keep_backlog=14`, `manual_review_mapping=4`, `manual_review_servings=7`, `source_verification_needed=1`.
+  - Candidate exclusions proposed automatically: `0`; exclusions should require explicit manual review in a separate round.
+- Source batch3 recommendation:
+  - Candidate count: `16`
+  - High priority: `6`
+  - Medium priority: `1`
+  - Low priority: `9`
+  - High priority includes source/state or unit/alias review for `cold milk`, `pancake waffle mix`, `link spanish chorizo sausage`, `baking potato`, `sweet potato`, and `spinach`.
+  - Batch2 leftovers remain low-priority state/source decisions unless they unlock selected risky recipes or multiple valuable repairs.
+- Freeze decision:
+  - `v1_2_demo_candidate_manual_batch2_round46_qa` can still be frozen as demo-final draft only if labelled `demo_ready_with_risks`.
+  - Do not promote to `current` or production.
+  - A cleaned demo candidate should only be created after explicit manual review/exclusion, not automatically.
+  - Next useful work: manual review of 21 high-priority outliers, then Food_DB source batch3 where it fixes partial cache or selected risky recipes.
+
+## 57. Round48 / demo-safe profile guard and high-priority outlier review - 2026-05-13
+- Scope:
+  - Audited demo-safe profile guard rules and reviewed the 21 high-priority Round47 outliers.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, new recipes, Food_DB additions, web scraping, invented nutrition values, or generator logic were changed.
+- Profile guard result:
+  - Scenarios reviewed: `10`
+  - `normal_demo_safe=8`
+  - `edge_needs_warning=1`
+  - `unsupported_for_demo=1`
+  - `sedentary_lose_fast_with_snack` is unsupported for normal demo because `target_kcal=1227.8`, `lose_fast_sedentary`, snack enabled, `3` reject days, and `8` risky meals.
+  - Recommended guard: block or require explicit aggressive-cut test mode when `target_kcal < 1300`; warn when `target_kcal < 1400` and snack is enabled; warn for `lose_fast + sedentary`.
+- High-priority outlier review:
+  - High-priority reviewed: `21`
+  - Decisions: `exclude_from_demo_candidate=5`, `keep_with_warning=1`, `needs_mapping_review=7`, `needs_servings_review=7`, `needs_source_verification=1`.
+  - Excluded/inactivated in cleaned draft:
+    - `Ground Turkey and Zucchini Skillet`
+    - `Air Fryer Lemon Garlic Parmesan Chicken`
+    - `Hot Honey Feta Chicken Skewers`
+    - `Low-Carb Meatloaf`
+    - `My Big Fat Greek Omelet`
+  - These were set inactive only in the cleaned demo candidate draft because they were selected in the rejected aggressive-cut edge scenario and are clear low-carb/high-fat general-demo mismatches.
+- Cleaned demo candidate:
+  - Created dataset/profile: `v1_2_demo_candidate_round48_cleaned`
+  - Dataset path: `data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round48_cleaned/`
+  - Total recipe rows remain `266`; active recipes changed `266 -> 261`.
+  - Dataset profile added to Generator v1 data loader, CLI, and Streamlit selector.
+- Risk exposure before/after:
+  - Original Round46 QA: `scenario_count=10`, `accept_days=27`, `reject_days=3`, `risky_meals=9`, `normal_risky=0`, `edge_risky=9`.
+  - Round48 cleaned: `scenario_count=10`, `accept_days=27`, `reject_days=3`, `risky_meals=8`, `normal_risky=0`, `edge_risky=8`.
+  - Cleaning reduced risky exposure slightly (`9 -> 8`) but did not fix the unsupported aggressive-cut profile; profile guard remains necessary.
+  - CLI smoke with `v1_2_demo_candidate_round48_cleaned` on the demo profile remained `valid=3/3`, `accept=3/3`, `repeated=0`, `multi_day_loss=0.006322`.
+- Freeze recommendation:
+  - Prefer `v1_2_demo_candidate_round48_cleaned` for demo-final draft if using the cleaned variant.
+  - Keep explicit demo guard/warnings for very-low-kcal profiles.
+  - Do not promote to `current` or production.
+  - Remaining non-production risks: macro outliers, partial cache rows, family variety, and Food_DB/source ambiguity.
+
+## 58. Round49 / demo-safe profile guard implementation and v1.2 demo-final draft - 2026-05-13
+- Scope:
+  - Implemented profile guard as a warning/blocking layer only.
+  - Frozen the cleaned Round48 dataset as a clearly labelled v1.2 demo-final draft package.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, recipes, Food_DB additions, web scraping, or target_builder formulas were changed.
+- Profile guard implementation:
+  - Added `src/generator_v1/profile_guard.py`.
+  - CLI now supports `--profile_guard off|demo|permissive` and `--allow_unsupported_profile`.
+  - Streamlit now defaults v1.2 demo datasets to `profile_guard=demo`, shows guard status/reasons/recommendations, and disables Generate buttons for unsupported profiles unless `Allow aggressive/unsupported profile test` is checked.
+  - Guard rules keep target/profile values unchanged.
+- Demo-final package:
+  - Created dataset/profile: `v1_2_demo_final`.
+  - Path: `data/recipesdb/draft/v1_2_demo_final/`.
+  - Source: `v1_2_demo_candidate_round48_cleaned`.
+  - Total recipe rows: `266`.
+  - Active recipes: `261`.
+  - Added profile support in Generator v1 data loader, CLI, and Streamlit.
+- Smoke results:
+  - CLI 3-day demo smoke: `valid=3/3`, `accept=3/3`, `repeated=0`, `multi_day_loss=0.006322`.
+  - Round49 smoke script: demo one-day valid/accept=`True`.
+  - Round49 smoke script: demo three-day valid/accept/no-repeat=`True`.
+  - Edge profile `sedentary_lose_fast_with_snack`, `target_kcal=1227.8`, is blocked in `profile_guard=demo`.
+  - Same edge profile warns but continues in `profile_guard=permissive`.
+  - `current_data_changed=False`.
+- Generated audit files:
+  - `data/recipesdb/audit/generator_v1_round49_demo_final_smoke_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round49_demo_final_smoke_runs.csv`
+  - `data/recipesdb/audit/generator_v1_round49_profile_guard_results.csv`
+- Known limitations:
+  - Demo-final remains draft/demo packaging, not production QA.
+  - Family-level variety is still imperfect.
+  - Some macro/outlier risks remain as warnings.
+  - Aggressive low-kcal profiles are unsupported for normal demo unless explicitly allowed.
+  - Household multi-member planning and grocery/price flow remain unimplemented.
+- Next recommendation:
+  - Use `v1_2_demo_final` for license/demo with `profile_guard=demo`.
+  - Do not promote to `current` until a separate production QA/promotion pass exists.
