@@ -67,6 +67,33 @@ V1_2_GENERATOR_READY_PLUS30_PLUS15_INGREDIENTS_PATH = Path(
 V1_2_GENERATOR_READY_PLUS30_PLUS15_NUTRITION_PATH = Path(
     "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15/recipe_nutrition_cache.csv"
 )
+V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15_repaired/recipes.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15_repaired/recipe_ingredients.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15_repaired/recipe_nutrition_cache.csv"
+)
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded/recipes.csv"
+)
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded/recipe_ingredients.csv"
+)
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded/recipe_nutrition_cache.csv"
+)
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/recipes.csv"
+)
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/recipe_ingredients.csv"
+)
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/recipe_nutrition_cache.csv"
+)
 
 PILOT_CURRENT_PROFILE = "pilot_current"
 V1_1_GENERATOR_READY_PROFILE = "v1_1_generator_ready"
@@ -82,6 +109,13 @@ V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE = (
 )
 V1_2_GENERATOR_READY_PLUS30_PROFILE = "v1_2_generator_ready_plus30"
 V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE = "v1_2_generator_ready_plus30_plus15"
+V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_PROFILE = (
+    "v1_2_generator_ready_plus30_plus15_repaired"
+)
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_PROFILE = "v1_2_generator_ready_round37_expanded"
+V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_PROFILE = (
+    "v1_2_generator_ready_round37_expanded_repaired"
+)
 
 DATASET_PROFILE_PRESETS = {
     PILOT_CURRENT_PROFILE: {
@@ -152,6 +186,45 @@ DATASET_PROFILE_PRESETS = {
         "require_per_serving_macros": True,
     },
     V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_GENERATOR_READY_ROUND37_EXPANDED_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_PROFILE: {
         "allowed_scope_statuses": {
             "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
             "v1_1_generator_ready_draft",
