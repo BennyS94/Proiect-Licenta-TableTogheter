@@ -24,8 +24,20 @@ from src.generator_v1.data_loader import (
     V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_RECIPES_PATH,
     V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_INGREDIENTS_PATH,
     V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_INGREDIENTS_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_NUTRITION_PATH,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE,
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_RECIPES_PATH,
     V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
     V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_RECIPES_PATH,
+    V1_2_GENERATOR_READY_PLUS30_INGREDIENTS_PATH,
+    V1_2_GENERATOR_READY_PLUS30_NUTRITION_PATH,
+    V1_2_GENERATOR_READY_PLUS30_PLUS15_INGREDIENTS_PATH,
+    V1_2_GENERATOR_READY_PLUS30_PLUS15_NUTRITION_PATH,
+    V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE,
+    V1_2_GENERATOR_READY_PLUS30_PLUS15_RECIPES_PATH,
+    V1_2_GENERATOR_READY_PLUS30_PROFILE,
+    V1_2_GENERATOR_READY_PLUS30_RECIPES_PATH,
     load_fooddb_current,
     load_recipe_candidate_pool,
 )
@@ -37,6 +49,17 @@ from src.generator_v1.candidate_diagnostics import build_candidate_diagnostics
 from src.generator_v1.day_selector import select_one_day_plan
 from src.generator_v1.day_selector_balanced import select_one_day_plan_balanced
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
+from src.generator_v1.multi_day_audit import (
+    multi_day_readable_lines,
+    write_multi_day_meals_csv,
+    write_multi_day_plan_json,
+    write_multi_day_plan_readable,
+)
+from src.generator_v1.multi_day_selector import (
+    MULTI_DAY_MODE_GLOBAL,
+    MULTI_DAY_MODE_SIMPLE,
+    generate_multi_day_plan,
+)
 from src.generator_v1.nutrition_cache_diagnostics import (
     build_nutrition_cache_diagnostics,
 )
@@ -48,8 +71,10 @@ from src.generator_v1.plan_audit import (
     write_plan_json,
     write_plan_readable,
 )
+from src.generator_v1.plan_quality_gate import evaluate_plan_quality
 from src.generator_v1.plan_validator import validate_one_day_plan
 from src.generator_v1.profile_loader import load_member_profile
+from src.generator_v1.reroll_policy import select_quality_gated_reroll
 from src.generator_v1.slot_candidates import build_slot_candidates
 from src.generator_v1.target_builder import NutritionTarget, build_nutrition_target
 
@@ -100,15 +125,57 @@ def main() -> None:
     _print_candidate_diagnostics(candidate_diagnostics)
     if args.show_nutrition_diagnostics:
         _print_nutrition_cache_diagnostics(nutrition_cache_diagnostics)
-    plan = _select_one_day_plan(
-        selection_mode=args.selection_mode,
-        slot_candidates=slot_candidates,
-        target=target,
-        selector_config=_balanced_selector_config(args),
-    )
+
+    if _should_run_multi_day(args):
+        multi_day_plan = generate_multi_day_plan(
+            profile=profile,
+            target=target,
+            slot_candidates=slot_candidates,
+            days=args.days,
+            config=_multi_day_selector_config(args),
+        )
+        multi_day_plan["candidate_diagnostics"] = candidate_diagnostics
+        multi_day_plan["nutrition_cache_diagnostics"] = nutrition_cache_diagnostics
+        multi_day_plan["pool_summary"] = _pool_summary(args, pool, filtered_candidates, slot_candidates)
+        _print_multi_day_plan(multi_day_plan)
+        if not args.no_write_outputs:
+            _write_multi_day_outputs(multi_day_plan, args)
+        return
+
+    selector_config = _balanced_selector_config(args)
+    if _should_use_quality_gated_reroll(args):
+        ordered_slots = _slot_order(target)
+        plan = select_quality_gated_reroll(
+            slot_candidates_by_slot=_slot_candidates_by_slot(
+                slot_candidates,
+                ordered_slots,
+            ),
+            target=target,
+            slot_order=ordered_slots,
+            recent_recipe_ids=_parse_recent_recipe_ids(args.recent_recipe_ids),
+            base_config=selector_config,
+        )
+    else:
+        plan = _select_one_day_plan(
+            selection_mode=args.selection_mode,
+            slot_candidates=slot_candidates,
+            target=target,
+            selector_config=selector_config,
+        )
     plan["target"] = _target_to_dict(target)
     plan["candidate_diagnostics"] = candidate_diagnostics
     plan["validation"] = validate_one_day_plan(plan, target)
+    if args.quality_gate == "demo_safe" and "quality_gate" not in plan:
+        plan["quality_gate"] = evaluate_plan_quality(
+            plan,
+            target,
+            config={"quality_gate": "demo_safe"},
+        )
+        plan["quality_gate_status"] = plan["quality_gate"]["quality_gate_status"]
+        plan["quality_gate_reasons"] = plan["quality_gate"]["quality_gate_reasons"]
+        plan["quality_gate_score"] = plan["quality_gate"]["quality_gate_score"]
+        plan["quality_gate_fallback_used"] = False
+        plan["quality_gate_selected_mode"] = args.diversity_mode
     servings_diagnostics = None
     if args.show_servings_diagnostics:
         servings_diagnostics = build_pilot_servings_diagnostics(
@@ -128,6 +195,7 @@ def main() -> None:
         )
     _print_selected_day_plan(plan)
     _print_selector_diagnostics(plan)
+    _print_quality_gate(plan)
     _print_plan_alternatives(plan)
     _print_validation(plan["validation"])
     if servings_diagnostics is not None:
@@ -151,6 +219,9 @@ def _parse_args() -> argparse.Namespace:
             V1_1_GENERATOR_READY_SLOT_CHECKED_PROFILE,
             V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE,
             V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
+            V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE,
+            V1_2_GENERATOR_READY_PLUS30_PROFILE,
+            V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE,
         ],
         default=PILOT_CURRENT_PROFILE,
     )
@@ -179,9 +250,57 @@ def _parse_args() -> argparse.Namespace:
         choices=["standard", "expanded_safe", "target_aware"],
         default="standard",
     )
+    parser.add_argument(
+        "--meal_realism_mode",
+        choices=["off", "audit", "soft", "practical"],
+        default="off",
+    )
+    parser.add_argument(
+        "--quality_gate",
+        choices=["off", "demo_safe"],
+        default="off",
+    )
+    parser.add_argument("--days", default=1, type=int)
+    parser.add_argument(
+        "--multi_day_mode",
+        choices=["off", MULTI_DAY_MODE_SIMPLE, MULTI_DAY_MODE_GLOBAL],
+        default="off",
+    )
+    parser.add_argument(
+        "--multi_day_no_repeat_policy",
+        choices=["none", "prefer", "hard", "main_only"],
+        default="prefer",
+    )
+    parser.add_argument("--day_candidate_pool_size", default=75, type=int)
+    parser.add_argument(
+        "--multi_day_speed_mode",
+        choices=["fast", "quality"],
+        default="fast",
+    )
+    parser.add_argument(
+        "--day_candidate_builder",
+        choices=["balanced_repeated", "direct_from_slots"],
+        default=None,
+    )
+    parser.add_argument("--direct_slot_shortlist_size", default=12, type=int)
     parser.add_argument("--out_csv", default=Path("outputs/generator_v1_plan.csv"), type=Path)
     parser.add_argument("--out_json", default=Path("outputs/generator_v1_plan.json"), type=Path)
     parser.add_argument("--out_txt", default=Path("outputs/generator_v1_readable.txt"), type=Path)
+    parser.add_argument(
+        "--out_multiday_json",
+        default=Path("outputs/generator_v1_multiday_plan.json"),
+        type=Path,
+    )
+    parser.add_argument(
+        "--out_multiday_txt",
+        default=Path("outputs/generator_v1_multiday_readable.txt"),
+        type=Path,
+    )
+    parser.add_argument(
+        "--out_multiday_csv",
+        default=Path("outputs/generator_v1_multiday_meals.csv"),
+        type=Path,
+    )
     parser.add_argument("--no_write_outputs", action="store_true")
     parser.add_argument("--show_nutrition_diagnostics", action="store_true")
     parser.add_argument("--show_ingredient_diagnostics", action="store_true")
@@ -189,6 +308,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--show_pilot_nutrition_overlay", action="store_true")
     args = parser.parse_args()
     _apply_test_preset(args)
+    _apply_multi_day_defaults(args)
     _resolve_dataset_paths(args)
     return args
 
@@ -201,9 +321,48 @@ def _apply_test_preset(args: argparse.Namespace) -> None:
     args.portion_policy = "target_aware"
     args.alternative_count = 3
     args.diversity_mode = "none"
+    args.meal_realism_mode = "practical"
+    args.quality_gate = "demo_safe"
+
+
+def _apply_multi_day_defaults(args: argparse.Namespace) -> None:
+    if not _should_run_multi_day(args):
+        return
+    args.days = 3
+    if args.multi_day_mode == "off":
+        args.multi_day_mode = MULTI_DAY_MODE_SIMPLE
+    args.selection_mode = "balanced_day"
+    args.portion_policy = "target_aware"
+    args.meal_realism_mode = "practical"
+    args.quality_gate = "demo_safe"
+    args.alternative_count = max(3, int(args.alternative_count or 1))
 
 
 def _resolve_dataset_paths(args: argparse.Namespace) -> None:
+    if args.dataset_profile == V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE:
+        args.recipes = args.recipes or V1_2_GENERATOR_READY_PLUS30_PLUS15_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_2_GENERATOR_READY_PLUS30_PLUS15_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_2_GENERATOR_READY_PLUS30_PLUS15_NUTRITION_PATH
+        return
+    if args.dataset_profile == V1_2_GENERATOR_READY_PLUS30_PROFILE:
+        args.recipes = args.recipes or V1_2_GENERATOR_READY_PLUS30_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_2_GENERATOR_READY_PLUS30_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_2_GENERATOR_READY_PLUS30_NUTRITION_PATH
+        return
+    if args.dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE:
+        args.recipes = (
+            args.recipes
+            or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_RECIPES_PATH
+        )
+        args.ingredients = (
+            args.ingredients
+            or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_INGREDIENTS_PATH
+        )
+        args.nutrition = (
+            args.nutrition
+            or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_NUTRITION_PATH
+        )
+        return
     if args.dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE:
         args.recipes = args.recipes or V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_RECIPES_PATH
         args.ingredients = (
@@ -238,19 +397,39 @@ def _print_dataset_summary(args: argparse.Namespace, pool: object) -> None:
     print(f"  dataset_profile={args.dataset_profile}")
     print(f"  selection_mode={args.selection_mode}")
     print(f"  portion_policy={args.portion_policy}")
+    print(f"  meal_realism_mode={args.meal_realism_mode}")
+    print(f"  quality_gate={args.quality_gate}")
     print(f"  alternative_count={args.alternative_count}")
     print(f"  diversity_mode={args.diversity_mode}")
+    print(f"  days={args.days}")
+    print(f"  multi_day_mode={args.multi_day_mode}")
+    print(f"  multi_day_no_repeat_policy={args.multi_day_no_repeat_policy}")
+    print(f"  day_candidate_pool_size={args.day_candidate_pool_size}")
+    print(f"  multi_day_speed_mode={args.multi_day_speed_mode}")
+    print(f"  day_candidate_builder={args.day_candidate_builder or 'auto'}")
+    print(f"  direct_slot_shortlist_size={args.direct_slot_shortlist_size}")
     recent_recipe_ids = _parse_recent_recipe_ids(args.recent_recipe_ids)
     if recent_recipe_ids:
         print(f"  recent_recipe_ids={','.join(recent_recipe_ids)}")
-    if args.dataset_profile == V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE:
+    if args.dataset_profile in {
+        V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
+        V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE,
+        V1_2_GENERATOR_READY_PLUS30_PROFILE,
+        V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE,
+    }:
         is_recommended = (
             args.selection_mode == "balanced_day"
             and args.portion_policy == "target_aware"
             and int(args.alternative_count or 1) == 3
             and args.diversity_mode == "none"
+            and args.meal_realism_mode == "practical"
+            and args.quality_gate == "demo_safe"
         )
-        print("  recommended_for_v1_1_testing=balanced_day + target_aware + alternative_count=3")
+        print(
+            "  recommended_for_v1_1_testing="
+            "balanced_day + target_aware + alternative_count=3 + "
+            "meal_realism_mode=practical + quality_gate=demo_safe"
+        )
         print(f"  v1_1_recommended_test_active={is_recommended}")
     print(f"  recipes_path={args.recipes}")
     print(f"  ingredients_path={args.ingredients}")
@@ -521,13 +700,159 @@ def _balanced_selector_config(args: argparse.Namespace) -> dict[str, object]:
         "alternative_count": alternative_count,
         "diversity_mode": args.diversity_mode,
         "recent_recipe_ids": _parse_recent_recipe_ids(args.recent_recipe_ids),
+        "meal_realism_mode": args.meal_realism_mode,
     }
+
+
+def _should_use_quality_gated_reroll(args: argparse.Namespace) -> bool:
+    return (
+        args.selection_mode == "balanced_day"
+        and args.diversity_mode == "avoid_recent"
+        and args.quality_gate == "demo_safe"
+    )
+
+
+def _should_run_multi_day(args: argparse.Namespace) -> bool:
+    return (
+        str(getattr(args, "multi_day_mode", "off"))
+        in {MULTI_DAY_MODE_SIMPLE, MULTI_DAY_MODE_GLOBAL}
+        or int(getattr(args, "days", 1) or 1) == 3
+    )
+
+
+def _multi_day_selector_config(args: argparse.Namespace) -> dict[str, object]:
+    config: dict[str, object] = {
+        "selection_mode": "balanced_day",
+        "portion_policy": "target_aware",
+        "meal_realism_mode": "practical",
+        "quality_gate": "demo_safe",
+        "alternative_count": max(3, int(args.alternative_count or 1)),
+        "return_alternatives": True,
+        "multi_day_mode": args.multi_day_mode,
+        "candidate_day_alternative_count": 10,
+        "global_max_candidates_per_slot": 26,
+        "day_candidate_pool_size_target": max(10, int(args.day_candidate_pool_size or 75)),
+        "day_candidate_pool_max": max(150, int(args.day_candidate_pool_size or 75)),
+        "include_slot_forced_variants": True,
+        "no_repeat_policy": args.multi_day_no_repeat_policy,
+        "multi_day_speed_mode": args.multi_day_speed_mode,
+        "direct_slot_shortlist_size": max(
+            4,
+            int(args.direct_slot_shortlist_size or 12),
+        ),
+    }
+    if args.day_candidate_builder:
+        config["day_candidate_builder"] = args.day_candidate_builder
+    return config
 
 
 def _parse_recent_recipe_ids(value: str | None) -> list[str]:
     if not value:
         return []
     return [item.strip() for item in str(value).split(",") if item.strip()]
+
+
+def _pool_summary(
+    args: argparse.Namespace,
+    pool: object,
+    filtered_candidates: pd.DataFrame,
+    slot_candidates: pd.DataFrame,
+) -> dict[str, object]:
+    return {
+        "dataset_profile": args.dataset_profile,
+        "recipes_path": str(args.recipes),
+        "ingredients_path": str(args.ingredients),
+        "nutrition_path": str(args.nutrition),
+        "total_recipes_loaded": len(pool.candidates),
+        "eligible_candidate_count": len(pool.eligible_candidates),
+        "filtered_candidate_count": len(filtered_candidates),
+        "slot_candidate_count": len(slot_candidates),
+        "selection_mode": args.selection_mode,
+        "portion_policy": args.portion_policy,
+        "meal_realism_mode": args.meal_realism_mode,
+        "quality_gate": args.quality_gate,
+        "alternative_count": args.alternative_count,
+        "days": args.days,
+        "multi_day_mode": args.multi_day_mode,
+        "multi_day_no_repeat_policy": args.multi_day_no_repeat_policy,
+        "day_candidate_pool_size": args.day_candidate_pool_size,
+        "multi_day_speed_mode": args.multi_day_speed_mode,
+        "day_candidate_builder": args.day_candidate_builder or "auto",
+        "direct_slot_shortlist_size": args.direct_slot_shortlist_size,
+        "loader_warnings": pool.loader_diagnostics.get("warnings", []),
+    }
+
+
+def _print_multi_day_plan(plan: dict[str, object]) -> None:
+    print("Selected multi-day plan preview")
+    summary = plan.get("multi_day_summary", {})
+    if isinstance(summary, dict):
+        print(f"  multi_day_selector_mode={plan.get('multi_day_selector_mode')}")
+        print(f"  multi_day_loss={summary.get('multi_day_loss')}")
+        print(f"  unique_recipe_count={summary.get('unique_recipe_count')}")
+        print(
+            "  repeated_recipe_ids="
+            + _format_reasons(summary.get("repeated_recipe_ids"))
+        )
+        print(
+            "  strict_verdict="
+            + str(summary.get("multi_day_classification", "missing"))
+        )
+        print(
+            "  no_repeat_policy_used="
+            + str(summary.get("no_repeat_policy_used", "missing"))
+        )
+        print(
+            "  day_candidate_builder="
+            + str(summary.get("day_candidate_builder", "missing"))
+        )
+        print(
+            "  direct_slot_shortlist_size="
+            + str(summary.get("direct_slot_shortlist_size", "missing"))
+        )
+        print(
+            "  direct_candidate_combinations_evaluated="
+            + str(summary.get("direct_candidate_combinations_evaluated", 0))
+        )
+        print(
+            "  feasible_no_repeat_combinations="
+            + str(summary.get("feasible_no_repeat_combinations", 0))
+        )
+        print(
+            "  fallback_from_hard_no_repeat="
+            + str(summary.get("fallback_from_hard_no_repeat", False))
+        )
+        print(
+            "  candidate_pool_build_seconds="
+            + str(summary.get("candidate_pool_build_seconds", "missing"))
+        )
+        print(
+            "  combination_selection_seconds="
+            + str(summary.get("combination_selection_seconds", "missing"))
+        )
+        candidate_pool = summary.get("candidate_day_pool_summary", {})
+        if isinstance(candidate_pool, dict) and candidate_pool:
+            print(
+                "  candidate_pool="
+                f"total:{candidate_pool.get('candidate_day_count')} "
+                f"accept:{candidate_pool.get('accept_candidate_count')} "
+                f"review:{candidate_pool.get('review_candidate_count')} "
+                f"reject:{candidate_pool.get('reject_candidate_count')}"
+            )
+    for line in multi_day_readable_lines(plan):
+        print(line)
+    validation = plan.get("multi_day_validation", {})
+    if isinstance(validation, dict):
+        print("Multi-day validation")
+        print(f"  validation_status={validation.get('validation_status')}")
+        print(f"  all_days_valid={validation.get('all_days_valid')}")
+        print(f"  any_repeated_exact_recipe={validation.get('any_repeated_exact_recipe')}")
+        print(f"  any_day_fallback_used={validation.get('any_day_fallback_used')}")
+        warnings = validation.get("warnings", [])
+        if warnings:
+            print("  warnings=" + " | ".join(str(item) for item in warnings))
+        else:
+            print("  warnings=none")
 
 
 def _print_selected_day_plan(plan: dict[str, object]) -> None:
@@ -565,6 +890,16 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
             f"is_nutrition_suspicious={meal['is_nutrition_suspicious']}, "
             f"is_slot_suspicious={meal.get('is_slot_suspicious')}, "
             f"score_preview={_format_number(meal['score_preview'], decimals=2)}, "
+            f"meal_realism_score={_format_number(meal.get('meal_realism_score'), decimals=2)}, "
+            "meal_realism_penalty="
+            f"{_format_number(meal.get('meal_realism_penalty'), decimals=2)}, "
+            "meal_realism_flags="
+            f"{_format_reasons(meal.get('meal_realism_flags'))}, "
+            "meal_realism_reasons="
+            f"{_format_reasons(meal.get('meal_realism_reasons'))}, "
+            f"realism_hard_reject={meal.get('realism_hard_reject')}, "
+            "realism_reject_reason="
+            f"{_format_reasons(meal.get('realism_reject_reason'))}, "
             "portion_policy_reasons="
             f"{_format_reasons(meal.get('portion_policy_reasons'))}, "
             "portion_policy_warnings="
@@ -613,6 +948,10 @@ def _print_selector_diagnostics(plan: dict[str, object]) -> None:
         "protein_loss",
         "carbs_loss",
         "fat_loss",
+        "meal_realism_mode",
+        "meal_realism_total_penalty",
+        "realism_penalty_total",
+        "meal_realism_applied_penalty",
         "average_score_preview",
         "evaluated_combination_count",
         "possible_combination_count_after_shortlist",
@@ -622,6 +961,14 @@ def _print_selector_diagnostics(plan: dict[str, object]) -> None:
     after = diagnostics.get("candidate_count_per_slot_after_shortlist")
     print(f"  shortlist_before={_format_counts(before)}")
     print(f"  shortlist_after={_format_counts(after)}")
+    before_realism = diagnostics.get("candidate_count_per_slot_before_realism_filter")
+    after_realism = diagnostics.get("candidate_count_per_slot_after_realism_filter")
+    hard_rejected = diagnostics.get("hard_rejected_count_by_slot")
+    hard_candidates = diagnostics.get("hard_reject_candidate_count_by_slot")
+    print(f"  realism_filter_before={_format_counts(before_realism)}")
+    print(f"  realism_filter_after={_format_counts(after_realism)}")
+    print(f"  hard_rejected_count_by_slot={_format_counts(hard_rejected)}")
+    print(f"  hard_reject_candidate_count_by_slot={_format_counts(hard_candidates)}")
     print(f"  diversity_mode={diagnostics.get('diversity_mode', 'none')}")
     print(
         "  recent_recipe_ids_considered="
@@ -631,9 +978,42 @@ def _print_selector_diagnostics(plan: dict[str, object]) -> None:
     penalties = diagnostics.get("diversity_penalties", {})
     if isinstance(penalties, dict):
         print(f"  diversity_penalties={_format_counts(penalties)}")
+    realism = diagnostics.get("meal_realism_penalties", {})
+    if isinstance(realism, dict):
+        print(f"  meal_realism_penalties={_format_counts(realism)}")
+    flags_by_meal = diagnostics.get("meal_realism_flags_by_meal") or []
+    if flags_by_meal:
+        print("  meal_realism_flags_by_meal=" + _format_reasons(flags_by_meal))
+    hard_reject_reasons = diagnostics.get("hard_reject_reasons") or {}
+    if hard_reject_reasons:
+        print("  hard_reject_reasons=" + _format_reasons(hard_reject_reasons))
     warnings = diagnostics.get("selector_warnings") or []
     if warnings:
         print("  selector_warnings=" + " | ".join(str(item) for item in warnings))
+
+
+def _print_quality_gate(plan: dict[str, object]) -> None:
+    quality_gate = plan.get("quality_gate")
+    if not isinstance(quality_gate, dict):
+        return
+    print("Quality gate")
+    print(f"  quality_gate_status={quality_gate.get('quality_gate_status')}")
+    print(f"  quality_gate_score={quality_gate.get('quality_gate_score')}")
+    print(
+        "  quality_gate_reasons="
+        + _format_reasons(quality_gate.get("quality_gate_reasons"))
+    )
+    print(f"  fallback_used={plan.get('quality_gate_fallback_used', False)}")
+    print(
+        "  selected_diversity_mode_after_gate="
+        f"{plan.get('quality_gate_selected_mode', plan.get('selector_mode'))}"
+    )
+    diagnostics = plan.get("quality_gate_reroll_diagnostics")
+    if isinstance(diagnostics, dict):
+        print(
+            "  attempted_modes="
+            + _format_reasons(diagnostics.get("attempted_modes"))
+        )
 
 
 def _print_plan_alternatives(plan: dict[str, object]) -> None:
@@ -662,6 +1042,10 @@ def _print_plan_alternatives(plan: dict[str, object]) -> None:
             f"carbs_g={_format_number(totals.get('total_carbs_g'))}, "
             f"fat_g={_format_number(totals.get('total_fat_g'))}, "
             f"diversity_penalty={_safe_penalty(penalties)}, "
+            "meal_realism_penalty="
+            f"{alternative.get('meal_realism_total_penalty', 0.0)}, "
+            "meal_realism_applied="
+            f"{alternative.get('meal_realism_applied_penalty', 0.0)}, "
             f"recipes={recipe_text}"
         )
 
@@ -1050,6 +1434,16 @@ def _write_outputs(plan: dict[str, object], args: argparse.Namespace) -> None:
     print(f"  csv={args.out_csv}")
     print(f"  json={args.out_json}")
     print(f"  txt={args.out_txt}")
+
+
+def _write_multi_day_outputs(plan: dict[str, object], args: argparse.Namespace) -> None:
+    write_multi_day_plan_json(plan, args.out_multiday_json)
+    write_multi_day_plan_readable(plan, args.out_multiday_txt)
+    write_multi_day_meals_csv(plan, args.out_multiday_csv)
+    print("Generator v1 multi-day outputs written")
+    print(f"  json={args.out_multiday_json}")
+    print(f"  txt={args.out_multiday_txt}")
+    print(f"  csv={args.out_multiday_csv}")
 
 
 if __name__ == "__main__":

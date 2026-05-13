@@ -40,6 +40,33 @@ V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_INGREDIENTS_PATH =
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_NUTRITION_PATH = Path(
     "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated/recipe_nutrition_cache.csv"
 )
+V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10/recipes.csv"
+)
+V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10/recipe_ingredients.csv"
+)
+V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10/recipe_nutrition_cache.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30/recipes.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30/recipe_ingredients.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30/recipe_nutrition_cache.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_PLUS15_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15/recipes.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_PLUS15_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15/recipe_ingredients.csv"
+)
+V1_2_GENERATOR_READY_PLUS30_PLUS15_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15/recipe_nutrition_cache.csv"
+)
 
 PILOT_CURRENT_PROFILE = "pilot_current"
 V1_1_GENERATOR_READY_PROFILE = "v1_1_generator_ready"
@@ -50,6 +77,11 @@ V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE = (
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE = (
     "v1_1_generator_ready_slot_checked_time_enriched_snack_curated"
 )
+V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE = (
+    "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10"
+)
+V1_2_GENERATOR_READY_PLUS30_PROFILE = "v1_2_generator_ready_plus30"
+V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE = "v1_2_generator_ready_plus30_plus15"
 
 DATASET_PROFILE_PRESETS = {
     PILOT_CURRENT_PROFILE: {
@@ -87,6 +119,44 @@ DATASET_PROFILE_PRESETS = {
     },
     V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE: {
         "allowed_scope_statuses": {"v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft"},
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_GENERATOR_READY_PLUS30_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
         "allowed_cache_statuses": {
             "usable_from_mapped_ingredients",
             "partial_from_mapped_ingredients",

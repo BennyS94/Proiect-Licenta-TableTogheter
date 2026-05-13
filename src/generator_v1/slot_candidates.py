@@ -6,6 +6,7 @@ from typing import Iterable
 import pandas as pd
 
 from src.generator_v1.macro_fit import macro_fit
+from src.generator_v1.meal_realism import compute_meal_realism
 from src.generator_v1.nutrition_quality import compute_nutrition_quality
 from src.generator_v1.pilot_nutrition_overlay import compute_pilot_overlay_nutrition
 from src.generator_v1.portion_policy import (
@@ -184,6 +185,35 @@ def build_slot_candidates(
                 }
                 slot_scores = compute_slot_fit(candidate_row, slot)
                 candidate_row.update(slot_scores)
+                base_realism = compute_meal_realism(candidate_row, slot)
+                practical_realism = compute_meal_realism(
+                    candidate_row,
+                    slot,
+                    policy="practical",
+                )
+                candidate_row.update(base_realism)
+                candidate_row.update(
+                    {
+                        "meal_realism_practical_score": practical_realism[
+                            "meal_realism_score"
+                        ],
+                        "meal_realism_practical_penalty": practical_realism[
+                            "meal_realism_penalty"
+                        ],
+                        "meal_realism_practical_flags": practical_realism[
+                            "meal_realism_flags"
+                        ],
+                        "meal_realism_practical_reasons": practical_realism[
+                            "meal_realism_reasons"
+                        ],
+                        "realism_hard_reject": practical_realism[
+                            "realism_hard_reject"
+                        ],
+                        "realism_reject_reason": practical_realism[
+                            "realism_reject_reason"
+                        ],
+                    }
+                )
                 nutrition_scores = compute_nutrition_quality(candidate_row, slot_target)
                 candidate_row.update(nutrition_scores)
                 preview_scores = compute_score_preview(candidate_row)
@@ -269,6 +299,16 @@ def _slot_candidate_columns() -> list[str]:
         "slot_fit_reasons",
         "is_slot_suspicious",
         "slot_suspicion_reasons",
+        "meal_realism_score",
+        "meal_realism_penalty",
+        "meal_realism_flags",
+        "meal_realism_reasons",
+        "meal_realism_practical_score",
+        "meal_realism_practical_penalty",
+        "meal_realism_practical_flags",
+        "meal_realism_practical_reasons",
+        "realism_hard_reject",
+        "realism_reject_reason",
         "nutrition_quality",
         "nutrition_quality_reasons",
         "is_nutrition_suspicious",

@@ -25,8 +25,9 @@ DEFAULT_BALANCED_CONFIG = {
     "alternative_count": 3,
     "diversity_mode": "none",
     "recent_recipe_ids": None,
-    "recent_recipe_penalty": 0.08,
+    "recent_recipe_penalty": None,
     "same_family_penalty": 0.04,
+    "meal_realism_mode": "off",
     "min_recipe_difference_between_alternatives": 1,
 }
 
@@ -41,18 +42,48 @@ def select_one_day_plan_balanced(
     warnings: list[str] = []
     candidate_count_before: dict[str, int] = {}
     candidate_count_after: dict[str, int] = {}
+    candidate_count_before_realism_filter: dict[str, int] = {}
+    candidate_count_after_realism_filter: dict[str, int] = {}
+    hard_rejected_count_by_slot: dict[str, int] = {}
+    hard_reject_candidate_count_by_slot: dict[str, int] = {}
+    hard_reject_reasons: dict[str, list[dict[str, object]]] = {}
     shortlists: dict[str, pd.DataFrame] = {}
+    meal_realism_mode = _meal_realism_mode(resolved_config)
 
     for slot in slot_order:
         candidates = slot_candidates_by_slot.get(slot)
         if candidates is None or candidates.empty:
             candidate_count_before[str(slot)] = 0
             candidate_count_after[str(slot)] = 0
+            candidate_count_before_realism_filter[str(slot)] = 0
+            candidate_count_after_realism_filter[str(slot)] = 0
+            hard_rejected_count_by_slot[str(slot)] = 0
+            hard_reject_candidate_count_by_slot[str(slot)] = 0
+            hard_reject_reasons[str(slot)] = []
             warnings.append(f"Nu exista candidati pentru slot: {slot}")
             continue
 
         shortlist = _shortlist_for_slot(candidates, resolved_config)
         candidate_count_before[str(slot)] = int(len(candidates))
+        candidate_count_before_realism_filter[str(slot)] = int(len(shortlist))
+        if meal_realism_mode == "practical":
+            shortlist, realism_filter = _apply_practical_realism_filter(
+                shortlist=shortlist,
+                slot=str(slot),
+                warnings=warnings,
+            )
+            hard_rejected_count_by_slot[str(slot)] = int(
+                realism_filter["hard_rejected_count"]
+            )
+            hard_reject_candidate_count_by_slot[str(slot)] = int(
+                realism_filter["hard_reject_candidate_count"]
+            )
+            hard_reject_reasons[str(slot)] = realism_filter["hard_reject_reasons"]
+        else:
+            hard_rejected_count_by_slot[str(slot)] = 0
+            hard_reject_candidate_count_by_slot[str(slot)] = 0
+            hard_reject_reasons[str(slot)] = []
+        candidate_count_after_realism_filter[str(slot)] = int(len(shortlist))
         candidate_count_after[str(slot)] = int(len(shortlist))
         shortlists[str(slot)] = shortlist
 
@@ -63,6 +94,11 @@ def select_one_day_plan_balanced(
             target=target,
             candidate_count_before=candidate_count_before,
             candidate_count_after=candidate_count_after,
+            candidate_count_before_realism_filter=candidate_count_before_realism_filter,
+            candidate_count_after_realism_filter=candidate_count_after_realism_filter,
+            hard_rejected_count_by_slot=hard_rejected_count_by_slot,
+            hard_reject_candidate_count_by_slot=hard_reject_candidate_count_by_slot,
+            hard_reject_reasons=hard_reject_reasons,
             missing_slots=missing_slots,
         )
 
@@ -101,6 +137,10 @@ def select_one_day_plan_balanced(
             combination,
             resolved_config,
         )
+        meal_realism_penalties = _meal_realism_penalties_for_numeric_rows(
+            combination,
+            resolved_config,
+        )
         evaluated_count += 1
         average_score = _to_float(loss.get("average_score_preview"))
         effective_time = _to_float(loss.get("effective_time_min_sum"))
@@ -108,6 +148,7 @@ def select_one_day_plan_balanced(
         adjusted_day_loss = (
             _to_float(loss.get("day_loss"))
             + _to_float(diversity_penalties.get("total_diversity_penalty"))
+            + _to_float(meal_realism_penalties.get("meal_realism_applied_penalty"))
         )
         key = (
             adjusted_day_loss,
@@ -123,6 +164,7 @@ def select_one_day_plan_balanced(
             "rows": combination,
             "loss": loss,
             "diversity_penalties": diversity_penalties,
+            "meal_realism_penalties": meal_realism_penalties,
             "recipe_ids": tuple(recipe_ids),
             "recipe_set_key": tuple(sorted(recipe_ids)),
             "adjusted_day_loss": adjusted_day_loss,
@@ -148,6 +190,11 @@ def select_one_day_plan_balanced(
             target=target,
             candidate_count_before=candidate_count_before,
             candidate_count_after=candidate_count_after,
+            candidate_count_before_realism_filter=candidate_count_before_realism_filter,
+            candidate_count_after_realism_filter=candidate_count_after_realism_filter,
+            hard_rejected_count_by_slot=hard_rejected_count_by_slot,
+            hard_reject_candidate_count_by_slot=hard_reject_candidate_count_by_slot,
+            hard_reject_reasons=hard_reject_reasons,
             missing_slots=[],
             possible_before_limit=possible_before_limit,
             possible_after_limit=possible_after_limit,
@@ -170,6 +217,11 @@ def select_one_day_plan_balanced(
         "selector_mode": BALANCED_DAY_MODE,
         "candidate_count_per_slot_before_shortlist": candidate_count_before,
         "candidate_count_per_slot_after_shortlist": candidate_count_after,
+        "candidate_count_per_slot_before_realism_filter": candidate_count_before_realism_filter,
+        "candidate_count_per_slot_after_realism_filter": candidate_count_after_realism_filter,
+        "hard_rejected_count_by_slot": hard_rejected_count_by_slot,
+        "hard_reject_candidate_count_by_slot": hard_reject_candidate_count_by_slot,
+        "hard_reject_reasons": hard_reject_reasons,
         "possible_combination_count_before_limit": possible_before_limit,
         "possible_combination_count_after_shortlist": possible_after_limit,
         "evaluated_combination_count": evaluated_count,
@@ -179,11 +231,23 @@ def select_one_day_plan_balanced(
         "selector_warnings": warnings.copy(),
         "diversity_mode": _diversity_mode(resolved_config),
         "recent_recipe_ids_considered": sorted(_recent_recipe_ids(resolved_config)),
+        "meal_realism_mode": meal_realism_mode,
+        "meal_realism_total_penalty": selected_alternative[
+            "meal_realism_total_penalty"
+        ],
+        "realism_penalty_total": selected_alternative[
+            "meal_realism_total_penalty"
+        ],
+        "meal_realism_applied_penalty": selected_alternative[
+            "meal_realism_applied_penalty"
+        ],
+        "meal_realism_flags_by_meal": _meal_realism_flags_by_meal(best_meals),
         "alternative_count_requested": alternative_count if return_alternatives else 1,
         "alternative_count_returned": len(alternatives),
         "base_day_loss": selected_alternative["base_day_loss"],
         "adjusted_day_loss": selected_alternative["adjusted_day_loss"],
         "diversity_penalties": selected_alternative["diversity_penalties"],
+        "meal_realism_penalties": selected_alternative["meal_realism_penalties"],
         **_rounded_loss(best_record["loss"]),
     }
     diagnostics["day_loss"] = selected_alternative["adjusted_day_loss"]
@@ -368,6 +432,50 @@ def _diversity_penalties_for_numeric_rows(
     }
 
 
+def _meal_realism_penalties_for_numeric_rows(
+    rows: Sequence[Mapping[str, object]],
+    config: dict[str, object],
+) -> dict[str, object]:
+    mode = _meal_realism_mode(config)
+    raw_penalties = [
+        _to_float(row.get("_balanced_meal_realism_penalty"))
+        for row in rows
+    ]
+    total_penalty = (
+        sum(raw_penalties) / len(raw_penalties)
+        if raw_penalties
+        else 0.0
+    )
+    applied_penalty = total_penalty if mode in {"soft", "practical"} else 0.0
+    flags_by_meal = []
+    for row in rows:
+        flags = _reason_list(row.get("meal_realism_flags"))
+        if not flags:
+            continue
+        flags_by_meal.append(
+            {
+                "slot": _clean_text(row.get("slot")),
+                "recipe_id": _clean_text(row.get("recipe_id")),
+                "flags": flags,
+            }
+        )
+    return {
+        "meal_realism_mode": mode,
+        "meal_realism_total_penalty": round(total_penalty, 6),
+        "meal_realism_applied_penalty": round(applied_penalty, 6),
+        "meal_realism_flags_by_meal": flags_by_meal,
+    }
+
+
+def _empty_meal_realism_penalties() -> dict[str, object]:
+    return {
+        "meal_realism_mode": "off",
+        "meal_realism_total_penalty": 0.0,
+        "meal_realism_applied_penalty": 0.0,
+        "meal_realism_flags_by_meal": [],
+    }
+
+
 def _insert_top_record(
     records: list[dict[str, object]],
     indexes: dict[tuple[str, ...], int],
@@ -451,6 +559,9 @@ def _alternative_payload(
     diversity_penalties = record.get("diversity_penalties", {})
     if not isinstance(diversity_penalties, dict):
         diversity_penalties = {}
+    meal_realism_penalties = record.get("meal_realism_penalties", {})
+    if not isinstance(meal_realism_penalties, dict):
+        meal_realism_penalties = _empty_meal_realism_penalties()
     selected_recipe_ids = [_clean_text(meal.get("recipe_id")) for meal in meals]
     return {
         "alternative_rank": rank,
@@ -465,7 +576,14 @@ def _alternative_payload(
         "average_score_preview": round(_average_score(meals), 6),
         "selected_recipe_ids": selected_recipe_ids,
         "diversity_penalties": diversity_penalties,
+        "meal_realism_penalties": meal_realism_penalties,
         "selector_warnings": warnings.copy(),
+        "meal_realism_total_penalty": meal_realism_penalties[
+            "meal_realism_total_penalty"
+        ],
+        "meal_realism_applied_penalty": meal_realism_penalties[
+            "meal_realism_applied_penalty"
+        ],
     }
 
 
@@ -489,6 +607,92 @@ def _shortlist_for_slot(
     return _with_numeric_helpers(shortlisted)
 
 
+def _apply_practical_realism_filter(
+    shortlist: pd.DataFrame,
+    slot: str,
+    warnings: list[str],
+) -> tuple[pd.DataFrame, dict[str, object]]:
+    prepared = _copy_practical_realism_fields(shortlist)
+    if prepared.empty:
+        return prepared, {
+            "hard_rejected_count": 0,
+            "hard_reject_candidate_count": 0,
+            "hard_reject_reasons": [],
+        }
+
+    hard_mask = prepared["realism_hard_reject"].map(_to_bool)
+    hard_rows = prepared.loc[hard_mask].copy()
+    hard_reasons = _hard_reject_reason_rows(hard_rows, slot)
+    if hard_rows.empty:
+        return _with_numeric_helpers(prepared), {
+            "hard_rejected_count": 0,
+            "hard_reject_candidate_count": 0,
+            "hard_reject_reasons": [],
+        }
+
+    kept = prepared.loc[~hard_mask].copy()
+    if kept.empty:
+        warnings.append(
+            "Practical realism fallback: toate candidatele din shortlist au hard reject "
+            f"pentru slot {slot}; se pastreaza cu penalty mare."
+        )
+        return _with_numeric_helpers(prepared), {
+            "hard_rejected_count": 0,
+            "hard_reject_candidate_count": int(len(hard_rows)),
+            "hard_reject_reasons": hard_reasons,
+        }
+
+    return _with_numeric_helpers(kept.reset_index(drop=True)), {
+        "hard_rejected_count": int(len(hard_rows)),
+        "hard_reject_candidate_count": int(len(hard_rows)),
+        "hard_reject_reasons": hard_reasons,
+    }
+
+
+def _copy_practical_realism_fields(candidates: pd.DataFrame) -> pd.DataFrame:
+    prepared = candidates.copy()
+    practical_pairs = {
+        "meal_realism_practical_score": "meal_realism_score",
+        "meal_realism_practical_penalty": "meal_realism_penalty",
+        "meal_realism_practical_flags": "meal_realism_flags",
+        "meal_realism_practical_reasons": "meal_realism_reasons",
+    }
+    for source, target in practical_pairs.items():
+        if source in prepared.columns:
+            prepared[target] = prepared[source]
+    if "realism_hard_reject" not in prepared.columns:
+        prepared["realism_hard_reject"] = False
+    if "realism_reject_reason" not in prepared.columns:
+        prepared["realism_reject_reason"] = [[] for _ in range(len(prepared))]
+    return prepared
+
+
+def _hard_reject_reason_rows(
+    rows: pd.DataFrame,
+    slot: str,
+) -> list[dict[str, object]]:
+    result = []
+    for _, row in rows.iterrows():
+        result.append(
+            {
+                "slot": slot,
+                "recipe_id": _clean_text(row.get("recipe_id")),
+                "display_name": _clean_text(row.get("display_name")),
+                "portion_multiplier": round(_to_float(row.get("portion_multiplier")), 4),
+                "portion_grams_estimated": round(
+                    _to_float(row.get("portion_grams_estimated")),
+                    4,
+                ),
+                "kcal": round(_to_float(row.get("kcal")), 4),
+                "realism_reject_reason": _reason_list(
+                    row.get("realism_reject_reason")
+                ),
+                "meal_realism_flags": _reason_list(row.get("meal_realism_flags")),
+            }
+        )
+    return result
+
+
 def _with_numeric_helpers(candidates: pd.DataFrame) -> pd.DataFrame:
     if candidates.empty:
         return candidates
@@ -501,6 +705,10 @@ def _with_numeric_helpers(candidates: pd.DataFrame) -> pd.DataFrame:
     prepared["_balanced_score_preview"] = prepared["score_preview"].map(_to_float)
     prepared["_balanced_is_slot_suspicious"] = prepared["is_slot_suspicious"].map(_to_bool)
     prepared["_balanced_has_long_passive_time"] = prepared["has_long_passive_time"].map(_to_bool)
+    if "meal_realism_penalty" in prepared.columns:
+        prepared["_balanced_meal_realism_penalty"] = prepared["meal_realism_penalty"].map(_to_float)
+    else:
+        prepared["_balanced_meal_realism_penalty"] = 0.0
     return prepared
 
 
@@ -679,6 +887,11 @@ def _empty_plan(
     candidate_count_before: dict[str, int],
     candidate_count_after: dict[str, int],
     missing_slots: list[str],
+    candidate_count_before_realism_filter: dict[str, int] | None = None,
+    candidate_count_after_realism_filter: dict[str, int] | None = None,
+    hard_rejected_count_by_slot: dict[str, int] | None = None,
+    hard_reject_candidate_count_by_slot: dict[str, int] | None = None,
+    hard_reject_reasons: dict[str, list[dict[str, object]]] | None = None,
     possible_before_limit: int = 0,
     possible_after_limit: int = 0,
     rejected_repeated_count: int = 0,
@@ -687,6 +900,15 @@ def _empty_plan(
         "selector_mode": BALANCED_DAY_MODE,
         "candidate_count_per_slot_before_shortlist": candidate_count_before,
         "candidate_count_per_slot_after_shortlist": candidate_count_after,
+        "candidate_count_per_slot_before_realism_filter": (
+            candidate_count_before_realism_filter or {}
+        ),
+        "candidate_count_per_slot_after_realism_filter": (
+            candidate_count_after_realism_filter or {}
+        ),
+        "hard_rejected_count_by_slot": hard_rejected_count_by_slot or {},
+        "hard_reject_candidate_count_by_slot": hard_reject_candidate_count_by_slot or {},
+        "hard_reject_reasons": hard_reject_reasons or {},
         "possible_combination_count_before_limit": possible_before_limit,
         "possible_combination_count_after_shortlist": possible_after_limit,
         "evaluated_combination_count": 0,
@@ -699,6 +921,11 @@ def _empty_plan(
     diagnostics["adjusted_day_loss"] = diagnostics["day_loss"]
     diagnostics["diversity_mode"] = "none"
     diagnostics["recent_recipe_ids_considered"] = []
+    diagnostics["meal_realism_mode"] = "off"
+    diagnostics["meal_realism_total_penalty"] = 0.0
+    diagnostics["realism_penalty_total"] = 0.0
+    diagnostics["meal_realism_applied_penalty"] = 0.0
+    diagnostics["meal_realism_flags_by_meal"] = []
     diagnostics["alternative_count_requested"] = 0
     diagnostics["alternative_count_returned"] = 0
     diagnostics["diversity_penalties"] = {
@@ -710,6 +937,7 @@ def _empty_plan(
         "same_family_penalty": 0.0,
         "total_diversity_penalty": 0.0,
     }
+    diagnostics["meal_realism_penalties"] = _empty_meal_realism_penalties()
     return {
         "selected_meals": [],
         "day_totals": _day_totals([]),
@@ -735,6 +963,14 @@ def _resolved_config(config: dict[str, object] | None) -> dict[str, object]:
     resolved = dict(DEFAULT_BALANCED_CONFIG)
     if config:
         resolved.update(config)
+    if resolved.get("recent_recipe_penalty") is None:
+        mode = _diversity_mode(resolved)
+        if mode == "soft":
+            resolved["recent_recipe_penalty"] = 0.04
+        elif mode == "avoid_recent":
+            resolved["recent_recipe_penalty"] = 0.18
+        else:
+            resolved["recent_recipe_penalty"] = 0.0
     return resolved
 
 
@@ -750,6 +986,13 @@ def _diversity_mode(config: Mapping[str, object]) -> str:
     return "none"
 
 
+def _meal_realism_mode(config: Mapping[str, object]) -> str:
+    mode = _clean_text(config.get("meal_realism_mode")).lower()
+    if mode in {"audit", "soft", "practical"}:
+        return mode
+    return "off"
+
+
 def _recent_recipe_ids(config: Mapping[str, object]) -> set[str]:
     value = config.get("recent_recipe_ids")
     if value is None:
@@ -761,6 +1004,39 @@ def _recent_recipe_ids(config: Mapping[str, object]) -> set[str]:
     else:
         items = []
     return {_clean_text(item) for item in items if _clean_text(item)}
+
+
+def _meal_realism_flags_by_meal(
+    meals: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    rows = []
+    for meal in meals:
+        flags = _reason_list(meal.get("meal_realism_flags"))
+        if not flags:
+            continue
+        rows.append(
+            {
+                "slot": _clean_text(meal.get("slot")),
+                "recipe_id": _clean_text(meal.get("recipe_id")),
+                "flags": flags,
+            }
+        )
+    return rows
+
+
+def _reason_list(value: object) -> list[str]:
+    if isinstance(value, list):
+        return [_clean_text(item) for item in value if _clean_text(item)]
+    if isinstance(value, tuple):
+        return [_clean_text(item) for item in value if _clean_text(item)]
+    text = _clean_text(value)
+    if not text:
+        return []
+    if "|" in text:
+        return [item.strip() for item in text.split("|") if item.strip()]
+    if "," in text:
+        return [item.strip() for item in text.split(",") if item.strip()]
+    return [text]
 
 
 def _absolute_ratio_loss(actual: float, target: float) -> float:
