@@ -1,0 +1,1884 @@
+# Recipes_DB v1.1 build notes
+
+Local working memory pentru constructia Recipes_DB v1.1. Nu este documentatie persistenta de arhitectura.
+
+## 1. Scope
+- Recipes_DB v1.1 curated_200
+- Food_DB gap-driven additions
+- ingredient parsing
+- ingredient -> Food_DB mapping
+- unit-to-grams rules
+- servings estimation
+- nutrition cache quality
+- generator readiness
+
+## 2. Core decisions
+- Main selection unit remains a complete or near-complete recipe.
+- We do not return to the old model where meals are mainly assembled from separate protein + carb + veg items.
+- Components/sides are allowed only as minority support/fallback.
+- Food_DB = canonical ingredients.
+- Recipes_DB = composed recipes.
+- Meal completion may exist later as fallback, not the main mode.
+- Current v1.1 target: 200 recipes, with 155 complete/near-complete meals, 20 breakfast, 10 snacks, 15 components/sides.
+- Main proteins prioritized: chicken, turkey, fish, beef, pork.
+- Main meals should include something next to protein: rice, potatoes, pasta, vegetables, soup/stew structure, etc.
+
+## 3. Problems encountered
+- Pilot 106 recipes were sufficient for technical generator testing but not enough for nutrition-quality generation.
+- Many recipes had large ingredients unmapped.
+- `servings_declared` and `servings_normalized` were missing.
+- `servings_basis=1.0` inflated or distorted per-serving logic.
+- Some recipe times included passive time.
+- Total time needed effective-time fallback.
+- Many ingredients had quantity units but no grams.
+- Unit-to-grams rules were needed.
+- Water/broth/salt/herbs can inflate mapped weight ratio without improving macro readiness.
+- Generic meats like beef/pork/turkey are dangerous to auto-map globally.
+- Bone-in meat needs edible-yield handling.
+- Some local source rows had suspicious energy values and were deferred.
+- Nutrition cache can still be weak even when mapped_weight_ratio looks acceptable.
+
+## 4. Solutions/decisions found
+- Use curated recipes, not random source import.
+- Use draft/audit passes before touching current.
+- Use safe aliases first.
+- Add Food_DB items only gap-driven.
+- Use conservative unit-to-grams rules.
+- Mark water/broth/seasonings as low/no macro impact.
+- Add `macro_relevant_mapped_weight_ratio`.
+- Use edible yield for bone-in chicken/pieces.
+- Collapse potato cultivars to generic potato only for macro draft and only when not prepared dish.
+- Butter can use generic/unsalted 82% fat for macro draft.
+- Avoid broad auto-mapping for generic beef/pork/turkey.
+- Keep suspicious or ambiguous items deferred.
+- Do not materialize v1.1 until nutrition cache is good enough.
+
+## 5. Deferred decisions
+- Red potatoes / Yukon gold potatoes need controlled handling.
+- Chicken thighs exact source remains suspect.
+- Bone-in chicken pieces need edible-yield decisions.
+- Turkey / ground turkey need exact source/item decisions.
+- Generic pork and generic beef remain review, not global auto-map.
+- Pork neck bones remain deferred.
+- Rice vinegar variants remain unsafe/deferred.
+- Tomato sauce remains deferred due to suspicious energy.
+- Some recipes may need replacement if low macro persists after mapping/servings checks.
+
+## 6. Current round5 numbers
+- curated_200: 200 recipes, keep=200, review=0, replace=0.
+- ingredient rows: 1861.
+- quantity_grams_estimated after unit rules: 1006 rows.
+- accepted_auto_with_grams round5: 857.
+- usable_from_mapped_ingredients round5: 90/200.
+- median kcal/serving round5: 147.558.
+- median protein/serving round5: 4.12g.
+- median carbs/serving round5: 3.1639g.
+- median fat/serving round5: 7.5291g.
+- complete/near-complete mains kcal >= 300: 26.
+- complete/near-complete mains protein >= 20g: 47.
+- median macro_relevant_mapped_weight_ratio: 0.6906.
+
+## 7. How to update this note
+After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
+- date/session marker if useful
+- what was attempted
+- what improved
+- what failed or stayed blocked
+- new rules/decisions
+- files generated
+- next recommended step
+
+## 8. Round6 low macro diagnostics findings - 2026-05-07
+- Attempted: diagnostic audit after round5, without broad remapping and without materializing v1.1.
+- Generated files:
+  - `data/recipesdb/audit/recipes_v1_1_round6_low_macro_diagnostics.csv`
+  - `data/recipesdb/audit/recipes_v1_1_round6_low_macro_summary.txt`
+  - `data/recipesdb/audit/recipes_v1_1_round6_servings_review.csv`
+  - `data/recipesdb/audit/recipes_v1_1_round6_recipe_replacement_candidates.csv`
+  - `data/recipesdb/audit/recipes_v1_1_round6_remaining_macro_blockers.csv`
+- Diagnosis counts:
+  - `good_enough_for_generator=35`
+  - `low_macro_due_to_low_mapping_coverage=64`
+  - `needs_manual_review=30`
+  - `likely_servings_overestimated=28`
+  - `low_macro_despite_good_weight_coverage=20`
+  - `likely_weak_recipe_for_generator=17`
+  - `likely_missing_key_macro_ingredient=6`
+- Servings review:
+  - `37` rows in servings review output.
+  - Many affected recipes use `servings_basis=4` with very low known weight per serving.
+  - Top examples: `Pork and Pepper Stir Fry`, `Grilled Beef Tenderloin with Herb-Garlic-Pepper Coating`, `Asian Chicken Salad`, `Chimichurri Shrimp`, `Asian Pasta Salad with Beef, Broccoli and Bean Sprouts`.
+- Replacement candidates:
+  - `61` candidate rows, but many should receive mapping/servings review before replacement.
+  - Top examples: `Vietnamese Salad Rolls`, `Fish Tacos al Pastor`, `Angela's Asian-Inspired Chicken Noodle Soup`, `Easy Chicken and Dumplings with Vegetables`, `Refried Beans Without the Refry`, `Chipotle Chicken Burgers`.
+- Top remaining macro blockers by likely nutrition impact:
+  - `pork neck bones`
+  - `mayonnaise`
+  - `pork`
+  - `salted cod fish`
+  - `mild italian sausage links`
+  - `pork sausage`
+  - `spicy pork sausage`
+  - `spinach pasta dough`
+  - `ham`
+  - `bay scallops`
+  - `chicken`
+  - `chicken adobo`
+  - `dry pinto beans`
+  - `brown lentils`
+  - `beef round steak`
+  - `beef top sirloin`
+  - `turkey sausage`
+- What stayed blocked:
+  - Full v1.1 is still not ready for materialization.
+  - Main blocker remains targeted Food_DB/mapping for high-impact protein/fat/carb items, plus a separate servings review.
+  - Good mapped weight coverage alone is not enough; several recipes still have weak per-serving macros or likely bad serving basis.
+- Recommended next step:
+  - A targeted mapping/Food_DB pass for high-impact blockers first.
+  - Then a servings adjustment pass for recipes with plausible total macros but very low per-serving values.
+  - Keep recipe replacement as a later cleanup path after targeted fixes.
+
+## 9. Round7 targeted macro-blocker pass findings - 2026-05-07
+- Attempted: targeted macro-blocker pass after round6, without broad remapping and without materializing v1.1.
+- Generated files:
+  - `data/recipesdb/audit/recipes_v1_1_round7_macro_blockers_decision_audit.csv`
+  - `data/recipesdb/audit/recipes_v1_1_round7_macro_blockers_summary.txt`
+  - `data/fooddb/draft/fooddb_v1_1_core_master_draft_round7.csv`
+  - `data/fooddb/audit/fooddb_v1_1_round7_additions_applied.csv`
+  - `data/fooddb/audit/fooddb_v1_1_round7_additions_deferred.csv`
+  - `data/fooddb/audit/fooddb_v1_1_round7_summary.txt`
+  - `data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round7_macro_blockers.csv`
+  - `data/recipesdb/draft/recipes_v1_1_ingredient_food_unmapped_fooddb_v1_1_round7_macro_blockers.csv`
+  - `data/recipesdb/audit/recipes_v1_1_mapping_pass_summary_fooddb_v1_1_round7_macro_blockers.txt`
+  - `data/recipesdb/audit/recipes_v1_1_nutrition_cache_summary_round7.txt`
+  - `data/recipesdb/draft/recipes_v1_1_nutrition_cache_draft_round7.csv`
+- Food_DB round7:
+  - appended rows: `0`
+  - alias/manual decisions applied: `6`
+  - deferred decisions: `9`
+  - applied: `mayonnaise`, `ham`, `bay scallops`, `pork sausage`, `mild italian sausage links`, `spicy pork sausage`
+  - mild/spicy sausage variants were collapsed to generic pork sausage only for macro draft and explicitly marked with `sausage_variant_collapsed_to_generic_pork_sausage_v1_1`
+- Round7 mapping impact:
+  - `accepted_auto_with_grams: 857 -> 866`
+  - `review_needed_with_grams: 28 -> 32`
+  - `unmapped_with_grams: 124 -> 111`
+  - round7 accepted rows: `mayonnaise=13`, `ham=4`, `pork sausage=2`, `bay scallops=1`, `spicy pork sausage=1`, `mild italian sausage links=1`
+- Round7 nutrition cache impact:
+  - `usable_from_mapped_ingredients: 90 -> 93`
+  - median kcal/serving: `147.558 -> 153.826`
+  - median protein/serving: `4.12g -> 4.8782g`
+  - median carbs/serving: `3.1639g -> 3.2843g`
+  - median fat/serving: `7.5291g -> 8.0179g`
+  - complete/near-complete mains kcal >= 300: `26 -> 29`
+  - complete/near-complete mains protein >= 20g: `47 -> 50`
+  - median `macro_relevant_mapped_weight_ratio=0.7042`
+- Deferred/still blocked after round7:
+  - `pork neck bones`
+  - generic `pork`
+  - `salted cod fish`
+  - `spinach pasta dough`
+  - `tomatillos`
+  - `mushrooms`
+  - `asparagus`
+  - `whole wheat flour`
+  - `rice` / `basmati rice`
+  - specific beef/chicken/bean blockers
+- Important lesson:
+  - Round7 helped, but not enough for full materialization.
+  - Some newly accepted ingredients, especially mayonnaise, still need unit-to-grams rules before their full macro impact appears.
+  - Next recommended step is another targeted pass, likely split between high-impact mapping/Food_DB gaps and unit-to-grams rules for accepted macro-relevant ingredients.
+
+## 10. Round8 unit-to-grams and punctual mapping findings - 2026-05-07
+- Attempted: targeted audit for `accepted_auto` rows without grams, conservative unit-to-grams rules, punctual Food_DB alias decisions, and round8 nutrition cache rebuild.
+- Generated files:
+  - `data/recipesdb/audit/recipes_v1_1_round8_accepted_no_grams_audit.csv`
+  - `data/recipesdb/audit/recipes_v1_1_round8_accepted_no_grams_summary.txt`
+  - `data/recipesdb/draft/recipes_v1_1_ingredients_parsed_unit_rules_round8.csv`
+  - `data/recipesdb/audit/recipes_v1_1_unit_rules_applied_round8.csv`
+  - `data/recipesdb/audit/recipes_v1_1_unit_rules_deferred_round8.csv`
+  - `data/recipesdb/audit/recipes_v1_1_unit_rules_summary_round8.txt`
+  - `data/fooddb/draft/fooddb_v1_1_core_master_draft_round8.csv`
+  - `data/fooddb/audit/fooddb_v1_1_round8_additions_applied.csv`
+  - `data/fooddb/audit/fooddb_v1_1_round8_additions_deferred.csv`
+  - `data/fooddb/audit/fooddb_v1_1_round8_summary.txt`
+  - `data/recipesdb/draft/recipes_v1_1_ingredient_food_matches_draft_fooddb_v1_1_round8_unit_rules_punctual_mapping.csv`
+  - `data/recipesdb/draft/recipes_v1_1_ingredient_food_unmapped_fooddb_v1_1_round8_unit_rules_punctual_mapping.csv`
+  - `data/recipesdb/audit/recipes_v1_1_mapping_pass_summary_fooddb_v1_1_round8_unit_rules_punctual_mapping.txt`
+  - `data/recipesdb/audit/recipes_v1_1_mapping_pass_review_fooddb_v1_1_round8_unit_rules_punctual_mapping.csv`
+  - `data/recipesdb/audit/recipes_v1_1_safe_alias_usage_fooddb_v1_1_round8_unit_rules_punctual_mapping.csv`
+  - `data/recipesdb/draft/recipes_v1_1_nutrition_cache_draft_round8.csv`
+  - `data/recipesdb/audit/recipes_v1_1_nutrition_cache_summary_round8.txt`
+  - `data/recipesdb/audit/recipes_v1_1_nutrition_cache_recipe_audit_round8.csv`
+  - `data/recipesdb/audit/recipes_v1_1_nutrition_cache_low_coverage_round8.csv`
+  - `data/recipesdb/audit/recipes_v1_1_ingredient_nutrition_contributions_round8.csv`
+- Accepted-auto no-grams audit:
+  - `accepted_auto_without_grams=134`
+  - high-priority rows without grams: `46`
+  - most useful unit rules identified: mayonnaise cup/tablespoon/teaspoon and mozzarella cup.
+- Unit rules round8:
+  - rows with grams: `1009 -> 1033`
+  - rules applied: `24`
+  - accepted_auto rows gained grams: `17`
+  - unmapped rows gained grams for future use: `7`
+  - applied rules: `mayonnaise_cup=7`, `mozzarella cheese_cup=5`, `mayonnaise_tablespoon=4`, `mushrooms_sliced_or_chopped_cup=3`, `all purpose flour_tablespoon=3`, `flour_tablespoon=1`, `mayonnaise_teaspoon=1`
+- Food_DB round8:
+  - appended rows: `0`
+  - alias/manual decisions applied: `4`
+  - applied: raw mushrooms, raw asparagus, raw basmati rice, cooked basmati rice, all to existing safe Food_DB items
+  - deferred: tomatillos, whole wheat flour, salted cod fish, pork neck bones, generic pork/beef/turkey, spinach pasta dough, tomato sauce suspect, rice vinegar variants, prepared/composed dishes
+- Mapping round8 impact:
+  - `accepted_auto: 1000 -> 1009`
+  - `accepted_auto_with_grams: 866 -> 891`
+  - `accepted_auto_without_grams: 134 -> 118`
+  - round8 accepted rows: `mushrooms=7` (`6` with grams), `asparagus=2` (`2` with grams)
+- Nutrition cache round8 impact:
+  - `usable_from_mapped_ingredients: 93 -> 97`
+  - median kcal/serving: `153.826 -> 170.7467`
+  - median protein/serving: `4.8782g -> 4.9879g`
+  - median carbs/serving: `3.2843g -> 3.4357g`
+  - median fat/serving: `8.0179g -> 9.9111g`
+  - complete/near-complete mains kcal >= 300: `29 -> 34`
+  - complete/near-complete mains protein >= 20g: `50 -> 50`
+  - median `macro_relevant_mapped_weight_ratio=0.7276`
+- Still blocked after round8:
+  - top remaining blockers include `pork neck bones`, generic `pork`, `salted cod fish`, `spinach pasta dough`, `tomatillos`, `whole wheat flour`, generic/state-unclear `rice`, state-unclear `basmati rice`, `all purpose flour`, specific beef/chicken/bean blockers.
+  - Full v1.1 is still not ready for materialization.
+- Recommended next step:
+  - Do not materialize yet.
+  - Do one more small targeted mapping/Food_DB source decision pass for remaining macro blockers that now dominate the cache.
+  - After that, run a separate servings adjustment pass; recipe replacement should stay later, only for rows still weak after mapping and servings checks.
+
+## 11. Round9 final targeted mapping/source pass findings - 2026-05-07
+- Attempted: final very small targeted mapping/Food_DB source pass before servings adjustment, draft/audit only.
+- Generated candidate audit:
+  - `recipes_v1_1_round9_final_mapping_candidates.csv`
+  - `recipes_v1_1_round9_final_mapping_summary.txt`
+  - audited blocker groups: `140`
+  - `safe_exact_fix=10`, `possible_but_needs_review=20`, `recipe_replacement_candidate=38`, `keep_deferred=72`
+- Food_DB round9:
+  - base round8 rows: `1541`
+  - final round9 rows: `1544`
+  - new safe source rows: `all purpose flour`, `whole wheat flour`, `salted cod fish`
+  - alias/manual exact existing rows: `chicken meat`, `crabmeat`, `morel mushrooms`, `ricotta cheese`, `shiitake mushrooms`, `sirloin steak`
+- Unit rules round9:
+  - base parsed file: round8
+  - rows with grams stayed `1033 -> 1033`
+  - no new unit rules were applied; round8 already covered the safe flour/tomatillo-style rules where useful.
+- Mapping round9:
+  - `accepted_auto_with_grams: 891 -> 906`
+  - `accepted_auto: 1009 -> 1024`
+  - `unmapped_with_grams: 109 -> 91`
+  - exact fixes used include `all purpose flour` variants, `whole wheat flour`, `salted cod fish`, `chicken meat`, `sirloin steak`, `morel mushrooms`, `dried shiitake mushrooms`, `ricotta cheese`, and `fresh crabmeat`.
+- Nutrition cache round9 impact:
+  - `usable_from_mapped_ingredients: 97 -> 102`
+  - median kcal/serving: `170.7467 -> 176.4814`
+  - median protein/serving: `4.9879g -> 5.4326g`
+  - median carbs/serving: `3.4357g -> 3.7002g`
+  - median fat/serving: `9.9111g -> 9.9111g`
+  - complete/near-complete mains kcal >= 300: `34 -> 36`
+  - complete/near-complete mains protein >= 20g: `50 -> 52`
+  - median `macro_relevant_mapped_weight_ratio: 0.7276 -> 0.8073`
+- Deferred after round9:
+  - `pork neck bones`, generic `pork`, generic `beef` / `turkey`
+  - `spinach pasta dough`
+  - `tomatillos` because exact source exists but macro source is incomplete/suspect
+  - state-unclear `rice` / `basmati rice`
+  - `beef round steak`, `beef top sirloin`, `round steak`, `ribeye steak` where exact cut/source decision was not clean enough
+  - `chicken` / `ground chicken` because exact safe source remains unresolved
+  - `rice vinegar` variants, prepared/composed foods, and meat count/piece rows
+- Conclusion:
+  - Round9 helped, but not enough for another mapping loop.
+  - usable cache gain was only `+5`, median kcal gain was only `+5.7347`, and median protein gain was only `+0.4447g`.
+  - Stop mapping passes for v1.1 now and move to servings adjustment / recipe review.
+- Recommended next step:
+  - Run a servings adjustment pass focused on recipes with decent mapped/macro coverage but weak or suspicious per-serving macros.
+  - Keep recipe replacement/manual review for rows still weak after servings adjustment.
+
+## 12. Round10 servings adjustment and generator readiness - 2026-05-07
+- Attempted: diagnostic de portii + cache nutrition draft ajustat, fara alta runda larga de mapping si fara materializare finala.
+- Servings diagnostics:
+  - retete auditate: `200`
+  - candidati de ajustare conservatoare: `15`
+  - diagnosis counts: `needs_manual_review=68`, `low_macro_due_to_low_mapping_coverage=37`, `serving_ok=36`, `impossible_to_adjust_safely=26`, `recipe_replacement_candidate=16`, `likely_servings_overestimated=15`, `low_macro_despite_good_serving=2`
+  - regulile au cerut `macro_relevant_mapped_weight_ratio >= 0.65`, cel putin `3` ingrediente accepted_auto cu grame, totaluri macro non-zero si retete nedominante de apa/supa/condimente.
+- Ajustari aplicate in cache round10:
+  - ajustari aplicate: `15`
+  - totalurile nutritionale au ramas neschimbate; doar `servings_basis` si valorile per-serving s-au schimbat.
+  - exemple: `4 -> 2`, `4 -> 3`, `6 -> 4`, fara reducere sub `2` pentru main/soup/salad.
+- Nutrition cache round10 impact vs round9:
+  - `accepted_auto_with_grams: 906 -> 906`
+  - `usable_from_mapped_ingredients: 102 -> 102`
+  - median kcal/serving: `176.4814 -> 189.8562`
+  - median protein/serving: `5.4326g -> 6.1338g`
+  - median carbs/serving: `3.7002g -> 3.792g`
+  - median fat/serving: `9.9111g -> 11.0028g`
+  - complete/near-complete mains kcal >= 300: `36 -> 45`
+  - complete/near-complete mains protein >= 20g: `52 -> 52`
+  - median `macro_relevant_mapped_weight_ratio` stayed `0.8073`
+- Generator readiness round10:
+  - `generator_ready=81`
+  - generator_ready complete/near-complete meals: `47`
+  - generator_ready breakfast: `19`
+  - generator_ready snack: `6`
+  - `usable_but_review=13`
+  - `replace_candidate=21`
+  - `partial_keep_for_future=50`
+  - `component_only=7`
+  - `excluded_for_now=28`
+- Conclusion:
+  - Mapping passes should stay stopped for now.
+  - Full v1.1 materialization is still not recommended.
+  - Recommended next step: review/materialize only the `generator_ready` subset as draft, then replace weak recipes before attempting a broader v1.1 materialization.
+
+## 13. Recipes_DB v1.1 generator-ready draft subset materialization - 2026-05-07
+- Attempted: draft/test materialization only for round10 `generator_ready` recipes, fara full v1.1 materialization si fara alte mapping/Food_DB/unit-rule passes.
+- Script nou:
+  - `tools/extra/materialize_recipes_v1_1_generator_ready_subset.py`
+- Output draft subset:
+  - `data/recipesdb/draft/v1_1_generator_ready/recipes.csv`
+  - `data/recipesdb/draft/v1_1_generator_ready/recipe_ingredients.csv`
+  - `data/recipesdb/draft/v1_1_generator_ready/recipe_nutrition_cache.csv`
+  - `data/recipesdb/draft/v1_1_generator_ready/README_v1_1_generator_ready.txt`
+  - `data/recipesdb/audit/recipes_v1_1_generator_ready_materialization_summary.txt`
+  - `data/recipesdb/audit/recipes_v1_1_generator_ready_materialization_audit.csv`
+- Materialization counts:
+  - included recipes: `81`
+  - recipe ingredients: `787`
+  - nutrition cache rows: `81`
+  - included readiness: `generator_ready=81`
+  - excluded readiness: `partial_keep_for_future=50`, `excluded_for_now=28`, `replace_candidate=21`, `usable_but_review=13`, `component_only=7`
+- Included mix:
+  - recipe_kind: `complete_main=31`, `breakfast=19`, `near_complete_main=16`, `snack=6`, `soup=5`, `salad=4`
+  - primary_protein: `beef=22`, `egg=21`, `chicken=13`, `pork=10`, `vegetarian=6`, `fish=5`, `turkey=4`
+  - ingredient mapping statuses: `accepted_auto=465`, `unmapped=215`, `review_needed=107`
+  - nutrition cache statuses: `usable_from_mapped_ingredients=72`, `partial_from_mapped_ingredients=9`
+- Median per-serving macros in materialized subset:
+  - kcal: `341.6505`
+  - protein: `27.8603g`
+  - carbs: `5.5546g`
+  - fat: `19.2183g`
+- Generator v1 CLI smoke test with explicit paths:
+  - files loaded successfully: `total_recipes_loaded=81`
+  - eligible candidates: `0`
+  - selected slots: `0`
+  - validation: `invalid_mixed`
+  - reason: current `src/generator_v1/data_loader.py` eligibility is pilot-specific (`scope_status=pilot_validated` and `cache_status=partial_from_mapped_ingredients`)
+- Next recommended step:
+  - smallest Generator v1 patch: allow `scope_status=v1_1_generator_ready_draft` and `cache_status=usable_from_mapped_ingredients` / `partial_from_mapped_ingredients` for explicit draft test paths.
+  - Keep full v1.1 materialization blocked until weak recipes are replaced/reviewed.
+
+## 14. Generator v1 dataset_profile support for v1.1 draft subset - 2026-05-07
+- Context:
+  - `v1_1_generator_ready` was materialized as a draft/test subset with `81` recipes, `787` ingredient rows and `81` nutrition cache rows.
+  - Initial Generator v1 CLI smoke test loaded all `81` rows but produced `0` eligible candidates because `data_loader` still used the pilot-only mask: `scope_status=pilot_validated` and `cache_status=partial_from_mapped_ingredients`.
+- Patch:
+  - `load_recipe_candidate_pool` now supports dataset eligibility presets through `dataset_profile`.
+  - Default `pilot_current` behavior stays unchanged.
+  - `v1_1_generator_ready` allows only `scope_status=v1_1_generator_ready_draft` plus `usable_from_mapped_ingredients` / `partial_from_mapped_ingredients`, while still requiring active/parsed flags and non-null per-serving macros when those columns exist.
+  - CLI can use `--dataset_profile v1_1_generator_ready`; if no paths are passed, it resolves to the draft subset paths.
+  - Streamlit now has a small dataset selector for current pilot vs Recipes_DB v1.1 generator-ready draft.
+- Smoke test:
+  - pilot default CLI: `106` loaded, `76` eligible, default paths preserved.
+  - v1.1 CLI: `81` loaded, `81` eligible, `81` filtered candidates, validation `valid`.
+  - selected v1.1 meals: `Sweet and Sour Stuffed Cabbage`, `Mom's Best Waffles`, `Bacon-Flavored Dog Biscuits`, `Air Fryer Turkey Stuffed Peppers`.
+- Risks / next step:
+  - v1.1 time fields are still missing, so time scoring is effectively neutral/zero for this subset.
+  - `Bacon-Flavored Dog Biscuits` being selected shows the subset still needs recipe content/category review before trusting generated menus.
+  - Next recommended step: add a targeted recipe exclusion/review pass for obvious non-human or misclassified recipes, then rerun Generator v1 smoke tests.
+
+## 15. v1.1 generator-ready slot/content readiness patch - 2026-05-07
+- Context:
+  - v1.1 draft became nutritionally valid in Generator v1, but the selected plan was semantically wrong: main dishes at breakfast/snack, waffles at lunch, and `Bacon-Flavored Dog Biscuits` at dinner.
+  - The issue was slot/content readiness, not nutrition eligibility.
+- Slot/content audit:
+  - audited recipes: `81`
+  - `keep=79`, `review=1`, `exclude=1`
+  - review: `Sausage Pinwheels` because category suggests appetizer/snack while round10 kind suggested near-complete main.
+  - exclude: `Bacon-Flavored Dog Biscuits` because it is pet/animal food.
+  - allowed slot counts in raw audit: `breakfast=19`, `lunch=54`, `dinner=54`, `snack=6`.
+- Slot-checked draft subset:
+  - folder: `data/recipesdb/draft/v1_1_generator_ready_slot_checked/`
+  - included recipes: `79`
+  - ingredient rows: `775`
+  - nutrition cache rows: `79`
+  - recipes include `allowed_slots_json`, `slot_policy_reason`, `content_quality_status`, and `content_exclusion_reason`.
+- Generator v1 patch:
+  - new dataset profile: `v1_1_generator_ready_slot_checked`
+  - `slot_candidates.py` now treats `allowed_slots_json` as a hard slot gate when the column exists.
+  - pilot/current behavior is unchanged when `allowed_slots_json` is missing.
+  - Streamlit can select the slot-checked draft explicitly.
+- Smoke tests:
+  - `pilot_current`: `106` loaded, `76` eligible, default behavior still works.
+  - `v1_1_generator_ready`: still loads `81` and remains useful as the raw draft comparison.
+  - `v1_1_generator_ready_slot_checked`: `79` loaded, `79` eligible.
+  - slot candidate counts: `breakfast=57`, `lunch=162`, `dinner=162`, `snack=18`.
+  - selected slot-checked plan: `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Kelsey's Favorite Stuffed Green Peppers`, `Potato Salad Deviled Eggs`.
+  - validation: `valid`.
+- Remaining risks / next step:
+  - time fields remain missing for v1.1, so time scoring is still not meaningful.
+  - snack pool is small and some snack nutrition remains suspicious, especially hummus rows with near-zero protein from mapping/cache gaps.
+  - Next recommended step: targeted v1.1 time enrichment or recipe metadata review, then a small snack/readiness review before broader Generator v1 testing.
+
+## 16. Round11 time enrichment and snack readiness - 2026-05-07
+- Attempted:
+  - heuristic time enrichment for the `v1_1_generator_ready_slot_checked` draft subset.
+  - snack readiness audit only; no mapping/Food_DB/nutrition-cache repair and no full v1.1 materialization.
+- Time enrichment approach:
+  - input: `data/recipesdb/draft/v1_1_generator_ready_slot_checked/`
+  - output: `data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched/`
+  - `recipe_ingredients.csv` and `recipe_nutrition_cache.csv` were copied unchanged.
+  - `recipes.csv` received draft heuristic `prep_time_min`, `cook_time_min`, `total_time_min`, plus active/passive/effective time diagnostics.
+  - estimates used `directions_json`, step count, recipe kind, ingredient count, cooking keywords and passive keywords.
+- Time enrichment counts:
+  - recipes enriched: `79`
+  - confidence: `high=58`, `medium=21`, `low=0`
+  - recipes with passive time: `21`
+  - recipes with long passive time: `9`
+  - median total time: `65 min`
+  - median effective time: `61 min`
+- Snack readiness:
+  - snack candidates audited: `6`
+  - `snack_ready=0`, `snack_review=6`, `snack_exclude=0`
+  - review reasons were mostly `nutrition_or_cache_suspicious` for hummus/bean/chickpea rows or `snack_semantics_but_heavy_or_slow`.
+  - no snack rows were removed in round11; the snack pool remains too small for confident Generator v1 evaluation.
+- Generator v1 patch:
+  - new dataset profile: `v1_1_generator_ready_slot_checked_time_enriched`
+  - Streamlit can select the time-enriched draft explicitly.
+  - CLI selected-plan output now includes `time_estimation_reasons`.
+- Smoke tests:
+  - `pilot_current` still works: `106` loaded, `76` eligible.
+  - time-enriched v1.1: `79` loaded, `79` eligible.
+  - slot candidate counts stayed `breakfast=57`, `lunch=162`, `dinner=162`, `snack=18`.
+  - selected plan: `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Ground Turkey Lettuce Wraps`, `Potato Salad Deviled Eggs`.
+  - totals: `2054.8 kcal`, `177.6g protein`, `161.8g carbs`, `75.8g fat`.
+  - time totals: `total_time_min_sum=225`, `effective_time_min_sum=205`, `passive_time_estimated_sum=20`.
+  - validation: `valid`.
+- Remaining risks / next step:
+  - round11 time values are heuristic draft metadata, not production truth.
+  - snack pool should not be trusted yet: it needs manual additions/replacements and/or later nutrition-cache review after the no-mapping constraint is lifted.
+  - Next recommended step: manually curate/add better snack recipes, then rerun the slot/content + snack readiness pass before larger Generator v1 tests.
+
+## 17. Round12 manual/curated snack pool - 2026-05-07
+- Attempted:
+  - kept the round11 `v1_1_generator_ready_slot_checked_time_enriched` draft as base.
+  - created a separate manual snack pool from existing Food_DB v1.1 round9 exact matches only.
+  - merged into a new draft/test folder; no current data, Food_DB current, legacy code, architecture docs, or full v1.1 materialization were touched.
+- Existing snack decisions:
+  - round11 snack candidates: `6`
+  - `snack_ready=0`, `snack_review=6`, `snack_exclude=0`
+  - all 6 old snack candidates were excluded from the new snack-curated draft:
+    `Potato Salad Deviled Eggs`, `Pistachio Hummus`, `Hummus III`, `Air Fryer Puffed Butter Beans`, `Roasted Salt & Vinegar Chickpeas`, `Real Hummus`.
+- Manual snack creation:
+  - created: `15` manual snacks
+  - skipped: `2`
+  - skipped because exact Food_DB source was missing: `Cottage Cheese with Fruit`, `Hummus with Carrots`
+  - created snacks range: `116.49-264.67 kcal`, `5.944-16.852g protein` per serving.
+- Snack-curated materialization:
+  - folder: `data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated/`
+  - recipes: `88`
+  - ingredient rows: `765`
+  - nutrition rows: `88`
+  - mix: `73` base non-snack recipes kept, `15` manual snacks added, `6` old snacks excluded.
+  - allowed slots by recipe: `breakfast=19`, `lunch=54`, `dinner=54`, `snack=15`
+  - median macros: `328.6848 kcal`, `26.5384g protein`, `7.8631g carbs`, `17.0842g fat`
+- Snack readiness after round12:
+  - snack candidates audited: `15`
+  - `snack_ready=15`, `snack_review=0`, `snack_exclude=0`
+- Generator v1 patch:
+  - new profile: `v1_1_generator_ready_slot_checked_time_enriched_snack_curated`
+  - default paths point to the new snack-curated folder.
+  - Streamlit selector can load the snack-curated draft explicitly.
+  - pilot default remains unchanged: `106` loaded, `76` eligible.
+- Smoke test:
+  - new profile loaded: `88`
+  - eligible: `88`
+  - slot candidates: `breakfast=57`, `lunch=162`, `dinner=162`, `snack=45`
+  - selected plan: `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Ground Turkey Lettuce Wraps`, `Ham and Cheese Toast`
+  - totals: `1961.1 kcal`, `165.8g protein`, `183.2g carbs`, `60.1g fat`
+  - time: `total_time_min_sum=165`, `effective_time_min_sum=165`, `passive_time_estimated_sum=0`
+  - validation: `valid`
+- Remaining risks / next step:
+  - round12 snack recipes are manual draft/test rows and should be reviewed before any production materialization.
+  - v1.1 still has low-carb/full-day balance issues and many non-snack recipes remain heuristic/draft.
+  - Next recommended step: run a few Generator v1 scenarios/profiles against the snack-curated draft and inspect variety/nutrition balance before deciding whether to add more manual breakfasts/sides or replace weak mains.
+
+## 18. Round13 Generator v1 scenario evaluation - 2026-05-08
+- Attempted:
+  - evaluation/audit only on `v1_1_generator_ready_slot_checked_time_enriched_snack_curated`.
+  - no Recipes_DB/Food_DB repair, no scoring/day_selector change, no current data change.
+  - added a scenario evaluator that builds in-memory profiles and uses the normal Generator v1 flow: target builder, candidate loader, filters, slot candidates, day selector and validator.
+- Scenario set:
+  - scenarios evaluated: `10`
+  - includes demo, male/female maintain/lose/gain, high activity, sedentary lose fast, and 3-meals-no-snack cases.
+- Results:
+  - valid scenarios: `7/10`
+  - good macro fit: `1/10`
+  - carb deficient: `8/10`
+  - protein-heavy by strict threshold: `0/10`
+  - fat-heavy: `1/10`
+  - invalid scenarios were mainly high-target or no-snack cases with kcal below checkpoint threshold.
+- Repetition:
+  - repeated plan shapes: `4`
+  - dominant recipes:
+    `Sweet and Sour Stuffed Cabbage` selected `9` times,
+    `Ground Turkey Lettuce Wraps` `8` times,
+    `Ham and Cheese Toast` `7` times,
+    `Mom's Best Waffles` `6` times.
+- Snack behavior:
+  - selected snacks: `8/8` were manual round12 snack-ready rows.
+  - snack slot is semantically acceptable after round12.
+- Slot quality:
+  - selected meals: `38`
+  - `slot_quality_ok=38`
+  - no component-only or excluded-content selections found.
+- Outputs:
+  - `generator_v1_round13_scenario_eval_summary.txt`
+  - `generator_v1_round13_scenario_eval_plans.csv`
+  - `generator_v1_round13_scenario_eval_meals.csv`
+  - `generator_v1_round13_scenario_eval_recipe_repetition.csv`
+  - `generator_v1_round13_scenario_eval_macro_gaps.csv`
+  - `generator_v1_round13_scenario_eval_slot_candidate_counts.csv`
+- Conclusion / next step:
+  - Snack readiness is no longer the blocker.
+  - Main remaining issues are carb coverage/balance and recipe repetition/collapse.
+  - Recommended next step before selector tuning: add or curate more target-relevant carb-forward recipes/sides in draft data, then revisit day-level macro balancing and variety/repetition handling.
+
+## 19. Round14 carb availability si day-level selection pressure audit - 2026-05-08
+- Attempted:
+  - evaluation/audit only on `v1_1_generator_ready_slot_checked_time_enriched_snack_curated`.
+  - no scoring/day_selector change, no Recipes_DB/Food_DB repair, no new recipes, no current data change.
+  - added an audit-only oracle that compares current greedy selection with day-level macro-balanced combinations from existing slot candidates.
+- Candidate carb availability:
+  - selected slots with a carb-forward alternative: `38/38`.
+  - alternatives lost in current scoring/fit pressure: `38/38`.
+  - average candidates with `carbs_g >= 50`: breakfast `9`, lunch `17`, dinner `17`, snack `0`.
+  - snack remains carb-limited, but manual snack pool is semantically safe.
+- Current vs oracle:
+  - current valid scenarios: `7/10`.
+  - oracle valid scenarios: `10/10`.
+  - oracle improved day loss: `10/10` scenarios.
+  - oracle improved carbs gap: `10/10` scenarios.
+  - average day loss: current `0.2109`, oracle `0.0735`.
+  - average carbs target ratio: current `0.4476`, oracle `0.7521`.
+  - average kcal target ratio: current `0.8259`, oracle `0.9624`.
+- Selected-vs-carb alternative findings:
+  - main reason alternatives lost: lower protein fit `29` cases.
+  - secondary reasons: lower kcal fit `6`, time penalty `3`.
+  - this suggests local score pressure favors protein/kcal/time over day-level carb balance.
+- Repetition:
+  - current dominant recipes: `Sweet and Sour Stuffed Cabbage` `9`, `Ground Turkey Lettuce Wraps` `8`, `Ham and Cheese Toast` `7`, `Mom's Best Waffles` `6`.
+  - oracle reduces some current collapse (`Ground Turkey Lettuce Wraps` `8 -> 2`, `Ham and Cheese Toast` `7 -> 1`) but still reuses strong options like `Mom's Best Waffles` `9`.
+- Recommendation:
+  - next step should be `B. day-level macro balancing selector`.
+  - also evaluate `F. dynamic portion multipliers` next, especially for high-kcal / no-snack profiles.
+  - data still benefits later from more carb-forward complete meals/snacks, but round14 shows selector/day objective is now the primary blocker.
+
+## 20. Round15 balanced_day selector pentru Generator v1 - 2026-05-08
+- Attempted:
+  - implemented an optional deterministic `balanced_day` selector for Generator v1.
+  - kept `greedy` as default and kept pilot/current behavior unchanged unless `--selection_mode balanced_day` is selected.
+  - no current data, Food_DB current, legacy code, architecture docs, or production materialization were touched.
+- Core behavior:
+  - builds per-slot shortlists from top candidates by `score_preview`, `macro_fit`, carbs, kcal and protein.
+  - evaluates day-level combinations with a transparent macro loss objective: kcal/protein/carbs/fat.
+  - rejects repeated `recipe_id` in the same day and preserves existing hard slot gates.
+  - includes selector diagnostics: loss terms, evaluated combination count, shortlist counts and warnings.
+- Demo profile smoke test on `v1_1_generator_ready_slot_checked_time_enriched_snack_curated`:
+  - greedy selected: `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Ground Turkey Lettuce Wraps`, `Ham and Cheese Toast`.
+  - balanced_day selected: `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Veggie Burgers`, `Banana with Milk`.
+  - balanced totals: `2372.6 kcal`, `120.6g protein`, `324.3g carbs`, `62.1g fat`, effective time `177` min.
+  - validation: `valid`.
+- Scenario comparison:
+  - scenarios evaluated: `10`.
+  - valid scenarios: greedy `7/10`, balanced_day `10/10`.
+  - good macro fit: greedy `1/10`, balanced_day `5/10`.
+  - carb deficient: greedy `9/10`, balanced_day `4/10`.
+  - average day loss: greedy `0.2088`, balanced_day `0.0755`.
+  - average carbs target ratio: greedy `0.4476`, balanced_day `0.7611`.
+  - average kcal target ratio: greedy `0.8259`, balanced_day `0.9495`.
+- Repetition:
+  - greedy dominant: `Sweet and Sour Stuffed Cabbage` `9`, `Ground Turkey Lettuce Wraps` `8`, `Ham and Cheese Toast` `7`, `Mom's Best Waffles` `6`.
+  - balanced_day dominant: `Mom's Best Waffles` `9`, `Sweet and Sour Stuffed Cabbage` `7`, `Veggie Burgers` `5`, `Ham and Cheese Toast` `3`.
+  - repetition improved for some old collapse points, but variety remains a real next-axis issue.
+- Recommendation:
+  - use `balanced_day` for v1.1 draft testing.
+  - keep `greedy` available for baseline and pilot comparison.
+  - next step should be variety/repetition handling plus dynamic portion multiplier exploration for high-kcal/no-snack profiles.
+
+## 21. Round16 balanced_day alternatives si variety/repetition - 2026-05-08
+- Attempted:
+  - added optional deterministic alternatives for `balanced_day`, without replacing greedy and without changing target formulas.
+  - kept `pilot_current` default behavior on `greedy`.
+  - no current data, Food_DB current, legacy code, architecture docs, or Recipes_DB/Food_DB repair were touched.
+- Mechanism:
+  - `balanced_day` can now return top plan alternatives when `return_alternatives=True`.
+  - alternatives are deduped by recipe set and differ by at least one recipe when possible.
+  - `diversity_mode` supports `none`, `soft`, and `avoid_recent`.
+  - recent recipes are not hard-banned; `avoid_recent` applies a small adjusted-loss penalty.
+  - selector diagnostics now include base/adjusted day loss, diversity penalties, recent recipe ids, and alternative counts.
+- CLI / Streamlit:
+  - CLI supports `--alternative_count`, `--diversity_mode`, and `--recent_recipe_ids`.
+  - Streamlit supports Alternative count `1/2/3` and Diversity mode `none/soft/avoid_recent`.
+  - Streamlit uses recipes from the last 2 menus as recent ids for `balanced_day` diversity; the first alternative remains the main selected menu.
+- Demo CLI alternatives on v1.1 snack-curated:
+  - alternative 1: `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Veggie Burgers`, `Banana with Milk`, base loss `0.0747`, valid.
+  - alternative 2: same breakfast/lunch/dinner, `Small Turkey Bread Snack`, base loss `0.0780`.
+  - alternative 3: same breakfast/lunch/dinner, `Milk with Oats`, base loss `0.0785`.
+- Round16 evaluator:
+  - scenarios evaluated: `10`.
+  - scenarios with 3 alternatives: `10/10`.
+  - valid alternatives: `30/30`.
+  - average base day loss by rank: rank1 `0.0755`, rank2 `0.0776`, rank3 `0.0791`.
+  - rank1 good macro fit: `5/10`.
+  - rank1 carb deficient: `4/10`.
+- Repeated Generate simulation with `avoid_recent`:
+  - run1 base loss `0.0747`, recent overlap `0`.
+  - run2 base loss `0.1694`, recent overlap `0`.
+  - run3 base loss `0.2133`, recent overlap `0`.
+  - unique recipes across 3 selected demo runs: `12`.
+  - all 3 selected demo runs remained `valid`.
+  - average base/adjusted loss across the 3 repeated runs: `0.1525`.
+  - selected snacks stayed manual round12 snack-ready recipes.
+- Interpretation:
+  - alternatives are useful for testing and UI inspection.
+  - `avoid_recent` reduces repeated-click repetition strongly, but macro loss can rise once strong recent recipes are penalized.
+  - cross-scenario repetition remains expected for deterministic rank1 selection; this is now mostly a UI/multi-day variety concern.
+- Recommended next step:
+  - keep alternatives/diversity explicit for v1.1 testing.
+  - next work should evaluate multi-day variety policy and dynamic portion multipliers before making `avoid_recent` or balanced alternatives a default production behavior.
+
+## 22. Round17 dynamic portion multipliers pentru balanced_day - 2026-05-08
+- Attempted:
+  - added optional portion policies for Generator v1 testing: `standard`, `expanded_safe`, `target_aware`.
+  - kept `standard` as default, so `pilot_current` default behavior remains unchanged.
+  - no current data, Food_DB current, legacy code, architecture docs, target formulas, or Recipes_DB/Food_DB repair were touched.
+- Mechanism:
+  - `portion_policy.py` centralizes multiplier choices and conservative caps by slot.
+  - `standard` keeps `[0.8, 1.0, 1.2]`.
+  - `expanded_safe` allows larger main-meal portions and controlled snack portions.
+  - `target_aware` starts from `expanded_safe` and can allow up to `1.8` for high lunch/dinner targets.
+  - candidates now carry `portion_policy_mode`, `portion_policy_reasons`, and `portion_policy_warnings`.
+- CLI / Streamlit:
+  - CLI supports `--portion_policy`.
+  - Streamlit has a Portion policy selector and displays selected policy/multiplier diagnostics.
+- Demo profile smoke tests on v1.1 snack-curated:
+  - `standard`: valid, `2372.6 kcal`, `120.6g protein`, `324.3g carbs`, `62.1g fat`, day loss `0.0747`.
+  - `expanded_safe`: valid, `2505.2 kcal`, `143.2g protein`, `338.6g carbs`, `60.6g fat`, day loss `0.0449`.
+  - `target_aware`: same demo plan as `expanded_safe`, valid, day loss `0.0449`.
+- Round17 evaluator:
+  - scenarios evaluated: `10`.
+  - valid scenarios: all policies `10/10`.
+  - good macro fit: `standard 5/10`, `expanded_safe 9/10`, `target_aware 9/10`.
+  - carb deficient: `standard 4/10`, `expanded_safe 1/10`, `target_aware 1/10`.
+  - average day loss: `standard 0.0755`, `expanded_safe 0.0464`, `target_aware 0.0349`.
+  - average kcal ratio: `standard 0.9495`, `expanded_safe 0.9745`, `target_aware 0.9952`.
+  - average carbs ratio: `standard 0.7611`, `expanded_safe 0.8070`, `target_aware 0.8297`.
+  - portion review warnings: `standard 0`, `expanded_safe 22`, `target_aware 23`; cap-violating portions are excluded before selection.
+- Recommendation:
+  - use `target_aware` for v1.1 balanced_day testing.
+  - keep dynamic portions optional and not default for `pilot_current`.
+  - remaining risk is mostly review/UI interpretation of large multiplier flags, not known cap violations.
+
+## 23. Round18 v1.1 recommended test preset si QA audit - 2026-05-08
+- Attempted:
+  - added a small CLI test preset `v1_1_recommended_test`.
+  - preset values: `dataset_profile=v1_1_generator_ready_slot_checked_time_enriched_snack_curated`, `selection_mode=balanced_day`, `portion_policy=target_aware`, `alternative_count=3`, `diversity_mode=none`.
+  - Streamlit now preselects the same recommended controls only when the v1.1 snack-curated draft dataset is chosen; `pilot_current` still resets to `greedy + standard`.
+  - no current data, Food_DB current, legacy code, architecture docs, target formulas, or Recipes_DB/Food_DB repair were touched.
+- CLI smoke tests:
+  - `pilot_current + greedy + standard` still loads `106` recipes and `76` eligible candidates; baseline plan remains `invalid_nutrition`.
+  - v1.1 recommended config loads `88` recipes and `88` eligible candidates.
+  - v1.1 selected demo plan: `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Thai Fried Rice`, `Small Turkey Bread Snack`.
+  - v1.1 totals: `2505.2 kcal`, `143.2g protein`, `338.6g carbs`, `60.6g fat`, effective time `177` min, day loss `0.044905`, validation `valid`.
+- Target-aware warning audit:
+  - scenarios evaluated: `10`.
+  - valid scenarios: `10/10`.
+  - selected meals: `38`.
+  - selected meals with policy warnings: `23`.
+  - warning classes: `15` acceptable large portions, `23` borderline large portions.
+  - unrealistic or too-large portions: `0`.
+  - max selected portions: breakfast `444g`, lunch `640.3g`, dinner `624.6g`, snack `281.2g`.
+  - conclusion: `target_aware` should stay recommended for v1.1 testing.
+- Multi-run QA:
+  - `target_aware + diversity none` returned `3/3` valid alternatives for the demo profile.
+  - rank1 stayed good macro fit and not carb deficient.
+  - `avoid_recent` repeated simulation produced `3/3` valid rank1 runs and `12` unique recipes across 3 runs, with recent overlap `[0, 0, 0]`.
+  - diversity increased average rank1 base day loss to `0.1196`.
+  - `avoid_recent` also produced `6` breakfast portion issues across alternatives, so it remains optional and should not be the default demo preset.
+- Checkpoint 1 readiness:
+  - recommended config is ready for Checkpoint 1 demo/testing.
+  - full product/materialization is still not ready.
+  - remaining risks: manual snack draft data, v1.1 not production current, variety remains optional, no multi-day/household planning yet, and larger `target_aware` portions need visible QA diagnostics.
+- Recommended next step:
+  - use `v1_1_recommended_test` or the equivalent UI controls for demo/testing.
+  - next implementation axis should be Streamlit demo polish or multi-day/household planning, not more v1.1 data repair.
+
+## 24. Round19 Streamlit history si meal realism QA - 2026-05-11
+- Attempted:
+  - fixed Streamlit session menu history for repeated Generate testing.
+  - added a lightweight meal realism QA layer for Generator v1 candidates.
+  - kept `pilot_current` default behavior on `greedy + standard`.
+  - kept `balanced_day + target_aware + alternative_count=3` opt-in/recommended for v1.1 testing.
+  - no current data, Food_DB current, legacy code, architecture docs, target formulas, or Recipes_DB/Food_DB repair were touched.
+- Streamlit history fix:
+  - session state now initializes `generated_menus`, `latest_menu`, `feedback_events`, and `recent_recipe_ids` safely.
+  - Generate appends to stored menus instead of resetting history on normal reruns/widget changes.
+  - UI shows Latest menu and Previous menu when available.
+  - `recent_recipe_ids` are derived from the last 2 stored menus and passed into `balanced_day` when `diversity_mode=avoid_recent`.
+  - UI note now says `diversity_mode=none` is deterministic and can repeat menus, while `avoid_recent` uses previous menus from the current Streamlit session.
+- Meal realism layer:
+  - new candidate fields: `meal_realism_score`, `meal_realism_penalty`, `meal_realism_flags`, `meal_realism_reasons`.
+  - implemented large-portion checks, mono-macro checks, snack-too-large checks, and breakfast-low-protein/too-large checks.
+  - `meal_realism_mode` supports `off`, `audit`, and `soft`.
+  - `off` ignores realism in selection, `audit` reports it, and `soft` adds a small average realism penalty to `adjusted_day_loss`.
+- Round19 evaluator:
+  - scenarios evaluated: `10`.
+  - `off`: valid `10/10`, good macro fit `9/10`, avg day loss `0.0349`, avg adjusted day loss `0.0349`, total realism flags `15`.
+  - `audit`: same selected plans as `off`, valid `10/10`, good macro fit `9/10`, total realism flags `15`.
+  - `soft`: valid `10/10`, good macro fit `9/10`, avg day loss `0.0358`, avg adjusted day loss `0.0435`, total realism flags `9`.
+  - `soft` changed selected plans in `4/10` scenarios.
+  - large portion flags dropped from `7` to `6`; mono-macro flags dropped from `8` to `3`; snack flags stayed `0`.
+- Demo repeated-run QA with `meal_realism_mode=soft`:
+  - run 1 valid, but breakfast `Mom's Best Waffles` is `444g` and flagged `borderline_large_portion`.
+  - run 2 valid with avoid_recent, but breakfast `Amish Baked Oatmeal` is `460g`, `1040.5 kcal`, flagged `borderline_large_portion` and `breakfast_too_large`.
+  - run 3 valid with avoid_recent, but breakfast `Easy French Toast Casserole` is `449g`, `945.5 kcal`, flagged `borderline_large_portion` and `breakfast_too_large`.
+  - strict conclusion: validation being `valid` is not enough; some generated menus still look unrealistic for a human day.
+- Recommendation:
+  - keep Streamlit default for v1.1 realism as `audit`, because it exposes issues without hiding macro behavior.
+  - use `soft` for v1.1 QA/testing when trying to reduce obviously odd meals, but do not make it a production/global default yet.
+  - the next checkpoint recommendation remains Option B: Checkpoint 2 multi-day v1 draft, but only as a draft one-member 3-day mode.
+  - do not materialize full Recipes_DB v1.1, do not touch current data, do not add grocery optimization, and do not implement household multi-member balancing yet.
+
+## 25. Round20 practical slot realism caps - 2026-05-11
+- Attempted:
+  - added `meal_realism_mode=practical` for v1.1 testing.
+  - kept `off`, `audit`, and `soft` behavior unchanged.
+  - kept `pilot_current` default on `greedy + standard + meal_realism_mode=off`.
+  - no current data, Food_DB current, legacy code, architecture docs, target formulas, or Recipes_DB/Food_DB repair were touched.
+- Practical realism policy:
+  - breakfast hard rejects `kcal > 850` or `portion_grams_estimated > 500`.
+  - breakfast strongly penalizes `kcal > 750`, `portion_grams_estimated > 425`, and low-protein heavy breakfasts.
+  - lunch/dinner hard reject `portion_grams_estimated > 850` or `kcal > 1250`.
+  - lunch/dinner strongly penalize `portion_grams_estimated > 700`, `kcal > 1000`, low protein, low carb, mostly-carb, and mostly-protein patterns.
+  - snack hard rejects `kcal > 400` or `portion_grams_estimated > 300`, and penalizes meal-like snacks.
+  - missing portion grams are warnings, not hard rejects.
+- Balanced selector behavior:
+  - in `practical`, hard-reject candidates are removed from the shortlist if the slot still has candidates.
+  - if removal would empty a slot, candidates are kept with large penalty and an explicit selector warning.
+  - diagnostics now expose realism filter before/after counts, hard rejected counts by slot, and hard reject reasons.
+- Round20 evaluator:
+  - scenarios evaluated: `10`.
+  - `off`: valid `10/10`, good macro fit `9/10`, carb-deficient `1/10`, avg base loss `0.0349`, max breakfast `793.5 kcal / 444g`.
+  - `soft`: valid `10/10`, good macro fit `9/10`, carb-deficient `1/10`, avg base loss `0.0358`, max breakfast `793.5 kcal / 444g`.
+  - `practical`: valid `10/10`, good macro fit `8/10`, carb-deficient `2/10`, avg base loss `0.0516`, max breakfast `634.8 kcal / 355g`.
+  - practical changed `8/10` scenarios and produced `52` hard-rejection audit rows.
+  - strict conclusion: practical removes the clearly too-heavy breakfasts, but it has a real macro cost.
+- Demo repeated-run QA with `meal_realism_mode=practical`:
+  - run 1 valid and human-realistic for demo QA: `Mom's Best Waffles` at `0.8`, `355g`, `634.8 kcal`, no realism flags.
+  - run 2 valid, but needs review: `Thai Fried Rice` selected as dinner with `low_protein_main` and `mostly_carb_meal`.
+  - run 3 valid, but needs review: `Steak Fried Rice` selected as lunch with `low_protein_main`, and `Mom's Best Waffles` repeats despite `avoid_recent`.
+  - strict conclusion: practical fixes the breakfast problem, not the whole menu-realism problem.
+- Recommended config after round20:
+  - `dataset_profile=v1_1_generator_ready_slot_checked_time_enriched_snack_curated`
+  - `selection_mode=balanced_day`
+  - `portion_policy=target_aware`
+  - `alternative_count=3`
+  - `diversity_mode=none` by default
+  - `meal_realism_mode=practical`
+- Checkpoint 1 status:
+  - demo/testing is still ready, and is more honest with practical realism enabled.
+  - full product/materialization is still not ready.
+  - before multi-day, accept that practical trades macro optimality for human realism; do not hide that tradeoff.
+- Next checkpoint recommendation:
+  - proceed to Option B: multi-day v1 draft, but keep it one-member/3-day/draft-only.
+  - do not add grocery optimization, household multi-member balancing, or full Recipes_DB v1.1 materialization yet.
+
+## 26. Round20 Streamlit practical realism parity fix - 2026-05-11
+- Manual issue found:
+  - Streamlit could still show an old generated menu with `Mom's Best Waffles` at `portion=1.0`, `444g`, and `meal_realism_score=None`.
+  - That result is not acceptable under the current `practical` path and should be treated as stale output or an old running server.
+- Root cause:
+  - practical realism propagation from Streamlit into `balanced_day` was present in code, but generated menus did not store a per-run config/run id.
+  - the UI could display a previous session menu after control changes without warning, so the sidebar could say `practical` while the visible menu came from an older config/code path.
+- Fix applied:
+  - bumped Streamlit session schema to clear incompatible stale menus.
+  - added visible Active generation config.
+  - added `run_id`, `generated_at`, and `generation_config` to generated menus.
+  - added warning when latest menu was generated with a different config than current controls.
+  - added Clear generated menu history button.
+  - session history table now shows config/run metadata.
+- Parity check:
+  - added `tools/extra/check_generator_v1_streamlit_config_parity.py`.
+  - output summary: `data/recipesdb/audit/generator_v1_streamlit_practical_parity_check.txt`.
+  - output meals CSV: `data/recipesdb/audit/generator_v1_streamlit_practical_parity_meals.csv`.
+  - Streamlit-equivalent and CLI-equivalent paths selected the same practical plan.
+  - result: valid, base_day_loss `0.060529`, adjusted_day_loss `0.060529`.
+  - selected plan: `Mom's Best Waffles` at `0.8` / `355.2g`, `Sweet and Sour Stuffed Cabbage`, `Veggie Burgers`, `Small Turkey Bread Snack`.
+  - `meal_realism_score_populated=True`.
+  - `waffles_1_0_444g_selected=False`.
+- Remaining risks:
+  - if a separate Streamlit server process is still running old code, the browser can still show stale behavior until the app reloads/restarts.
+  - practical fixes the heavy-breakfast case for the demo path, but it does not make Recipes_DB v1.1 production-ready.
+  - one-day realism is still heuristic QA; multi-day variety and household behavior are not implemented yet.
+
+## 27. Round21 Streamlit reroll UX si recent-recipe diversity - 2026-05-11
+- Issue found:
+  - repeated Streamlit Generate could return the same plan.
+  - this is expected for deterministic generation, but it was confusing for QA because the UI did not offer a clear reroll path.
+- Cause:
+  - Streamlit only passed recent recipe ids when the selected `diversity_mode` was `avoid_recent`.
+  - `diversity_mode=none` intentionally repeats the best deterministic plan.
+  - `diversity_mode=soft` can use recent ids, but the old UI did not make that behavior visible enough and did not force a varied run.
+- Fix applied:
+  - Streamlit now has separate `Generate best` and `Generate varied` buttons.
+  - `Generate best` uses the selected diversity mode.
+  - `Generate varied` forces `avoid_recent` for that run and passes recipe ids from the last 2 stored menus.
+  - generated menus now store `generation_config_used`, `diversity_mode_used`, `recent_recipe_ids_used`, `recent_recipe_count_used`, `run_id`, and `generated_at`.
+  - UI shows recent recipe count and a debug expander with recent recipe names/ids.
+  - `soft` recent penalty is now smaller than `avoid_recent`; `avoid_recent` uses a stronger default penalty.
+- Round21 reroll simulation:
+  - run 1 best: recent `0`, valid, base/adjusted loss `0.060529`, selected `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Veggie Burgers`, `Small Turkey Bread Snack`, verdict `human-realistic`.
+  - run 2 varied: recent `4`, valid, changed vs run 1, no overlap, base/adjusted loss `0.187049/0.217049`, selected `Cinnamon and Sugar French Waffle Toast`, `Kelsey's Favorite Stuffed Green Peppers`, `Thai Fried Rice`, `Ham and Cheese Toast`, verdict `needs review` because dinner has `low_protein_main` and `mostly_carb_meal`.
+  - run 3 varied: recent `8`, valid, changed vs run 1/run 2, no overlap, base/adjusted loss `0.180024/0.265024`, selected `Amish Baked Oatmeal`, `Steak Fried Rice`, `Teriyaki Chicken with Mushrooms and Broccoli`, `Egg and Bread Snack`, verdict `bad` because breakfast is too heavy and mains have mono-macro/low macro flags.
+- Remaining risks:
+  - reroll wiring works, but forcing variety can produce worse menus.
+  - `avoid_recent` is useful for QA inspection, not a proof that the generated menu is good.
+  - before multi-day, we still need clear UI wording that varied output trades macro/realism quality for diversity.
+
+## 28. Round22 quality-gated reroll policy - 2026-05-11
+- Why it was added:
+  - Round21 proved that blind `avoid_recent` can create valid but bad or weak menus.
+  - variety must be attempted, not blindly accepted.
+  - this is mandatory before multi-day; otherwise multi-day would amplify bad diversity choices.
+- Implementation:
+  - added `src/generator_v1/plan_quality_gate.py`.
+  - added `src/generator_v1/reroll_policy.py`.
+  - CLI now accepts `--quality_gate off|demo_safe`.
+  - Streamlit v1.1 snack-curated default uses `quality_gate=demo_safe`; pilot/current stays `off`.
+  - `Generate varied` uses quality-gated reroll when `demo_safe` is active.
+- Demo-safe gate thresholds:
+  - reject if invalid, `adjusted_day_loss > 0.20`, `base_day_loss > 0.18`.
+  - reject if kcal ratio is outside `0.75..1.25`, protein ratio `< 0.75`, carbs ratio `< 0.60`.
+  - reject if any selected meal has `breakfast_too_large`, `unrealistic_large_portion`, or `snack_too_large`.
+  - reject if two or more lunch/dinner meals have main realism issues.
+  - review if `adjusted_day_loss` is `0.12..0.20`, carbs ratio is `0.60..0.75`, one main meal has realism issues, or a borderline portion exists.
+- Round22 evaluator:
+  - output summary: `data/recipesdb/audit/generator_v1_round22_quality_gated_reroll_summary.txt`.
+  - output runs CSV: `data/recipesdb/audit/generator_v1_round22_quality_gated_reroll_runs.csv`.
+  - output meals CSV: `data/recipesdb/audit/generator_v1_round22_quality_gated_reroll_meals.csv`.
+  - run 1 best: selected `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Veggie Burgers`, `Small Turkey Bread Snack`; gate `accept`, base/adjusted loss `0.060529`, verdict `human-realistic`.
+  - run 2 varied: `avoid_recent` was rejected, `soft` was returned with gate `review`; selected `Mom's Best Waffles`, `Kelsey's Favorite Stuffed Green Peppers`, `Thai Fried Rice`, `Ham and Cheese Toast`; base/adjusted loss `0.107830/0.177830`; verdict `needs review` because dinner is low-protein/carb-heavy.
+  - run 3 varied: `avoid_recent` was rejected, `soft` was returned with gate `review`; selected `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, `Veggie Burgers`, `Egg and Bread Snack`; base/adjusted loss `0.067214/0.187214`; verdict `needs review` because it repeats most of the best plan and pays diversity penalty.
+- Strict conclusion:
+  - bad forced-variety plans are now rejected before display.
+  - fallback was not needed in this exact run because `soft` produced review-level plans.
+  - quality gate does not magically create good variety; it prevents obviously bad degradation and reports weak rerolls honestly.
+  - multi-day v1 should use the same policy: try variety, allow review-level plans only with warnings, fallback to best when quality-safe variety does not exist.
+- Recommended next checkpoint:
+  - continue with Multi-day v1 draft, but keep it scoped to one active member, three days, draft dataset, practical realism, and quality-gated variety.
+  - do not add grocery optimization, price, household multi-member balancing, OR-Tools/KNN, or production materialization yet.
+
+## 29. Checkpoint 2 / Multi-day v1 draft - 2026-05-12
+- Attempted:
+  - started Checkpoint 2 with a simple Generator v1 multi-day draft for 3 days.
+  - added `src/generator_v1/multi_day_selector.py` and `src/generator_v1/multi_day_audit.py`.
+  - added CLI support for `--days 3` / `--multi_day_mode simple_3_day`.
+  - added Streamlit support for `Generate 1 day` and `Generate 3 days`.
+  - added evaluator `tools/extra/evaluate_generator_v1_checkpoint2_multiday_v1_draft.py`.
+  - did not modify `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, or persistent docs.
+- Multi-day approach:
+  - Day 1 uses deterministic `balanced_day` best plan.
+  - Day 2 uses recent recipes from Day 1.
+  - Day 3 uses recent recipes from Day 1 + Day 2.
+  - multi-day forces the draft preset locally: `balanced_day`, `target_aware`, `meal_realism_mode=practical`, `quality_gate=demo_safe`.
+  - repeats are not hard-banned globally; recent recipes are penalized through the quality-gated variety path.
+- Quality-gated variety behavior:
+  - `avoid_recent` is tried first.
+  - if it fails quality, `soft` is tried.
+  - if `soft` also fails, fallback best is allowed and marked.
+  - for runtime, multi-day uses a smaller local balanced shortlist cap than the one-day selector; one-day behavior stays unchanged.
+- Smoke-test result:
+  - `compileall` passed for `src/generator_v1`, `src/generator_v1_cli.py`, `streamlit_app`, and `tools/extra`.
+  - `pilot_current + greedy + standard` still runs and remains `invalid_nutrition` as expected for the pilot baseline.
+  - v1.1 one-day `balanced_day + target_aware + practical + demo_safe` still runs: `valid`, quality gate `accept`.
+  - v1.1 3-day simple mode runs and writes:
+    - `outputs/generator_v1_multiday_plan.json`
+    - `outputs/generator_v1_multiday_readable.txt`
+    - `outputs/generator_v1_multiday_meals.csv`
+  - generated 3-day result:
+    - days generated: `3`
+    - valid days: `3`
+    - review days: `2`
+    - fallback days: `0`
+    - unique recipes: `8`
+    - repeated recipe ids: `recipes_v1_1_candidate_094`, `recipes_v1_1_candidate_096`, `recipes_v1_1_candidate_169`
+    - average day loss: `0.141858`
+  - evaluator wrote:
+    - `data/recipesdb/audit/generator_v1_checkpoint2_multiday_v1_summary.txt`
+    - `data/recipesdb/audit/generator_v1_checkpoint2_multiday_v1_days.csv`
+    - `data/recipesdb/audit/generator_v1_checkpoint2_multiday_v1_meals.csv`
+    - `data/recipesdb/audit/generator_v1_checkpoint2_multiday_v1_repetition.csv`
+- Known risks:
+  - this is draft/test only, not product-grade multi-day planning.
+  - quality gate prevents clearly bad variety, but it does not create enough good variety.
+  - Day 2 and Day 3 are review-level in the demo run.
+  - exact recipe repetition remains visible, especially `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, and `Veggie Burgers`.
+  - no grocery optimization, price estimation, household balancing, OR-Tools/KNN/MILP/CP-SAT, or production materialization was added.
+- Next recommended step:
+  - improve multi-day variety quality by evaluating alternatives more deeply before accepting `soft` review plans.
+  - likely next work should inspect repeated recipes and weak varied alternatives, not add grocery/price/household optimization yet.
+
+## 30. Round23 / Multi-day global alternatives - 2026-05-12
+- Why added:
+  - Checkpoint 2 was too local: Day 1 best, then day-by-day quality-gated reroll.
+  - repeated central recipes stayed visible, so Round23 adds a global planner that builds a candidate day pool and scores 3-day combinations together.
+- Implementation:
+  - `src/generator_v1/multi_day_selector.py` now supports `global_alternatives_3_day`.
+  - global mode builds `none`, `soft`, `avoid_recent`, and targeted breakfast/lunch/dinner variants, then selects the 3-day combination with a multi-day objective.
+  - repetition penalties are stronger for same-slot lunch/dinner repeats; review days are allowed only with explicit warnings.
+  - `src/generator_v1/multi_day_audit.py` now reports accept/review/reject counts, candidate rejects, multi-day classification, and multi-day loss.
+  - CLI and Streamlit support both `simple_3_day` and `global_alternatives_3_day`; Streamlit recommends the global mode for the v1.1 draft UI.
+- Validation:
+  - `compileall` passed for `src/generator_v1`, `src/generator_v1_cli.py`, `streamlit_app`, and `tools/extra`.
+  - `pilot_current + greedy + standard` still runs.
+  - v1.1 one-day `balanced_day + target_aware + practical + demo_safe` still runs: `valid`, quality gate `accept`.
+  - v1.1 `global_alternatives_3_day` runs and writes `outputs/generator_v1_multiday_plan.json`, `outputs/generator_v1_multiday_readable.txt`, and `outputs/generator_v1_multiday_meals.csv`.
+- Round23 evaluator outputs:
+  - `data/recipesdb/audit/generator_v1_round23_multiday_global_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round23_multiday_global_days.csv`
+  - `data/recipesdb/audit/generator_v1_round23_multiday_global_meals.csv`
+  - `data/recipesdb/audit/generator_v1_round23_multiday_global_repetition.csv`
+  - `data/recipesdb/audit/generator_v1_round23_multiday_global_candidate_pool.csv`
+- Simple vs global comparison:
+  - simple: `valid=3`, `accept=1`, `review=2`, `fallback=0`, `unique=8`, `repeated_recipe_count=3`, `average_day_loss=0.141858`.
+  - global: `valid=3`, `accept=1`, `review=2`, `fallback=0`, `unique=9`, `repeated_recipe_count=3`, `average_day_loss=0.141597`, `multi_day_loss=0.546379`.
+  - repeated ids remain `recipes_v1_1_candidate_094`, `recipes_v1_1_candidate_096`, `recipes_v1_1_candidate_169`.
+  - global improves variety only slightly: one extra unique recipe and `Mom's Best Waffles` drops from 3 uses to 2 uses.
+- Strict result:
+  - global is not a good multi-day plan.
+  - it is draft-usable for testing, but still `multi_day_bad` because there are 2 review days and repeated main recipes.
+  - candidate pool has `50` valid candidates: `12 accept`, `28 review`, `10 reject`.
+  - there are not enough high-quality diverse accept candidates for a clean 3-day plan.
+- Next recommended step:
+  - inspect why the quality-safe pool collapses around waffles/cabbage/burgers and improve candidate breadth or recipe data quality before adding grocery, price, household balancing, or production multi-day behavior.
+
+## 31. Round24 / Candidate scarcity and diversity bottleneck audit - 2026-05-12
+- Why needed:
+  - Round23 global alternatives improved the 3-day plan only slightly and still returned `multi_day_bad`.
+  - The repeated recipes were `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, and `Veggie Burgers`, so Round24 audits whether the bottleneck is data scarcity, quality rejection, or selector/day-loss concentration.
+- Implementation:
+  - Added audit-only script `tools/extra/evaluate_generator_v1_round24_candidate_scarcity.py`.
+  - No generator logic, recipe data, Food_DB/Recipes_DB repair, persistent docs, `src/legacy`, or current data folders were changed.
+  - The script evaluates slot candidates for `v1_1_generator_ready_slot_checked_time_enriched_snack_curated` with `target_aware` portions and practical realism.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round24_candidate_scarcity_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round24_slot_candidate_quality.csv`
+  - `data/recipesdb/audit/generator_v1_round24_recipe_family_dominance.csv`
+  - `data/recipesdb/audit/generator_v1_round24_rejected_alternatives.csv`
+  - `data/recipesdb/audit/generator_v1_round24_repetition_root_causes.csv`
+  - `data/recipesdb/audit/generator_v1_round24_data_gap_recommendations.csv`
+- Scarcity findings:
+  - breakfast: `19` unique candidates, `16` high-quality unique, `9` accept-like unique.
+  - lunch: `54` unique candidates, `28` high-quality unique, `4` accept-like unique.
+  - dinner: `54` unique candidates, `28` high-quality unique, `5` accept-like unique.
+  - snack: `15` unique candidates, `15` high-quality unique, `9` accept-like unique.
+  - strict no-repeat feasibility is present per slot by candidate count, but full menu-level quality is still not proven.
+- Repeated recipe root causes:
+  - `Mom's Best Waffles` ranks first for breakfast; alternatives exist but have worse macro/day-loss fit, mostly lower carbs.
+  - `Sweet and Sour Stuffed Cabbage` ranks first for lunch; alternatives exist but lose on macro/kcal/protein or are review-level.
+  - `Veggie Burgers` ranks first for dinner; alternatives exist but lose on kcal/carbs/time or are review-level.
+- Recommendation:
+  - Do not add more generator logic yet.
+  - The primary issue is scoring/day-loss concentration combined with dataset shape, not hard slot-level candidate absence.
+  - For data breadth, lunch/dinner would benefit most from about `+10` complete alternatives, especially fish/pork/turkey meals and vegetarian carb-protein meals.
+  - Next recommended step: inspect day-level objective/accept thresholds and main-meal macro targets before adding recipes in bulk.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/evaluate_generator_v1_round24_candidate_scarcity.py` passed.
+
+## 32. Round25 / Day-level objective and accept-threshold audit - 2026-05-12
+- Why needed:
+  - Round24 showed slot-level no-repeat is feasible by count, but multi-day still collapses around `Mom's Best Waffles`, `Sweet and Sour Stuffed Cabbage`, and `Veggie Burgers`.
+  - Round25 checks whether the day objective or quality thresholds are the main bottleneck before adding recipes or generator logic.
+- Implementation:
+  - Added audit-only script `tools/extra/evaluate_generator_v1_round25_objective_threshold_audit.py`.
+  - No generator logic, recipes, Food_DB/Recipes_DB repair, current data folders, `src/legacy`, or persistent docs were changed.
+  - The script builds an audit-only balanced-day pool from existing slot candidates and tests threshold sets plus objective weight variants.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round25_objective_threshold_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round25_day_candidate_thresholds.csv`
+  - `data/recipesdb/audit/generator_v1_round25_accept_threshold_sensitivity.csv`
+  - `data/recipesdb/audit/generator_v1_round25_objective_weight_sensitivity.csv`
+  - `data/recipesdb/audit/generator_v1_round25_main_meal_alternative_quality.csv`
+  - `data/recipesdb/audit/generator_v1_round25_recommendation.txt`
+- Threshold sensitivity finding:
+  - audit pool evaluated `290304` day candidates from `24` candidates per slot.
+  - current `demo_safe`: `122` accept, `2191` review, `287991` reject, `0` accepts without dominant recipes, `4` distinct lunch/dinner accept pairs.
+  - `slightly_relaxed`: `609` accept, but still `0` accepts without dominant recipes.
+  - `multi_day_candidate_friendly`: `1132` accept and `26` distinct lunch/dinner pairs, but still `0` accepts without dominant recipes.
+  - threshold relaxation alone does not solve multi-day diversity safely.
+- Objective sensitivity finding:
+  - all tested objective variants keep dominant recipes in all top 10 day candidates.
+  - tested variants: current, carb boost, balanced macro, kcal+carbs focus, protein less dominant.
+  - objective weight changes alone do not break the collapse around waffles/cabbage/burgers.
+- Main-meal alternative finding:
+  - lunch/dinner swap audit produced `160` alternatives: `10` accept, `65` review, `85` reject.
+  - most losing reasons are low kcal, low carbs, fat too high, time, realism, or quality-gate reject.
+  - some alternatives are close enough for review-level diversity, but not enough are clean accept replacements.
+- Recommendation:
+  - Do not call current multi-day good; keep it technical-demo only.
+  - Do not add more generator logic as the next move.
+  - Threshold/objective calibration can be studied, but neither is sufficient alone.
+  - likely next data step is targeted `+10` complete lunch/dinner recipes, especially carb-protein complete meals, after deciding whether multi-day may allow clearly marked review-level days.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/evaluate_generator_v1_round25_objective_threshold_audit.py` passed.
+
+## 33. Round26 / Targeted lunch-dinner plus10 draft - 2026-05-12
+- Why needed:
+  - Round25 showed threshold relaxation and objective-weight variants still selected dominant recipes.
+  - The next safest test was a small targeted draft expansion, not more generator logic.
+- Implementation:
+  - Added targeted selection, parsing, mapping/cache/materialization, and impact evaluator scripts for Round26.
+  - Added dataset profile `v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10` in Generator v1 CLI/Streamlit/data loader.
+  - No current data folders, Food_DB current, Recipes_DB current, `src/legacy`, architecture docs, or generator selector logic were changed.
+- Selected recipes:
+  - `Chicken and Broccoli Pasta`
+  - `Perfect Chicken Vegetable Soup`
+  - `Easy Tuna Pasta Bake`
+  - `Mom's Salmon and Potato Bake`
+  - `Porcupines`
+  - `Ali's Stuffed Green Peppers`
+  - `Air Fryer Mustard-Crusted Pork Tenderloin with Potatoes and Green Beans`
+  - `Baked Ziti with Ground Turkey`
+  - `White Bean and Tomato Pasta`
+  - `Black Bean Stuffed Peppers`
+- Generator-ready result:
+  - `7/10` selected recipes became generator-ready and were materialized.
+  - Not materialized: `Perfect Chicken Vegetable Soup` (`carbs_per_serving_lt_20`), `White Bean and Tomato Pasta` (`protein_per_serving_lt_14`), `Black Bean Stuffed Peppers` (`protein_per_serving_lt_14`).
+  - New draft dataset count: `95` recipes (`88` base + `7` Round26 additions).
+- Multi-day impact:
+  - old snack-curated global: `valid=3`, `accept=1`, `review=2`, `unique=9`, `repeated=3`, `multi_day_loss=0.546379`, strict=`multi_day_bad`.
+  - plus10 global: `valid=3`, `accept=2`, `review=1`, `unique=10`, `repeated=2`, `multi_day_loss=0.327571`, strict=`multi_day_review`.
+  - Added recipes selected in the 3-day plan: `Chicken and Broccoli Pasta` and `Baked Ziti with Ground Turkey`.
+  - Repetition improved but is not solved: `Mom's Best Waffles` still repeats, and `Chicken and Broccoli Pasta` repeats as a new dominant main.
+- Recommendation:
+  - Round26 improves the technical draft, but does not make multi-day good.
+  - Next best step is another small targeted data pass focused on lower-time, balanced lunch/dinner mains and/or an audit of time penalties for new complete mains.
+  - Keep this as draft/test data until repetition and review-day count improve further.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/select_recipes_v1_1_round26_targeted_lunch_dinner_plus10.py` passed.
+  - `python tools/extra/parse_recipes_v1_1_round26_plus10_ingredients.py` passed.
+  - `python tools/extra/build_recipes_v1_1_round26_plus10_nutrition_cache.py` passed.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10 --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day` passed.
+  - `python tools/extra/evaluate_generator_v1_round26_plus10_multiday_impact.py` passed after increasing the command timeout; runtime was about 254s.
+
+## 34. Round27 / Plus10 bottleneck audit and next expansion plan - 2026-05-12
+- Why needed:
+  - Round26 improved multi-day from `multi_day_bad` to `multi_day_review`, but did not solve repetition.
+  - Remaining repeated recipes were `Mom's Best Waffles` and `Chicken and Broccoli Pasta`; Day 2 still had review pressure from low-protein/carb-heavy main behavior.
+- Implementation:
+  - Added audit-only script `tools/extra/evaluate_generator_v1_round27_plus10_bottleneck_audit.py`.
+  - No generator logic, new recipes, Food_DB/Recipes_DB repair, current data folders, `src/legacy`, or persistent docs were changed.
+  - The script evaluates repeated recipe root causes, slot deficits, audit-only no-repeat feasibility, and next expansion targets for the plus10 dataset.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round27_plus10_bottleneck_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round27_repeated_recipe_root_causes.csv`
+  - `data/recipesdb/audit/generator_v1_round27_slot_deficit_audit.csv`
+  - `data/recipesdb/audit/generator_v1_round27_next_expansion_recommendations.csv`
+  - `data/recipesdb/audit/generator_v1_round27_multi_day_candidate_quality.csv`
+- Findings:
+  - current plus10 global plan: `valid=3/3`, `accept=2`, `review=1`, `unique=10`, `repeated=2`, `multi_day_loss=0.327571`, `average_day_loss=0.097704`.
+  - `Mom's Best Waffles` repeats because it remains a strong breakfast macro/day-loss anchor; there are alternatives, but they are mostly lower kcal/carbs or review-level.
+  - `Chicken and Broccoli Pasta` repeats because it is the strongest complete lunch carb-protein main; alternatives exist, but are usually lower kcal/protein/carbs or review-level.
+  - Slot deficits: breakfast `19 unique / 16 high-quality / 9 accept-like`, lunch `61 / 20 / 10`, dinner `61 / 20 / 11`, snack `15 / 15 / 9`.
+  - Audit-only no-repeat results: no 3-day all-accept no-repeat plan found; no no-repeat-main plan with at most 1 review day found; stricter same-slot no-repeat was not feasible in the current candidate pool.
+- Recommendation:
+  - Next targeted data step should be `+20` mixed breakfast + lunch/dinner, not more generator logic yet.
+  - Target split: `+5` breakfast options similar macro strength to waffles, `+10` lunch/dinner complete carb-protein meals, `+5` fish/turkey/pork/legume protein-balanced mains.
+  - Avoid components, sauces, snack-only rows, desserts/drinks, huge casseroles, very long prep recipes, and obscure ingredients.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/evaluate_generator_v1_round27_plus10_bottleneck_audit.py` passed.
+
+## 35. Round28 / Targeted v1.2 plus30 recipe expansion - 2026-05-12
+- Why needed:
+  - Round27 showed the remaining multi-day limit is mostly data diversity, not selector complexity.
+  - `Mom's Best Waffles` still dominated breakfast, and `Chicken and Broccoli Pasta` still dominated complete carb-protein mains.
+- Implementation:
+  - Added targeted selection, parsing, unit-rule/mapping/cache/materialization, and multi-day impact evaluation scripts for Round28.
+  - Added dataset profile `v1_2_generator_ready_plus30` in Generator v1 data loader, CLI, and Streamlit dashboard.
+  - No current data folders, Food_DB current, Recipes_DB current, `src/legacy`, architecture docs, persistent docs, dependencies, or generator selector logic were changed.
+- Selection and quality result:
+  - Selected `30` targeted candidates from a `150`-row candidate pool.
+  - Bucket mix: `11` breakfast competitors, `11` carb-protein mains, `8` fish/turkey/pork/legume mains.
+  - Parse result: `282` ingredient rows, `115` rows with grams, `69` parsed clean, `193` partial, `20` review.
+  - Nutrition/cache result: `24` usable caches, `6` partial caches.
+  - Generator-ready result: `12/30` selected recipes became generator-ready.
+  - New draft dataset count: `107` recipes (`95` plus10 base + `12` Round28 additions).
+- Ready recipes included:
+  - `Ham and Hash Brown Quiche`, `Egg Bites`, `Spinach and Potato Frittata`, `Tomato Quiche`, `Homemade Chicken Fettuccine`, `Day Before Pay Day Fried Rice`, `Albondigas`, `Classic Beef Stuffed Peppers`, `Buffalo Chicken Twice-Baked Potatoes`, `Easy Tuna Noodle Casserole`, `Mushroom and Black Bean Quesadillas`, `Easy Strata and Variations`.
+- Multi-day impact:
+  - plus10 global: `valid=3`, `accept=2`, `review=1`, `unique=10`, `repeated=2`, `multi_day_loss=0.327571`, strict=`multi_day_review`.
+  - plus30 global: `valid=3`, `accept=3`, `review=0`, `unique=10`, `repeated=2`, `multi_day_loss=0.12921`, strict=`multi_day_review`.
+  - Round28 recipes selected in the plus30 3-day plan: `Egg Bites`, `Day Before Pay Day Fried Rice`, `Easy Tuna Noodle Casserole`.
+  - Quality improved substantially, but variety did not: `Mom's Best Waffles` and `Chicken and Broccoli Pasta` still repeat.
+- Recommendation:
+  - Do not call plus30 a good multi-day plan; it is a better technical draft with all-accept days, but still fails strict diversity.
+  - Next step should be either a no-repeat feasibility audit on the plus30 candidate pool or a smaller targeted data pass focused on high-confidence breakfast alternatives and complete mains that can compete with waffles and chicken-broccoli pasta.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/select_recipes_v1_2_round28_targeted_plus30.py` passed.
+  - `python tools/extra/parse_recipes_v1_2_round28_plus30_ingredients.py` passed.
+  - `python tools/extra/build_recipes_v1_2_round28_plus30_nutrition_cache.py` passed.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_generator_ready_plus30 --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day` passed.
+  - `python tools/extra/evaluate_generator_v1_round28_plus30_multiday_impact.py` passed; runtime was about 246s.
+
+## 36. Round29 / Plus30 no-repeat feasibility audit - 2026-05-12
+- Why needed:
+  - Round28 improved plus30 to `3/3` accept days and `multi_day_loss=0.12921`, but still repeated `Mom's Best Waffles` and `Chicken and Broccoli Pasta`.
+  - Round29 checks whether no-repeat is already feasible with existing plus30 data before adding recipes or changing generator logic.
+- Implementation:
+  - Added audit-only script `tools/extra/evaluate_generator_v1_round29_plus30_no_repeat_feasibility.py`.
+  - No generator logic, new recipes, Food_DB/Recipes_DB repair, current data folders, `src/legacy`, architecture docs, persistent docs, or dependencies were changed.
+  - The script builds an augmented plus30 candidate-day pool, evaluates no-repeat scenarios, and audits anchor replacements.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round29_plus30_no_repeat_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round29_plus30_no_repeat_candidate_days.csv`
+  - `data/recipesdb/audit/generator_v1_round29_plus30_no_repeat_combinations.csv`
+  - `data/recipesdb/audit/generator_v1_round29_plus30_anchor_recipe_analysis.csv`
+  - `data/recipesdb/audit/generator_v1_round29_plus30_next_action_recommendation.txt`
+- Findings:
+  - Candidate day pool: `45` days, `41` accept, `4` review, `0` reject.
+  - Current plus30: `valid=3`, `accept=3`, `review=0`, `unique=10`, `repeated=2`, `multi_day_loss=0.12921`.
+  - `no_repeat_exact_recipe`: not feasible.
+  - `no_repeat_same_slot`: not feasible.
+  - `accept_only_no_repeat`: not feasible.
+  - `allow_one_review_no_repeat`: not feasible.
+  - Limiting only Waffles, only Chicken Broccoli Pasta, or both anchors to at most once is feasible, but the best combinations still have `2` repeated recipes.
+- Anchor analysis:
+  - Best Waffles replacement found: `Spinach and Potato Frittata`, but direct swap makes the day `review` and raises day loss by about `0.0467`; main issue is lower carbs / worse day loss.
+  - Best Chicken and Broccoli Pasta replacement found: `Baked Ziti with Ground Turkey`, but direct swap makes the day `review` and raises day loss by about `0.0926`; main issue is lower protein / worse day loss.
+  - Both anchors have replacements, but they are mostly review-level or costly, not clean accept replacements.
+- Recommendation:
+  - No-repeat is not feasible with plus30 as-is.
+  - Recommended next step is targeted data, not selector complexity: `+5` high-quality breakfast alternatives and `+10` lunch/dinner complete carb-protein mains.
+  - If selector tuning is attempted first, it should be framed as accepting controlled repetition reduction, not true no-repeat.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/evaluate_generator_v1_round29_plus30_no_repeat_feasibility.py` passed; runtime was about 390s on the final run.
+
+## 37. Round30 / Targeted v1.2 plus30 plus15 expansion - 2026-05-12
+- Why needed:
+  - Round29 showed that true no-repeat 3-day planning was not feasible with `v1_2_generator_ready_plus30`.
+  - The remaining anchors were `Mom's Best Waffles` for breakfast and `Chicken and Broccoli Pasta` for lunch/dinner complete carb-protein meals.
+- Implementation:
+  - Added Round30 selection, parsing, unit-rule/mapping/cache/materialization, and multi-day impact evaluation scripts for a targeted `+15` draft expansion.
+  - Added dataset profile `v1_2_generator_ready_plus30_plus15` in Generator v1 data loader, CLI, and Streamlit dashboard.
+  - No current data folders, Food_DB current, Recipes_DB current, `src/legacy`, architecture docs, persistent docs, dependencies, or generator selector logic were changed.
+- Selection and quality result:
+  - Selected `15` targeted candidates: `5` breakfast competitors and `10` carb-protein mains.
+  - Parse result: `125` ingredient rows, `55` rows with grams, `39` parsed clean, `76` partial, `10` review.
+  - Nutrition/cache result: `11` usable caches and `4` partial caches.
+  - Generator-ready result: `4/15` selected recipes became generator-ready.
+  - New draft dataset count: `111` recipes (`107` plus30 base + `4` Round30 additions).
+- Ready recipes included:
+  - `Broccoli Souffle`, `Crispy Restaurant-Style Hash Browns`, `Easy and Spicy Thai Basil Chicken with Egg`, `Syrian Rice with Meat`.
+- Multi-day impact:
+  - plus30 global: `valid=3`, `accept=3`, `review=0`, `unique=10`, `repeated=2`, `multi_day_loss=0.12921`, strict=`multi_day_review`.
+  - plus30_plus15 global: `valid=3`, `accept=3`, `review=0`, `unique=11`, `repeated=1`, `multi_day_loss=0.062236`, strict=`multi_day_good` by audit classifier.
+  - Waffles and Chicken Broccoli Pasta no longer repeat in the generated 3-day plan.
+  - New repeated anchor is `Easy and Spicy Thai Basil Chicken with Egg`, selected twice as a lunch/dinner main.
+- Recommendation:
+  - Round30 improved variety and reduced old anchor dominance, but it still did not produce a true no-repeat plan.
+  - Next step should be another audit focused on whether the new Thai Basil Chicken anchor can be replaced safely, or a stricter manual source selection pass before mapping to avoid low-yield candidates.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/select_recipes_v1_2_round30_targeted_plus15.py` passed.
+  - `python tools/extra/parse_recipes_v1_2_round30_plus15_ingredients.py` passed.
+  - `python tools/extra/apply_recipes_v1_2_round30_plus15_unit_rules.py` passed.
+  - `python tools/extra/map_recipes_v1_2_round30_plus15_to_fooddb.py` passed.
+  - `python tools/extra/build_recipes_v1_2_round30_plus15_nutrition_cache.py` passed.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_generator_ready_plus30_plus15 --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day` passed.
+  - `python tools/extra/evaluate_generator_v1_round30_plus15_multiday_impact.py` passed; runtime was about 258s.
+  - Extra smoke check: `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile pilot_current --selection_mode greedy --portion_policy standard` passed.
+
+## 38. Round31 / Thai Basil anchor and plus30 plus15 no-repeat audit - 2026-05-12
+- Why needed:
+  - Round30 fixed the old repeated anchors (`Mom's Best Waffles`, `Chicken and Broccoli Pasta`) but introduced a new repeated main anchor: `Easy and Spicy Thai Basil Chicken with Egg`.
+  - Round31 checks whether this is still data scarcity or whether no-repeat is now feasible with the current `v1_2_generator_ready_plus30_plus15` dataset.
+- Implementation:
+  - Added audit-only script `tools/extra/evaluate_generator_v1_round31_thai_basil_anchor_audit.py`.
+  - No generator logic, new recipes, Food_DB/Recipes_DB repair, current data folders, `src/legacy`, architecture docs, persistent docs, or dependencies were changed.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round31_thai_basil_anchor_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round31_thai_basil_replacement_candidates.csv`
+  - `data/recipesdb/audit/generator_v1_round31_no_repeat_feasibility.csv`
+  - `data/recipesdb/audit/generator_v1_round31_multiday_comparison.csv`
+  - `data/recipesdb/audit/generator_v1_round31_recommendation.txt`
+- Findings:
+  - Dataset `v1_2_generator_ready_plus30_plus15`: `111` loaded and eligible recipes.
+  - Current global plan remains `valid=3/3`, `accept=3`, `review=0`, `unique=11`, `repeated=1`, `multi_day_loss=0.062236`; repeated recipe is `recipes_v1_2_round30_plus15_008`.
+  - Thai Basil repeats because it has an unusually strong main-slot macro fit: about `897 kcal`, `47g protein`, `152g carbs`, low fat, and better effective time than older main anchors.
+  - Best direct lunch replacement is `Chicken and Broccoli Pasta`, still accept, but day loss rises by about `0.057`; main loss reasons are worse day loss, lower carbs, and worse time.
+  - Best direct dinner replacement is `Veggie Burgers`, still accept, but day loss rises by about `0.062`; main loss reasons are lower kcal/protein/carbs and worse time.
+  - Augmented audit-only candidate pool: `71` candidate days, `71` valid, `67` accept, `4` review, `0` reject.
+  - `no_repeat_exact_recipe` is feasible now: `3` accept days, `0` review days, `12` unique recipes, `0` repeated recipes, `multi_day_loss=0.039464`.
+  - `no_repeat_thai_basil`, `no_repeat_lunch_dinner_main`, `accept_only_no_repeat`, and `allow_one_review_no_repeat` are also feasible with the same all-accept no-repeat combination.
+  - Audit-only objective variants all select the same no-repeat plan once the broader candidate pool is available; the issue is no longer data scarcity.
+- Recommendation:
+  - Next step should be generator-side selector work, not more recipe expansion.
+  - Specifically: implement/tune no-repeat or main-only repeat constraints and/or broaden global candidate-day collection so the selector can see the feasible no-repeat combination.
+  - Small repeat penalty alone is not the clearest fix; the audit shows the current objective can choose no-repeat once the candidate pool contains the right alternatives.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/evaluate_generator_v1_round31_thai_basil_anchor_audit.py` passed; runtime was about 347s.
+
+## 39. Round32 / Multi-day selector broader pool and no-repeat policy - 2026-05-12
+- Why needed:
+  - Round31 proved that `v1_2_generator_ready_plus30_plus15` can produce a no-repeat 3-day plan, but only with an augmented audit-only candidate-day pool.
+  - The real `global_alternatives_3_day` selector still repeated the Thai Basil anchor because its candidate-day pool was too narrow.
+- Implementation:
+  - Broadened `src/generator_v1/multi_day_selector.py` candidate-day generation with dynamic source specs: diversity variants, slot-filter variants, top-slot recipe exclusions, repeated-anchor exclusions, and avoid-best-day variants.
+  - Added no-repeat policies for global selection: `none`, `prefer`, `hard`, and `main_only`.
+  - Added CLI controls: `--multi_day_no_repeat_policy` and `--day_candidate_pool_size`.
+  - Added Streamlit controls and diagnostics for no-repeat policy, pool size, feasible no-repeat combinations, fallback from hard no-repeat, unique recipes, and repeated recipes.
+  - Added evaluator `tools/extra/evaluate_generator_v1_round32_multiday_no_repeat_selector.py`.
+  - No current data folders, Food_DB current, Recipes_DB current, `src/legacy`, architecture docs, persistent docs, new recipes, repair steps, dependencies, or OR-Tools/KNN/MILP/CP-SAT were changed.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round32_multiday_no_repeat_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round32_multiday_no_repeat_days.csv`
+  - `data/recipesdb/audit/generator_v1_round32_multiday_no_repeat_meals.csv`
+  - `data/recipesdb/audit/generator_v1_round32_multiday_no_repeat_comparison.csv`
+  - `data/recipesdb/audit/generator_v1_round32_multiday_no_repeat_candidate_pool.csv`
+- Result:
+  - CLI hard no-repeat with pool size `100` now finds the Round31-style no-repeat plan.
+  - Candidate pool: `71` days, `67` accept, `4` review, `0` reject.
+  - Feasible no-repeat combinations: `86`.
+  - Generated hard no-repeat plan: `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.039464`, strict=`multi_day_good`.
+  - Selected days:
+    - D1: `Mom's Best Waffles` / `Easy and Spicy Thai Basil Chicken with Egg` / `Baked Ziti with Ground Turkey` / `Ham and Cheese Toast`.
+    - D2: `Spinach and Potato Frittata` / `Day Before Pay Day Fried Rice` / `Sweet and Sour Stuffed Cabbage` / `Small Turkey Bread Snack`.
+    - D3: `Egg Bites` / `Chicken and Broccoli Pasta` / `Veggie Burgers` / `Egg and Bread Snack`.
+- Runtime and risk:
+  - CLI hard pool `100` runtime was about `286s`.
+  - Evaluator runtime was about `584s` because it built pool sizes `75` and `100`.
+  - Main remaining risk is runtime/performance for interactive use; quality is much better, but the broader pool is not cheap.
+- Validation:
+  - `python -m compileall src/generator_v1 src/generator_v1_cli.py streamlit_app tools/extra` passed.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile pilot_current --selection_mode greedy --portion_policy standard` passed; pilot_current behavior still runs, with its known weak pilot nutrition output.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_generator_ready_plus30_plus15 --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_pool_size 100` passed.
+  - `python tools/extra/evaluate_generator_v1_round32_multiday_no_repeat_selector.py` passed.
+- Recommendation:
+  - Keep `hard` no-repeat as the recommended test setting for `v1_2_generator_ready_plus30_plus15`.
+  - Next step should be performance profiling/caching or a cheaper deterministic pool-building path before treating this as UI-ready default behavior.
+
+## 40. Round33 / Multi-day selector performance profiling and fast cache mode - 2026-05-12
+- Why needed:
+  - Round32 fixed multi-day quality for `v1_2_generator_ready_plus30_plus15`, but runtime was too high: about `286s` for CLI hard pool `100` and about `584s` for the evaluator.
+  - The goal was to profile the expensive path and add safe per-call caching/shortcuts without changing nutrition targets, one-day behavior, or current data folders.
+- Implementation:
+  - Added per-generation profiling diagnostics in `src/generator_v1/multi_day_selector.py`: candidate pool build time, combination time, validation time, quality gate time, balanced selector time, selector cache hits, duplicate skips, and feasible no-repeat counts.
+  - Added in-memory caching for repeated selector configs and early candidate-day de-duplication by selected recipe/portion signature.
+  - Added `multi_day_speed_mode` with `fast` and `quality`; `quality` keeps the Round32-style path available, while `fast` limits dynamic source specs and stops once a high-quality no-repeat path is found.
+  - Added CLI support for `--multi_day_speed_mode`; Streamlit now exposes speed mode, shows runtime/diagnostics, warns for slow quality mode, and defaults `v1_2_generator_ready_plus30_plus15` to fast pool `50`.
+  - Added profiling/evaluation scripts:
+    - `tools/extra/profile_generator_v1_round33_multiday_performance.py`
+    - `tools/extra/evaluate_generator_v1_round33_speed_quality_tradeoff.py`
+  - No current data folders, Food_DB current, Recipes_DB current, `src/legacy`, architecture docs, persistent docs, nutrition target formulas, new dependencies, or solver-style libraries were changed.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round33_multiday_performance_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round33_multiday_performance_runs.csv`
+  - `data/recipesdb/audit/generator_v1_round33_speed_quality_tradeoff_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round33_speed_quality_tradeoff.csv`
+- Bottleneck finding:
+  - Data loading was tiny: about `0.046s`.
+  - Slot candidate generation was tiny: about `0.505s`.
+  - Day candidate pool generation dominated runtime: about `142.365s` in the profiler.
+  - Balanced selector calls dominated the pool build: about `134.595s`.
+  - Quality gate evaluation was not the bottleneck: about `0.003s`.
+  - Combination evaluation was secondary: about `1.5-2.4s`.
+- Runtime / quality result:
+  - Fast mode pool `50` preserved the Round32 no-repeat plan: `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.039464`.
+  - Fast mode evaluator runtime was about `115.9s`; CLI smoke runs were about `124-170s` depending on run/output overhead.
+  - Quality mode pool `100` stayed available and produced the same quality result, but took about `215s` in the speed/quality audit.
+  - No <=`30s` mode was found without risking quality.
+- Recommended Streamlit mode:
+  - Use `multi_day_speed_mode=fast`, `day_candidate_pool_size=50`, `multi_day_no_repeat_policy=hard`.
+  - This is better than Round32 but still a slow test action, not instant interactive UI.
+- Validation:
+  - `python -m compileall src/generator_v1 src/generator_v1_cli.py streamlit_app tools/extra` passed.
+  - `python tools/extra/profile_generator_v1_round33_multiday_performance.py` passed.
+  - `python tools/extra/evaluate_generator_v1_round33_speed_quality_tradeoff.py` passed.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile pilot_current --selection_mode greedy --portion_policy standard` passed; pilot_current still runs with its known weak pilot nutrition output.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_generator_ready_plus30_plus15 --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_pool_size 50` passed.
+- Remaining risks:
+  - Runtime is still too high for a comfortable Streamlit default.
+  - The cache helps avoid repeated work inside one call, but the core cost is still many balanced-day selector runs.
+  - Next optimization should reduce balanced selector invocations or generate slot-forced variants more directly from precomputed slot alternatives.
+
+## 41. Round34 / Direct day-candidate builder for faster multi-day no-repeat - 2026-05-12
+- Why needed:
+  - Round33 proved the bottleneck was repeated balanced selector calls during multi-day candidate pool generation.
+  - The objective was to keep the Round32/Round33 no-repeat quality path available, but make the fast path build day candidates directly from precomputed slot candidates.
+- Implementation:
+  - Added `direct_from_slots` day candidate builder in `src/generator_v1/multi_day_selector.py`.
+  - The direct builder creates per-slot shortlists from score, macro fit, carbs, kcal, protein, low realism penalty, and unique recipe coverage; then enumerates breakfast/lunch/dinner/snack combinations directly.
+  - Direct candidates reject same-day recipe repeats, reuse the existing day loss, validation, quality gate, realism fields, day summaries, and global no-repeat scoring.
+  - Added deterministic candidate record coverage for top days plus slot/pair/triple diversity so no-repeat combinations are not lost behind anchor-heavy low-loss days.
+  - Kept `balanced_repeated` as fallback/quality builder. Fast mode defaults to `direct_from_slots`; recommended direct shortlist default is `12`.
+  - Added CLI option `--day_candidate_builder` and `--direct_slot_shortlist_size`.
+  - Streamlit now exposes builder and direct shortlist controls, defaults the plus30_plus15 fast path to direct builder, and displays builder/runtime/candidate diagnostics.
+  - Added profiler `tools/extra/profile_generator_v1_round34_direct_day_builder.py`.
+  - No current data folders, Food_DB current, Recipes_DB current, `src/legacy`, architecture docs, persistent docs, new recipes, repair steps, new dependencies, or solver-style libraries were changed.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round34_direct_builder_performance_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round34_direct_builder_performance_runs.csv`
+  - Standard CLI outputs refreshed:
+    - `outputs/generator_v1_multiday_plan.json`
+    - `outputs/generator_v1_multiday_readable.txt`
+    - `outputs/generator_v1_multiday_meals.csv`
+- Runtime / quality result:
+  - Round33 old fast pool `50` baseline from audit CSV: `115.883s`, `multi_day_loss=0.039464`, `accept=3`, `review=0`, `repeated=0`.
+  - Round34 direct shortlist `12`: `10.387s` in the profiler, `candidate_pool_build_seconds` about `1.8s`, `combination_selection_seconds` about `8.1s`, `multi_day_loss=0.049639`, `accept=3`, `review=0`, `repeated=0`.
+  - CLI smoke with default direct shortlist `12` ran in about `11.4s` wall-clock and reported `candidate_pool_build_seconds=1.755`, `combination_selection_seconds=8.3`, `direct_candidate_combinations_evaluated=2880`, `feasible_no_repeat_combinations=1098`.
+  - Shortlist `8` is not enough and falls back to the slow balanced path; shortlist `10` and `12` both produce all-accept no-repeat plans; shortlist `15` gives slightly lower loss (`0.046757`) but is slower.
+- Generated fast no-repeat plan:
+  - D1: `Spinach and Potato Frittata` / `Easy and Spicy Thai Basil Chicken with Egg` / `Chicken and Broccoli Pasta` / `Boiled Eggs with Wholemeal Toast`.
+  - D2: `Mom's Best Waffles` / `Homemade Chicken Fettuccine` / `Veggie Burgers` / `Ham and Cheese Toast`.
+  - D3: `Egg Bites` / `Day Before Pay Day Fried Rice` / `Sweet and Sour Stuffed Cabbage` / `Small Turkey Bread Snack`.
+  - Summary: `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.049639`, strict=`multi_day_good`.
+- Validation:
+  - `python -m compileall src/generator_v1 src/generator_v1_cli.py streamlit_app tools/extra` passed.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile pilot_current --selection_mode greedy --portion_policy standard` passed; pilot_current still runs with its known weak pilot nutrition output.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_generator_ready_plus30_plus15 --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --multi_day_speed_mode fast --day_candidate_pool_size 50` passed.
+  - `python tools/extra/profile_generator_v1_round34_direct_day_builder.py` passed.
+- Remaining risks:
+  - The direct fast plan is slightly lower quality than Round33/Round32 (`multi_day_loss=0.049639` vs `0.039464`), but still all-accept and no-repeat.
+  - Combination selection is now the main runtime cost at about `8s`; this is acceptable for test UI, but still not instant.
+  - Shortlist `8` should not be used as default because it falls back to the old slow path.
+- Recommendation:
+  - Use `multi_day_speed_mode=fast`, `day_candidate_builder=direct_from_slots`, `direct_slot_shortlist_size=12`, `multi_day_no_repeat_policy=hard`, and `day_candidate_pool_size=50` as the Streamlit/test default for `v1_2_generator_ready_plus30_plus15`.
+  - Keep `balanced_repeated` / quality mode as the slower reference path for audits.
+  - Next step: optimize combination selection or add a smaller diagnostic candidate output, not more generator logic or data expansion yet.
+
+## 42. Round35 / Recipes_DB v1.2 expansion and manual repair workflow - 2026-05-13
+- Strategic decision:
+  - Generator v1 and the multi-day direct builder are good enough for draft testing.
+  - The next bottleneck is Recipes_DB/Food_DB coverage, not more selector complexity.
+  - Valuable recipes should move into manual repair instead of being discarded only because automatic mapping, unit rules, or serving assumptions fail.
+  - Food_DB remains canonical ingredients only; Recipes_DB remains composed recipes.
+- Files/scripts added:
+  - `tools/extra/init_recipes_v1_2_manual_repair_workflow.py`
+  - `tools/extra/seed_recipes_v1_2_manual_repair_queue.py`
+  - `tools/extra/plan_recipes_v1_2_targeted_expansion.py`
+- Workflow outputs created:
+  - `data/recipesdb/draft/recipes_v1_2_manual_repair_queue.csv`
+  - `data/fooddb/draft/fooddb_v1_2_manual_additions_candidates.csv`
+  - `data/recipesdb/draft/manual_recipe_template_v1_2.csv`
+  - `data/recipesdb/audit/recipes_v1_2_expansion_strategy_summary.txt`
+  - `data/recipesdb/audit/recipes_v1_2_manual_repair_workflow_readme.txt`
+  - `data/recipesdb/audit/manual_recipe_template_v1_2_readme.txt`
+  - `data/recipesdb/audit/recipes_v1_2_manual_repair_queue_seed_summary.txt`
+  - `data/recipesdb/audit/recipes_v1_2_manual_repair_queue_seed_audit.csv`
+  - `data/recipesdb/audit/recipes_v1_2_targeted_expansion_plan.txt`
+  - `data/recipesdb/audit/recipes_v1_2_targeted_expansion_targets.csv`
+  - `data/recipesdb/audit/recipes_v1_2_expansion_current_state_summary.txt`
+- Seed result:
+  - Scanned `45` recent Round28/Round30 targeted candidates.
+  - Added `29` high-priority failed-but-useful recipes to the manual repair queue.
+  - Problem categories: `nutrition_threshold_or_servings=15`, `unit_or_mapping_gap=8`, `mapping_gap=5`, `servings_review=1`.
+  - Proposed fix categories: `servings_fix=16`, `unit_rule=6`, `fooddb_addition=5`, `alias_mapping=2`.
+  - Target buckets: `carb_protein_main=14`, `breakfast_competitor=9`, `fish_turkey_pork_legume_main=6`.
+- Expansion plan:
+  - Next targeted intake: `+100` candidates, expected `50-70` generator-ready after repair.
+  - Split: `30` breakfast competitors, `50` lunch/dinner complete carb-protein meals, `10` fish/turkey/pork mains, `10` vegetarian/legume balanced mains.
+  - Manual-curated recipes are allowed for seed/test data if ingredient grams are explicit and nutrition comes from Food_DB mappings.
+- Validation:
+  - `python -m compileall tools/extra` passed.
+  - `python tools/extra/init_recipes_v1_2_manual_repair_workflow.py` passed.
+  - `python tools/extra/seed_recipes_v1_2_manual_repair_queue.py` passed.
+  - `python tools/extra/plan_recipes_v1_2_targeted_expansion.py` passed.
+- Boundaries kept:
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, generator logic, production data, web scraping, or new dependencies were changed.
+- Next recommended step:
+  - Review high-priority repair queue rows manually, approve safe alias/unit/Food_DB/serving fixes in a controlled repair round, then select the next `+100` targeted v1.2 candidates.
+
+## 43. Round36 / Safe manual repairs from Recipes_DB v1.2 queue - 2026-05-13
+- Scope:
+  - Reviewed the 29-row manual repair queue and applied only local, source-safe draft repairs.
+  - No web lookup, no broad import, no current data folders, no `src/legacy`, no architecture docs, no persistent docs, and no production data were changed.
+- Scripts added:
+  - `tools/extra/review_recipes_v1_2_manual_repair_queue.py`
+  - `tools/extra/apply_recipes_v1_2_manual_repairs.py`
+  - `tools/extra/evaluate_generator_v1_round36_repaired_dataset_impact.py`
+- Repair review result:
+  - `approve_safe=12`
+  - `approve_with_review=1`
+  - `defer_needs_source=7`
+  - `defer_too_risky=7`
+  - `reject=2`
+  - Applied repair rows: `13`
+  - Deferred or rejected rows: `16`
+- Safe repair policy:
+  - Approved exact local Food_DB aliases such as ham, hard-boiled eggs, raw eggs, skim milk, smoked salmon, soy sauce, coconut oil, white pepper, butternut squash, and mustard.
+  - Approved one review-level heavy cream mapping/unit repair because a local Food_DB cream item exists and the recipe remains audit-only.
+  - Deferred cheeses, canned/refried beans, pizza sauce, chicken thighs, baby bok choy, green onions, seasoning salt, red pepper, and other cases needing sources or broader unit assumptions.
+  - Rejected blind serving fixes when the recipe still lacked safe mapped macro ingredients.
+- Recovered generator-ready recipes:
+  - `recipes_v1_2_round28_plus30_003` - Ham and Cheese Breakfast Casserole
+  - `recipes_v1_2_round28_plus30_005` - Creamed Eggs on Toast
+  - `recipes_v1_2_round28_plus30_022` - Creamy Smoked Salmon Pasta
+  - `recipes_v1_2_round28_plus30_027` - Salmon and Spinach Fettuccine
+  - `recipes_v1_2_round28_plus30_030` - Spinach Feta Egg Wrap
+  - Recovered generator-ready count: `5`
+- New repaired draft dataset:
+  - Profile added: `v1_2_generator_ready_plus30_plus15_repaired`
+  - Dataset path: `data/recipesdb/draft/v1_2_generator_ready_plus30_plus15_repaired/`
+  - Recipe count: `116`
+  - Added profile support in Generator v1 loader, CLI, and Streamlit.
+- Multi-day impact:
+  - Baseline plus30_plus15: `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.049639`.
+  - Repaired dataset: `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.048103`.
+  - One recovered recipe was selected in the repaired plan: `Creamy Smoked Salmon Pasta`.
+  - Impact is positive but small; this confirms repair is useful, not sufficient as the main expansion strategy.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/review_recipes_v1_2_manual_repair_queue.py` passed.
+  - `python tools/extra/apply_recipes_v1_2_manual_repairs.py` passed.
+  - `python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_generator_ready_plus30_plus15_repaired --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard` passed in about `14s`.
+  - `python tools/extra/evaluate_generator_v1_round36_repaired_dataset_impact.py` passed.
+  - `pilot_current` CLI smoke still runs; its old weak nutrition output remains unchanged.
+- Recommendation:
+  - Keep the repaired profile as a draft/audit testing dataset.
+  - Continue manual repair for deferred source-needed rows only after source review.
+  - Next major data step should still be the planned targeted `+100` v1.2 expansion, not more selector complexity.
+
+## 44. Round37 / Targeted Recipes_DB v1.2 +100 expansion - 2026-05-13
+- Scope:
+  - Started the serious targeted v1.2 expansion from `v1_2_generator_ready_plus30_plus15_repaired`.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, generator logic, web scraping, production data, or new dependencies were changed.
+- Pipeline added:
+  - `tools/extra/select_recipes_v1_2_round37_targeted_plus100.py`
+  - `tools/extra/parse_recipes_v1_2_round37_plus100_ingredients.py`
+  - `tools/extra/apply_recipes_v1_2_round37_plus100_unit_rules.py`
+  - `tools/extra/map_recipes_v1_2_round37_plus100_to_fooddb.py`
+  - `tools/extra/build_recipes_v1_2_round37_plus100_nutrition_cache.py`
+  - `tools/extra/evaluate_generator_v1_round37_expanded_multiday_impact.py`
+- Selection result:
+  - Candidate pool written: `500`.
+  - Final targeted candidates: `100`.
+  - Bucket mix: `30` breakfast competitors, `50` carb-protein mains, `10` fish/turkey/pork mains, `10` vegetarian/legume balanced mains.
+  - The strict title/scope filter rejected many weak rows; this kept the run targeted, not broad/random.
+- Parse and readiness result:
+  - Parsed `100` recipes and `920` ingredient rows.
+  - Parse counts: `parsed_partial=571`, `parsed_clean=255`, `review_needed=93`, `failed_parse=1`.
+  - Generator-ready recipes: `31`.
+  - Strong generator-ready recipes: `22`.
+  - Failed/not materialized: `69`.
+  - Main failure reasons: low mapped protein/kcal/carbs, low macro-relevant mapped weight ratio, and missing alias/unit coverage.
+- Manual repair queue:
+  - Added `69` valuable-but-blocked recipes to `recipes_v1_2_manual_repair_queue.csv`.
+  - Problem categories: `mapping_gap=56`, `unit_or_mapping_gap=13`.
+  - Proposed fixes: `alias_mapping=56`, `unit_rule=13`.
+  - These were queued instead of forcing unsafe Food_DB mappings.
+- New dataset:
+  - Added profile: `v1_2_generator_ready_round37_expanded`.
+  - Dataset path: `data/recipesdb/draft/v1_2_generator_ready_round37_expanded/`.
+  - Recipe count: `147` (`116` base + `31` Round37 ready).
+  - Profile support added to Generator v1 loader, CLI, and Streamlit.
+- Multi-day impact:
+  - Previous repaired dataset: `recipes=116`, `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.048103`.
+  - Round37 expanded dataset: `recipes=147`, `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.007051`.
+  - Expanded plan selected `7` Round37 recipes.
+  - Quality improved, but runtime rose because the larger dataset increases direct candidate/combination cost.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - Selection, parsing, nutrition/materialization, CLI 3-day generation, and Round37 evaluator passed.
+  - `pilot_current` CLI smoke still runs; its old weak nutrition output remains unchanged.
+- Strict recommendation:
+  - Keep `v1_2_generator_ready_round37_expanded` as draft/testing data.
+  - Next step should be reviewing/applying safe Round37 manual repair queue rows, especially alias/unit gaps, then rerun materialization.
+  - Do not add more selector complexity now; the remaining bottleneck is still data and mapping coverage.
+
+## 45. Round38 / Controlled repairs for Round37 failed-but-valuable recipes - 2026-05-13
+- Scope:
+  - Reviewed the `69` Round37 manual repair additions and applied only narrow local alias/unit repairs.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, generator logic, web scraping, Food_DB additions, or production data were changed.
+- Scripts added:
+  - `tools/extra/review_recipes_v1_2_round38_repair_queue.py`
+  - `tools/extra/apply_recipes_v1_2_round38_safe_repairs.py`
+  - `tools/extra/build_recipes_v1_2_round38_repaired_nutrition_cache.py`
+  - `tools/extra/evaluate_generator_v1_round38_repaired_expanded_impact.py`
+- Repair review result:
+  - `approve_safe=25`
+  - `approve_with_review=9`
+  - `defer_needs_source=17`
+  - `defer_too_risky=16`
+  - `reject=2`
+  - Applied rows: `34`
+  - Deferred or rejected rows: `35`
+- Recovered generator-ready recipes:
+  - `Applesauce Baked Oatmeal`
+  - `Zucchini Risotto`
+  - `Broiled Chicken Breasts with Herbs, Carrots, and Red Potatoes`
+  - `Cheesy Vegetable Chowder`
+  - `Easy Slow Cooker Carne Guisada`
+  - `Captain Duarte's Salt Cod Cakes`
+  - `Italian Stir-Fried Pork & Pasta`
+  - Recovered generator-ready count: `7`
+- New repaired expanded draft dataset:
+  - Profile added: `v1_2_generator_ready_round37_expanded_repaired`
+  - Dataset path: `data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/`
+  - Recipe count: `154`
+  - Added profile support in Generator v1 loader, CLI, and Streamlit.
+- Multi-day impact:
+  - Round37 expanded: `recipes=147`, `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.007051`, runtime about `48s`.
+  - Round38 repaired expanded: `recipes=154`, `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.006810`, runtime about `49s`.
+  - One recovered recipe was selected in the repaired plan: `Zucchini Risotto`.
+- Deferred source needs:
+  - Main unresolved blockers include generic `beef`, `beef round steak`, plant milks, sour cream, refrigerated pie pastry, baked/pinto/great northern beans, ham bone, lamb, chicken thighs with skin, and other source/unit-sensitive ingredients.
+  - These remain in the manual web/source queue; no nutrition values were invented.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - Round38 review, apply, nutrition/materialization, CLI 3-day generation, and Round38 evaluator passed.
+  - `pilot_current` CLI smoke still runs; its old weak nutrition output remains unchanged.
+- Strict recommendation:
+  - Keep `v1_2_generator_ready_round37_expanded_repaired` as draft/testing data.
+  - Next step should be manual source verification for deferred high-value blockers, especially specific beef cuts, beans, dairy/plant-milk items, pastry, and meat-with-bone cases.
+  - Do not change selector logic for this issue; the limiting factor is still source-backed mapping and Food_DB coverage.
+
+## 46. Round39 / Manual source verification package for Food_DB blockers - 2026-05-13
+- Scope:
+  - Prepared a manual source-verification package for high-value Recipes_DB v1.2 blockers left after Round38.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, generator logic, web scraping, Food_DB additions, or nutrition values were changed.
+- Script added:
+  - `tools/extra/prepare_fooddb_v1_2_manual_source_verification.py`
+- Outputs generated:
+  - `data/fooddb/audit/fooddb_v1_2_manual_source_verification_queue.csv`
+  - `data/fooddb/audit/fooddb_v1_2_manual_source_verification_summary.txt`
+  - `data/fooddb/audit/fooddb_v1_2_manual_source_checklist.txt`
+  - `data/fooddb/draft/fooddb_v1_2_manual_additions_candidates_prefill.csv`
+  - `data/recipesdb/audit/recipes_v1_2_source_blocked_recipes.csv`
+- Aggregation result:
+  - Total blockers: `40`
+  - High priority blockers: `7`
+  - Medium priority blockers: `17`
+  - Keep-deferred / low priority blockers: `16`
+  - Source-needed blockers: `24`
+  - Food_DB prefill candidates: `12`
+  - Source-blocked recipes: `47`
+  - Likely recoverable after source verification: `16`
+- High-priority source items:
+  - `beef round steak`
+  - `chicken thighs with skin`
+  - `cubed lamb meat`
+  - `dry pinto beans`
+  - `great northern beans`
+  - `pinto beans`
+  - `sour cream`
+- Medium-priority source items:
+  - Main useful processed/specific items include `baked beans`, `biscuit baking mix`, `guanciale`, `oat milk`, `refrigerated pie pastry`, selected cheeses, plant milk variants, and refried beans.
+- Keep-deferred items:
+  - Generic `beef`, cooking/frying sprays or oils, ham bone, ginger piece/root unit cases, rosemary, sottocenere, and other vague or low-impact items remain deferred.
+- Strict notes:
+  - Prefill CSV intentionally leaves kcal/protein/carbs/fat blank.
+  - Candidate Food_DB IDs are draft-only and pending manual source review.
+  - No source was fetched automatically.
+- Validation:
+  - `python -m compileall tools/extra` passed.
+  - `python tools/extra/prepare_fooddb_v1_2_manual_source_verification.py` passed.
+- Next recommendation:
+  - Manually fill only the high-priority checklist items from verified CIQUAL/USDA/official/manufacturer sources, then run a controlled Food_DB addition + rematerialization round.
+
+## 47. Food_DB v1.2 manual additions batch1 - 2026-05-13
+- Scope:
+  - Batch1 manual source verification was applied strictly as draft/audit work.
+  - No `data/fooddb/current`, `data/recipesdb/current`, `src/legacy`, architecture docs, persistent docs, or generator logic were changed.
+- Input:
+  - `data/fooddb/draft/fooddb_v1_2_manual_additions_verified_batch1.csv`
+- Validation result:
+  - Total rows checked: `24`
+  - `safe_to_add` applied: `13`
+  - `needs_review`: `9`
+  - `keep_deferred`: `2`
+  - Sanity rejects: `0`
+- New Food_DB draft:
+  - `data/fooddb/draft/fooddb_v1_2_core_master_manual_batch1.csv`
+- Safe additions applied:
+  - `beef_round_steak_raw`
+  - `chicken_thigh_meat_and_skin_raw`
+  - `lamb_cubed_stew_meat_raw`
+  - `pinto_beans_dry`
+  - `great_northern_beans_dry`
+  - `sour_cream_cultured`
+  - `bok_choy_raw`
+  - `refried_beans_canned_traditional`
+  - `cheddar_cheese`
+  - `sour_cream_light`
+  - `soy_milk_unsweetened_plain`
+  - `oat_milk_unsweetened_plain`
+  - `swiss_cheese`
+- Recipes_DB impact:
+  - Recovered generator-ready recipe count: `1`
+  - Recovered recipe: `Chicken Chimichangas`
+  - New draft dataset:
+    - `data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired_manual_batch1/`
+  - Recipe count: `155`
+- Multi-day impact:
+  - Before batch1: `154` recipes, `valid=3/3`, `accept=3/3`, `repeated=0`, `multi_day_loss=0.006810`.
+  - After batch1: `155` recipes, `valid=3/3`, `accept=3/3`, `repeated=0`, `multi_day_loss=0.006810`.
+  - Conclusion: batch1 improved Food_DB coverage and recovered one recipe, but did not change the current multi-day plan because the plan was already strong and no-repeat.
+- Deferred / next source batch:
+  - `baked beans`
+  - `refrigerated pie crust`
+  - `biscuit dry mix`
+  - `pepper jack cheese`
+  - `pizza sauce`
+  - `guanciale`
+  - plant milk ambiguous rows
+  - pinto alias ambiguity
+- Local conclusion:
+  - Manual source verification is useful for recovering blocked recipes and strengthening Food_DB, but the multi-day impact can be small when the current plan is already strong.
+  - The next source batch should prioritize ingredients that block multiple generator-ready recipes, not isolated additions.
+
+## 48. Round40 / Recipes_DB v1.2 inventory, gap audit, and expansion contract - 2026-05-13
+- Scope:
+  - Created an audit/planning-only inventory and expansion contract for Recipes_DB v1.2.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, generator logic, recipe additions, parsing, mapping, nutrition cache generation, or web scraping were changed.
+- Script added:
+  - `tools/extra/audit_recipes_v1_2_round40_inventory_gap_contract.py`
+- Selected baseline:
+  - `data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired_manual_batch1/`
+  - Current generator-ready recipe count: `155`
+  - Target for license/demo quality: about `250`
+  - Estimated gap: `95` generator-ready recipes
+- Current inventory:
+  - allowed slots: `breakfast=43`, `lunch=97`, `dinner=97`, `snack=15`
+  - exact slot sets: `lunch+dinner=97`, `breakfast=43`, `snack=15`
+  - recipe kinds: `complete_main=74`, `near_complete_main=14`, `breakfast=19`, `breakfast_meal=24`, `snack=15`, plus smaller soup/salad groups
+  - primary protein estimate: `chicken=37`, `egg=35`, `beef=33`, `pork=19`, `fish=10`, `turkey=6`, `legume=2`, `unknown=13`
+  - cache status: `usable_from_mapped_ingredients=152`, `partial_from_mapped_ingredients=3`
+  - strong generator-ready estimate: `57`
+- Main gaps:
+  - total generator-ready recipes: gap `95`
+  - breakfast candidates: gap `12`
+  - breakfast alternatives beyond waffle/oat/egg-heavy patterns: gap `12`, severity high
+  - lunch/dinner complete carb-protein meals: gap `67`
+  - fish meals: gap `15`, severity high
+  - turkey meals: gap `14`, severity high
+  - pork meals: gap `6`
+  - vegetarian/legume balanced meals: gap `23`, severity high
+  - snack recipes: gap `15`, not the main bottleneck but still below v1.2 target
+  - no-repeat 3-day diversity is feasible for the current demo, but not enough proof for robust week-level variety
+- Expansion contract:
+  - Food_DB remains canonical ingredients.
+  - Recipes_DB remains composed recipes.
+  - Complete or near-complete recipes remain the main generation unit.
+  - Meal completion is fallback only.
+  - No broad/random import.
+  - Generator utility matters more than recipe count.
+  - Quality is more important than volume.
+  - Manual-curated recipes are allowed for seed/test library if clearly marked.
+  - Valuable failures go to manual repair queue instead of being discarded.
+- Expansion targets:
+  - manual breakfast clean: `15` candidates, expected `12-15` ready
+  - manual lunch/dinner clean: `35` candidates, expected `30-35` ready
+  - dataset breakfast candidates: `50` candidates, expected `15-25` ready
+  - dataset lunch/dinner candidates: `150` candidates, expected `40-60` ready
+  - dataset fish/turkey/pork/legume: `50` candidates, expected `15-25` ready
+  - repair queue recovery: expected `10-25` ready
+  - Food_DB source verification batch2 should target blockers that affect multiple useful recipes
+- Recommended next step:
+  - Round41 should start with a manual-curated clean batch because it has the highest expected generator-ready yield and the cleanest mapping surface.
+  - Then run Food_DB source verification batch2 for blockers that affect multiple recipes.
+  - Then run a larger dataset-curated harvesting batch using the Round40 contract.
+
+## 49. Round41 / Recipes_DB v1.2 manual-curated clean batch - 2026-05-13
+- Scope:
+  - Built a manual-curated clean recipe batch for Recipes_DB v1.2, draft/audit only.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, web scraping, or generator logic were changed.
+- Scripts added:
+  - `tools/extra/round41_manual_curated_common.py`
+  - `tools/extra/audit_fooddb_v1_2_manual_curated_ingredient_coverage.py`
+  - `tools/extra/plan_recipes_v1_2_round41_manual_curated_50.py`
+  - `tools/extra/build_recipes_v1_2_round41_manual_curated_50.py`
+  - `tools/extra/evaluate_generator_v1_round41_manual_curated_impact.py`
+- Food_DB coverage:
+  - Used `data/fooddb/draft/fooddb_v1_2_core_master_manual_batch1.csv`.
+  - Coverage audit found enough reliable mapped ingredients for a controlled manual-curated batch.
+  - Strong areas: chicken, beef, eggs, oats/rice/pasta/potatoes, common vegetables, yogurt/cheese, sour cream, soy/oat milk.
+  - Weaker areas remain: turkey variety, legume variety, and source-backed Food_DB coverage for some blocked recipes.
+- Manual-curated batch:
+  - Planned recipes: `50`
+  - Composition: `15` breakfast, `30` lunch/dinner complete meals, `5` snack/flexible
+  - Generator-ready recipes: `50`
+  - Failed recipes: `0`
+  - Manual repair queue additions from Round41: `0`
+- New dataset:
+  - `data/recipesdb/draft/v1_2_generator_ready_round41_manual_curated/`
+  - Recipe count: `205`
+  - Added dataset profile: `v1_2_generator_ready_round41_manual_curated`
+- Multi-day impact:
+  - Baseline manual batch1: `155` recipes, `valid=3/3`, `accept=3/3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.006810`, runtime about `46s`.
+  - Round41 manual-curated: `205` recipes, `valid=3/3`, `accept=3/3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.006257`, runtime about `54s`.
+  - Selected manual recipes in current 3-day plan:
+    - `Chicken Sweetcorn Rice Plate`
+    - `Beef Couscous Mushroom Bowl`
+    - `Yogurt Banana Oat Snack`
+- Strict conclusion:
+  - Round41 is a good data-quality step: it adds 50 clean generator-ready recipes with explicit grams and Food_DB-backed nutrition.
+  - Multi-day loss improved only slightly because the baseline was already strong and no-repeat, but the dataset is meaningfully more robust.
+- Recommended next step:
+  - Continue with a dataset-curated harvest batch using the Round40 expansion contract.
+  - In parallel, run Food_DB source verification batch2 for blockers that affect multiple valuable recipes.
+
+## 50. Round42 / Recipes_DB v1.2 dataset-curated expansion batch - 2026-05-13
+- Scope:
+  - Built a strict dataset-curated expansion batch from the large recipe source, draft/audit only.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, web scraping, nutrition invention, or generator logic were changed.
+- Scripts added:
+  - `tools/extra/select_recipes_v1_2_round42_dataset_curated_candidates.py`
+  - `tools/extra/parse_recipes_v1_2_round42_dataset_ingredients.py`
+  - `tools/extra/apply_recipes_v1_2_round42_dataset_unit_rules.py`
+  - `tools/extra/map_recipes_v1_2_round42_dataset_to_fooddb.py`
+  - `tools/extra/build_recipes_v1_2_round42_dataset_nutrition_cache.py`
+  - `tools/extra/evaluate_generator_v1_round42_dataset_expanded_impact.py`
+- Selection and readiness:
+  - Selected dataset candidates: `170`
+  - Generator-ready recipes: `57`
+  - Strong generator-ready recipes: `38`
+  - Failed/not-ready recipes: `113`
+  - Manual repair queue additions: `113`
+  - Main failure reasons: low kcal/protein/carbs per serving, low macro-relevant mapped coverage, low mapped weight coverage, and too few accepted mapped ingredients with grams.
+- New dataset:
+  - Added profile: `v1_2_generator_ready_round42_dataset_expanded`
+  - Dataset path: `data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/`
+  - Recipe count: `262` (`205` baseline + `57` Round42 ready)
+  - Added profile support in Generator v1 loader, CLI, and Streamlit.
+- Multi-day impact:
+  - Round41 baseline: `recipes=205`, `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.006257`, runtime about `27.706s`.
+  - Round42 expanded: `recipes=262`, `valid=3`, `accept=3`, `review=0`, `unique=12`, `repeated=0`, `multi_day_loss=0.00729`, runtime about `28.19s`.
+  - Current Round42 3-day plan selected `4` Round42 recipes: `Egg-Free and Milk-Free Baked Oatmeal`, `Thai Spicy Basil Chicken Fried Rice`, `Pesto Pasta with Chicken`, and `Green Minestrone`.
+- Strict conclusion:
+  - Round42 is useful mostly because it adds real source diversity and pushes the dataset above the license/demo target size.
+  - It does not improve the current 3-day loss versus Round41; the plan was already strong and no-repeat.
+  - Dataset-curated yield is much lower than manual-curated yield, and source quality remains noisier.
+- Recommended next step:
+  - Review Round42 repair queue additions and prioritize safe mapping/unit/Food_DB-source fixes.
+  - Run source verification batch2 for blockers that recover multiple useful recipes.
+  - Keep selector logic stable; the remaining bottleneck is data quality and mapping coverage.
+
+## 51. Round43 / v1.2 demo readiness, family variety, and repair prioritization audit - 2026-05-13
+- Scope:
+  - Audited the current best v1.2 draft dataset for demo readiness, macro quality, semantic/family variety, freeze suitability, and repair priority.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, generator logic, new recipes, repair fixes, or Food_DB additions were changed.
+- Scripts added:
+  - `tools/extra/evaluate_recipes_v1_2_round43_demo_readiness.py`
+  - `tools/extra/prioritize_recipes_v1_2_round43_repair_queue.py`
+- Baseline audited:
+  - `data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/`
+  - Recipe count: `262`
+  - Approximate `250` generator-ready demo target is met.
+  - Demo readiness status: `demo_ready_with_risks`
+  - Strong generator-ready estimate: `141`
+- Inventory findings:
+  - Slots: `breakfast=76`, `lunch=166`, `dinner=166`, `snack=20`
+  - Primary protein estimate: `chicken=73`, `egg=57`, `beef=41`, `pork=28`, `dairy=23`, `fish=21`, `turkey=10`, `legume=8`, `unknown=1`
+  - Cache status: `usable_from_mapped_ingredients=259`, `partial_from_mapped_ingredients=3`
+- Macro and demo risks:
+  - Main warnings: `very_high_fat_share=40`, `main_carbs_under_10g=33`, `breakfast_over_850_kcal=3`, `main_protein_under_10g=3`
+  - These do not block the current demo plan, but they are reasons not to materialize as production/current without review.
+- Family variety:
+  - Latest Round42 3-day plan has `0` exact recipe repeats.
+  - Semantic variety status: `weak`
+  - Main issue: breakfast family repeats as `oatmeal=3` across the 3-day plan.
+  - Dataset family distribution is usable but not balanced: breakfast is dominated by eggs/oatmeal/pancake-like recipes, and lunch/dinner by pasta/rice/potatoes/egg-heavy families.
+  - No family-level constraint was implemented; this is audit evidence only.
+- Repair queue prioritization:
+  - Round42 repair rows reviewed: `113`
+  - Priority tiers: `batch2_high=57`, `batch2_medium=25`, `backlog=29`, `reject=2`
+  - Proposed fixes: `alias_mapping=103`, `unit_rule=10`
+  - Top practical blockers: `green onions`, `beef stew meat`, `cod fillets`, `garbanzo beans`, `coconut milk`, plus several bean/dairy/meat-specific items.
+  - Generic `beef` affects many rows but is explicitly capped/deferred because generic meat mapping is unsafe.
+- Source verification batch2 plan:
+  - Recommended `19` source candidates, max small batch scope.
+  - Top source candidates include `beef stew meat`, `cod fillets`, `garbanzo beans`, `coconut milk`, `baby lima beans`, `baked beans with pork`, `beef chuck`, `beef top sirloin`, `cotija cheese`, `dry white beans`, `red beans`, `romano beans`, and `unsweetened coconut milk`.
+  - No sources were fetched and no nutrition values were invented.
+- Freeze recommendation:
+  - Freeze `v1_2_generator_ready_round42_dataset_expanded` as a v1.2 demo candidate, not production/current.
+  - Do not run another broad expansion batch now.
+  - Next recommended step: source verification batch2 and selected safe alias/unit repair review, then revisit family-level variety only as a separate design decision.
+
+## 52. Round44 / v1.2 demo candidate freeze and source verification batch2 handoff - 2026-05-13
+- Scope:
+  - Frozen the current best draft dataset as a clearly labeled v1.2 demo candidate package.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, Food_DB additions, web scraping, or generator logic were changed.
+- Demo candidate:
+  - Source profile: `v1_2_generator_ready_round42_dataset_expanded`
+  - New profile/package: `v1_2_demo_candidate`
+  - Path: `data/recipesdb/draft/v1_2_demo_candidate/`
+  - Recipe count: `262`
+  - Status: `demo_ready_with_risks`
+  - Intended use: Generator v1 / Checkpoint 1-2 demo and testing, not production/current.
+- Dataset profile support:
+  - Added `v1_2_demo_candidate` to Generator v1 data loader, CLI, and Streamlit dataset selector.
+  - Recommended config remains `balanced_day`, `target_aware`, `practical`, `demo_safe`, `global_alternatives_3_day`, `hard` no-repeat, and `direct_from_slots`.
+- Known risks captured in freeze files:
+  - Semantic family variety is still weak, especially oatmeal-like breakfast repetition.
+  - Macro risk counts include `very_high_fat_share=40`, `main_carbs_under_10g=33`, `breakfast_over_850_kcal=3`, and `main_protein_under_10g=3`.
+  - Turkey and legume coverage remain low, and no production QA/current materialization has been done.
+- Source verification batch2 handoff:
+  - Created manual handoff CSV, prompt, and verified-batch template for Food_DB/source verification.
+  - No nutrition values were invented and no source data was applied in this round.
+  - Batch2 remains a manual/web verification step for later.
+- Smoke test result:
+  - One-day CLI with `v1_2_demo_candidate`: `valid`, `accept`, kcal about `2496.8`.
+  - Three-day CLI with hard no-repeat/direct builder: `valid=3/3`, `accept=3/3`, `repeated=0`, `unique=12`, `multi_day_loss=0.00729`.
+- Recommended next step:
+  - Use `v1_2_demo_candidate` for demo/testing.
+  - Run source verification batch2 separately, then apply only verified safe Food_DB additions and repair high-value blocked recipes.
+  - Keep production/current untouched until a separate promotion QA pass exists.
+
+## 53. Food_DB v1.2 manual additions batch2 - 2026-05-13
+- Scope:
+  - Applied verified Food_DB manual additions batch2 strictly to draft/audit outputs.
+  - No `data/fooddb/current`, `data/recipesdb/current`, `src/legacy`, architecture docs, persistent docs, web scraping, or invented nutrition values were used.
+- Input:
+  - `data/fooddb/draft/fooddb_v1_2_manual_additions_verified_batch2.csv`
+- Validation result:
+  - Total rows reviewed: `19`
+  - `safe_to_add` applied: `7`
+  - `needs_review`: `12`
+  - `keep_deferred`: `0`
+  - Sanity rejects: `0`
+- Safe additions applied to new Food_DB draft:
+  - `beef_stew_meat`
+  - `cod_fillets`
+  - `baked_beans_with_pork`
+  - `beef_top_sirloin`
+  - `crumbled_cotija_cheese`
+  - `dry_white_beans`
+  - `flank_steak`
+- New Food_DB draft:
+  - `data/fooddb/draft/fooddb_v1_2_core_master_manual_batch2.csv`
+- Recipes_DB impact:
+  - Affected mapping rows changed: `9`
+  - Affected recipe count: `9`
+  - Recovered generator-ready recipes: `4`
+  - Recovered recipes:
+    - `Slow Cooker Beef Stew`
+    - `Western-Style Baked Beans`
+    - `Beef Lo Mein`
+    - `Slow Cooker Baked Beans with Ham Hock`
+  - New dataset profile: `v1_2_demo_candidate_manual_batch2`
+  - New dataset path: `data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/`
+  - Recipe count: `266`
+- Multi-day impact:
+  - Before batch2 (`v1_2_demo_candidate`): `recipes=262`, `valid=3/3`, `accept=3/3`, `review=0`, `repeated=0`, `multi_day_loss=0.00729`
+  - After batch2 (`v1_2_demo_candidate_manual_batch2`): `recipes=266`, `valid=3/3`, `accept=3/3`, `review=0`, `repeated=0`, `multi_day_loss=0.006322`
+  - The current plan remains no-repeat and technically strong; batch2 improves Food_DB coverage and recovers useful recipes, with a small plan-quality improvement.
+- Deferred / next source batch:
+  - Keep `garbanzo_beans`, `coconut_milk`, `baby_lima_beans`, `beef_chuck`, `beef_chuck_roast`, `chili_without_beans`, `cubed_beef_stew_meat`, `lamb_or_mutton_breast_chops`, `pork_and_beans`, `red_beans`, `romano_beans`, and `unsweetened_coconut_milk` unapplied until state/source ambiguity is resolved.
+  - Next batch should prioritize common blockers that recover multiple strong recipes, not isolated or ambiguous processed/generic items.
