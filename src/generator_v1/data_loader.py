@@ -94,6 +94,42 @@ V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_INGREDIENTS_PATH = Path(
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_NUTRITION_PATH = Path(
     "data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/recipe_nutrition_cache.csv"
 )
+V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round41_manual_curated/recipes.csv"
+)
+V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round41_manual_curated/recipe_ingredients.csv"
+)
+V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round41_manual_curated/recipe_nutrition_cache.csv"
+)
+V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/recipes.csv"
+)
+V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/recipe_ingredients.csv"
+)
+V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/recipe_nutrition_cache.csv"
+)
+V1_2_DEMO_CANDIDATE_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate/recipes.csv"
+)
+V1_2_DEMO_CANDIDATE_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate/recipe_ingredients.csv"
+)
+V1_2_DEMO_CANDIDATE_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate/recipe_nutrition_cache.csv"
+)
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/recipes.csv"
+)
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/recipe_ingredients.csv"
+)
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/recipe_nutrition_cache.csv"
+)
 
 PILOT_CURRENT_PROFILE = "pilot_current"
 V1_1_GENERATOR_READY_PROFILE = "v1_1_generator_ready"
@@ -116,6 +152,14 @@ V1_2_GENERATOR_READY_ROUND37_EXPANDED_PROFILE = "v1_2_generator_ready_round37_ex
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_PROFILE = (
     "v1_2_generator_ready_round37_expanded_repaired"
 )
+V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_PROFILE = (
+    "v1_2_generator_ready_round41_manual_curated"
+)
+V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE = (
+    "v1_2_generator_ready_round42_dataset_expanded"
+)
+V1_2_DEMO_CANDIDATE_PROFILE = "v1_2_demo_candidate"
+V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE = "v1_2_demo_candidate_manual_batch2"
 
 DATASET_PROFILE_PRESETS = {
     PILOT_CURRENT_PROFILE: {
@@ -225,6 +269,58 @@ DATASET_PROFILE_PRESETS = {
         "require_per_serving_macros": True,
     },
     V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_DEMO_CANDIDATE_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE: {
         "allowed_scope_statuses": {
             "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
             "v1_1_generator_ready_draft",
