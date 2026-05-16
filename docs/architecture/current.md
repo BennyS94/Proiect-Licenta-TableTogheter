@@ -60,8 +60,37 @@ Limitari explicite ale demo-ului curent:
 - fara household multi-member simultan
 - family-level variety este inca imperfecta
 - unele outlier risks raman cu warnings
+- Feedback v1 este local/demo, nu productie
 - `data/recipesdb/current` ramane neatins
 - `data/fooddb/current` ramane neatins
+
+## 2.2. Feedback v1 local/demo
+
+Generator v1 are Feedback v1 implementat ca functie locala pentru demo si testare.
+
+Storage:
+- `data/runtime/generator_v1_feedback_events.jsonl`
+
+Tipuri suportate:
+- `liked`
+- `disliked`
+- `too_long`
+- `explicit_avoid`
+
+Aplicare:
+- `explicit_avoid` este hard filter pe `recipe_id`
+- `liked` creste scorul prin `feedback_fit`
+- `disliked` scade scorul prin `feedback_fit`
+- `too_long` aplica penalizare de timp si reduce `time_fit`
+
+Limitari:
+- JSONL local only
+- fara conturi reale
+- fara DB/backend/server
+- fara ML/KNN
+- fara personalizare de productie
+- fara propagare la nivel de ingrediente
+- context household/demo only
 
 ## 3. Current data model reality
 

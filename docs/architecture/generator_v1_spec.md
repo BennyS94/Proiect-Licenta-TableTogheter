@@ -19,6 +19,7 @@ Unitatea principala de selectie este reteta (`recipe`).
 
 Datele principale consumate:
 - `recipes`, `recipe_ingredients`, `recipe_nutrition_cache`, `member_profile`, `nutrition_target`, `household_preference_context`
+- pentru Feedback v1 local/demo: `data/runtime/generator_v1_feedback_events.jsonl`
 
 Decizii arhitecturale importante:
 - NU folosim OR-Tools/MILP in Generator v1 demo
@@ -151,6 +152,7 @@ Portion multipliers disponibile: 0.8x, 1.0x, 1.2x
 - In v1, preferintele sunt comune la nivel de `household`.
 - Profilul activ (`member_profile`) este folosit pentru `nutrition_target`.
 - `household_preference_context` contine liste simple: liked/disliked/avoid si time sensitivity.
+- In Feedback v1 local/demo, contextul este agregat din evenimente JSONL locale si ramane household/demo, nu productie.
 
 ---
 
@@ -159,11 +161,24 @@ Portion multipliers disponibile: 0.8x, 1.0x, 1.2x
 Tipuri minime:
 - `liked`, `disliked`, `too_long`, `explicit_avoid`
 
-Reguli:
-- `liked` -> bonus de scor
-- `disliked` -> penalizare de scor (nu hard ban implicit)
-- `too_long` -> influenteaza `time_fit`
-- `explicit_avoid` -> hard filter
+Status curent:
+- Feedback v1 este implementat ca feature local/demo pentru Generator v1.
+- Storage: `data/runtime/generator_v1_feedback_events.jsonl`
+- Feedback-ul se aplica la generatiile urmatoare.
+
+Reguli implementate:
+- `liked` -> bonus soft prin `feedback_fit`
+- `disliked` -> penalizare soft prin `feedback_fit` (nu hard ban implicit)
+- `too_long` -> penalizare de timp prin `time_feedback_penalty` si `time_fit`
+- `explicit_avoid` -> hard filter pe `recipe_id`
+
+Limitari:
+- local JSONL only
+- fara conturi reale
+- fara DB/backend/server
+- fara ML/KNN
+- fara personalizare de productie
+- fara propagare ingredient/family
 
 ---
 
@@ -253,8 +268,10 @@ household_time_sensitivity: `low`, `normal`, `high` (default `normal`)
 ## 19. Feedback fit
 
 - valoare neutra = 0.50
-- liked exact = +0.25
-- disliked exact = -0.30
+- liked exact = +0.12 per eveniment, contributie maxima +0.25
+- disliked exact = -0.15 per eveniment, contributie maxima -0.30
+- daca aceeasi reteta are liked si disliked, scorul foloseste efectul net
+- `explicit_avoid` ar trebui eliminat in filtrare; daca ajunge la scoring, primeste scor foarte scazut
 - clamp intre 0.0 si 1.0
 
 Extensii viitoare: acumulare preferinte familie/ingredient
@@ -351,7 +368,9 @@ Exemplu validat:
 ## 24. Module logice recomandate
 
 - `target_builder` (calc nutrition_target)
-- `feedback_adapter` (normalizeaza evenimente de feedback)
+- `feedback_store` (append/load/clear evenimente JSONL locale)
+- `feedback_adapter` (agrega evenimente in household_preference_context)
+- `feedback_fit` (calculeaza scorul local de feedback)
 - `candidate_filter` (aplica hard filters)
 - `recipe_scorer` (scoring v1)
 - `day_selector` / `plan_builder` (asambleaza ziua)
@@ -386,7 +405,7 @@ Exemplu validat:
 - Checkpoint 0: contract generator, profil, nutrition_target, feedback, hard filters, scoring - conceptual complet
 - Checkpoint 1: 1 household + 1 member_profile activ + 1 zi - demo/testing-ready
 - Checkpoint 2: multi-day v1 draft + demo polish - implementat/demo-ready
-- Checkpoint 3: feedback + UI polish si family-level variety polish
+- Checkpoint 3: Feedback v1 local/demo implementat; raman feedback explainability, UI polish si family-level variety polish
 - Checkpoint 4: source verification suplimentar si pregatire grocery/list
 - Checkpoint 5: household generation multi-profile
 
@@ -407,5 +426,5 @@ Exemplu validat:
 
 ## 31. Concluzie
 
-Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven, limitat la 1 household + 1 profile activ. Checkpoint 1 si Checkpoint 2 sunt demo-ready pe pachetul `v1_2_demo_final`; urmatorii pasi tin de feedback, polish de varietate, source verification, grocery/list si household multi-member ulterior.
+Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven, limitat la 1 household + 1 profile activ. Checkpoint 1 si Checkpoint 2 sunt demo-ready pe pachetul `v1_2_demo_final`, iar Feedback v1 exista ca feature local/demo. Urmatorii pasi tin de feedback explainability, polish de varietate, source verification, grocery/list si household multi-member ulterior.
 

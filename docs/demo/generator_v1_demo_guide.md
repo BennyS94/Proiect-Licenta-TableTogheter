@@ -9,6 +9,7 @@ Demo-ul arata:
 - generare pentru 3 zile fara repetitii exacte
 - filtrare demo-safe prin `profile_guard`
 - integrarea datasetului Recipes_DB v1.2 demo-final draft
+- Feedback v1 ca functie locala/demo
 
 Demo-ul nu trebuie prezentat ca productie sau ca arhitectura finala.
 
@@ -50,6 +51,51 @@ In dashboard:
 - foloseste `Generate 3 days` pentru demo multi-day
 
 Pentru dataseturile v1.2 demo, Streamlit seteaza implicit `profile_guard=demo`.
+
+## Feedback v1 demo
+
+Pornire Streamlit:
+
+```powershell
+streamlit run streamlit_app/generator_v1_dashboard.py
+```
+
+Config recomandat pentru demonstratia de feedback:
+- `dataset_profile=v1_2_demo_final`
+- `selection_mode=balanced_day`
+- `portion_policy=target_aware`
+- `meal_realism_mode=practical`
+- `quality_gate=demo_safe`
+- `profile_guard=demo`
+
+Flux recomandat:
+- genereaza 1 zi
+- apasa `Like` pe o reteta
+- apasa `Dislike` pe alta reteta
+- apasa `Too long` pe o reteta
+- apasa `Avoid this recipe` pe o reteta
+- genereaza din nou
+
+Explicatie pentru demo:
+- `Avoid this recipe` elimina reteta la generatiile urmatoare prin hard filter
+- `Dislike` scade scorul prin `feedback_fit`
+- `Like` creste `feedback_fit`
+- `Too long` scade `time_fit` prin `time_feedback_penalty`
+- feedback-ul se aplica la urmatoarea generatie, nu modifica meniul deja afisat
+
+Storage local:
+- `data/runtime/generator_v1_feedback_events.jsonl`
+
+Reset pentru demo:
+- foloseste `Clear feedback events` in panoul de feedback
+- curata istoricul de meniuri generate din dashboard daca vrei o demonstratie pornita de la zero
+
+Ce sa nu pretinzi despre Feedback v1:
+- nu este ML
+- nu este backend real de personalizare
+- nu este sistem de conturi utilizator
+- nu este recommendation engine de productie
+- nu propaga inca feedback la nivel de ingrediente sau familii de retete
 
 ## CLI 1-day
 
@@ -101,6 +147,7 @@ Exemplu demonstrabil:
 - Generare 3 zile cu no-repeat hard
 - Statusurile de validare si quality gate
 - `profile_guard` ca protectie pentru profiluri extreme
+- Feedback v1: Like, Dislike, Too long, Avoid this recipe
 - Faptul ca datasetul demo-final este draft/demo si nu modifica `current`
 
 ## Ce sa nu pretinzi
@@ -109,12 +156,13 @@ Exemplu demonstrabil:
 - Nu pretinde ca exista household multi-member simultan.
 - Nu pretinde ca exista grocery/price.
 - Nu pretinde ca exista OR-Tools/KNN/MILP ca motor de selectie.
+- Nu pretinde ca Feedback v1 este ML, backend real sau personalizare de productie.
 - Nu pretinde ca family-level variety este complet rezolvata.
 - Nu pretinde ca toate outlier risks sunt eliminate.
 
 ## Roadmap dupa demo
 
-- feedback + UI polish
+- feedback explainability + UI polish
 - family-level variety polish
 - Food_DB/source verification batch3
 - grocery/list prep

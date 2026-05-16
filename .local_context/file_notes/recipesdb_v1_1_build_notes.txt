@@ -2057,3 +2057,114 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Next recommendation:
   - Use `v1_2_demo_final` for license/demo with `profile_guard=demo`.
   - Do not promote to `current` until a separate production QA/promotion pass exists.
+
+## 59. Round51 / Streamlit debug dashboard cleanup - 2026-05-16
+- Scope:
+  - Cleaned up the Generator v1 Streamlit dashboard as a debug/test tool only, not a final product UI.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, or generator logic were changed.
+- Dashboard changes:
+  - Added a read-only "Recommended v1.2 test preset" section for `v1_2_demo_final`.
+  - Added an apply button that sets the recommended session config without starting generation.
+  - Moved detailed dataset/config selectors into `Advanced debug controls`.
+  - Kept historical profiles and advanced controls available for debugging.
+  - Grouped diagnostics into clearer expanders for candidates, selectors, quality gate, profile guard, recent recipe ids, and runtime.
+  - Follow-up layout cleanup moved the pipeline visualizer to the sidebar, made config sections collapsible, and made the main page output-first.
+- Validation:
+  - Added `tools/extra/check_streamlit_debug_dashboard_round51.py`.
+  - The check writes `data/recipesdb/audit/streamlit_round51_debug_dashboard_check.txt`.
+
+## 60. Round52 / Feedback v1 local demo integration - 2026-05-16
+- Scope:
+  - Implemented Feedback v1 for Generator v1 demo/testing as local JSONL state only.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, architecture docs, persistent docs, ML/KNN, database, server/backend, or nutrition target formulas were changed.
+- Feedback storage:
+  - Default storage path: `data/runtime/generator_v1_feedback_events.jsonl`.
+  - Evaluator test storage path: `data/runtime/generator_v1_round52_feedback_events.jsonl`.
+  - Feedback event types: `liked`, `disliked`, `too_long`, `explicit_avoid`.
+  - Storage module: `src/generator_v1/feedback_store.py`, with JSONL append/load/clear and malformed-line warnings.
+- Preference context and generator behavior:
+  - Added `src/generator_v1/feedback_adapter.py` to aggregate events into household/demo preference context.
+  - Added `src/generator_v1/feedback_fit.py` for local per-recipe score feedback.
+  - `explicit_avoid` is applied as a hard recipe filter and reports `filtered_by_explicit_avoid`.
+  - `liked` adds a soft score bonus through `feedback_fit`.
+  - `disliked` adds a soft score penalty through `feedback_fit`.
+  - `too_long` applies a visible `time_feedback_penalty` and lowers `time_fit`.
+  - Nutrition validation remains unchanged; feedback cannot make invalid nutrition pass.
+- CLI support:
+  - Added `--feedback_events_path`, `--show_feedback_context`, `--clear_feedback`, and `--feedback_disabled`.
+  - Default behavior loads feedback if the JSONL file exists.
+  - `--feedback_disabled` uses neutral context.
+- Streamlit support:
+  - The dashboard now loads feedback before generation and passes it into filtering/scoring.
+  - Each generated meal has controls for Like, Dislike, Too long, and Avoid this recipe.
+  - Feedback context is visible in an expander with liked/disliked/too_long/avoided counts.
+  - Clear feedback events is available from the dashboard.
+  - Avoid affects future generations, not the already displayed menu.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_round52_feedback_effect.py`.
+  - Output files:
+    - `data/recipesdb/audit/generator_v1_round52_feedback_effect_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round52_feedback_effect_runs.csv`
+    - `data/recipesdb/audit/generator_v1_round52_feedback_effect_meals.csv`
+    - `data/recipesdb/audit/generator_v1_round52_feedback_context.json`
+  - Evaluator result on `v1_2_demo_final`:
+    - baseline selected recipes: `recipes_v1_2_round41_manual_046`, `recipes_v1_2_round42_dataset_027`, `recipes_v1_2_round42_dataset_037`, `recipes_v1_2_round42_dataset_166`
+    - avoided recipe: `recipes_v1_2_round42_dataset_037`
+    - `avoided_recipe_removed=True`
+    - disliked recipe: `recipes_v1_2_round42_dataset_027`
+    - `disliked_selection_changed=True`
+    - `disliked_feedback_fit_penalized=True`
+    - liked recipe: `recipes_v1_2_round41_manual_029`
+    - `liked_feedback_fit_increased=True`
+    - too_long recipe: `recipes_v1_2_round41_manual_003`
+    - `time_penalty_applied=True`
+    - `plan_remains_valid=True`
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - One-day `v1_2_demo_final` CLI with `--feedback_disabled` passed with valid/accept output.
+  - One-day `v1_2_demo_final` CLI with `--show_feedback_context` passed with empty default context.
+  - Three-day `v1_2_demo_final` CLI with hard no-repeat/direct builder passed: `valid=3/3`, `accept=3/3`, `repeated=0`, `multi_day_good`.
+  - `pilot_current` CLI smoke still runs; status remains the known `invalid_nutrition`, not a new execution failure.
+- Known limitations:
+  - Local JSONL only.
+  - No real user accounts.
+  - No DB/backend/server.
+  - No learning model.
+  - No ingredient-level propagation yet.
+  - Feedback is household/demo context, not production personalization.
+- Next recommended step:
+  - Add a small UI/audit view that compares before/after candidate ranks for a selected feedback item, so demo users can see why the next generation changed.
+
+## 61. Round53 / Feedback v1 documentation and demo guide - 2026-05-16
+- Scope:
+  - Documented Feedback v1 as an implemented local/demo Generator v1 feature.
+  - Updated demo guidance for showing feedback in Streamlit.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, generator logic, or feedback behavior were changed.
+- Streamlit confirmation:
+  - Feedback v1 is confirmed working in the dashboard.
+  - Controls available per generated meal: Like, Dislike, Too long, Avoid this recipe.
+  - Feedback applies to the next generation.
+  - Clear feedback events resets the local context.
+- Docs updated:
+  - `docs/demo/generator_v1_demo_guide.md`
+  - `docs/architecture/generator_v1_checkpoint_status.md`
+  - `docs/architecture/current.md`
+  - `docs/architecture/generator_v1_spec.md`
+  - `docs/architecture/generator_roadmap.md`
+  - `docs/architecture/generator_v1_feedback_status.md`
+- Feedback status documented:
+  - Storage path: `data/runtime/generator_v1_feedback_events.jsonl`.
+  - `liked` = soft score bonus.
+  - `disliked` = soft score penalty.
+  - `too_long` = time penalty / lower `time_fit`.
+  - `explicit_avoid` = hard filter / recipe ban.
+- Known limitations:
+  - Local JSONL only.
+  - No real user accounts.
+  - No DB/backend/server.
+  - No ML/KNN.
+  - No production personalization.
+  - No ingredient-level or family-level propagation yet.
+  - Feedback remains household/demo context only.
+- Next recommended step:
+  - Add a small feedback explainability view that compares before/after candidate ranks or selected recipe diagnostics for a feedback event.

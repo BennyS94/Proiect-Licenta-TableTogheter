@@ -19,7 +19,7 @@ Checkpoint-uri:
 - Checkpoint 0: contract generator, profil, `nutrition_target`, feedback, hard filters, scoring - conceptual complet
 - Checkpoint 1: 1 household + 1 `member_profile` activ + 1 zi - demo/testing-ready pe Generator v1
 - Checkpoint 2: multi-day v1 draft + demo polish - implementat/demo-ready pentru 3 zile
-- Checkpoint 3: feedback + UI polish si family-level variety polish
+- Checkpoint 3: Feedback v1 local/demo implementat; raman feedback explainability, UI polish si family-level variety polish
 - Checkpoint 4: pregatire grocery/list si source verification suplimentar
 - Checkpoint 5: household generation cu mai multe profile active simultan
 
@@ -38,6 +38,7 @@ Stare demo curenta:
 - active recipes: `261`
 - sursa: `v1_2_demo_candidate_round48_cleaned`
 - status: demo-final draft, nu productie/current
+- Feedback v1 local/demo este implementat cu storage JSONL in `data/runtime/generator_v1_feedback_events.jsonl`
 - `data/recipesdb/current` ramane neatins
 - `data/fooddb/current` ramane neatins
 
@@ -57,4 +58,5 @@ Explicit in afara scope-ului demo curent:
 - fara OR-Tools / KNN ca motor principal / MILP
 - fara grocery/price
 - fara household multi-member simultan
+- Feedback v1 nu este backend de productie, ML sau sistem de conturi
 - `profile_guard` este strat de protectie demo, nu schimbare de formula target

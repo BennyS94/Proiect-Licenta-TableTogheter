@@ -5,6 +5,7 @@ from typing import Iterable
 
 import pandas as pd
 
+from src.generator_v1.feedback_fit import compute_feedback_fit
 from src.generator_v1.macro_fit import macro_fit
 from src.generator_v1.meal_realism import compute_meal_realism
 from src.generator_v1.nutrition_quality import compute_nutrition_quality
@@ -19,7 +20,7 @@ from src.generator_v1.recipe_time_adapter import compute_time_features
 from src.generator_v1.score_preview import compute_score_preview
 from src.generator_v1.slot_fit import compute_slot_fit
 from src.generator_v1.target_builder import NutritionTarget
-from src.generator_v1.time_fit import household_time_fit
+from src.generator_v1.time_fit import apply_time_feedback_penalty, household_time_fit
 
 
 PORTION_MULTIPLIERS = tuple(STANDARD_PORTION_MULTIPLIERS)
@@ -33,6 +34,7 @@ def build_slot_candidates(
     ingredients: pd.DataFrame | None = None,
     fooddb: pd.DataFrame | None = None,
     portion_policy_mode: str = "standard",
+    feedback_preference_context: dict[str, object] | None = None,
 ) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     if filtered_candidates.empty:
@@ -51,11 +53,17 @@ def build_slot_candidates(
                 nutrition_cache_row=recipe,
             )
             time_features = compute_time_features(recipe)
-            time_fit = household_time_fit(
+            base_time_fit = household_time_fit(
                 total_time_min=time_features["effective_time_min_for_scoring"],
                 slot=slot,
                 time_sensitivity=time_sensitivity,
             )
+            time_feedback = apply_time_feedback_penalty(
+                time_fit=base_time_fit,
+                recipe_id=recipe.get("recipe_id"),
+                preference_context=feedback_preference_context,
+            )
+            time_fit = time_feedback["time_fit"]
             serving_weight_g_estimated = _serving_weight_g_estimated(recipe)
             overlay_serving_weight_g_estimated = _overlay_serving_weight_g_estimated(
                 overlay
@@ -97,6 +105,7 @@ def build_slot_candidates(
                     "recipe_id": recipe.get("recipe_id"),
                     "display_name": recipe.get("display_name"),
                     "recipe_name": recipe.get("recipe_name"),
+                    "recipe_family_name": recipe.get("recipe_family_name"),
                     "recipe_kind": recipe.get("recipe_kind"),
                     "recipe_category": recipe.get("recipe_category"),
                     "recipe_subcategory": recipe.get("recipe_subcategory"),
@@ -182,7 +191,14 @@ def build_slot_candidates(
                     "uses_pilot_time_fallback": time_features["uses_pilot_time_fallback"],
                     "time_estimation_reasons": time_features["time_estimation_reasons"],
                     "time_fit": time_fit,
+                    "time_feedback_penalty": time_feedback["time_feedback_penalty"],
+                    "time_fit_reasons": time_feedback["time_fit_reasons"],
                 }
+                feedback_scores = compute_feedback_fit(
+                    candidate_row,
+                    feedback_preference_context,
+                )
+                candidate_row.update(feedback_scores)
                 slot_scores = compute_slot_fit(candidate_row, slot)
                 candidate_row.update(slot_scores)
                 base_realism = compute_meal_realism(candidate_row, slot)
@@ -222,6 +238,10 @@ def build_slot_candidates(
                         "base_score_preview": preview_scores["base_score_preview"],
                         "nutrition_quality": preview_scores["nutrition_quality"],
                         "feedback_fit": preview_scores["feedback_fit"],
+                        "feedback_bonus_penalty": feedback_scores[
+                            "feedback_bonus_penalty"
+                        ],
+                        "feedback_reasons": feedback_scores["feedback_reasons"],
                         "variety_fit": preview_scores["variety_fit"],
                         "score_preview": preview_scores["score_preview"],
                     }
@@ -241,6 +261,7 @@ def _slot_candidate_columns() -> list[str]:
         "slot",
         "recipe_id",
         "display_name",
+        "recipe_family_name",
         "recipe_kind",
         "recipe_category",
         "recipe_subcategory",
@@ -295,6 +316,8 @@ def _slot_candidate_columns() -> list[str]:
         "uses_pilot_time_fallback",
         "time_estimation_reasons",
         "time_fit",
+        "time_feedback_penalty",
+        "time_fit_reasons",
         "slot_fit",
         "slot_fit_reasons",
         "is_slot_suspicious",
@@ -314,6 +337,8 @@ def _slot_candidate_columns() -> list[str]:
         "is_nutrition_suspicious",
         "base_score_preview",
         "feedback_fit",
+        "feedback_bonus_penalty",
+        "feedback_reasons",
         "variety_fit",
         "score_preview",
     ]

@@ -82,12 +82,20 @@ from src.generator_v1.data_loader import (
     load_recipe_candidate_pool,
 )
 from src.generator_v1.candidate_filter import (
-    build_household_preference_context,
+    build_household_preference_context as build_profile_preference_context,
     filter_recipe_candidates,
 )
 from src.generator_v1.candidate_diagnostics import build_candidate_diagnostics
 from src.generator_v1.day_selector import select_one_day_plan
 from src.generator_v1.day_selector_balanced import select_one_day_plan_balanced
+from src.generator_v1.feedback_adapter import (
+    build_household_preference_context as build_feedback_preference_context,
+)
+from src.generator_v1.feedback_store import (
+    DEFAULT_FEEDBACK_EVENTS_PATH,
+    clear_feedback_events,
+    load_feedback_events,
+)
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.multi_day_audit import (
     multi_day_readable_lines,
@@ -125,6 +133,11 @@ V1_1_RECOMMENDED_TEST_PRESET = "v1_1_recommended_test"
 
 def main() -> None:
     args = _parse_args()
+    if args.clear_feedback:
+        clear_feedback_events(args.feedback_events_path)
+        print(f"Feedback events cleared: {_feedback_events_path(args)}")
+        return
+
     profile = load_member_profile(args.profile)
     target = build_nutrition_target(profile)
     profile_guard_result = _profile_guard_result(args, profile, target)
@@ -144,11 +157,13 @@ def main() -> None:
         dataset_profile=args.dataset_profile,
     )
     fooddb = load_fooddb_current()
-    preference_context = build_household_preference_context(profile)
+    preference_context = build_profile_preference_context(profile)
+    feedback_preference_context = _feedback_preference_context(args, profile)
     filtered_candidates = filter_recipe_candidates(
         eligible_candidates=pool.eligible_candidates,
         ingredients=pool.ingredients,
         context=preference_context,
+        feedback_preference_context=feedback_preference_context,
     )
     slot_candidates = build_slot_candidates(
         target=target,
@@ -157,6 +172,7 @@ def main() -> None:
         ingredients=pool.ingredients,
         fooddb=fooddb,
         portion_policy_mode=args.portion_policy,
+        feedback_preference_context=feedback_preference_context,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
@@ -172,6 +188,8 @@ def main() -> None:
     _print_dataset_summary(args, pool)
     _print_target_summary(target)
     _print_profile_guard(profile_guard_result, args)
+    if args.show_feedback_context:
+        _print_feedback_context(feedback_preference_context, args)
     _print_pool_summary(pool.candidates, pool.eligible_candidates)
     _print_slot_candidate_summary(filtered_candidates, slot_candidates)
     _print_candidate_diagnostics(candidate_diagnostics)
@@ -190,6 +208,7 @@ def main() -> None:
         multi_day_plan["nutrition_cache_diagnostics"] = nutrition_cache_diagnostics
         if profile_guard_result is not None:
             multi_day_plan["profile_guard"] = profile_guard_result
+        multi_day_plan["feedback_context"] = feedback_preference_context
         multi_day_plan["pool_summary"] = _pool_summary(args, pool, filtered_candidates, slot_candidates)
         _print_multi_day_plan(multi_day_plan)
         if not args.no_write_outputs:
@@ -218,6 +237,7 @@ def main() -> None:
         )
     plan["target"] = _target_to_dict(target)
     plan["candidate_diagnostics"] = candidate_diagnostics
+    plan["feedback_context"] = feedback_preference_context
     if profile_guard_result is not None:
         plan["profile_guard"] = profile_guard_result
     plan["validation"] = validate_one_day_plan(plan, target)
@@ -355,6 +375,10 @@ def _parse_args() -> argparse.Namespace:
         default="off",
     )
     parser.add_argument("--allow_unsupported_profile", action="store_true")
+    parser.add_argument("--feedback_events_path", default=None, type=Path)
+    parser.add_argument("--show_feedback_context", action="store_true")
+    parser.add_argument("--clear_feedback", action="store_true")
+    parser.add_argument("--feedback_disabled", action="store_true")
     parser.add_argument("--out_csv", default=Path("outputs/generator_v1_plan.csv"), type=Path)
     parser.add_argument("--out_json", default=Path("outputs/generator_v1_plan.json"), type=Path)
     parser.add_argument("--out_txt", default=Path("outputs/generator_v1_readable.txt"), type=Path)
@@ -541,6 +565,8 @@ def _print_dataset_summary(args: argparse.Namespace, pool: object) -> None:
     print(f"  direct_slot_shortlist_size={args.direct_slot_shortlist_size}")
     print(f"  profile_guard={args.profile_guard}")
     print(f"  allow_unsupported_profile={args.allow_unsupported_profile}")
+    print(f"  feedback_events_path={_feedback_events_path(args)}")
+    print(f"  feedback_disabled={args.feedback_disabled}")
     recent_recipe_ids = _parse_recent_recipe_ids(args.recent_recipe_ids)
     if recent_recipe_ids:
         print(f"  recent_recipe_ids={','.join(recent_recipe_ids)}")
@@ -666,6 +692,48 @@ def _print_profile_guard(
         print("  unsupported_profile_override=True")
 
 
+def _feedback_events_path(args: argparse.Namespace) -> Path:
+    return args.feedback_events_path or DEFAULT_FEEDBACK_EVENTS_PATH
+
+
+def _feedback_preference_context(
+    args: argparse.Namespace,
+    profile: dict[str, object],
+) -> dict[str, object]:
+    events = [] if args.feedback_disabled else load_feedback_events(args.feedback_events_path)
+    return build_feedback_preference_context(
+        events=events,
+        household_id=str(profile.get("household_id", "")),
+        member_profile_id=str(profile.get("member_profile_id", "")),
+        dataset_profile=args.dataset_profile,
+    )
+
+
+def _print_feedback_context(
+    preference_context: dict[str, object],
+    args: argparse.Namespace,
+) -> None:
+    hard_filters = preference_context.get("hard_filters", {})
+    score_preferences = preference_context.get("score_preferences", {})
+    time_preferences = preference_context.get("time_preferences", {})
+    meta = preference_context.get("meta", {})
+    liked = _count_mapping(score_preferences.get("liked_recipe_ids"))
+    disliked = _count_mapping(score_preferences.get("disliked_recipe_ids"))
+    too_long = _count_mapping(time_preferences.get("too_long_recipe_ids"))
+    banned = hard_filters.get("banned_recipe_ids", [])
+    print("Feedback context")
+    print(f"  feedback_events_path={_feedback_events_path(args)}")
+    print(f"  feedback_disabled={args.feedback_disabled}")
+    print(f"  event_count={meta.get('event_count', 0)}")
+    print(f"  last_updated_at={meta.get('last_updated_at', '') or 'missing'}")
+    print(f"  liked_recipes={len(liked)}")
+    print(f"  disliked_recipes={len(disliked)}")
+    print(f"  too_long_recipes={len(too_long)}")
+    print(f"  avoided_recipes={len(banned) if isinstance(banned, list) else 0}")
+    if banned:
+        print("  avoided_recipe_ids=" + ",".join(str(item) for item in banned))
+
+
 def _print_pool_summary(candidates: pd.DataFrame, eligible_candidates: pd.DataFrame) -> None:
     print("Recipe candidate pool")
     print(f"  total_recipes_loaded={len(candidates)}")
@@ -705,6 +773,18 @@ def _print_slot_candidate_summary(
 ) -> None:
     print("Slot candidate preparation")
     print(f"  filtered_candidate_count={len(filtered_candidates)}")
+    filter_diagnostics = filtered_candidates.attrs.get("filter_diagnostics", {})
+    if isinstance(filter_diagnostics, dict):
+        print(
+            "  filtered_by_explicit_avoid="
+            f"{filter_diagnostics.get('filtered_by_explicit_avoid', 0)}"
+        )
+        avoided_ids = filter_diagnostics.get("filtered_by_explicit_avoid_recipe_ids", [])
+        if avoided_ids:
+            print(
+                "  filtered_by_explicit_avoid_recipe_ids="
+                + ",".join(str(item) for item in avoided_ids)
+            )
 
     if slot_candidates.empty:
         print("  slot_candidate_count=0")
@@ -811,6 +891,8 @@ def _print_slot_candidate_summary(
                 f"{_format_number(row['original_effective_time_min_for_scoring'], decimals=0)}, "
                 f"has_long_passive_time={row['has_long_passive_time']}, "
                 f"uses_pilot_time_fallback={row['uses_pilot_time_fallback']}, "
+                "time_feedback_penalty="
+                f"{_format_number(row.get('time_feedback_penalty'), decimals=2)}, "
                 f"macro_fit={_format_number(row['macro_fit'], decimals=2)}, "
                 f"time_fit={_format_number(row['time_fit'], decimals=2)}, "
                 f"slot_fit={_format_number(row['slot_fit'], decimals=2)}, "
@@ -818,6 +900,7 @@ def _print_slot_candidate_summary(
                 f"is_nutrition_suspicious={row['is_nutrition_suspicious']}, "
                 f"is_slot_suspicious={row.get('is_slot_suspicious')}, "
                 f"feedback_fit={_format_number(row['feedback_fit'], decimals=2)}, "
+                f"feedback_reasons={_format_reasons(row.get('feedback_reasons'))}, "
                 f"variety_fit={_format_number(row['variety_fit'], decimals=2)}, "
                 f"base_score_preview={_format_number(row['base_score_preview'], decimals=2)}, "
                 f"score_preview={_format_number(row['score_preview'], decimals=2)}, "
@@ -963,6 +1046,7 @@ def _pool_summary(
     filtered_candidates: pd.DataFrame,
     slot_candidates: pd.DataFrame,
 ) -> dict[str, object]:
+    filter_diagnostics = filtered_candidates.attrs.get("filter_diagnostics", {})
     return {
         "dataset_profile": args.dataset_profile,
         "recipes_path": str(args.recipes),
@@ -986,6 +1070,18 @@ def _pool_summary(
         "direct_slot_shortlist_size": args.direct_slot_shortlist_size,
         "profile_guard": args.profile_guard,
         "allow_unsupported_profile": args.allow_unsupported_profile,
+        "feedback_disabled": args.feedback_disabled,
+        "feedback_events_path": str(_feedback_events_path(args)),
+        "filtered_by_explicit_avoid": (
+            filter_diagnostics.get("filtered_by_explicit_avoid", 0)
+            if isinstance(filter_diagnostics, dict)
+            else 0
+        ),
+        "filtered_by_explicit_avoid_recipe_ids": (
+            filter_diagnostics.get("filtered_by_explicit_avoid_recipe_ids", [])
+            if isinstance(filter_diagnostics, dict)
+            else []
+        ),
         "loader_warnings": pool.loader_diagnostics.get("warnings", []),
     }
 
@@ -1093,7 +1189,14 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
             f"has_long_passive_time={meal['has_long_passive_time']}, "
             f"uses_pilot_time_fallback={meal['uses_pilot_time_fallback']}, "
             f"time_estimation_reasons={_format_reasons(meal.get('time_estimation_reasons'))}, "
+            "time_feedback_penalty="
+            f"{_format_number(meal.get('time_feedback_penalty'), decimals=2)}, "
+            "time_fit_reasons="
+            f"{_format_reasons(meal.get('time_fit_reasons'))}, "
             f"nutrition_quality={_format_number(meal['nutrition_quality'], decimals=2)}, "
+            f"feedback_fit={_format_number(meal.get('feedback_fit'), decimals=2)}, "
+            "feedback_reasons="
+            f"{_format_reasons(meal.get('feedback_reasons'))}, "
             f"is_nutrition_suspicious={meal['is_nutrition_suspicious']}, "
             f"is_slot_suspicious={meal.get('is_slot_suspicious')}, "
             f"score_preview={_format_number(meal['score_preview'], decimals=2)}, "
@@ -1617,6 +1720,20 @@ def _format_counts(value: object) -> str:
     if not isinstance(value, dict) or not value:
         return "none"
     return ", ".join(f"{key}:{item}" for key, item in value.items())
+
+
+def _count_mapping(value: object) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    result: dict[str, int] = {}
+    for key, item in value.items():
+        try:
+            count = int(item)
+        except (TypeError, ValueError):
+            count = 0
+        if str(key).strip() and count > 0:
+            result[str(key)] = count
+    return result
 
 
 def _format_suggested_adjustments(value: object) -> str:

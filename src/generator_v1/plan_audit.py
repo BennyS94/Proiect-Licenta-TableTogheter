@@ -25,6 +25,8 @@ def write_plan_csv(plan: dict[str, Any], out_csv: str | Path) -> None:
         row["time_estimation_reasons"] = _format_reasons(
             row.get("time_estimation_reasons")
         )
+        row["time_fit_reasons"] = _format_reasons(row.get("time_fit_reasons"))
+        row["feedback_reasons"] = _format_reasons(row.get("feedback_reasons"))
         row["pilot_nutrition_overlay_reasons"] = _format_reasons(
             row.get("pilot_nutrition_overlay_reasons")
         )
@@ -118,7 +120,10 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                     f"  score_preview={_fmt(meal.get('score_preview'), decimals=2)}, "
                     f"macro_fit={_fmt(meal.get('macro_fit'), decimals=2)}, "
                     f"time_fit={_fmt(meal.get('time_fit'), decimals=2)}, "
+                    "time_feedback_penalty="
+                    f"{_fmt(meal.get('time_feedback_penalty'), decimals=2)}, "
                     f"slot_fit={_fmt(meal.get('slot_fit'), decimals=2)}, "
+                    f"feedback_fit={_fmt(meal.get('feedback_fit'), decimals=2)}, "
                     f"nutrition_quality={_fmt(meal.get('nutrition_quality'), decimals=2)}, "
                     f"suspicious={meal.get('is_nutrition_suspicious')}, "
                     f"slot_suspicious={meal.get('is_slot_suspicious')}"
@@ -143,6 +148,14 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                 (
                     "  time_estimation_reasons="
                     + _format_reasons(meal.get("time_estimation_reasons"))
+                ),
+                (
+                    "  time_fit_reasons="
+                    + _format_reasons(meal.get("time_fit_reasons"))
+                ),
+                (
+                    "  feedback_reasons="
+                    + _format_reasons(meal.get("feedback_reasons"))
                 ),
             ]
         )
@@ -300,7 +313,7 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
         [
             "",
             "Note",
-            "feedback_fit si variety_fit sunt placeholder neutru 0.50, nu logica finala.",
+            "feedback_fit foloseste Feedback v1 local JSONL; variety_fit ramane placeholder neutru 0.50.",
             "pilot time fallback este temporar si foloseste keyword-uri de timp pasiv din text.",
             "pilot nutrition overlay este temporar si nu rescrie recipe_nutrition_cache.",
         ]

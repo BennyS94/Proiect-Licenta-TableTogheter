@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -138,14 +139,24 @@ def filter_recipe_candidates(
     eligible_candidates: pd.DataFrame,
     ingredients: pd.DataFrame,
     context: HouseholdPreferenceContext,
+    feedback_preference_context: Mapping[str, object] | None = None,
 ) -> pd.DataFrame:
     if eligible_candidates.empty:
-        return eligible_candidates.copy()
+        filtered = eligible_candidates.copy()
+        filtered.attrs["filter_diagnostics"] = _filter_diagnostics(
+            eligible_candidates=eligible_candidates,
+            filtered_candidates=filtered,
+            feedback_banned_recipe_ids=set(),
+            banned_ingredient_recipe_ids=set(),
+        )
+        return filtered
 
     filtered = eligible_candidates.copy()
-    if context.banned_recipe_ids:
+    feedback_banned_recipe_ids = _feedback_banned_recipe_ids(feedback_preference_context)
+    banned_recipe_ids = set(context.banned_recipe_ids) | feedback_banned_recipe_ids
+    if banned_recipe_ids and "recipe_id" in filtered.columns:
         filtered = filtered.loc[
-            ~filtered["recipe_id"].astype(str).isin(context.banned_recipe_ids)
+            ~filtered["recipe_id"].astype(str).isin(banned_recipe_ids)
         ].copy()
 
     banned_ingredient_recipe_ids = _recipe_ids_with_banned_ingredients(
@@ -158,6 +169,12 @@ def filter_recipe_candidates(
             ~filtered["recipe_id"].astype(str).isin(banned_ingredient_recipe_ids)
         ].copy()
 
+    filtered.attrs["filter_diagnostics"] = _filter_diagnostics(
+        eligible_candidates=eligible_candidates,
+        filtered_candidates=filtered,
+        feedback_banned_recipe_ids=feedback_banned_recipe_ids,
+        banned_ingredient_recipe_ids=banned_ingredient_recipe_ids,
+    )
     return filtered
 
 
@@ -224,6 +241,43 @@ def _as_string_set(values: Any) -> set[str]:
         for value in values
         if str(value).strip()
     }
+
+
+def _feedback_banned_recipe_ids(
+    feedback_preference_context: Mapping[str, object] | None,
+) -> set[str]:
+    if not isinstance(feedback_preference_context, Mapping):
+        return set()
+    hard_filters = feedback_preference_context.get("hard_filters")
+    if not isinstance(hard_filters, Mapping):
+        return set()
+    return _as_string_set(hard_filters.get("banned_recipe_ids", []))
+
+
+def _filter_diagnostics(
+    eligible_candidates: pd.DataFrame,
+    filtered_candidates: pd.DataFrame,
+    feedback_banned_recipe_ids: set[str],
+    banned_ingredient_recipe_ids: set[str],
+) -> dict[str, object]:
+    eligible_ids = _recipe_ids_from_frame(eligible_candidates)
+    filtered_ids = _recipe_ids_from_frame(filtered_candidates)
+    filtered_by_explicit_avoid = sorted(
+        recipe_id
+        for recipe_id in feedback_banned_recipe_ids
+        if recipe_id in eligible_ids and recipe_id not in filtered_ids
+    )
+    return {
+        "filtered_by_explicit_avoid": len(filtered_by_explicit_avoid),
+        "filtered_by_explicit_avoid_recipe_ids": filtered_by_explicit_avoid,
+        "filtered_by_banned_ingredients": len(banned_ingredient_recipe_ids),
+    }
+
+
+def _recipe_ids_from_frame(frame: pd.DataFrame) -> set[str]:
+    if "recipe_id" not in frame.columns:
+        return set()
+    return set(frame["recipe_id"].astype(str))
 
 
 def _normalize_text(value: Any) -> str:

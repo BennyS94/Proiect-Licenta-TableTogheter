@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.generator_v1.candidate_diagnostics import build_candidate_diagnostics
 from src.generator_v1.candidate_filter import (
-    build_household_preference_context,
+    build_household_preference_context as build_profile_preference_context,
     filter_recipe_candidates,
 )
 from src.generator_v1.data_loader import (
@@ -97,6 +97,15 @@ from src.generator_v1.data_loader import (
 )
 from src.generator_v1.day_selector import select_one_day_plan
 from src.generator_v1.day_selector_balanced import select_one_day_plan_balanced
+from src.generator_v1.feedback_adapter import (
+    build_household_preference_context as build_feedback_preference_context,
+)
+from src.generator_v1.feedback_store import (
+    DEFAULT_FEEDBACK_EVENTS_PATH,
+    append_feedback_event,
+    clear_feedback_events,
+    load_feedback_events,
+)
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.multi_day_audit import multi_day_readable_lines
 from src.generator_v1.multi_day_selector import (
@@ -120,13 +129,14 @@ from src.generator_v1.target_builder import NutritionTarget, build_nutrition_tar
 
 
 PROFILE_PATH = Path("profiles/member_profile_demo_v1.json")
-SESSION_SCHEMA_VERSION = 25
+SESSION_SCHEMA_VERSION = 26
 SESSION_SCHEMA_KEY = "generator_v1_dashboard_schema_version"
 SESSION_MENUS_KEY = "generator_v1_generated_menus"
 SESSION_LATEST_MENU_KEY = "generator_v1_latest_menu"
 SESSION_MULTIDAY_PLANS_KEY = "generator_v1_multiday_plans"
 SESSION_LATEST_MULTIDAY_KEY = "generator_v1_latest_multiday"
 SESSION_FEEDBACK_KEY = "generator_v1_feedback_events"
+SESSION_FEEDBACK_NOTICE_KEY = "generator_v1_feedback_notice"
 SESSION_RECENT_RECIPE_IDS_KEY = "generator_v1_recent_recipe_ids"
 SESSION_RUN_COUNTER_KEY = "generator_v1_run_counter"
 SESSION_DATASET_PROFILE_KEY = "generator_v1_dataset_profile"
@@ -144,6 +154,7 @@ SESSION_DAY_CANDIDATE_BUILDER_KEY = "generator_v1_day_candidate_builder"
 SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY = "generator_v1_direct_slot_shortlist_size"
 SESSION_PROFILE_GUARD_KEY = "generator_v1_profile_guard"
 SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY = "generator_v1_allow_unsupported_profile"
+SESSION_RECOMMENDED_PRESET_APPLIED_KEY = "generator_v1_recommended_preset_applied"
 RECENT_MENUS_FOR_VARIATION = 2
 V1_1_RECOMMENDED_SELECTION_MODE = "balanced_day"
 V1_1_RECOMMENDED_ALTERNATIVE_COUNT = 3
@@ -151,6 +162,37 @@ V1_1_RECOMMENDED_DIVERSITY_MODE = "none"
 V1_1_RECOMMENDED_PORTION_POLICY = "target_aware"
 V1_1_RECOMMENDED_MEAL_REALISM_MODE = "practical"
 V1_1_RECOMMENDED_QUALITY_GATE = "demo_safe"
+RECOMMENDED_V1_2_TEST_PRESET = {
+    "dataset_profile": V1_2_DEMO_FINAL_PROFILE,
+    "selection_mode": "balanced_day",
+    "portion_policy": "target_aware",
+    "meal_realism_mode": "practical",
+    "quality_gate": "demo_safe",
+    "profile_guard": "demo",
+    "alternative_count": 3,
+    "diversity_mode": "none",
+    "multi_day_mode": MULTI_DAY_MODE_GLOBAL,
+    "multi_day_no_repeat_policy": "hard",
+    "day_candidate_builder": "direct_from_slots",
+    "multi_day_speed_mode": "fast",
+    "day_candidate_pool_size": 75,
+    "direct_slot_shortlist_size": 12,
+    "allow_unsupported_profile": False,
+}
+RECOMMENDED_V1_2_PRESET_DISPLAY_KEYS = [
+    "dataset_profile",
+    "selection_mode",
+    "portion_policy",
+    "meal_realism_mode",
+    "quality_gate",
+    "profile_guard",
+    "alternative_count",
+    "diversity_mode",
+    "multi_day_mode",
+    "multi_day_no_repeat_policy",
+    "day_candidate_builder",
+    "multi_day_speed_mode",
+]
 
 SELECTION_MODE_OPTIONS = {
     "Greedy": "greedy",
@@ -334,153 +376,201 @@ def main() -> None:
     _render_styles()
     _ensure_session_state()
 
-    pipeline_col, content_col = st.columns([0.85, 3.15], gap="large")
-    with pipeline_col:
+    with st.sidebar.expander("Generator v1 pipeline", expanded=False):
         _render_pipeline()
 
-    with content_col:
-        st.title("TableTogether / Generator v1 Test Dashboard")
-        dataset_config = _render_dataset_selector()
-        selection_mode = _render_selection_mode_selector()
-        alternative_count, diversity_mode = _render_alternative_controls(selection_mode)
-        portion_policy = _render_portion_policy_selector()
-        meal_realism_mode = _render_meal_realism_selector()
-        quality_gate = _render_quality_gate_selector()
-        profile_guard = _render_profile_guard_selector(dataset_config)
-        multi_day_mode = _render_multi_day_mode_selector()
-        no_repeat_policy = _render_multi_day_no_repeat_policy_selector()
-        day_candidate_pool_size = _render_day_candidate_pool_size_selector()
-        multi_day_speed_mode = _render_multi_day_speed_mode_selector()
-        day_candidate_builder = _render_day_candidate_builder_selector()
-        direct_slot_shortlist_size = _render_direct_slot_shortlist_size_selector()
-        active_config = _current_generation_config(dataset_config)
-        _render_active_generation_config(active_config)
-        guard_profile = load_member_profile(PROFILE_PATH)
-        guard_target = build_nutrition_target(guard_profile)
-        profile_guard_result = _dashboard_profile_guard_result(
-            dataset_config=dataset_config,
-            profile=guard_profile,
-            target=guard_target,
+    st.title("TableTogether / Generator v1 Test Dashboard")
+    _render_recommended_v1_2_preset_section()
+    dataset_config = _render_configuration_controls()
+    active_config = _current_generation_config(dataset_config)
+    _render_active_generation_config(active_config)
+    _render_feedback_context_panel(active_config)
+    guard_profile = load_member_profile(PROFILE_PATH)
+    guard_target = build_nutrition_target(guard_profile)
+    profile_guard_result = _dashboard_profile_guard_result(
+        dataset_config=dataset_config,
+        profile=guard_profile,
+        target=guard_target,
+    )
+    _render_profile_guard_status(profile_guard_result)
+    generation_blocked = _dashboard_profile_guard_blocks(profile_guard_result)
+    button_cols = st.columns([1.0, 1.0, 1.0, 1.8])
+    button_cols[0].button(
+        "Generate 1 day",
+        type="primary",
+        on_click=_generate_and_store_one_day_menu,
+        use_container_width=True,
+        disabled=generation_blocked,
+    )
+    button_cols[1].button(
+        "Generate 3 days",
+        type="secondary",
+        on_click=_generate_and_store_three_day_plan,
+        use_container_width=True,
+        disabled=generation_blocked,
+    )
+    button_cols[2].button(
+        "Generate varied",
+        type="secondary",
+        on_click=_generate_and_store_varied_menu,
+        use_container_width=True,
+        disabled=generation_blocked,
+    )
+    button_cols[3].button(
+        "Clear generated menu history",
+        type="secondary",
+        on_click=_clear_generated_menu_history,
+        use_container_width=True,
+    )
+    if active_config["multi_day_speed_mode"] == "quality":
+        st.warning("Quality mode can take multiple minutes for 3-day generation.")
+    if active_config["day_candidate_builder"] == "balanced_repeated":
+        st.warning("Balanced repeated builder is the preserved quality fallback and may take minutes.")
+    if dataset_config["is_draft"]:
+        st.warning("Recipes_DB v1.1 generator-ready is draft/test data, not current production.")
+
+    generated_menus = st.session_state[SESSION_MENUS_KEY]
+    latest_multi_day = st.session_state.get(SESSION_LATEST_MULTIDAY_KEY)
+    if not generated_menus and not latest_multi_day:
+        st.info("No generated menu yet.")
+        return
+
+    if latest_multi_day:
+        _render_multi_day_plan("Latest 3-day draft plan", latest_multi_day)
+        st.divider()
+
+    if not generated_menus:
+        st.info("No generated one-day menu yet.")
+        return
+
+    st.caption(f"Menus stored in this Streamlit session: {len(generated_menus)}")
+    latest = st.session_state.get(SESSION_LATEST_MENU_KEY) or generated_menus[0]
+    if _menu_config_differs(latest, active_config):
+        st.warning("Latest menu was generated with a different config.")
+    _render_plan("Latest menu", latest, enable_feedback=True)
+    st.subheader("Copy latest menu")
+    st.code(_menu_as_text(latest), language=None)
+    _render_feedback_events()
+    _render_session_menu_history(generated_menus)
+
+    if len(generated_menus) > 1:
+        st.divider()
+        _render_plan("Previous menu", generated_menus[1], enable_feedback=False)
+
+
+def _render_recommended_v1_2_preset_section() -> None:
+    if st.session_state.get(SESSION_RECOMMENDED_PRESET_APPLIED_KEY):
+        st.success("Recommended v1.2 preset applied. Generation was not started.")
+        st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
+    with st.expander("Recommended v1.2 test preset", expanded=False):
+        display_rows = [
+            {"setting": key, "value": RECOMMENDED_V1_2_TEST_PRESET[key]}
+            for key in RECOMMENDED_V1_2_PRESET_DISPLAY_KEYS
+        ]
+        st.dataframe(
+            pd.DataFrame(display_rows),
+            use_container_width=True,
+            hide_index=True,
         )
-        _render_profile_guard_status(profile_guard_result)
-        generation_blocked = _dashboard_profile_guard_blocks(profile_guard_result)
-        button_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.8])
-        button_cols[0].button(
-            "Generate 1 day",
+        st.caption(
+            "Presetul seteaza si valorile debug ascunse: "
+            f"day_candidate_pool_size={RECOMMENDED_V1_2_TEST_PRESET['day_candidate_pool_size']}, "
+            f"direct_slot_shortlist_size={RECOMMENDED_V1_2_TEST_PRESET['direct_slot_shortlist_size']}, "
+            "allow_unsupported_profile=False."
+        )
+        if st.button(
+            "Apply recommended v1.2 preset",
             type="primary",
-            on_click=_generate_and_store_one_day_menu,
-            use_container_width=True,
-            disabled=generation_blocked,
+            use_container_width=False,
+        ):
+            _apply_recommended_v1_2_test_preset()
+            st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = True
+            st.rerun()
+
+
+def _apply_recommended_v1_2_test_preset() -> None:
+    preset = RECOMMENDED_V1_2_TEST_PRESET
+    st.session_state[SESSION_DATASET_PROFILE_KEY] = str(preset["dataset_profile"])
+    st.session_state[SESSION_SELECTION_MODE_KEY] = str(preset["selection_mode"])
+    st.session_state[SESSION_PORTION_POLICY_KEY] = str(preset["portion_policy"])
+    st.session_state[SESSION_MEAL_REALISM_MODE_KEY] = str(preset["meal_realism_mode"])
+    st.session_state[SESSION_QUALITY_GATE_KEY] = str(preset["quality_gate"])
+    st.session_state[SESSION_PROFILE_GUARD_KEY] = str(preset["profile_guard"])
+    st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = int(preset["alternative_count"])
+    st.session_state[SESSION_DIVERSITY_MODE_KEY] = str(preset["diversity_mode"])
+    st.session_state[SESSION_MULTIDAY_MODE_KEY] = str(preset["multi_day_mode"])
+    st.session_state[SESSION_MULTIDAY_NO_REPEAT_POLICY_KEY] = str(
+        preset["multi_day_no_repeat_policy"]
+    )
+    st.session_state[SESSION_DAY_CANDIDATE_BUILDER_KEY] = str(
+        preset["day_candidate_builder"]
+    )
+    st.session_state[SESSION_MULTIDAY_SPEED_MODE_KEY] = str(
+        preset["multi_day_speed_mode"]
+    )
+    st.session_state[SESSION_DAY_CANDIDATE_POOL_SIZE_KEY] = int(
+        preset["day_candidate_pool_size"]
+    )
+    st.session_state[SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY] = int(
+        preset["direct_slot_shortlist_size"]
+    )
+    st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = bool(
+        preset["allow_unsupported_profile"]
+    )
+
+
+def _render_configuration_controls() -> dict[str, Any]:
+    dataset_config = _current_dataset_config()
+    with st.expander("Run controls", expanded=False):
+        dataset_config = _render_dataset_selector()
+        st.caption(
+            "Butoanele principale de generare raman vizibile pe pagina. "
+            "Schimba datasetul aici doar pentru debug."
         )
-        button_cols[1].button(
-            "Generate 3 days",
-            type="secondary",
-            on_click=_generate_and_store_three_day_plan,
-            use_container_width=True,
-            disabled=generation_blocked,
-        )
-        button_cols[2].button(
+
+    with st.expander("Advanced debug controls", expanded=False):
+        selection_mode = _render_selection_mode_selector()
+        _render_portion_policy_selector()
+        st.caption("Aceste optiuni sunt pentru comparatii rapide intre moduri interne.")
+
+    with st.expander("3-day / multi-day controls", expanded=False):
+        _render_multi_day_mode_selector()
+        _render_multi_day_no_repeat_policy_selector()
+        _render_day_candidate_pool_size_selector()
+        _render_multi_day_speed_mode_selector()
+        _render_day_candidate_builder_selector()
+        _render_direct_slot_shortlist_size_selector()
+
+    with st.expander("Reroll / diversity controls", expanded=False):
+        selection_mode = _current_selection_mode()
+        _render_alternative_controls(selection_mode)
+        st.button(
             "Generate best",
             type="secondary",
             on_click=_generate_and_store_best_menu,
             use_container_width=True,
-            disabled=generation_blocked,
+            disabled=_dashboard_profile_guard_blocks(
+                _current_profile_guard_for_dashboard(dataset_config)
+            ),
         )
-        button_cols[3].button(
-            "Generate varied",
-            type="secondary",
-            on_click=_generate_and_store_varied_menu,
-            use_container_width=True,
-            disabled=generation_blocked,
-        )
-        button_cols[4].button(
-            "Clear generated menu history",
-            type="secondary",
-            on_click=_clear_generated_menu_history,
-            use_container_width=True,
-        )
-        st.caption(f"Selected dataset profile: {dataset_config['dataset_profile']}")
-        st.caption(f"Selection mode: {selection_mode}")
-        st.caption(f"Portion policy: {portion_policy}")
-        st.caption(f"Meal realism mode: {meal_realism_mode}")
-        st.caption(f"Quality gate: {quality_gate}")
-        st.caption(f"Profile guard: {profile_guard}")
-        st.caption(f"Alternatives: {alternative_count}; diversity: {diversity_mode}")
-        st.caption(f"3-day mode: {multi_day_mode}")
-        st.caption(
-            "3-day no-repeat: "
-            f"{no_repeat_policy}; candidate pool target: {day_candidate_pool_size}; "
-            f"speed mode: {multi_day_speed_mode}; builder: {day_candidate_builder}; "
-            f"shortlist: {direct_slot_shortlist_size}"
-        )
-        st.info(
-            "Generate 1 day behaves like the current best one-day generation. "
-            "Generate best uses the selected diversity mode. "
-            "diversity_mode=none is deterministic and may repeat the same menu. "
-            "diversity_mode=soft can use recent recipes with a small penalty when history exists. "
-            "Generate varied uses quality-gated reroll when demo_safe is active. "
-            "Generate 3 days uses the selected draft multi-day selector."
-        )
-        if multi_day_speed_mode == "quality":
-            st.warning("Quality mode can take multiple minutes for 3-day generation.")
-        if day_candidate_builder == "balanced_repeated":
-            st.warning("Balanced repeated builder is the preserved quality fallback and may take minutes.")
-        _render_recent_recipe_debug(
-            st.session_state.get(SESSION_MENUS_KEY, [])
-        )
-        if dataset_config["is_draft"]:
-            st.warning("Recipes_DB v1.1 generator-ready is draft/test data, not current production.")
-        if (
-            dataset_config["dataset_profile"]
-            in {
-                V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PROFILE,
-                V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_PROFILE,
-                V1_2_GENERATOR_READY_PLUS30_PROFILE,
-                V1_2_GENERATOR_READY_PLUS30_PLUS15_PROFILE,
-                V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_PROFILE,
-                V1_2_GENERATOR_READY_ROUND37_EXPANDED_PROFILE,
-                V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_PROFILE,
-                V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_PROFILE,
-                V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_PROFILE,
-                V1_2_DEMO_CANDIDATE_PROFILE,
-                V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_PROFILE,
-                V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
-                V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
-                V1_2_DEMO_FINAL_PROFILE,
-            }
-        ):
-            st.info(
-                "Recommended for generator-ready draft testing: Balanced day + target_aware "
-                "+ practical realism + 3 alternatives."
-            )
 
-        generated_menus = st.session_state[SESSION_MENUS_KEY]
-        latest_multi_day = st.session_state.get(SESSION_LATEST_MULTIDAY_KEY)
-        if not generated_menus and not latest_multi_day:
-            st.info("No generated menu yet.")
-            return
+    with st.expander("Profile guard / quality controls", expanded=False):
+        _render_meal_realism_selector()
+        _render_quality_gate_selector()
+        _render_profile_guard_selector(dataset_config)
+    return _current_dataset_config()
 
-        if latest_multi_day:
-            _render_multi_day_plan("Latest 3-day draft plan", latest_multi_day)
-            st.divider()
 
-        if not generated_menus:
-            st.info("No generated one-day menu yet.")
-            return
-
-        st.caption(f"Menus stored in this Streamlit session: {len(generated_menus)}")
-        latest = st.session_state.get(SESSION_LATEST_MENU_KEY) or generated_menus[0]
-        if _menu_config_differs(latest, active_config):
-            st.warning("Latest menu was generated with a different config.")
-        _render_plan("Latest menu", latest, enable_feedback=True)
-        st.subheader("Copy latest menu")
-        st.code(_menu_as_text(latest), language=None)
-        _render_feedback_events()
-        _render_session_menu_history(generated_menus)
-
-        if len(generated_menus) > 1:
-            st.divider()
-            _render_plan("Previous menu", generated_menus[1], enable_feedback=False)
+def _current_profile_guard_for_dashboard(
+    dataset_config: dict[str, Any],
+) -> dict[str, Any] | None:
+    profile = load_member_profile(PROFILE_PATH)
+    target = build_nutrition_target(profile)
+    return _dashboard_profile_guard_result(
+        dataset_config=dataset_config,
+        profile=profile,
+        target=target,
+    )
 
 
 def _render_dataset_selector() -> dict[str, Any]:
@@ -517,6 +607,7 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
         st.session_state[SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY] = 12
         st.session_state[SESSION_PROFILE_GUARD_KEY] = "off"
         st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+        st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
         return
     if _is_v1_2_demo_dataset(dataset_profile):
         st.session_state[SESSION_PROFILE_GUARD_KEY] = "demo"
@@ -610,7 +701,7 @@ def _render_alternative_controls(selection_mode: str) -> tuple[int, str]:
         ALTERNATIVE_COUNT_OPTIONS,
         index=ALTERNATIVE_COUNT_OPTIONS.index(current_count),
         disabled=selection_mode != "balanced_day",
-        help="Pentru Balanced day, genereaza pana la 3 variante deterministe.",
+        help="Number of candidate plan alternatives returned by balanced_day.",
     )
 
     current_mode = str(st.session_state.get(SESSION_DIVERSITY_MODE_KEY, "none"))
@@ -621,7 +712,10 @@ def _render_alternative_controls(selection_mode: str) -> tuple[int, str]:
         DIVERSITY_MODE_OPTIONS,
         index=DIVERSITY_MODE_OPTIONS.index(current_mode),
         disabled=selection_mode != "balanced_day",
-        help="avoid_recent aplica o penalizare mica pentru retetele din ultimele doua meniuri.",
+        help=(
+            "Used for varied/reroll generation. none is deterministic; "
+            "avoid_recent uses menu history."
+        ),
     )
     if selection_mode != "balanced_day":
         selected_count = 1
@@ -715,7 +809,7 @@ def _render_multi_day_no_repeat_policy_selector() -> str:
         "3-day no-repeat policy",
         MULTI_DAY_NO_REPEAT_POLICY_OPTIONS,
         index=MULTI_DAY_NO_REPEAT_POLICY_OPTIONS.index(current_policy),
-        help="hard cere fara retete repetate daca exista combinatie valida; main_only aplica regula doar la lunch/dinner.",
+        help="Controls recipe repetition across generated days.",
     )
     if selected_policy != current_policy:
         st.session_state[SESSION_MULTIDAY_NO_REPEAT_POLICY_KEY] = selected_policy
@@ -728,7 +822,7 @@ def _render_day_candidate_pool_size_selector() -> int:
         "3-day candidate pool target",
         DAY_CANDIDATE_POOL_SIZE_OPTIONS,
         index=DAY_CANDIDATE_POOL_SIZE_OPTIONS.index(current_size),
-        help="Pool mai mare inseamna sanse mai bune la no-repeat, dar generatie mai lenta.",
+        help="Search breadth for 3-day generation; higher can be slower.",
     )
     if int(selected_size) != current_size:
         st.session_state[SESSION_DAY_CANDIDATE_POOL_SIZE_KEY] = int(selected_size)
@@ -741,7 +835,7 @@ def _render_multi_day_speed_mode_selector() -> str:
         "3-day speed mode",
         MULTI_DAY_SPEED_MODE_OPTIONS,
         index=MULTI_DAY_SPEED_MODE_OPTIONS.index(current_mode),
-        help="fast reduce pool-ul intern; quality pastreaza calea Round32, dar poate dura minute.",
+        help="fast is recommended for Streamlit testing; quality is slower.",
     )
     if selected_mode != current_mode:
         st.session_state[SESSION_MULTIDAY_SPEED_MODE_KEY] = selected_mode
@@ -770,7 +864,7 @@ def _render_direct_slot_shortlist_size_selector() -> int:
         "Direct slot shortlist",
         DIRECT_SLOT_SHORTLIST_SIZE_OPTIONS,
         index=DIRECT_SLOT_SHORTLIST_SIZE_OPTIONS.index(current_size),
-        help="Numar de candidati pastrati pe fiecare slot in builder-ul direct.",
+        help="Number of candidates per slot considered by the faster direct builder.",
     )
     if int(selected_size) != current_size:
         st.session_state[SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY] = int(selected_size)
@@ -900,12 +994,95 @@ def _current_generation_config(
 
 
 def _render_active_generation_config(config: dict[str, Any]) -> None:
-    st.markdown("#### Active generation config")
-    st.dataframe(
-        pd.DataFrame([config]),
-        use_container_width=True,
-        hide_index=True,
+    st.caption(
+        "Active config: "
+        f"dataset={config['dataset_profile']}; "
+        f"selection={config['selection_mode']}; "
+        f"portion={config['portion_policy']}; "
+        f"realism={config['meal_realism_mode']}; "
+        f"quality={config['quality_gate']}; "
+        f"profile_guard={config['profile_guard']}; "
+        f"3day={config['multi_day_mode']}; "
+        f"no_repeat={config['multi_day_no_repeat_policy']}"
     )
+    latest = _latest_generation_record()
+    if latest is None:
+        st.caption("Latest generation: none")
+        with st.expander("Active app/test config", expanded=False):
+            st.dataframe(
+                pd.DataFrame([config]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        return
+
+    matches_current = not _generation_config_differs(latest, config)
+    st.caption(
+        "Latest generation: "
+        f"run_id={latest.get('run_id', 'missing')}; "
+        f"generated_at={latest.get('generated_at', 'missing')}; "
+        f"trigger={latest.get('generation_trigger', 'unknown')}; "
+        f"generated_with_current_visible_config={matches_current}"
+    )
+    with st.expander("Active app/test config", expanded=False):
+        st.dataframe(
+            pd.DataFrame([config]),
+            use_container_width=True,
+            hide_index=True,
+        )
+        stored_config = _menu_generation_config(latest)
+        if stored_config:
+            st.caption("Latest generation config used")
+            st.dataframe(
+                pd.DataFrame([stored_config]),
+                use_container_width=True,
+                hide_index=True,
+            )
+    if not matches_current:
+        st.warning("Latest menu was generated with a different config.")
+
+
+def _latest_generation_record() -> dict[str, Any] | None:
+    candidates = [
+        st.session_state.get(SESSION_LATEST_MENU_KEY),
+        st.session_state.get(SESSION_LATEST_MULTIDAY_KEY),
+    ]
+    valid_candidates = [item for item in candidates if isinstance(item, dict)]
+    if not valid_candidates:
+        return None
+    return max(valid_candidates, key=lambda item: str(item.get("generated_at", "")))
+
+
+def _generation_config_differs(
+    generation: dict[str, Any],
+    active_config: dict[str, Any],
+) -> bool:
+    stored_config = _menu_generation_config(generation)
+    if not stored_config:
+        return True
+    active_normalised = _normalise_generation_config(active_config)
+    if generation.get("generation_trigger") == "three_day":
+        compared_keys = [
+            "dataset_profile",
+            "selection_mode",
+            "portion_policy",
+            "meal_realism_mode",
+            "quality_gate",
+            "alternative_count",
+            "multi_day_mode",
+            "multi_day_no_repeat_policy",
+            "day_candidate_pool_size",
+            "multi_day_speed_mode",
+            "day_candidate_builder",
+            "direct_slot_shortlist_size",
+            "profile_guard",
+            "allow_unsupported_profile",
+        ]
+        return any(
+            stored_config.get(key) != active_normalised.get(key)
+            for key in compared_keys
+        )
+    return stored_config != active_normalised
 
 
 def _menu_generation_config(menu: dict[str, Any]) -> dict[str, Any]:
@@ -985,23 +1162,25 @@ def _menu_config_differs(
     menu: dict[str, Any],
     active_config: dict[str, Any],
 ) -> bool:
-    stored_config = _menu_generation_config(menu)
-    if not stored_config:
-        return True
-    return stored_config != _normalise_generation_config(active_config)
+    return _generation_config_differs(menu, active_config)
 
 
 def _render_recent_recipe_debug(generated_menus: list[dict[str, Any]]) -> None:
     recent_rows = _recent_recipe_details(generated_menus)
     recent_ids = sorted({str(row["recipe_id"]) for row in recent_rows})
-    st.caption(
-        "Recent recipe ids available from last "
-        f"{RECENT_MENUS_FOR_VARIATION} menus: {len(recent_ids)}"
-    )
-    if not recent_rows:
-        st.caption("Generate varied has no recent menu history yet, so it behaves like a first generation.")
-        return
-    with st.expander("Recent recipes available for varied generation", expanded=False):
+    with st.expander("Recent recipe ids", expanded=False):
+        st.write(
+            "Recent recipe ids available from last "
+            f"{RECENT_MENUS_FOR_VARIATION} menus: {len(recent_ids)}"
+        )
+        if recent_ids:
+            st.code("\n".join(recent_ids), language=None)
+        else:
+            st.write(
+                "Generate varied has no recent menu history yet, so it behaves like a first generation."
+            )
+        if not recent_rows:
+            return
         st.dataframe(
             pd.DataFrame(recent_rows),
             use_container_width=True,
@@ -1071,15 +1250,7 @@ def _render_profile_guard_status(guard_result: dict[str, Any] | None) -> None:
     else:
         st.success(message)
 
-    suggestions = _profile_guard_suggestion_rows(
-        guard_result.get("suggested_adjustments")
-    )
-    if suggestions:
-        st.dataframe(
-            pd.DataFrame(suggestions),
-            use_container_width=True,
-            hide_index=True,
-        )
+    _render_profile_guard_diagnostics(guard_result)
 
     if status == "unsupported_for_demo":
         st.checkbox(
@@ -1089,6 +1260,28 @@ def _render_profile_guard_status(guard_result: dict[str, Any] | None) -> None:
         )
     else:
         st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+
+
+def _render_profile_guard_diagnostics(guard_result: dict[str, Any]) -> None:
+    with st.expander("Profile guard diagnostics", expanded=False):
+        rows = [
+            {"field": key, "value": value}
+            for key, value in guard_result.items()
+        ]
+        st.dataframe(
+            pd.DataFrame(rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+        suggestions = _profile_guard_suggestion_rows(
+            guard_result.get("suggested_adjustments")
+        )
+        if suggestions:
+            st.dataframe(
+                pd.DataFrame(suggestions),
+                use_container_width=True,
+                hide_index=True,
+            )
 
 
 def _profile_guard_suggestion_rows(value: object) -> list[dict[str, Any]]:
@@ -1223,11 +1416,16 @@ def _build_multi_day_result(
         dataset_profile=str(dataset_config["dataset_profile"]),
     )
     fooddb = load_fooddb_current()
-    preference_context = build_household_preference_context(profile)
+    preference_context = build_profile_preference_context(profile)
+    feedback_preference_context = _current_feedback_preference_context(
+        profile=profile,
+        dataset_profile=str(dataset_config["dataset_profile"]),
+    )
     filtered_candidates = filter_recipe_candidates(
         eligible_candidates=pool.eligible_candidates,
         ingredients=pool.ingredients,
         context=preference_context,
+        feedback_preference_context=feedback_preference_context,
     )
     slot_candidates = build_slot_candidates(
         target=target,
@@ -1236,6 +1434,7 @@ def _build_multi_day_result(
         ingredients=pool.ingredients,
         fooddb=fooddb,
         portion_policy_mode="target_aware",
+        feedback_preference_context=feedback_preference_context,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
@@ -1296,6 +1495,7 @@ def _build_multi_day_result(
     plan["generation_config"] = generation_config
     plan["generation_config_used"] = generation_config
     plan["generation_runtime_seconds"] = generation_seconds
+    plan["feedback_context"] = feedback_preference_context
     if profile_guard_result is not None:
         plan["profile_guard"] = profile_guard_result
     plan["candidate_diagnostics"] = candidate_diagnostics
@@ -1312,6 +1512,12 @@ def _build_multi_day_result(
         "eligible_candidate_count": len(pool.eligible_candidates),
         "filtered_candidate_count": len(filtered_candidates),
         "slot_candidate_count": len(slot_candidates),
+        "feedback_event_count": _feedback_event_count(feedback_preference_context),
+        "filtered_by_explicit_avoid": _filter_diagnostic_value(
+            filtered_candidates,
+            "filtered_by_explicit_avoid",
+            0,
+        ),
         "selection_mode": "balanced_day",
         "portion_policy": "target_aware",
         "meal_realism_mode": "practical",
@@ -1356,6 +1562,7 @@ def _build_generator_result(
     generation_config["diversity_mode"] = diversity_mode
     generated_at = generated_at or datetime.now().isoformat(timespec="seconds")
     run_id = run_id or f"streamlit-{generated_at}"
+    generation_started = time.perf_counter()
     profile = load_member_profile(PROFILE_PATH)
     target = build_nutrition_target(profile)
     profile_guard_result = _dashboard_profile_guard_result(
@@ -1370,11 +1577,16 @@ def _build_generator_result(
         dataset_profile=str(dataset_config["dataset_profile"]),
     )
     fooddb = load_fooddb_current()
-    preference_context = build_household_preference_context(profile)
+    preference_context = build_profile_preference_context(profile)
+    feedback_preference_context = _current_feedback_preference_context(
+        profile=profile,
+        dataset_profile=str(dataset_config["dataset_profile"]),
+    )
     filtered_candidates = filter_recipe_candidates(
         eligible_candidates=pool.eligible_candidates,
         ingredients=pool.ingredients,
         context=preference_context,
+        feedback_preference_context=feedback_preference_context,
     )
     slot_candidates = build_slot_candidates(
         target=target,
@@ -1383,6 +1595,7 @@ def _build_generator_result(
         ingredients=pool.ingredients,
         fooddb=fooddb,
         portion_policy_mode=portion_policy,
+        feedback_preference_context=feedback_preference_context,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
@@ -1468,6 +1681,11 @@ def _build_generator_result(
     plan["generation_trigger"] = generation_trigger
     plan["generation_config"] = generation_config
     plan["generation_config_used"] = generation_config
+    plan["feedback_context"] = feedback_preference_context
+    plan["generation_runtime_seconds"] = round(
+        time.perf_counter() - generation_started,
+        3,
+    )
     plan["diversity_mode_used"] = diversity_mode
     plan["recent_recipe_ids_used"] = sorted(recent_recipe_ids or set())
     plan["recent_recipe_count_used"] = len(recent_recipe_ids or set())
@@ -1484,6 +1702,12 @@ def _build_generator_result(
         "eligible_candidate_count": len(pool.eligible_candidates),
         "filtered_candidate_count": len(filtered_candidates),
         "slot_candidate_count": len(slot_candidates),
+        "feedback_event_count": _feedback_event_count(feedback_preference_context),
+        "filtered_by_explicit_avoid": _filter_diagnostic_value(
+            filtered_candidates,
+            "filtered_by_explicit_avoid",
+            0,
+        ),
         "selection_mode": selection_mode,
         "portion_policy": portion_policy,
         "meal_realism_mode": meal_realism_mode,
@@ -1504,6 +1728,7 @@ def _build_generator_result(
         "diversity_mode_used": diversity_mode,
         "recent_recipe_count_used": len(recent_recipe_ids or set()),
         "recent_recipe_ids_used": sorted(recent_recipe_ids or set()),
+        "generation_runtime_seconds": plan.get("generation_runtime_seconds"),
         "loader_warnings": pool.loader_diagnostics.get("warnings", []),
     }
     plan["dashboard_recent_recipe_ids"] = sorted(recent_recipe_ids or set())
@@ -1528,6 +1753,10 @@ def _render_multi_day_plan(
     runtime_value = plan.get("generation_runtime_seconds")
     if runtime_value is not None:
         st.caption(f"Generation runtime: {_format_number(runtime_value)} seconds")
+    _render_runtime_diagnostics(plan)
+    if isinstance(plan.get("profile_guard"), dict):
+        _render_profile_guard_diagnostics(plan["profile_guard"])
+    _render_candidate_diagnostics(plan.get("candidate_diagnostics", {}))
 
     metric_cols = st.columns(8)
     metric_cols[0].metric("Valid days", summary.get("valid_day_count", 0))
@@ -1571,24 +1800,7 @@ def _render_multi_day_plan(
         )
     selector_diagnostics = plan.get("selector_diagnostics", {})
     if isinstance(selector_diagnostics, dict) and selector_diagnostics:
-        st.caption(
-            "No-repeat: "
-            f"policy={selector_diagnostics.get('no_repeat_policy_used')}; "
-            "feasible_exact="
-            f"{selector_diagnostics.get('feasible_no_repeat_combinations')}; "
-            "fallback="
-            f"{selector_diagnostics.get('fallback_from_hard_no_repeat')}; "
-            "builder="
-            f"{selector_diagnostics.get('day_candidate_builder')}; "
-            "shortlist="
-            f"{selector_diagnostics.get('direct_slot_shortlist_size')}; "
-            "direct_combos="
-            f"{selector_diagnostics.get('direct_candidate_combinations_evaluated')}; "
-            "pool_s="
-            f"{selector_diagnostics.get('candidate_pool_build_seconds')}; "
-            "combo_s="
-            f"{selector_diagnostics.get('combination_selection_seconds')}"
-        )
+        _render_multi_day_selector_diagnostics(selector_diagnostics)
 
     if not isinstance(days, list) or not days:
         st.info("Nu exista zile generate.")
@@ -1597,13 +1809,13 @@ def _render_multi_day_plan(
     tabs = st.tabs([f"Day {day.get('day_index', index + 1)}" for index, day in enumerate(days)])
     for tab, day in zip(tabs, days):
         with tab:
-            _render_multi_day_day(day)
+            _render_multi_day_day(day, plan)
 
     st.markdown("#### Copy 3-day draft plan")
     st.code("\n".join(multi_day_readable_lines(plan)), language=None)
 
 
-def _render_multi_day_day(day: dict[str, Any]) -> None:
+def _render_multi_day_day(day: dict[str, Any], parent_plan: dict[str, Any]) -> None:
     validation_status = day.get("validation_status", "not_validated")
     quality_status = day.get("quality_gate_status", "missing")
     fallback_used = bool(day.get("fallback_used", False))
@@ -1659,6 +1871,11 @@ def _render_multi_day_day(day: dict[str, Any]) -> None:
         _render_long_passive_notes(selected_meals)
         _render_slot_suspicion_notes(selected_meals)
         _render_meal_realism_notes(selected_meals)
+        _render_feedback_controls(
+            selected_meals,
+            parent_plan,
+            plan_id=f"{parent_plan.get('run_id', 'missing')}-day-{day.get('day_index')}",
+        )
     day_warnings = day.get("warnings", [])
     if day_warnings:
         with st.expander("Day warnings", expanded=True):
@@ -1684,12 +1901,14 @@ def _render_plan(
     else:
         st.warning(f"Validation status: {status}")
     _render_pool_summary(plan.get("pool_summary", {}))
+    _render_runtime_diagnostics(plan)
+    if isinstance(plan.get("profile_guard"), dict):
+        _render_profile_guard_diagnostics(plan["profile_guard"])
     used_recent_ids = plan.get("dashboard_recent_recipe_ids") or []
     if used_recent_ids:
-        st.caption(
-            "Recent recipe ids used for this generation: "
-            + ", ".join(str(item) for item in used_recent_ids)
-        )
+        with st.expander("Recent recipe ids used by this generation", expanded=False):
+            st.code("\n".join(str(item) for item in used_recent_ids), language=None)
+    _render_candidate_diagnostics(plan.get("candidate_diagnostics", {}))
     _render_selector_diagnostics(plan.get("selector_diagnostics", {}))
     _render_plan_alternatives(plan.get("alternatives", []))
 
@@ -1718,7 +1937,7 @@ def _render_plan(
         _render_slot_suspicion_notes(selected_meals)
         _render_meal_realism_notes(selected_meals)
         if enable_feedback:
-            _render_feedback_controls(selected_meals)
+            _render_feedback_controls(selected_meals, plan)
     else:
         st.info("Nu exista mese selectate.")
 
@@ -1733,6 +1952,59 @@ def _render_plan(
     _render_pilot_servings_diagnostics(plan.get("pilot_servings_diagnostics", {}))
     _render_pilot_nutrition_overlay_details(plan)
     _render_ingredient_diagnostics(plan.get("ingredient_diagnostics", {}))
+
+
+def _render_runtime_diagnostics(plan: dict[str, Any]) -> None:
+    rows = [
+        {
+            "field": "generation_runtime_seconds",
+            "value": plan.get("generation_runtime_seconds", "missing"),
+        },
+        {"field": "run_id", "value": plan.get("run_id", "missing")},
+        {"field": "generated_at", "value": plan.get("generated_at", "missing")},
+        {
+            "field": "generation_trigger",
+            "value": plan.get("generation_trigger", "unknown"),
+        },
+    ]
+    pool_summary = plan.get("pool_summary", {})
+    if isinstance(pool_summary, dict):
+        for key in [
+            "generation_runtime_seconds",
+            "total_recipes_loaded",
+            "eligible_candidate_count",
+            "filtered_candidate_count",
+            "slot_candidate_count",
+        ]:
+            if key in pool_summary:
+                rows.append({"field": f"pool_summary.{key}", "value": pool_summary[key]})
+    with st.expander("Runtime diagnostics", expanded=False):
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+
+def _render_candidate_diagnostics(diagnostics: object) -> None:
+    if not isinstance(diagnostics, dict) or not diagnostics:
+        return
+    rows = []
+    for slot, values in diagnostics.items():
+        if not isinstance(values, dict):
+            continue
+        row = {"slot": slot}
+        row.update(values)
+        rows.append(row)
+    if not rows:
+        return
+    with st.expander("Candidate diagnostics", expanded=False):
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+
+def _render_multi_day_selector_diagnostics(diagnostics: dict[str, Any]) -> None:
+    with st.expander("Selector diagnostics", expanded=False):
+        rows = [
+            {"field": key, "value": value}
+            for key, value in diagnostics.items()
+        ]
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_pool_summary(pool_summary: dict[str, Any]) -> None:
@@ -1757,7 +2029,10 @@ def _render_pool_summary(pool_summary: dict[str, Any]) -> None:
         f"direct shortlist={pool_summary.get('direct_slot_shortlist_size', 'n/a')}; "
         f"profile_guard={pool_summary.get('profile_guard', 'off')}; "
         "allow_unsupported_profile="
-        f"{pool_summary.get('allow_unsupported_profile', False)}"
+        f"{pool_summary.get('allow_unsupported_profile', False)}; "
+        f"feedback_events={pool_summary.get('feedback_event_count', 0)}; "
+        "explicit_avoid_filtered="
+        f"{pool_summary.get('filtered_by_explicit_avoid', 0)}"
     )
     warnings = pool_summary.get("loader_warnings") or []
     if warnings:
@@ -1808,20 +2083,29 @@ def _render_quality_gate_summary(plan: dict[str, Any]) -> None:
         "reasons="
         f"{_format_reasons(reasons)}"
     )
-    if fallback_used:
-        st.warning(message)
-    elif status == "reject":
-        st.error(message)
-    elif status == "review":
-        st.warning(message)
-    else:
-        st.caption(message)
+    with st.expander("Quality gate diagnostics", expanded=False):
+        if fallback_used:
+            st.warning(message)
+        elif status == "reject":
+            st.error(message)
+        elif status == "review":
+            st.warning(message)
+        else:
+            st.caption(message)
+        rows = [{"field": key, "value": value} for key, value in quality_gate.items()]
+        rows.extend(
+            [
+                {"field": "quality_gate_selected_mode", "value": selected_mode},
+                {"field": "quality_gate_fallback_used", "value": fallback_used},
+            ]
+        )
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_selector_diagnostics(diagnostics: object) -> None:
     if not isinstance(diagnostics, dict) or diagnostics.get("selector_mode") != "balanced_day":
         return
-    with st.expander("Balanced day selector diagnostics", expanded=False):
+    with st.expander("Selector diagnostics", expanded=False):
         metric_cols = st.columns(6)
         metric_cols[0].metric("Day loss", _format_number(diagnostics.get("day_loss")))
         metric_cols[1].metric("Kcal loss", _format_number(diagnostics.get("kcal_loss")))
@@ -1947,6 +2231,7 @@ def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
             {
                 "slot": meal.get("slot"),
                 "recipe": meal.get("display_name"),
+                "recipe_family": meal.get("recipe_family_name"),
                 "portion": meal.get("portion_multiplier"),
                 "portion_grams_estimated": _format_estimated_grams(
                     _meal_portion_grams_estimated(meal)
@@ -1982,6 +2267,8 @@ def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
                 "fat_g": meal.get("fat_g"),
                 "total_time_min": meal.get("total_time_min"),
                 "effective_time_min": meal.get("effective_time_min_for_scoring"),
+                "time_feedback_penalty": meal.get("time_feedback_penalty"),
+                "time_fit_reasons": _format_reasons(meal.get("time_fit_reasons")),
                 "original_effective_time_min": meal.get(
                     "original_effective_time_min_for_scoring"
                 ),
@@ -1989,6 +2276,8 @@ def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
                 "long_passive": meal.get("has_long_passive_time"),
                 "pilot_time_fallback": meal.get("uses_pilot_time_fallback"),
                 "score_preview": meal.get("score_preview"),
+                "feedback_fit": meal.get("feedback_fit"),
+                "feedback_reasons": _format_reasons(meal.get("feedback_reasons")),
                 "suspicious": meal.get("is_nutrition_suspicious"),
                 "slot_suspicious": meal.get("is_slot_suspicious"),
                 "slot_suspicion_reasons": _format_reasons(
@@ -2068,6 +2357,10 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
                 f"{_format_number(meal.get('passive_time_estimated_min'))}, "
                 f"long_passive={meal.get('has_long_passive_time')}, "
                 f"pilot_time_fallback={meal.get('uses_pilot_time_fallback')}, "
+                "time_feedback_penalty="
+                f"{_format_number(meal.get('time_feedback_penalty'))}, "
+                "time_fit_reasons="
+                f"{_format_reasons(meal.get('time_fit_reasons'))}, "
                 f"slot_suspicious={meal.get('is_slot_suspicious')}, "
                 "slot_suspicion_reasons="
                 f"{_format_reasons(meal.get('slot_suspicion_reasons'))}, "
@@ -2081,6 +2374,10 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
                 f"{meal.get('realism_hard_reject')}, "
                 "realism_reject_reason="
                 f"{_format_reasons(meal.get('realism_reject_reason'))}, "
+                "feedback_fit="
+                f"{_format_number(meal.get('feedback_fit'))}, "
+                "feedback_reasons="
+                f"{_format_reasons(meal.get('feedback_reasons'))}, "
                 f"score_preview={_format_number(meal.get('score_preview'))}"
             )
         )
@@ -2092,17 +2389,20 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _render_feedback_controls(selected_meals: list[dict[str, Any]]) -> None:
+def _render_feedback_controls(
+    selected_meals: list[dict[str, Any]],
+    plan: dict[str, Any],
+    plan_id: str | None = None,
+) -> None:
     st.markdown("#### Demo feedback")
-    st.caption(
-        "Feedback is stored only in this Streamlit session and does not influence generation yet."
-    )
+    st.caption(f"Feedback storage: {DEFAULT_FEEDBACK_EVENTS_PATH}")
     feedback_buttons = [
         ("Like", "liked"),
         ("Dislike", "disliked"),
         ("Too long", "too_long"),
         ("Avoid", "explicit_avoid"),
     ]
+    feedback_meta = _feedback_plan_meta(plan, plan_id)
     for meal_index, meal in enumerate(selected_meals):
         st.markdown(f"**{meal.get('slot')}: {meal.get('display_name')}**")
         button_cols = st.columns(4)
@@ -2110,11 +2410,11 @@ def _render_feedback_controls(selected_meals: list[dict[str, Any]]) -> None:
             button_cols[button_index].button(
                 label,
                 key=(
-                    f"feedback_{meal_index}_{meal.get('slot')}_"
+                    f"feedback_{feedback_meta.get('plan_id')}_{meal_index}_{meal.get('slot')}_"
                     f"{meal.get('recipe_id')}_{feedback_type}"
                 ),
                 on_click=_store_feedback_event,
-                args=(meal, feedback_type),
+                args=(meal, feedback_type, feedback_meta),
                 use_container_width=True,
             )
 
@@ -2464,27 +2764,183 @@ def _render_meal_realism_notes(selected_meals: list[dict[str, Any]]) -> None:
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
-def _store_feedback_event(meal: dict[str, Any], feedback_type: str) -> None:
-    event = {
-        "recipe_id": meal.get("recipe_id"),
-        "display_name": meal.get("display_name"),
-        "slot": meal.get("slot"),
-        "feedback_type": feedback_type,
-        "created_at": datetime.now().isoformat(timespec="seconds"),
-    }
-    st.session_state[SESSION_FEEDBACK_KEY].append(event)
+def _store_feedback_event(
+    meal: dict[str, Any],
+    feedback_type: str,
+    feedback_meta: dict[str, Any],
+) -> None:
+    profile = load_member_profile(PROFILE_PATH)
+    event = append_feedback_event(
+        {
+            "household_id": profile.get("household_id"),
+            "member_profile_id": profile.get("member_profile_id"),
+            "dataset_profile": feedback_meta.get("dataset_profile"),
+            "recipe_id": meal.get("recipe_id"),
+            "recipe_family_name": meal.get("recipe_family_name"),
+            "display_name": meal.get("display_name"),
+            "slot": meal.get("slot"),
+            "feedback_type": feedback_type,
+            "source": "streamlit",
+            "run_id": feedback_meta.get("run_id"),
+            "plan_id": feedback_meta.get("plan_id"),
+            "notes": "",
+        }
+    )
+    st.session_state[SESSION_FEEDBACK_KEY] = load_feedback_events()
+    st.session_state[SESSION_FEEDBACK_NOTICE_KEY] = (
+        "Feedback saved. Generate again to apply it."
+    )
+    st.session_state["generator_v1_last_feedback_event_id"] = event.get("event_id")
 
 
 def _render_feedback_events() -> None:
     st.markdown("#### Collected feedback")
-    st.caption(
-        "Feedback is stored only in this Streamlit session and does not influence generation yet."
-    )
-    events = st.session_state.get(SESSION_FEEDBACK_KEY, [])
+    st.caption(f"Stored in {DEFAULT_FEEDBACK_EVENTS_PATH}")
+    events = load_feedback_events()
+    st.session_state[SESSION_FEEDBACK_KEY] = events
     if not events:
         st.caption("No feedback collected yet.")
         return
     st.dataframe(pd.DataFrame(events), use_container_width=True, hide_index=True)
+
+
+def _render_feedback_context_panel(active_config: dict[str, Any]) -> None:
+    notice = st.session_state.get(SESSION_FEEDBACK_NOTICE_KEY)
+    if notice:
+        st.success(str(notice))
+        st.session_state[SESSION_FEEDBACK_NOTICE_KEY] = ""
+
+    profile = load_member_profile(PROFILE_PATH)
+    context = _current_feedback_preference_context(
+        profile=profile,
+        dataset_profile=str(active_config.get("dataset_profile", "")),
+    )
+    event_count = _feedback_event_count(context)
+    st.caption(f"Active feedback events for this dataset/profile: {event_count}")
+    with st.expander("Feedback context", expanded=False):
+        metric_cols = st.columns(4)
+        metric_cols[0].metric("Liked", len(_feedback_count_rows(context, "liked")))
+        metric_cols[1].metric("Disliked", len(_feedback_count_rows(context, "disliked")))
+        metric_cols[2].metric("Too long", len(_feedback_count_rows(context, "too_long")))
+        metric_cols[3].metric("Avoided", len(_feedback_avoided_rows(context)))
+        st.caption(f"Storage path: {DEFAULT_FEEDBACK_EVENTS_PATH}")
+        rows = []
+        rows.extend(_feedback_count_rows(context, "liked"))
+        rows.extend(_feedback_count_rows(context, "disliked"))
+        rows.extend(_feedback_count_rows(context, "too_long"))
+        rows.extend(_feedback_avoided_rows(context))
+        if rows:
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        else:
+            st.write("No active feedback for the current dataset/profile.")
+        if st.button(
+            "Clear feedback events",
+            type="secondary",
+            use_container_width=False,
+        ):
+            _clear_feedback_events_callback()
+            st.rerun()
+
+
+def _feedback_plan_meta(
+    plan: dict[str, Any],
+    plan_id: str | None = None,
+) -> dict[str, Any]:
+    generation_config = _menu_generation_config(plan)
+    pool_summary = plan.get("pool_summary", {})
+    dataset_profile = generation_config.get("dataset_profile")
+    if not dataset_profile and isinstance(pool_summary, dict):
+        dataset_profile = pool_summary.get("dataset_profile")
+    run_id = str(plan.get("run_id", "") or "")
+    return {
+        "dataset_profile": str(dataset_profile or _current_dataset_config()["dataset_profile"]),
+        "run_id": run_id,
+        "plan_id": str(plan_id or run_id or plan.get("generated_at", "")),
+    }
+
+
+def _current_feedback_preference_context(
+    profile: dict[str, Any],
+    dataset_profile: str,
+) -> dict[str, Any]:
+    events = load_feedback_events()
+    st.session_state[SESSION_FEEDBACK_KEY] = events
+    return build_feedback_preference_context(
+        events=events,
+        household_id=str(profile.get("household_id", "")),
+        member_profile_id=str(profile.get("member_profile_id", "")),
+        dataset_profile=dataset_profile,
+    )
+
+
+def _feedback_event_count(context: dict[str, Any]) -> int:
+    meta = context.get("meta", {})
+    if not isinstance(meta, dict):
+        return 0
+    try:
+        return int(meta.get("event_count", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _feedback_count_rows(
+    context: dict[str, Any],
+    feedback_type: str,
+) -> list[dict[str, Any]]:
+    score_preferences = context.get("score_preferences", {})
+    time_preferences = context.get("time_preferences", {})
+    if feedback_type == "liked" and isinstance(score_preferences, dict):
+        values = score_preferences.get("liked_recipe_ids", {})
+    elif feedback_type == "disliked" and isinstance(score_preferences, dict):
+        values = score_preferences.get("disliked_recipe_ids", {})
+    elif feedback_type == "too_long" and isinstance(time_preferences, dict):
+        values = time_preferences.get("too_long_recipe_ids", {})
+    else:
+        values = {}
+    if not isinstance(values, dict):
+        return []
+    return [
+        {
+            "feedback_type": feedback_type,
+            "recipe_id": recipe_id,
+            "count": count,
+        }
+        for recipe_id, count in sorted(values.items())
+    ]
+
+
+def _feedback_avoided_rows(context: dict[str, Any]) -> list[dict[str, Any]]:
+    hard_filters = context.get("hard_filters", {})
+    if not isinstance(hard_filters, dict):
+        return []
+    recipe_ids = hard_filters.get("banned_recipe_ids", [])
+    if not isinstance(recipe_ids, list):
+        return []
+    return [
+        {
+            "feedback_type": "explicit_avoid",
+            "recipe_id": recipe_id,
+            "count": 1,
+        }
+        for recipe_id in recipe_ids
+    ]
+
+
+def _clear_feedback_events_callback() -> None:
+    clear_feedback_events()
+    st.session_state[SESSION_FEEDBACK_KEY] = []
+    st.session_state[SESSION_FEEDBACK_NOTICE_KEY] = "Feedback events cleared."
+
+
+def _filter_diagnostic_value(
+    frame: pd.DataFrame,
+    key: str,
+    default: object,
+) -> object:
+    diagnostics = frame.attrs.get("filter_diagnostics", {})
+    if not isinstance(diagnostics, dict):
+        return default
+    return diagnostics.get(key, default)
 
 
 def _render_session_menu_history(generated_menus: list[dict[str, Any]]) -> None:
@@ -2563,7 +3019,6 @@ def _render_session_menu_history(generated_menus: list[dict[str, Any]]) -> None:
 
 
 def _render_pipeline() -> None:
-    st.markdown("#### Generator v1 pipeline")
     for index, step in enumerate(PIPELINE_STEPS):
         color = _pipeline_color(index)
         st.markdown(
@@ -2606,6 +3061,7 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_MULTIDAY_PLANS_KEY] = []
         st.session_state[SESSION_LATEST_MULTIDAY_KEY] = None
         st.session_state[SESSION_FEEDBACK_KEY] = []
+        st.session_state[SESSION_FEEDBACK_NOTICE_KEY] = ""
         st.session_state[SESSION_RECENT_RECIPE_IDS_KEY] = []
         st.session_state[SESSION_RUN_COUNTER_KEY] = 0
         st.session_state[SESSION_DATASET_PROFILE_KEY] = PILOT_CURRENT_PROFILE
@@ -2635,7 +3091,9 @@ def _ensure_session_state() -> None:
         plans = st.session_state.get(SESSION_MULTIDAY_PLANS_KEY, [])
         st.session_state[SESSION_LATEST_MULTIDAY_KEY] = plans[0] if plans else None
     if SESSION_FEEDBACK_KEY not in st.session_state:
-        st.session_state[SESSION_FEEDBACK_KEY] = []
+        st.session_state[SESSION_FEEDBACK_KEY] = load_feedback_events()
+    if SESSION_FEEDBACK_NOTICE_KEY not in st.session_state:
+        st.session_state[SESSION_FEEDBACK_NOTICE_KEY] = ""
     if SESSION_RECENT_RECIPE_IDS_KEY not in st.session_state:
         st.session_state[SESSION_RECENT_RECIPE_IDS_KEY] = sorted(
             _recent_recipe_ids(st.session_state.get(SESSION_MENUS_KEY, []))
@@ -2674,6 +3132,8 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_PROFILE_GUARD_KEY] = _current_profile_guard_mode()
     if SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY not in st.session_state:
         st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+    if SESSION_RECOMMENDED_PRESET_APPLIED_KEY not in st.session_state:
+        st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
 
 
 def _slot_order(target: NutritionTarget) -> list[str]:

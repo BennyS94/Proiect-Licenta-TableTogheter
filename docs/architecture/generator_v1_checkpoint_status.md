@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft de 3 zile pe datasetul `v1_2_demo_final`.
+Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft de 3 zile pe datasetul `v1_2_demo_final` si Feedback v1 local/demo.
 
 Dataset demo:
 - `dataset_profile=v1_2_demo_final`
@@ -40,6 +40,8 @@ Acoperit:
 - Streamlit dashboard pentru test
 - CLI smoke pentru profilul demo
 
+Checkpoint 1 ramane demo/testing-ready dupa introducerea Feedback v1.
+
 ## Checkpoint 2
 
 Status: multi-day v1 draft demo-ready.
@@ -52,6 +54,8 @@ Acoperit:
 - `quality_gate=demo_safe`
 - `profile_guard=demo`
 
+Checkpoint 2 ramane demo/testing-ready dupa introducerea Feedback v1.
+
 Smoke Round49:
 - one-day valid/accept = true
 - three-day valid = 3/3
@@ -60,12 +64,41 @@ Smoke Round49:
 - `multi_day_loss=0.006322`
 - edge profile `sedentary_lose_fast_with_snack`, `target_kcal=1227.8`, este blocat in `profile_guard=demo`
 
+## Feedback v1
+
+Status: implementat ca feature local/demo pentru Generator v1.
+
+Rol:
+- post-demo feature / product-like polish pentru demo si testare
+- nu schimba formulele de nutritie
+- nu promoveaza datasetul `v1_2_demo_final` in `current`
+
+Storage:
+- `data/runtime/generator_v1_feedback_events.jsonl`
+
+Tipuri:
+- `liked`
+- `disliked`
+- `too_long`
+- `explicit_avoid`
+
+Comportament:
+- `explicit_avoid` aplica hard filter pe `recipe_id`
+- `liked` influenteaza scorul prin bonus soft
+- `disliked` influenteaza scorul prin penalizare soft
+- `too_long` reduce `time_fit` prin penalizare de timp
+- feedback-ul se aplica la generatiile urmatoare
+- `Clear feedback events` reseteaza contextul local
+
 ## Explicit out of scope
 
 - Nu exista OR-Tools / MILP / CP-SAT.
 - KNN nu este motor principal de selectie.
 - Nu exista grocery/price in Generator v1 demo.
 - Nu exista household multi-member simultan.
+- Feedback v1 nu este backend de productie.
+- Feedback v1 nu este sistem de conturi utilizator.
+- Feedback v1 nu este ML/KNN.
 - `profile_guard` nu schimba formulele de target.
 - `v1_2_demo_final` nu este promovat la `current`.
 
@@ -74,13 +107,14 @@ Smoke Round49:
 - Nu este productie QA.
 - Family-level variety ramane imperfecta.
 - Unele outlier risks raman cu warnings.
-- Feedback-ul nu este inca bucla reala de invatare.
+- Feedback v1 este local JSONL si nu este bucla reala de invatare.
+- Feedback v1 nu propaga inca preferinte la nivel de ingrediente/familie.
 - Grocery/list prep este viitor.
 - Household multi-member este ulterior.
 
 ## Urmatoarele checkpoint-uri posibile
 
-A. Feedback + UI polish.
+A. Feedback explainability + UI polish.
 
 B. Family-level variety polish.
 
