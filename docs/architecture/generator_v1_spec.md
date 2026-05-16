@@ -3,7 +3,7 @@
 ## 1. Scopul documentului
 
 Acest document fixeaza deciziile de arhitectura si contractele operationale pentru Generator v1.
-Scopul este de a produce o versiune functionala, testabila si extensibila. Starea curenta include demo/testing pentru o zi si un draft multi-day de 3 zile, dar ramane limitata la un singur household si un singur member_profile activ.
+Scopul este de a produce o versiune functionala, testabila si extensibila. Starea curenta include demo/testing pentru o zi si un draft multi-day configurabil 1-5 zile, dar ramane limitata la un singur household si un singur member_profile activ.
 
 ---
 
@@ -13,7 +13,7 @@ Generatorul v1 este:
 - recipe-based, deterministic, scoring-based si modular
 - proiectat pentru testare rapida (Streamlit) si iteratie pe pilot
 - limitat la 1 household + 1 member_profile activ
-- demo/testing-ready pentru 1 zi si demo-ready pentru multi-day v1 draft de 3 zile
+- demo/testing-ready pentru 1 zi si demo-ready pentru multi-day v1 draft configurabil 1-5 zile
 
 Unitatea principala de selectie este reteta (`recipe`).
 

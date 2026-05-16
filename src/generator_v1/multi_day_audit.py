@@ -285,12 +285,27 @@ def multi_day_readable_lines(plan: Mapping[str, Any]) -> list[str]:
         lines.extend(
             [
                 "Multi-day summary",
+                f"requested_days={summary.get('requested_days')}",
+                (
+                    "actual_days_generated="
+                    f"{summary.get('actual_days_generated', summary.get('generated_day_count'))}"
+                ),
                 f"valid_day_count={summary.get('valid_day_count')}",
                 f"accept_day_count={summary.get('accept_day_count')}",
                 f"review_day_count={summary.get('review_day_count')}",
                 f"reject_day_count={summary.get('reject_day_count')}",
                 f"fallback_day_count={summary.get('fallback_day_count')}",
+                f"no_repeat_policy_requested={summary.get('no_repeat_policy_requested')}",
+                f"no_repeat_policy_used={summary.get('no_repeat_policy_used')}",
+                f"fallback_used={summary.get('fallback_used')}",
+                f"fallback_reason={summary.get('fallback_reason')}",
+                (
+                    "day_candidate_pool_count="
+                    f"{summary.get('day_candidate_pool_count', summary.get('candidate_day_pool_count'))}"
+                ),
+                f"feasible_no_repeat_combinations={summary.get('feasible_no_repeat_combinations')}",
                 f"unique_recipe_count={summary.get('unique_recipe_count')}",
+                f"repeated_recipe_count={summary.get('repeated_recipe_count')}",
                 (
                     "repeated_recipe_ids="
                     + _format_list(summary.get("repeated_recipe_ids"))

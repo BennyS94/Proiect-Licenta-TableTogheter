@@ -18,7 +18,7 @@ Model conceptual minim:
 Checkpoint-uri:
 - Checkpoint 0: contract generator, profil, `nutrition_target`, feedback, hard filters, scoring - conceptual complet
 - Checkpoint 1: 1 household + 1 `member_profile` activ + 1 zi - demo/testing-ready pe Generator v1
-- Checkpoint 2: multi-day v1 draft + demo polish - implementat/demo-ready pentru 3 zile
+- Checkpoint 2: multi-day v1 draft + demo polish - implementat/demo-ready pentru 1-5 zile demo/debug
 - Checkpoint 3: Feedback v1 local/demo implementat; raman feedback explainability, UI polish si family-level variety polish
 - Checkpoint 4: pregatire grocery/list si source verification suplimentar
 - Checkpoint 5: household generation cu mai multe profile active simultan

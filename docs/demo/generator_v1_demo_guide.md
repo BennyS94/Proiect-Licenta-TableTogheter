@@ -6,12 +6,12 @@ Acest ghid descrie rularea demo pentru Generator v1 folosind datasetul `v1_2_dem
 
 Demo-ul arata:
 - generare pentru 1 zi
-- generare pentru 3 zile fara repetitii exacte
+- generare multi-day configurabila 1-5 zile pentru demo/debug
 - filtrare demo-safe prin `profile_guard`
 - integrarea datasetului Recipes_DB v1.2 demo-final draft
 - Feedback v1 ca functie locala/demo
 
-Demo-ul nu trebuie prezentat ca productie sau ca arhitectura finala.
+Demo-ul nu trebuie prezentat ca productie, weekly planning complet sau arhitectura finala.
 
 ## Dataset si config recomandat
 
@@ -34,6 +34,12 @@ Config recomandat:
 - `day_candidate_builder=direct_from_slots`
 - `profile_guard=demo`
 
+Nota Round54:
+- `--days` suporta valori `1..5`
+- pentru 4/5 zile, `multi_day_no_repeat_policy=hard` poate face fallback la `main_only` sau `prefer` daca no-repeat exact nu este fezabil
+- 5 zile ramane demo/debug planning, nu weekly planning complet
+- grocery/price optimization ramane in afara scopului
+
 Datele `data/recipesdb/current` si `data/fooddb/current` raman neatinse.
 
 ## Streamlit
@@ -48,7 +54,8 @@ In dashboard:
 - selecteaza `Recipes_DB v1.2 demo-final draft`
 - verifica `Profile guard = demo`
 - foloseste `Generate 1 day` pentru demo rapid
-- foloseste `Generate 3 days` pentru demo multi-day
+- foloseste `Generate 3 days` pentru quick action multi-day
+- pentru `1..5` zile configurabile foloseste CLI-ul Round54
 
 Pentru dataseturile v1.2 demo, Streamlit seteaza implicit `profile_guard=demo`.
 
@@ -109,18 +116,22 @@ Output asteptat:
 - plan de o zi valid/accept pentru profilul demo
 - output files in `outputs/` daca nu este folosit `--no_write_outputs`
 
-## CLI 3-day
+## CLI multi-day 1-5 zile
+
+Exemplu recomandat pentru 3 zile:
 
 ```powershell
 python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --profile_guard demo
 ```
 
-Output asteptat conform smoke Round49:
+Output asteptat conform smoke Round54 pentru `--days 3`:
 - valid days: `3/3`
 - accept days: `3/3`
 - repeated recipes: `0`
 - `multi_day_loss=0.006322`
 - output files in `outputs/generator_v1_multiday_*`
+
+Pentru `--days 5`, outputul validat Round54 este `valid=5/5`, `accept=5/5`, fallback la `main_only`, `repeated=2`, `multi_day_review`, `multi_day_loss=0.071414`.
 
 ## Profile guard
 
@@ -144,7 +155,7 @@ Exemplu demonstrabil:
 
 - Selectia datasetului `v1_2_demo_final`
 - Generare 1 zi cu profilul demo
-- Generare 3 zile cu no-repeat hard
+- Generare multi-day 1-5 zile; pentru demo rapid, 3 zile cu no-repeat hard
 - Statusurile de validare si quality gate
 - `profile_guard` ca protectie pentru profiluri extreme
 - Feedback v1: Like, Dislike, Too long, Avoid this recipe
@@ -155,6 +166,7 @@ Exemplu demonstrabil:
 - Nu pretinde ca este productie.
 - Nu pretinde ca exista household multi-member simultan.
 - Nu pretinde ca exista grocery/price.
+- Nu pretinde ca 5 zile este weekly planning complet.
 - Nu pretinde ca exista OR-Tools/KNN/MILP ca motor de selectie.
 - Nu pretinde ca Feedback v1 este ML, backend real sau personalizare de productie.
 - Nu pretinde ca family-level variety este complet rezolvata.

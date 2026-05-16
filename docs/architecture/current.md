@@ -24,7 +24,7 @@ Nota operationala: codul generatorului vechi este izolat pentru referinta in `sr
 
 ## 2.1. Generator v1 demo status
 
-Generator v1 este acum demo/testing-ready pentru un profil activ si pentru un draft multi-day de 3 zile.
+Generator v1 este acum demo/testing-ready pentru un profil activ si pentru un draft multi-day configurabil 1-5 zile.
 
 Datasetul recomandat pentru demo este:
 - `dataset_profile=v1_2_demo_final`

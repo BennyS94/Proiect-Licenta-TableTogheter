@@ -2168,3 +2168,24 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - Feedback remains household/demo context only.
 - Next recommended step:
   - Add a small feedback explainability view that compares before/after candidate ranks or selected recipe diagnostics for a feedback event.
+
+## 62. Round54 / Generator v1 configurable 1-5 day multi-day draft - 2026-05-16
+- Scope:
+  - Extended Generator v1 demo/debug multi-day generation from fixed 3 days to configurable `--days 1..5`.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, target formulas, new dependencies, OR-Tools/KNN/MILP/CP-SAT, architecture docs, or persistent docs were changed.
+- Selector changes:
+  - `src/generator_v1/multi_day_selector.py` now normalizes multi-day `days` to 1-5.
+  - No-repeat feasibility checks use the requested day count instead of a hardcoded 3.
+  - Global alternatives fallback sequence is explicit: `hard` -> `main_only` -> `prefer` -> best possible with warning.
+  - Diagnostics now report requested/actual days, policy requested/used, fallback reason, repeats, day counts, losses, candidate pool size, feasible no-repeat combinations, and bounded-search truncation.
+- CLI changes:
+  - `src/generator_v1_cli.py` validates `--days` and rejects values outside `1..5`.
+  - `--days 1` stays on the existing one-day output path.
+  - `--days > 1` uses multi-day mode and no longer overwrites requested `--days` to 3.
+- Validation:
+  - `python -m compileall src/generator_v1 src/generator_v1_cli.py` passed.
+  - `v1_2_demo_final` passed `--days 1,2,3,4,5`; 3-day behavior stayed `multi_day_good` with hard no-repeat and `multi_day_loss=0.006322`.
+  - 5-day result: `valid=5/5`, `accept=5/5`, hard exact no-repeat infeasible in searched pool, fallback used `main_only`, `repeated=2`, `multi_day_review`, `multi_day_loss=0.071414`.
+  - `pilot_current --days 1` still runs and remains the known `invalid_nutrition`; `--days 6` is rejected.
+- Limitation:
+  - This remains demo/draft multi-day generation, not full weekly planning or grocery/household optimization.

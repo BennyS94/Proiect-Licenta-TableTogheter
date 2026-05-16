@@ -73,7 +73,7 @@ def generate_multi_day_plan(
         )
     if target is None:
         raise ValueError("target este obligatoriu pentru multi-day selector.")
-    day_count = max(1, int(days or 3))
+    day_count = _normalize_day_count(days)
     slot_order = _slot_order(target)
     candidates_by_slot = _resolve_slot_candidates_by_slot(
         slot_candidates=slot_candidates,
@@ -117,6 +117,22 @@ def generate_multi_day_plan(
         previous_recipe_ids.update(_selected_recipe_ids(day_payload))
 
     summary = summarize_multi_day_plan(selected_days, target_data)
+    summary.update(
+        {
+            "requested_days": day_count,
+            "actual_days_generated": len(selected_days),
+            "no_repeat_policy_requested": resolved_config.get("no_repeat_policy"),
+            "no_repeat_policy_used": resolved_config.get("no_repeat_policy"),
+            "fallback_used": bool(summary.get("fallback_day_count", 0)),
+            "fallback_reason": (
+                "day_level_quality_fallback"
+                if int(summary.get("fallback_day_count", 0) or 0) > 0
+                else ""
+            ),
+            "day_candidate_pool_count": 0,
+            "feasible_no_repeat_combinations": 0,
+        }
+    )
     validation = validate_multi_day_plan(selected_days, target_data)
     return {
         "days": selected_days,
@@ -153,7 +169,7 @@ def generate_multi_day_plan_global_alternatives(
     if target is None:
         raise ValueError("target este obligatoriu pentru multi-day selector.")
     resolved_config = _resolved_config({**dict(config or {}), "multi_day_mode": MULTI_DAY_MODE_GLOBAL})
-    day_count = max(1, int(days or 3))
+    day_count = _normalize_day_count(days)
     slot_order = _slot_order(target)
     candidates_by_slot = _resolve_slot_candidates_by_slot(
         slot_candidates=slot_candidates,
@@ -167,6 +183,7 @@ def generate_multi_day_plan_global_alternatives(
         target=target,
         slot_order=slot_order,
         config=resolved_config,
+        day_count=day_count,
     )
     candidate_pool_seconds = time.perf_counter() - candidate_pool_started
     combination_started = time.perf_counter()
@@ -211,6 +228,8 @@ def generate_multi_day_plan_global_alternatives(
     summary = summarize_multi_day_plan(selected_days, target_data)
     summary.update(
         {
+            "requested_days": day_count,
+            "actual_days_generated": len(selected_days),
             "multi_day_loss": selection_report.get("multi_day_loss"),
             "repetition_penalty": selection_report.get("repetition_penalty"),
             "review_day_penalty": selection_report.get("review_day_penalty"),
@@ -218,6 +237,7 @@ def generate_multi_day_plan_global_alternatives(
             "quality_warnings": selection_report.get("quality_warnings", []),
             "candidate_day_pool_summary": candidate_pool_summary,
             "candidate_day_pool_count": candidate_pool_summary.get("candidate_day_count", 0),
+            "day_candidate_pool_count": candidate_pool_summary.get("candidate_day_count", 0),
             "valid_candidate_day_count": candidate_pool_summary.get("valid_candidate_count", 0),
             "accept_candidate_day_count": candidate_pool_summary.get("accept_candidate_count", 0),
             "review_candidate_day_count": candidate_pool_summary.get("review_candidate_count", 0),
@@ -236,6 +256,8 @@ def generate_multi_day_plan_global_alternatives(
                 "fallback_from_hard_no_repeat",
                 False,
             ),
+            "fallback_used": selection_report.get("fallback_used", False),
+            "fallback_reason": selection_report.get("fallback_reason", ""),
             "day_candidate_builder": resolved_config.get("day_candidate_builder"),
             "direct_slot_shortlist_size": resolved_config.get(
                 "direct_slot_shortlist_size"
@@ -253,6 +275,18 @@ def generate_multi_day_plan_global_alternatives(
                 0.0,
             ),
             "profile_stats": selection_report.get("profile_stats", {}),
+            "combination_search_truncated": selection_report.get(
+                "combination_search_truncated",
+                False,
+            ),
+            "combination_candidate_count_available": selection_report.get(
+                "combination_candidate_count_available",
+                0,
+            ),
+            "combination_candidate_count_considered": selection_report.get(
+                "combination_candidate_count_considered",
+                0,
+            ),
         }
     )
     summary["multi_day_warnings"] = list(
@@ -291,7 +325,10 @@ def generate_multi_day_plan_global_alternatives(
         "candidate_day_pool_summary": summary["candidate_day_pool_summary"],
         "candidate_day_pool": _candidate_pool_rows(candidate_days),
         "selector_diagnostics": {
+            "requested_days": day_count,
+            "actual_days_generated": len(selected_days),
             "candidate_day_pool_count": candidate_pool_summary.get("candidate_day_count", 0),
+            "day_candidate_pool_count": candidate_pool_summary.get("candidate_day_count", 0),
             "valid_candidate_day_count": candidate_pool_summary.get("valid_candidate_count", 0),
             "accept_candidate_day_count": candidate_pool_summary.get("accept_candidate_count", 0),
             "review_candidate_day_count": candidate_pool_summary.get("review_candidate_count", 0),
@@ -311,6 +348,8 @@ def generate_multi_day_plan_global_alternatives(
                 "fallback_from_hard_no_repeat",
                 False,
             ),
+            "fallback_used": selection_report.get("fallback_used", False),
+            "fallback_reason": selection_report.get("fallback_reason", ""),
             "day_candidate_builder": resolved_config.get("day_candidate_builder"),
             "direct_slot_shortlist_size": resolved_config.get(
                 "direct_slot_shortlist_size"
@@ -328,6 +367,18 @@ def generate_multi_day_plan_global_alternatives(
                 0.0,
             ),
             "profile_stats": selection_report.get("profile_stats", {}),
+            "combination_search_truncated": selection_report.get(
+                "combination_search_truncated",
+                False,
+            ),
+            "combination_candidate_count_available": selection_report.get(
+                "combination_candidate_count_available",
+                0,
+            ),
+            "combination_candidate_count_considered": selection_report.get(
+                "combination_candidate_count_considered",
+                0,
+            ),
         },
         "target": target_data,
         "config": {
@@ -342,6 +393,7 @@ def _build_candidate_day_pool(
     target: NutritionTarget | Mapping[str, Any],
     slot_order: Sequence[str],
     config: Mapping[str, Any],
+    day_count: int,
 ) -> list[dict[str, Any]]:
     if str(config.get("day_candidate_builder", "balanced_repeated")) == "direct_from_slots":
         direct_candidates = build_day_candidates_direct_from_slots(
@@ -353,6 +405,13 @@ def _build_candidate_day_pool(
         if direct_candidates and _candidate_pool_has_requested_path(
             direct_candidates,
             _no_repeat_policy(config),
+            day_count,
+        ):
+            return direct_candidates
+        if (
+            day_count > 3
+            and direct_candidates
+            and _candidate_pool_has_fallback_path(direct_candidates, day_count)
         ):
             return direct_candidates
         profile_stats = _profile_stats(config)
@@ -437,21 +496,21 @@ def _build_candidate_day_pool(
             target=target,
             profile_stats=profile_stats,
         )
-        if _should_stop_candidate_pool(candidates, pool_target, config):
+        if _should_stop_candidate_pool(candidates, pool_target, config, day_count):
             break
     if (
         include_forced
         and len(candidates) < pool_max
         and (
             len(candidates) < pool_target
-            or not _candidate_pool_has_no_repeat_path(candidates)
+            or not _candidate_pool_has_no_repeat_path(candidates, day_count)
         )
     ):
         dynamic_specs = _dynamic_no_repeat_specs(
             candidates=candidates,
             slot_candidates_by_slot=slot_candidates_by_slot,
             slot_order=slot_order,
-            day_count=3,
+            day_count=day_count,
             existing_specs=source_specs,
             config=config,
         )
@@ -483,7 +542,7 @@ def _build_candidate_day_pool(
                 target=target,
                 profile_stats=profile_stats,
             )
-            if _should_stop_candidate_pool(candidates, pool_target, config):
+            if _should_stop_candidate_pool(candidates, pool_target, config, day_count):
                 break
     return candidates
 
@@ -1293,6 +1352,7 @@ def _direct_combination_count(shortlists: Mapping[str, Sequence[Mapping[str, Any
 def _candidate_pool_has_requested_path(
     candidates: Sequence[Mapping[str, Any]],
     policy: str,
+    day_count: int,
 ) -> bool:
     usable = [
         candidate
@@ -1300,15 +1360,39 @@ def _candidate_pool_has_requested_path(
         if candidate.get("validation_status") == "valid"
         and candidate.get("quality_gate_status") == "accept"
     ]
-    if len(usable) < 3:
+    if len(usable) < day_count:
         return False
     if policy == "none":
         return True
-    for combination in itertools.combinations(usable, 3):
-        score = _score_day_combination(combination)
-        if _score_satisfies_no_repeat_policy(score, policy):
-            return True
-    return False
+    return (
+        _best_scored_combination(
+            usable,
+            day_count,
+            no_repeat_policy=policy,
+            require_policy=True,
+        )
+        is not None
+    )
+
+
+def _candidate_pool_has_fallback_path(
+    candidates: Sequence[Mapping[str, Any]],
+    day_count: int,
+) -> bool:
+    usable = [
+        candidate
+        for candidate in candidates
+        if candidate.get("validation_status") == "valid"
+        and candidate.get("quality_gate_status") in {"accept", "review"}
+    ]
+    if len(usable) >= day_count:
+        return True
+    valid_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.get("validation_status") == "valid"
+    ]
+    return len(valid_candidates) >= day_count
 
 
 def _clean_direct_value(value: object) -> object:
@@ -1330,8 +1414,9 @@ def _should_stop_candidate_pool(
     candidates: Sequence[Mapping[str, Any]],
     pool_target: int,
     config: Mapping[str, Any],
+    day_count: int,
 ) -> bool:
-    has_no_repeat_path = _candidate_pool_has_no_repeat_path(candidates)
+    has_no_repeat_path = _candidate_pool_has_no_repeat_path(candidates, day_count)
     if bool(config.get("early_stop_if_no_repeat_accept_found", False)) and has_no_repeat_path:
         return True
     return len(candidates) >= pool_target and has_no_repeat_path
@@ -1600,6 +1685,7 @@ def _filter_candidates_by_recipe_ids(
 
 def _candidate_pool_has_no_repeat_path(
     candidates: Sequence[Mapping[str, Any]],
+    day_count: int,
 ) -> bool:
     usable = [
         candidate
@@ -1607,13 +1693,17 @@ def _candidate_pool_has_no_repeat_path(
         if candidate.get("validation_status") == "valid"
         and candidate.get("quality_gate_status") == "accept"
     ]
-    if len(usable) < 3:
+    if len(usable) < day_count:
         return False
-    for combination in itertools.combinations(usable, 3):
-        repetition = _combination_repetition_data(combination)
-        if repetition["repeated_recipe_count"] == 0:
-            return True
-    return False
+    return (
+        _best_scored_combination(
+            usable,
+            day_count,
+            no_repeat_policy="hard",
+            require_policy=True,
+        )
+        is not None
+    )
 
 
 def _collect_day_candidates(
@@ -1824,26 +1914,71 @@ def _select_global_day_combination(
     ]
     severe_warnings: list[str] = []
 
-    if requested_policy in {"hard", "main_only"}:
-        constrained_score = _best_for_policy(
+    if requested_policy == "hard":
+        hard_score = _best_for_policy(
             accept_candidates=accept_candidates,
             accept_or_review_candidates=accept_or_review_candidates,
             candidate_days=candidate_days,
             day_count=day_count,
-            policy=requested_policy,
+            policy="hard",
         )
-        if constrained_score is not None:
+        if hard_score is not None:
             return _selection_from_scored_combination(
-                constrained_score,
+                hard_score,
                 severe_warnings,
                 requested_policy=requested_policy,
-                used_policy=requested_policy,
-                fallback_from_hard=False,
+                used_policy="hard",
+                fallback_used=False,
+                fallback_reason="",
                 candidate_days=candidate_days,
                 day_count=day_count,
             )
         severe_warnings.append(
-            f"Nu exista combinatie fezabila pentru no_repeat_policy={requested_policy}; se revine la prefer."
+            "Nu exista combinatie fezabila pentru no_repeat_policy=hard; se incearca main_only."
+        )
+        main_only_score = _best_for_policy(
+            accept_candidates=accept_candidates,
+            accept_or_review_candidates=accept_or_review_candidates,
+            candidate_days=candidate_days,
+            day_count=day_count,
+            policy="main_only",
+        )
+        if main_only_score is not None:
+            return _selection_from_scored_combination(
+                main_only_score,
+                severe_warnings,
+                requested_policy=requested_policy,
+                used_policy="main_only",
+                fallback_used=True,
+                fallback_reason="hard_no_repeat_infeasible",
+                candidate_days=candidate_days,
+                day_count=day_count,
+            )
+        severe_warnings.append(
+            "Nu exista combinatie fezabila pentru no_repeat_policy=main_only; se incearca prefer."
+        )
+
+    elif requested_policy == "main_only":
+        main_only_score = _best_for_policy(
+            accept_candidates=accept_candidates,
+            accept_or_review_candidates=accept_or_review_candidates,
+            candidate_days=candidate_days,
+            day_count=day_count,
+            policy="main_only",
+        )
+        if main_only_score is not None:
+            return _selection_from_scored_combination(
+                main_only_score,
+                severe_warnings,
+                requested_policy=requested_policy,
+                used_policy="main_only",
+                fallback_used=False,
+                fallback_reason="",
+                candidate_days=candidate_days,
+                day_count=day_count,
+            )
+        severe_warnings.append(
+            "Nu exista combinatie fezabila pentru no_repeat_policy=main_only; se incearca prefer."
         )
 
     usable_candidates = accept_candidates
@@ -1851,7 +1986,7 @@ def _select_global_day_combination(
         accept_only_score = _best_scored_combination(
             accept_candidates,
             day_count,
-            no_repeat_policy=requested_policy,
+            no_repeat_policy="prefer" if requested_policy in {"hard", "main_only"} else requested_policy,
         )
         if accept_only_score is not None:
             _, _, score = accept_only_score
@@ -1868,7 +2003,12 @@ def _select_global_day_combination(
                     severe_warnings,
                     requested_policy=requested_policy,
                     used_policy="prefer" if requested_policy != "none" else "none",
-                    fallback_from_hard=requested_policy in {"hard", "main_only"},
+                    fallback_used=requested_policy in {"hard", "main_only"},
+                    fallback_reason=(
+                        f"{requested_policy}_no_repeat_infeasible"
+                        if requested_policy in {"hard", "main_only"}
+                        else ""
+                    ),
                     candidate_days=candidate_days,
                     day_count=day_count,
                 )
@@ -1903,20 +2043,46 @@ def _select_global_day_combination(
         no_repeat_policy="prefer" if requested_policy in {"hard", "main_only"} else requested_policy,
     )
     if best_scored is None:
-        return [], {
-            "multi_day_loss": None,
-            "quality_warnings": ["Nu exista combinatii multi-day candidate."],
-            "no_repeat_policy_requested": requested_policy,
-            "no_repeat_policy_used": "none",
-            "fallback_from_hard_no_repeat": requested_policy in {"hard", "main_only"},
-            **_combination_search_diagnostics(candidate_days, day_count),
-        }
+        best_possible_score = _best_possible_scored_sequence(
+            candidate_days=candidate_days,
+            day_count=day_count,
+            no_repeat_policy="prefer",
+        )
+        if best_possible_score is None:
+            return [], {
+                "multi_day_loss": None,
+                "quality_warnings": ["Nu exista combinatii multi-day candidate."],
+                "no_repeat_policy_requested": requested_policy,
+                "no_repeat_policy_used": "none",
+                "fallback_from_hard_no_repeat": requested_policy == "hard",
+                "fallback_used": True,
+                "fallback_reason": "no_candidate_days_available",
+                **_combination_search_diagnostics(candidate_days, day_count),
+            }
+        severe_warnings.append(
+            "Nu exista combinatie completa fara reutilizarea zilelor candidate; se returneaza cel mai bun plan posibil."
+        )
+        return _selection_from_scored_combination(
+            best_possible_score,
+            severe_warnings,
+            requested_policy=requested_policy,
+            used_policy="prefer",
+            fallback_used=True,
+            fallback_reason="best_possible_with_reused_candidates",
+            candidate_days=candidate_days,
+            day_count=day_count,
+        )
     return _selection_from_scored_combination(
         best_scored,
         severe_warnings,
         requested_policy=requested_policy,
         used_policy="prefer" if requested_policy in {"hard", "main_only"} else requested_policy,
-        fallback_from_hard=requested_policy in {"hard", "main_only"},
+        fallback_used=requested_policy in {"hard", "main_only"},
+        fallback_reason=(
+            f"{requested_policy}_no_repeat_infeasible"
+            if requested_policy in {"hard", "main_only"}
+            else ""
+        ),
         candidate_days=candidate_days,
         day_count=day_count,
     )
@@ -1963,24 +2129,12 @@ def _best_scored_combination(
     require_policy: bool = False,
 ) -> tuple[tuple[float, ...], tuple[Mapping[str, Any], ...], dict[str, Any]] | None:
     scored: list[tuple[tuple[float, ...], tuple[Mapping[str, Any], ...], dict[str, Any]]] = []
-    for combination in itertools.combinations(usable_candidates, day_count):
+    search_candidates = _combination_search_candidates(usable_candidates, day_count)
+    for combination in itertools.combinations(search_candidates, day_count):
         score = _score_day_combination(combination)
         if require_policy and not _score_satisfies_no_repeat_policy(score, no_repeat_policy):
             continue
-        key = (
-            _to_float(score.get("invalid_day_count")),
-            _to_float(score.get("reject_day_count")),
-            _to_float(score.get("fallback_day_count")),
-            _to_float(score.get("review_day_count")),
-            _repeat_sort_value(score, no_repeat_policy),
-            -_to_float(score.get("accept_day_count")),
-            _to_float(score.get("multi_day_loss")),
-            -_to_float(score.get("unique_recipe_count")),
-            _to_float(score.get("repeated_main_recipe_count")),
-            _to_float(score.get("repeated_recipe_count")),
-            _to_float(score.get("average_base_day_loss")),
-            _combination_recipe_key(combination),
-        )
+        key = _scored_combination_key(score, combination, no_repeat_policy)
         scored.append((key, combination, score))
 
     if not scored:
@@ -1988,6 +2142,89 @@ def _best_scored_combination(
 
     scored.sort(key=lambda item: item[0])
     return scored[0]
+
+
+def _best_possible_scored_sequence(
+    candidate_days: Sequence[Mapping[str, Any]],
+    day_count: int,
+    no_repeat_policy: str,
+) -> tuple[tuple[float, ...], tuple[Mapping[str, Any], ...], dict[str, Any]] | None:
+    ranked = _ranked_combination_candidates(candidate_days)
+    if not ranked:
+        return None
+    selected = list(ranked[:day_count])
+    while len(selected) < day_count:
+        selected.append(ranked[len(selected) % len(ranked)])
+    combination = tuple(selected)
+    score = _score_day_combination(combination)
+    key = _scored_combination_key(score, combination, no_repeat_policy)
+    return key, combination, score
+
+
+def _scored_combination_key(
+    score: Mapping[str, Any],
+    combination: Sequence[Mapping[str, Any]],
+    no_repeat_policy: str,
+) -> tuple[Any, ...]:
+    return (
+        _to_float(score.get("invalid_day_count")),
+        _to_float(score.get("reject_day_count")),
+        _to_float(score.get("fallback_day_count")),
+        _to_float(score.get("review_day_count")),
+        _repeat_sort_value(score, no_repeat_policy),
+        -_to_float(score.get("accept_day_count")),
+        _to_float(score.get("multi_day_loss")),
+        -_to_float(score.get("unique_recipe_count")),
+        _to_float(score.get("repeated_main_recipe_count")),
+        _to_float(score.get("repeated_recipe_count")),
+        _to_float(score.get("average_base_day_loss")),
+        _combination_recipe_key(combination),
+    )
+
+
+def _combination_search_candidates(
+    usable_candidates: Sequence[Mapping[str, Any]],
+    day_count: int,
+) -> list[Mapping[str, Any]]:
+    ranked = _ranked_combination_candidates(usable_candidates)
+    limit = _combination_candidate_limit(day_count, len(ranked))
+    return ranked[:limit]
+
+
+def _ranked_combination_candidates(
+    candidates: Sequence[Mapping[str, Any]],
+) -> list[Mapping[str, Any]]:
+    return sorted(
+        list(candidates),
+        key=lambda candidate: (
+            0 if candidate.get("validation_status") == "valid" else 1,
+            _quality_status_sort_value(candidate.get("quality_gate_status")),
+            _to_float(candidate.get("adjusted_day_loss")),
+            _to_float(candidate.get("base_day_loss")),
+            _to_float(candidate.get("meal_realism_warning_count")),
+            ";".join(str(item) for item in candidate.get("recipe_key", [])),
+            str(candidate.get("candidate_day_id", "")),
+        ),
+    )
+
+
+def _quality_status_sort_value(value: object) -> int:
+    status = str(value or "").strip().lower()
+    if status == "accept":
+        return 0
+    if status == "review":
+        return 1
+    if status == "reject":
+        return 2
+    return 3
+
+
+def _combination_candidate_limit(day_count: int, available_count: int) -> int:
+    if day_count <= 3:
+        return available_count
+    if day_count == 4:
+        return min(available_count, 48)
+    return min(available_count, 36)
 
 
 def _selection_from_scored_combination(
@@ -1999,7 +2236,8 @@ def _selection_from_scored_combination(
     severe_warnings: Sequence[str],
     requested_policy: str,
     used_policy: str,
-    fallback_from_hard: bool,
+    fallback_used: bool,
+    fallback_reason: str,
     candidate_days: Sequence[Mapping[str, Any]],
     day_count: int,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -2012,14 +2250,18 @@ def _selection_from_scored_combination(
         quality_warnings.append("Planul global contine retete repetate.")
     if best_score.get("reject_day_count", 0) > 0:
         quality_warnings.append("Planul global contine zile reject.")
-    if fallback_from_hard:
+    if fallback_used:
         quality_warnings.append(
             f"no_repeat_policy={requested_policy} nu a fost fezabil; s-a folosit {used_policy}."
         )
     best_score["quality_warnings"] = quality_warnings
     best_score["no_repeat_policy_requested"] = requested_policy
     best_score["no_repeat_policy_used"] = used_policy
-    best_score["fallback_from_hard_no_repeat"] = fallback_from_hard
+    best_score["fallback_from_hard_no_repeat"] = (
+        requested_policy == "hard" and used_policy != "hard"
+    )
+    best_score["fallback_used"] = bool(fallback_used)
+    best_score["fallback_reason"] = str(fallback_reason or "")
     best_score.update(_combination_search_diagnostics(candidate_days, day_count))
     return selected, best_score
 
@@ -2205,17 +2447,19 @@ def _combination_recipe_key(
 def _combination_search_diagnostics(
     candidate_days: Sequence[Mapping[str, Any]],
     day_count: int,
-) -> dict[str, int]:
+) -> dict[str, Any]:
     valid_non_reject = [
         candidate
         for candidate in candidate_days
         if candidate.get("validation_status") == "valid"
         and candidate.get("quality_gate_status") != "reject"
     ]
+    available_count = len(valid_non_reject)
+    search_candidates = _combination_search_candidates(valid_non_reject, day_count)
     combinations_evaluated = 0
     no_repeat_count = 0
     main_no_repeat_count = 0
-    for combination in itertools.combinations(valid_non_reject, day_count):
+    for combination in itertools.combinations(search_candidates, day_count):
         combinations_evaluated += 1
         repetition = _combination_repetition_data(combination)
         if repetition["repeated_recipe_count"] == 0:
@@ -2226,6 +2470,9 @@ def _combination_search_diagnostics(
         "combinations_evaluated": combinations_evaluated,
         "feasible_no_repeat_combinations": no_repeat_count,
         "feasible_main_no_repeat_combinations": main_no_repeat_count,
+        "combination_candidate_count_available": available_count,
+        "combination_candidate_count_considered": len(search_candidates),
+        "combination_search_truncated": len(search_candidates) < available_count,
     }
 
 
@@ -2733,6 +2980,16 @@ def _resolved_config(config: Mapping[str, Any] | None) -> dict[str, Any]:
             resolved.get("dynamic_seen_main_limit", 12) or 12
         )
     return resolved
+
+
+def _normalize_day_count(days: int | str | None) -> int:
+    try:
+        day_count = int(days or 3)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("days trebuie sa fie un numar intreg intre 1 si 5.") from exc
+    if day_count < 1 or day_count > 5:
+        raise ValueError("days trebuie sa fie intre 1 si 5 pentru multi-day draft.")
+    return day_count
 
 
 def _resolve_slot_candidates_by_slot(

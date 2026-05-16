@@ -403,10 +403,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--show_servings_diagnostics", action="store_true")
     parser.add_argument("--show_pilot_nutrition_overlay", action="store_true")
     args = parser.parse_args()
+    _validate_days(args, parser)
     _apply_test_preset(args)
     _apply_multi_day_defaults(args)
     _resolve_dataset_paths(args)
     return args
+
+
+def _validate_days(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    if int(args.days or 0) < 1 or int(args.days or 0) > 5:
+        parser.error("argument --days: trebuie sa fie intre 1 si 5.")
 
 
 def _apply_test_preset(args: argparse.Namespace) -> None:
@@ -424,7 +430,6 @@ def _apply_test_preset(args: argparse.Namespace) -> None:
 def _apply_multi_day_defaults(args: argparse.Namespace) -> None:
     if not _should_run_multi_day(args):
         return
-    args.days = 3
     if args.multi_day_mode == "off":
         args.multi_day_mode = MULTI_DAY_MODE_SIMPLE
     args.selection_mode = "balanced_day"
@@ -1001,11 +1006,7 @@ def _should_use_quality_gated_reroll(args: argparse.Namespace) -> bool:
 
 
 def _should_run_multi_day(args: argparse.Namespace) -> bool:
-    return (
-        str(getattr(args, "multi_day_mode", "off"))
-        in {MULTI_DAY_MODE_SIMPLE, MULTI_DAY_MODE_GLOBAL}
-        or int(getattr(args, "days", 1) or 1) == 3
-    )
+    return int(getattr(args, "days", 1) or 1) > 1
 
 
 def _multi_day_selector_config(args: argparse.Namespace) -> dict[str, object]:
@@ -1091,8 +1092,11 @@ def _print_multi_day_plan(plan: dict[str, object]) -> None:
     summary = plan.get("multi_day_summary", {})
     if isinstance(summary, dict):
         print(f"  multi_day_selector_mode={plan.get('multi_day_selector_mode')}")
+        print(f"  requested_days={summary.get('requested_days')}")
+        print(f"  actual_days_generated={summary.get('actual_days_generated')}")
         print(f"  multi_day_loss={summary.get('multi_day_loss')}")
         print(f"  unique_recipe_count={summary.get('unique_recipe_count')}")
+        print(f"  repeated_recipe_count={summary.get('repeated_recipe_count')}")
         print(
             "  repeated_recipe_ids="
             + _format_reasons(summary.get("repeated_recipe_ids"))
@@ -1104,6 +1108,14 @@ def _print_multi_day_plan(plan: dict[str, object]) -> None:
         print(
             "  no_repeat_policy_used="
             + str(summary.get("no_repeat_policy_used", "missing"))
+        )
+        print(
+            "  fallback_used="
+            + str(summary.get("fallback_used", False))
+        )
+        print(
+            "  fallback_reason="
+            + str(summary.get("fallback_reason", ""))
         )
         print(
             "  day_candidate_builder="
@@ -1118,8 +1130,25 @@ def _print_multi_day_plan(plan: dict[str, object]) -> None:
             + str(summary.get("direct_candidate_combinations_evaluated", 0))
         )
         print(
+            "  day_candidate_pool_count="
+            + str(
+                summary.get(
+                    "day_candidate_pool_count",
+                    summary.get("candidate_day_pool_count", 0),
+                )
+            )
+        )
+        print(
             "  feasible_no_repeat_combinations="
             + str(summary.get("feasible_no_repeat_combinations", 0))
+        )
+        print(
+            "  feasible_main_no_repeat_combinations="
+            + str(summary.get("feasible_main_no_repeat_combinations", 0))
+        )
+        print(
+            "  combination_search_truncated="
+            + str(summary.get("combination_search_truncated", False))
         )
         print(
             "  fallback_from_hard_no_repeat="

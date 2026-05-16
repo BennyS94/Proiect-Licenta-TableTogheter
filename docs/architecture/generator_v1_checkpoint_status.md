@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft de 3 zile pe datasetul `v1_2_demo_final` si Feedback v1 local/demo.
+Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft configurabil 1-5 zile pe datasetul `v1_2_demo_final` si Feedback v1 local/demo.
 
 Dataset demo:
 - `dataset_profile=v1_2_demo_final`
@@ -47,9 +47,9 @@ Checkpoint 1 ramane demo/testing-ready dupa introducerea Feedback v1.
 Status: multi-day v1 draft demo-ready.
 
 Acoperit:
-- generare 3 zile
+- generare configurabila 1-5 zile pentru demo/debug
 - `global_alternatives_3_day`
-- hard no-repeat exact recipe
+- hard no-repeat exact recipe, cu fallback daca este infezabil pentru 4/5 zile
 - `direct_from_slots`
 - `quality_gate=demo_safe`
 - `profile_guard=demo`
@@ -63,6 +63,11 @@ Smoke Round49:
 - repeated recipes = 0
 - `multi_day_loss=0.006322`
 - edge profile `sedentary_lose_fast_with_snack`, `target_kcal=1227.8`, este blocat in `profile_guard=demo`
+
+Smoke Round54:
+- `--days 1,2,3,4,5` functioneaza pe `v1_2_demo_final`
+- `--days 5`: valid = 5/5, accept = 5/5, fallback la `main_only`, repeated recipes = 2, `multi_day_review`, `multi_day_loss=0.071414`
+- `--days 6` este respins clar
 
 ## Feedback v1
 
@@ -95,6 +100,7 @@ Comportament:
 - Nu exista OR-Tools / MILP / CP-SAT.
 - KNN nu este motor principal de selectie.
 - Nu exista grocery/price in Generator v1 demo.
+- Nu exista weekly planning complet; 5 zile ramane demo/debug planning.
 - Nu exista household multi-member simultan.
 - Feedback v1 nu este backend de productie.
 - Feedback v1 nu este sistem de conturi utilizator.

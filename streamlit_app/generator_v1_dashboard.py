@@ -422,8 +422,12 @@ def main() -> None:
         on_click=_clear_generated_menu_history,
         use_container_width=True,
     )
+    st.caption(
+        "Generator v1 supports 1-5 day demo/debug generation. "
+        "This dashboard quick action currently generates 3 days; use CLI for other day counts."
+    )
     if active_config["multi_day_speed_mode"] == "quality":
-        st.warning("Quality mode can take multiple minutes for 3-day generation.")
+        st.warning("Quality mode can take multiple minutes for multi-day generation.")
     if active_config["day_candidate_builder"] == "balanced_repeated":
         st.warning("Balanced repeated builder is the preserved quality fallback and may take minutes.")
     if dataset_config["is_draft"]:
@@ -436,7 +440,7 @@ def main() -> None:
         return
 
     if latest_multi_day:
-        _render_multi_day_plan("Latest 3-day draft plan", latest_multi_day)
+        _render_multi_day_plan("Latest multi-day draft plan", latest_multi_day)
         st.divider()
 
     if not generated_menus:
@@ -533,7 +537,7 @@ def _render_configuration_controls() -> dict[str, Any]:
         _render_portion_policy_selector()
         st.caption("Aceste optiuni sunt pentru comparatii rapide intre moduri interne.")
 
-    with st.expander("3-day / multi-day controls", expanded=False):
+    with st.expander("1-5 day / multi-day controls", expanded=False):
         _render_multi_day_mode_selector()
         _render_multi_day_no_repeat_policy_selector()
         _render_day_candidate_pool_size_selector()
@@ -790,7 +794,7 @@ def _render_profile_guard_selector(dataset_config: dict[str, Any]) -> str:
 def _render_multi_day_mode_selector() -> str:
     current_mode = _current_multi_day_mode()
     selected_mode = st.selectbox(
-        "3-day mode",
+        "Multi-day mode",
         MULTI_DAY_MODE_OPTIONS,
         index=MULTI_DAY_MODE_OPTIONS.index(current_mode),
         help=(
@@ -806,10 +810,10 @@ def _render_multi_day_mode_selector() -> str:
 def _render_multi_day_no_repeat_policy_selector() -> str:
     current_policy = _current_multi_day_no_repeat_policy()
     selected_policy = st.selectbox(
-        "3-day no-repeat policy",
+        "Multi-day no-repeat policy",
         MULTI_DAY_NO_REPEAT_POLICY_OPTIONS,
         index=MULTI_DAY_NO_REPEAT_POLICY_OPTIONS.index(current_policy),
-        help="Controls recipe repetition across generated days.",
+        help="Controls recipe repetition across generated days; 4/5 days can fallback if hard no-repeat is infeasible.",
     )
     if selected_policy != current_policy:
         st.session_state[SESSION_MULTIDAY_NO_REPEAT_POLICY_KEY] = selected_policy
@@ -819,10 +823,10 @@ def _render_multi_day_no_repeat_policy_selector() -> str:
 def _render_day_candidate_pool_size_selector() -> int:
     current_size = _current_day_candidate_pool_size()
     selected_size = st.selectbox(
-        "3-day candidate pool target",
+        "Multi-day candidate pool target",
         DAY_CANDIDATE_POOL_SIZE_OPTIONS,
         index=DAY_CANDIDATE_POOL_SIZE_OPTIONS.index(current_size),
-        help="Search breadth for 3-day generation; higher can be slower.",
+        help="Search breadth for multi-day generation; higher can be slower.",
     )
     if int(selected_size) != current_size:
         st.session_state[SESSION_DAY_CANDIDATE_POOL_SIZE_KEY] = int(selected_size)
@@ -832,7 +836,7 @@ def _render_day_candidate_pool_size_selector() -> int:
 def _render_multi_day_speed_mode_selector() -> str:
     current_mode = _current_multi_day_speed_mode()
     selected_mode = st.selectbox(
-        "3-day speed mode",
+        "Multi-day speed mode",
         MULTI_DAY_SPEED_MODE_OPTIONS,
         index=MULTI_DAY_SPEED_MODE_OPTIONS.index(current_mode),
         help="fast is recommended for Streamlit testing; quality is slower.",
@@ -845,7 +849,7 @@ def _render_multi_day_speed_mode_selector() -> str:
 def _render_day_candidate_builder_selector() -> str:
     current_builder = _current_day_candidate_builder()
     selected_builder = st.selectbox(
-        "3-day candidate builder",
+        "Multi-day candidate builder",
         DAY_CANDIDATE_BUILDER_OPTIONS,
         index=DAY_CANDIDATE_BUILDER_OPTIONS.index(current_builder),
         help=(
@@ -1002,7 +1006,7 @@ def _render_active_generation_config(config: dict[str, Any]) -> None:
         f"realism={config['meal_realism_mode']}; "
         f"quality={config['quality_gate']}; "
         f"profile_guard={config['profile_guard']}; "
-        f"3day={config['multi_day_mode']}; "
+        f"multi_day={config['multi_day_mode']}; "
         f"no_repeat={config['multi_day_no_repeat_policy']}"
     )
     latest = _latest_generation_record()
@@ -1811,7 +1815,7 @@ def _render_multi_day_plan(
         with tab:
             _render_multi_day_day(day, plan)
 
-    st.markdown("#### Copy 3-day draft plan")
+    st.markdown("#### Copy multi-day draft plan")
     st.code("\n".join(multi_day_readable_lines(plan)), language=None)
 
 
