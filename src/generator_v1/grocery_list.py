@@ -5,10 +5,17 @@ from typing import Any
 
 import pandas as pd
 
+from src.generator_v1.grocery_purchase import (
+    apply_purchase_rules,
+    load_grocery_purchase_rules,
+)
+
 
 DEFAULT_CONFIG = {
     "exclude_water": True,
     "include_pantry_basics": False,
+    "include_purchase_suggestions": False,
+    "purchase_rules_path": None,
     "round_grams_for_display": True,
 }
 
@@ -191,6 +198,15 @@ def build_grocery_list(
 
     raw_items = _materialise_items(groups)
     display_items = _materialise_display_items(raw_items, config_data)
+    purchase_result: dict[str, Any] | None = None
+    if bool(config_data.get("include_purchase_suggestions", False)):
+        purchase_rules = load_grocery_purchase_rules(config_data.get("purchase_rules_path"))
+        purchase_result = apply_purchase_rules(
+            display_items,
+            purchase_rules,
+            config=config_data,
+        )
+        display_items = purchase_result["items"]
     summary = _summary(
         raw_items=raw_items,
         display_items=display_items,
@@ -201,6 +217,32 @@ def build_grocery_list(
         missing_quantity_count=missing_quantity_count,
         config_data=config_data,
     )
+    if purchase_result is not None:
+        purchase_summary = purchase_result.get("summary", {})
+        if isinstance(purchase_summary, dict):
+            summary["purchase_summary"] = purchase_summary
+            summary["purchase_item_count"] = purchase_summary.get("purchase_item_count", 0)
+            summary["items_with_purchase_suggestions"] = purchase_summary.get(
+                "items_with_purchase_suggestions",
+                0,
+            )
+            summary["purchase_confidence_counts"] = purchase_summary.get(
+                "purchase_confidence_counts",
+                {},
+            )
+            summary["purchase_fallback_grams_only_count"] = purchase_summary.get(
+                "fallback_grams_only_count",
+                0,
+            )
+            summary["purchase_package_rounded_items_count"] = purchase_summary.get(
+                "package_rounded_items_count",
+                0,
+            )
+            summary["purchase_piece_rounded_items_count"] = purchase_summary.get(
+                "piece_rounded_items_count",
+                0,
+            )
+        warnings.extend(purchase_result.get("warnings", []))
     warnings.extend(_summary_warnings(summary))
     return {
         "items": raw_items,
@@ -467,8 +509,11 @@ def grocery_list_recipe_breakdown_rows(
 def grocery_list_readable_lines(
     grocery_list: dict[str, Any],
     include_pantry_basics: bool = False,
+    include_purchase_suggestions: bool | None = None,
 ) -> list[str]:
     lines = ["Grocery List"]
+    if include_purchase_suggestions is None:
+        include_purchase_suggestions = _has_purchase_suggestions(grocery_list)
     display_items = [
         item
         for item in _display_items(grocery_list)
@@ -497,16 +542,12 @@ def grocery_list_readable_lines(
             continue
         lines.extend(["", CATEGORY_LABELS.get(category, category)])
         for item in category_items:
-            suffix = _display_item_suffix(item)
-            lines.append(
-                f"- {item.get('display_name_clean')}: "
-                f"{item.get('display_grams')}{suffix}"
-            )
+            lines.append(_readable_item_line(item, bool(include_purchase_suggestions)))
 
     if pantry_items:
         lines.extend(["", CATEGORY_LABELS["pantry_basics"]])
         for item in pantry_items:
-            lines.append(f"- {item.get('display_name_clean')}: {item.get('display_grams')}")
+            lines.append(_readable_item_line(item, bool(include_purchase_suggestions)))
 
     warnings = _readable_warnings(grocery_list)
     if warnings:
@@ -533,6 +574,7 @@ def write_grocery_list_readable(
     grocery_list: dict[str, Any],
     path: Path,
     include_pantry_basics: bool = False,
+    include_purchase_suggestions: bool | None = None,
 ) -> None:
     _ensure_parent(path)
     path.write_text(
@@ -540,6 +582,7 @@ def write_grocery_list_readable(
             grocery_list_readable_lines(
                 grocery_list,
                 include_pantry_basics=include_pantry_basics,
+                include_purchase_suggestions=include_purchase_suggestions,
             )
         )
         + "\n",
@@ -1183,6 +1226,8 @@ def _warning_counts(items: list[dict[str, Any]]) -> dict[str, int]:
 
 
 def _display_item_row(item: dict[str, Any]) -> dict[str, Any]:
+    warnings = list(item.get("warnings", []))
+    purchase_warnings = list(item.get("purchase_warnings", []))
     return {
         "grocery_item_id": item.get("grocery_item_id"),
         "display_name_clean": item.get("display_name_clean"),
@@ -1208,7 +1253,20 @@ def _display_item_row(item: dict[str, Any]) -> dict[str, Any]:
         "ingredient_names_seen": _join_values(item.get("ingredient_names_seen", [])),
         "source_recipes": _format_source_recipes(item.get("source_recipes", [])),
         "source_meals": _format_source_meals(item.get("source_meals", [])),
-        "warnings": _join_values(item.get("warnings", [])),
+        "warnings": _join_values(sorted(dict.fromkeys(warnings + purchase_warnings))),
+        "needed_grams_exact": item.get("needed_grams_exact"),
+        "needed_grams_display": item.get("needed_grams_display"),
+        "purchase_display": item.get("purchase_display"),
+        "purchase_unit_type": item.get("purchase_unit_type"),
+        "purchase_quantity": item.get("purchase_quantity"),
+        "purchase_amount_grams": item.get("purchase_amount_grams"),
+        "estimated_leftover_grams": item.get("estimated_leftover_grams"),
+        "purchase_rule_id": item.get("purchase_rule_id"),
+        "purchase_rule_match_type": item.get("purchase_rule_match_type"),
+        "purchase_rule_confidence": item.get("purchase_rule_confidence"),
+        "purchase_rounding_strategy": item.get("purchase_rounding_strategy"),
+        "purchase_is_pantry_basic": item.get("purchase_is_pantry_basic"),
+        "purchase_warnings": _join_values(purchase_warnings),
     }
 
 
@@ -1248,7 +1306,7 @@ def _display_item_sort_key(item: dict[str, Any]) -> tuple[int, int, str]:
 
 def _display_item_suffix(item: dict[str, Any]) -> str:
     suffixes = []
-    warnings = set(item.get("warnings", []))
+    warnings = set(item.get("warnings", [])) | set(item.get("purchase_warnings", []))
     if "cooked_raw_purchase_ambiguity" in warnings:
         suffixes.append("check cooked/raw")
     if "unclear_grocery_item_name" in warnings:
@@ -1260,10 +1318,30 @@ def _display_item_suffix(item: dict[str, Any]) -> str:
     return " (" + ", ".join(suffixes) + ")"
 
 
+def _has_purchase_suggestions(grocery_list: dict[str, Any]) -> bool:
+    return any(
+        bool(item.get("purchase_display"))
+        for item in _display_items(grocery_list)
+    )
+
+
+def _readable_item_line(item: dict[str, Any], include_purchase_suggestions: bool) -> str:
+    name = item.get("display_name_clean")
+    suffix = _display_item_suffix(item)
+    if include_purchase_suggestions and item.get("purchase_display"):
+        needed = item.get("needed_grams_display") or item.get("display_grams")
+        purchase_display = str(item.get("purchase_display") or "").strip()
+        if purchase_display.startswith("check pantry") or purchase_display.startswith("review item"):
+            return f"- {name}: {purchase_display}{suffix}"
+        return f"- {name}: need {needed}; buy {purchase_display}{suffix}"
+    return f"- {name}: {item.get('display_grams')}{suffix}"
+
+
 def _readable_warnings(grocery_list: dict[str, Any]) -> list[str]:
     warnings = list(grocery_list.get("warnings", []))
     for item in _display_items(grocery_list):
         warnings.extend(str(warning) for warning in item.get("warnings", []))
+        warnings.extend(str(warning) for warning in item.get("purchase_warnings", []))
     return sorted(dict.fromkeys(str(item) for item in warnings if str(item).strip()))
 
 

@@ -412,6 +412,8 @@ def _parse_args() -> argparse.Namespace:
         default=Path("outputs/generator_v1_grocery_list.txt"),
         type=Path,
     )
+    parser.add_argument("--grocery_purchase_suggestions", action="store_true")
+    parser.add_argument("--grocery_purchase_rules_path", default=None, type=Path)
     parser.add_argument("--include_pantry_basics", action="store_true")
     parser.add_argument(
         "--out_multiday_json",
@@ -1848,6 +1850,8 @@ def _build_write_print_grocery_list(
         fooddb_df=fooddb_df,
         config={
             "include_pantry_basics": bool(args.include_pantry_basics),
+            "include_purchase_suggestions": bool(args.grocery_purchase_suggestions),
+            "purchase_rules_path": args.grocery_purchase_rules_path,
             "exclude_water": True,
         },
     )
@@ -1860,6 +1864,7 @@ def _build_write_print_grocery_list(
         grocery_list,
         args.grocery_out_txt,
         include_pantry_basics=bool(args.include_pantry_basics),
+        include_purchase_suggestions=bool(args.grocery_purchase_suggestions),
     )
     _print_grocery_list_summary(grocery_list, args)
     return grocery_list
@@ -1885,6 +1890,16 @@ def _print_grocery_list_summary(
         f"pantry_basic={summary.get('pantry_basic_count', 0)}; "
         f"alias_groups={summary.get('safe_alias_group_count', 0)}"
     )
+    purchase_summary = summary.get("purchase_summary", {})
+    if isinstance(purchase_summary, dict) and purchase_summary:
+        print(
+            "  purchase="
+            f"suggestions={purchase_summary.get('items_with_purchase_suggestions', 0)}; "
+            f"fallback_grams={purchase_summary.get('fallback_grams_only_count', 0)}; "
+            f"packages={purchase_summary.get('package_rounded_items_count', 0)}; "
+            f"pieces={purchase_summary.get('piece_rounded_items_count', 0)}; "
+            f"pantry_check={purchase_summary.get('pantry_basic_count', 0)}"
+        )
     warnings = grocery_list.get("warnings", [])
     if warnings:
         print("  warnings=" + "; ".join(str(item) for item in warnings))

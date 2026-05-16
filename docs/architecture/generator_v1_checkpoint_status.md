@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft configurabil 1-5 zile pe datasetul `v1_2_demo_final` si Feedback v1 local/demo.
+Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft configurabil 1-5 zile pe datasetul `v1_2_demo_final`, Feedback v1 local/demo si Grocery List v1 cu Purchase Rules v1 demo.
 
 Dataset demo:
 - `dataset_profile=v1_2_demo_final`
@@ -95,11 +95,37 @@ Comportament:
 - feedback-ul se aplica la generatiile urmatoare
 - `Clear feedback events` reseteaza contextul local
 
+## Grocery List v1 / Purchase Rules v1
+
+Status: implementat ca feature determinist local/demo pentru Generator v1.
+
+Rol:
+- construieste o lista grocery draft din retetele selectate si `portion_multiplier`
+- pastreaza gramele exacte in outputul detaliat
+- afiseaza nume curate, categorii si grame rotunjite pentru demo
+- adauga sugestii simple de cumparare prin `--grocery_purchase_suggestions` si checkbox-ul Streamlit `Show purchase suggestions`
+
+Comportament:
+- oua -> bucati
+- ceapa / unele legume / fructe -> bucati aproximative
+- paste / orez / oats / beans -> pachete sau bags simple
+- lapte / yogurt -> carton sau tub
+- carne / peste -> grame rotunjite grosier
+- uleiuri / sare / condimente / unele sweeteners -> `check pantry`
+
+Limitari:
+- nu estimeaza preturi
+- nu alege magazine, branduri sau produse
+- nu face pantry inventory real
+- nu face optimizare avansata de pachete
+- nu converteste cooked-to-raw
+- ramane demo/helper rules, nu grocery planner de productie
+
 ## Explicit out of scope
 
 - Nu exista OR-Tools / MILP / CP-SAT.
 - KNN nu este motor principal de selectie.
-- Nu exista grocery/price in Generator v1 demo.
+- Nu exista price, store, brand sau grocery optimization in Generator v1 demo.
 - Nu exista weekly planning complet; 5 zile ramane demo/debug planning.
 - Nu exista household multi-member simultan.
 - Feedback v1 nu este backend de productie.
@@ -115,7 +141,7 @@ Comportament:
 - Unele outlier risks raman cu warnings.
 - Feedback v1 este local JSONL si nu este bucla reala de invatare.
 - Feedback v1 nu propaga inca preferinte la nivel de ingrediente/familie.
-- Grocery/list prep este viitor.
+- Grocery List v1 si Purchase Rules v1 sunt demo-level; nu sunt grocery planner de productie.
 - Household multi-member este ulterior.
 
 ## Urmatoarele checkpoint-uri posibile
@@ -126,6 +152,6 @@ B. Family-level variety polish.
 
 C. Source verification batch3.
 
-D. Grocery/list prep.
+D. Grocery purchase-unit polish.
 
 E. Household multi-member later.

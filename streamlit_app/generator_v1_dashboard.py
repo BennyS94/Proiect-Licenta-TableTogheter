@@ -1969,19 +1969,27 @@ def _render_plan(
 def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
     run_id = _safe_widget_key(str(plan.get("run_id", "latest")))
     widget_key = f"{key_prefix}_{run_id}_include_pantry_basics"
+    purchase_widget_key = f"{key_prefix}_{run_id}_purchase_suggestions"
     with st.expander("Grocery list draft", expanded=False):
         st.warning(
-            "Draft grocery list. No prices, no package-size optimization, no pantry inventory."
+            "Draft grocery list. No prices, no store/package optimization, no pantry inventory."
         )
-        include_pantry_basics = st.checkbox(
+        control_cols = st.columns(2)
+        include_pantry_basics = control_cols[0].checkbox(
             "Include pantry basics",
             value=False,
             key=widget_key,
+        )
+        show_purchase_suggestions = control_cols[1].checkbox(
+            "Show purchase suggestions",
+            value=True,
+            key=purchase_widget_key,
         )
         try:
             grocery_list = _dashboard_grocery_list(
                 plan,
                 include_pantry_basics=include_pantry_basics,
+                include_purchase_suggestions=show_purchase_suggestions,
             )
         except (FileNotFoundError, ValueError, OSError) as exc:
             st.error(f"Cannot build grocery list draft: {exc}")
@@ -1994,6 +2002,25 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
             cols[1].metric("Display items", summary.get("display_item_count", 0))
             cols[2].metric("Fallback", summary.get("fallback_item_count", 0))
             cols[3].metric("Alias groups", summary.get("safe_alias_group_count", 0))
+            purchase_summary = summary.get("purchase_summary", {})
+            if isinstance(purchase_summary, dict) and purchase_summary:
+                purchase_cols = st.columns(4)
+                purchase_cols[0].metric(
+                    "Purchase suggestions",
+                    purchase_summary.get("items_with_purchase_suggestions", 0),
+                )
+                purchase_cols[1].metric(
+                    "Fallback grams",
+                    purchase_summary.get("fallback_grams_only_count", 0),
+                )
+                purchase_cols[2].metric(
+                    "Package rounded",
+                    purchase_summary.get("package_rounded_items_count", 0),
+                )
+                purchase_cols[3].metric(
+                    "Piece rounded",
+                    purchase_summary.get("piece_rounded_items_count", 0),
+                )
 
         rows = grocery_list_rows(
             grocery_list,
@@ -2003,10 +2030,10 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
             table_rows = [
                 {
                     "item": row["display_name_clean"],
-                    "grams": row["display_grams"],
+                    "needed amount": row.get("needed_grams_display") or row["display_grams"],
+                    "buy suggestion": row.get("purchase_display") or row["display_grams"],
                     "category": row["category_label"],
                     "used in recipes": row["source_recipes"],
-                    "used in meals": row["source_meals"],
                     "warnings": row["warnings"],
                 }
                 for row in rows
@@ -2025,6 +2052,7 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
                 grocery_list_readable_lines(
                     grocery_list,
                     include_pantry_basics=include_pantry_basics,
+                    include_purchase_suggestions=show_purchase_suggestions,
                 )
             ),
             language=None,
@@ -2059,6 +2087,7 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
 def _dashboard_grocery_list(
     plan: dict[str, Any],
     include_pantry_basics: bool,
+    include_purchase_suggestions: bool,
 ) -> dict[str, Any]:
     ingredients = _dashboard_recipe_ingredients(plan)
     fooddb = load_fooddb_current()
@@ -2068,6 +2097,7 @@ def _dashboard_grocery_list(
         fooddb_df=fooddb,
         config={
             "include_pantry_basics": include_pantry_basics,
+            "include_purchase_suggestions": include_purchase_suggestions,
             "exclude_water": True,
         },
     )

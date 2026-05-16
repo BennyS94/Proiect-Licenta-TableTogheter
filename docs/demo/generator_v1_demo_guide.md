@@ -38,7 +38,7 @@ Nota Round54:
 - `--days` suporta valori `1..5`
 - pentru 4/5 zile, `multi_day_no_repeat_policy=hard` poate face fallback la `main_only` sau `prefer` daca no-repeat exact nu este fezabil
 - 5 zile ramane demo/debug planning, nu weekly planning complet
-- grocery/price optimization ramane in afara scopului
+- price/store logic si grocery optimization raman in afara scopului
 
 Datele `data/recipesdb/current` si `data/fooddb/current` raman neatinse.
 
@@ -56,6 +56,7 @@ In dashboard:
 - foloseste `Generate 1 day` pentru demo rapid
 - foloseste `Generate 3 days` pentru quick action multi-day
 - pentru `1..5` zile configurabile foloseste CLI-ul Round54
+- dupa generare, foloseste expanderul `Grocery list draft` pentru lista de cumparaturi draft si sugestii de achizitie
 
 Pentru dataseturile v1.2 demo, Streamlit seteaza implicit `profile_guard=demo`.
 
@@ -133,6 +134,46 @@ Output asteptat conform smoke Round54 pentru `--days 3`:
 
 Pentru `--days 5`, outputul validat Round54 este `valid=5/5`, `accept=5/5`, fallback la `main_only`, `repeated=2`, `multi_day_review`, `multi_day_loss=0.071414`.
 
+## Grocery List / Purchase Suggestions
+
+Generator v1 poate construi o lista de grocery draft din meniul generat. Lista foloseste retetele selectate, ingredientele lor si `portion_multiplier`, apoi grupeaza cantitatile in grame. Round57 adauga reguli demo pentru sugestii simple de cumparare peste lista curatata.
+
+CLI basic grocery list:
+
+```powershell
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list
+```
+
+CLI grocery list cu purchase suggestions:
+
+```powershell
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions
+```
+
+Output:
+- `outputs/generator_v1_grocery_list.csv`
+- `outputs/generator_v1_grocery_list.txt`
+
+Regulile implicite sunt in `data/grocery/reference/grocery_purchase_rules_v1.csv`; pentru teste punctuale pot fi suprascrise cu `--grocery_purchase_rules_path`.
+
+Exemple de sugestii:
+- `Eggs: need ~264g; buy 6 eggs`
+- `Onions: need ~522g; buy 6 medium onions / about 600g`
+- `Pasta (dry): need ~846g; buy 2 x 500g packs`
+- `Rice (raw): need ~444g; buy 1 x 1kg bag`
+- `Greek yogurt: need ~270g; buy 1 x 500g tub`
+- `Olive oil: check pantry; need about 89.6g`
+
+In Streamlit, dupa generarea unui meniu, deschide `Grocery list draft`. Checkbox-ul `Show purchase suggestions` afiseaza coloana de sugestie de cumparare si actualizeaza textul copy-friendly.
+
+Limitari:
+- nu exista preturi
+- nu exista selectie de magazin, brand sau produs
+- nu exista pantry inventory real
+- nu exista optimizare avansata de pachete
+- cooked-to-raw conversion nu este implementat inca
+- sugestiile sunt reguli aproximative pentru demo/readability
+
 ## Profile guard
 
 `profile_guard` este un strat de protectie pentru demo. Nu modifica profilul si nu modifica formulele din `target_builder`.
@@ -159,13 +200,15 @@ Exemplu demonstrabil:
 - Statusurile de validare si quality gate
 - `profile_guard` ca protectie pentru profiluri extreme
 - Feedback v1: Like, Dislike, Too long, Avoid this recipe
+- Grocery list draft si purchase suggestions v1 ca helper demo determinist
 - Faptul ca datasetul demo-final este draft/demo si nu modifica `current`
 
 ## Ce sa nu pretinzi
 
 - Nu pretinde ca este productie.
 - Nu pretinde ca exista household multi-member simultan.
-- Nu pretinde ca exista grocery/price.
+- Nu pretinde ca exista preturi, magazine, branduri sau grocery optimization.
+- Nu pretinde ca purchase suggestions sunt o lista realista finala cu inventar/pachete optimizate.
 - Nu pretinde ca 5 zile este weekly planning complet.
 - Nu pretinde ca exista OR-Tools/KNN/MILP ca motor de selectie.
 - Nu pretinde ca Feedback v1 este ML, backend real sau personalizare de productie.
@@ -177,5 +220,5 @@ Exemplu demonstrabil:
 - feedback explainability + UI polish
 - family-level variety polish
 - Food_DB/source verification batch3
-- grocery/list prep
+- grocery purchase-unit polish
 - household multi-member ulterior

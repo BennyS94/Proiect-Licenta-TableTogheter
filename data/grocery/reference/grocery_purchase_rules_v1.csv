@@ -1,0 +1,61 @@
+rule_id,match_type,match_value,grocery_category,purchase_unit_type,grams_per_unit,default_package_grams,default_package_label,rounding_strategy,display_unit,is_pantry_basic,allow_purchase_rounding,notes
+egg_display,display_alias,eggs,dairy_eggs,pieces,50,,,ceil_to_piece,egg,false,true,Large egg approximation
+hard_boiled_egg_display,display_alias,hard boiled eggs,dairy_eggs,pieces,50,,,ceil_to_piece,egg,false,true,Large egg approximation
+raw_egg_keyword,normalized_name_keyword,raw egg,dairy_eggs,pieces,50,,,ceil_to_piece,egg,false,true,Large egg approximation
+onion_display,display_alias,onions,vegetables,pieces,100,,,ceil_to_piece,medium onion,false,true,Medium onion approximation
+onion_keyword,normalized_name_keyword,onion,vegetables,pieces,100,,,ceil_to_piece,medium onion,false,true,Medium onion approximation
+garlic_display,display_alias,garlic,seasonings_spices,pantry_check,3,,,pantry_check,g,true,false,Check garlic at home for v1
+sweet_pepper_display,display_alias,sweet peppers,vegetables,pieces,120,,,ceil_to_piece,medium pepper,false,true,Medium pepper approximation
+bell_pepper_keyword,normalized_name_keyword,bell pepper,vegetables,pieces,120,,,ceil_to_piece,medium pepper,false,true,Medium pepper approximation
+tomato_display,display_alias,tomatoes,vegetables,pieces,120,,,ceil_to_piece,medium tomato,false,true,Medium tomato approximation
+tomato_keyword,normalized_name_keyword,tomato,vegetables,pieces,120,,,ceil_to_piece,medium tomato,false,true,Medium tomato approximation
+carrot_keyword,normalized_name_keyword,carrot,vegetables,pieces,70,,,ceil_to_piece,medium carrot,false,true,Medium carrot approximation
+potato_keyword,normalized_name_keyword,potato,carbs_grains,pieces,150,,,ceil_to_piece,medium potato,false,true,Medium potato approximation
+broccoli_display,display_alias,broccoli,vegetables,package,,500,500g pack,ceil_to_package,pack,false,true,Simple produce pack
+lettuce_display,display_alias,lettuce,vegetables,pieces,300,,,ceil_to_piece,lettuce head,false,true,One lettuce head approximation
+green_beans_display,display_alias,green beans cooked,vegetables,package,,500,500g pack,ceil_to_package,pack,false,true,Demo pack for green beans
+banana_display,display_alias,bananas,fruits,pieces,120,,,ceil_to_piece,banana,false,true,Medium banana approximation
+apple_keyword,normalized_name_keyword,apple,fruits,pieces,150,,,ceil_to_piece,apple,false,true,Medium apple approximation
+pasta_dry_display,display_alias,pasta dry,carbs_grains,package,,500,500g pack,ceil_to_package,pack,false,true,Dry pasta pack
+rice_raw_display,display_alias,rice raw,carbs_grains,bag,,1000,1kg bag,ceil_to_package,bag,false,true,Raw rice bag
+brown_rice_raw_display,display_alias,brown rice raw,carbs_grains,bag,,1000,1kg bag,ceil_to_package,bag,false,true,Raw rice bag
+rice_cooked_display,display_alias,rice cooked,carbs_grains,grams,,,,round_to_50g,g,false,true,Cooked rice not converted to raw
+oats_display,display_alias,oats,carbs_grains,package,,500,500g pack,ceil_to_package,pack,false,true,Oats pack
+flour_keyword,normalized_name_keyword,flour,carbs_grains,bag,,1000,1kg bag,ceil_to_package,bag,false,true,Flour bag
+white_beans_dry_display,display_alias,white beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Dry beans bag
+great_northern_beans_dry_display,display_alias,great northern beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Dry beans bag
+milk_keyword,normalized_name_keyword,milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation
+low_fat_milk_display,display_alias,low fat milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation
+semi_skimmed_milk_display,display_alias,semi skimmed milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation
+soy_milk_display,display_alias,unsweetened soy milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Plant milk carton approximation
+greek_yogurt_display,display_alias,greek yogurt,dairy_eggs,tub,,500,500g tub,ceil_to_package,tub,false,true,Yogurt tub
+yogurt_keyword,normalized_name_keyword,yogurt,dairy_eggs,tub,,500,500g tub,ceil_to_package,tub,false,true,Yogurt tub
+sour_cream_keyword,normalized_name_keyword,sour cream,dairy_eggs,grams,,,,round_to_50g,g,false,true,Sour cream grams only for v1
+wholemeal_bread_display,display_alias,wholemeal bread,carbs_grains,package,,500,500g loaf,ceil_to_package,loaf,false,true,Simple bread loaf
+parmesan_display,display_alias,parmesan cheese,dairy_eggs,package,,200,200g pack,ceil_to_package,pack,false,true,Cheese pack approximation
+mozzarella_display,display_alias,mozzarella cheese,dairy_eggs,package,,200,200g pack,ceil_to_package,pack,false,true,Cheese pack approximation
+cheddar_display,display_alias,cheddar cheese,dairy_eggs,package,,200,200g pack,ceil_to_package,pack,false,true,Cheese pack approximation
+cheese_keyword,normalized_name_keyword,cheese,dairy_eggs,package,,200,200g pack,ceil_to_package,pack,false,true,Cheese pack approximation
+chicken_breast_display,display_alias,chicken breast,meat_fish,grams,,,,round_to_50g,g,false,true,Butcher counter grams
+beef_steak_display,display_alias,beef steak,meat_fish,grams,,,,round_to_50g,g,false,true,Butcher counter grams
+minced_beef_display,display_alias,minced beef,meat_fish,grams,,,,round_to_50g,g,false,true,Butcher counter grams
+pork_keyword,normalized_name_keyword,pork,meat_fish,grams,,,,round_to_50g,g,false,true,Butcher counter grams
+turkey_keyword,normalized_name_keyword,turkey,meat_fish,grams,,,,round_to_50g,g,false,true,Butcher counter grams
+fish_keyword,normalized_name_keyword,fish,meat_fish,grams,,,,round_to_50g,g,false,true,Fish counter grams
+smoked_salmon_display,display_alias,smoked salmon,meat_fish,package,,100,100g pack,ceil_to_package,pack,false,true,Smoked salmon pack
+cooked_ham_display,display_alias,cooked ham,meat_fish,grams,,,,round_to_50g,g,false,true,Deli grams
+ham_hocks_display,display_alias,ham hocks,meat_fish,grams,,,,round_to_100g,g,false,true,Deli grams
+italian_sausage_display,display_alias,italian sausage,meat_fish,grams,,,,round_to_50g,g,false,true,Deli grams
+meat_category,category_keyword,meat_fish,meat_fish,grams,,,,round_to_50g,g,false,true,Generic meat fallback
+olive_oil_display,display_alias,olive oil,oils_fats,pantry_check,,,,pantry_check,g,true,false,Check oil at home
+vegetable_oil_display,display_alias,vegetable oil,oils_fats,pantry_check,,,,pantry_check,g,true,false,Check oil at home
+butter_display,display_alias,butter,oils_fats,package,,200,200g pack,ceil_to_package,pack,false,true,Butter pack
+salt_display,display_alias,salt,pantry_basics,pantry_check,,,,pantry_check,g,true,false,Check pantry
+black_pepper_display,display_alias,black pepper,pantry_basics,pantry_check,,,,pantry_check,g,true,false,Check pantry
+thyme_display,display_alias,thyme,pantry_basics,pantry_check,,,,pantry_check,g,true,false,Check pantry
+spice_category,category_keyword,seasonings_spices,seasonings_spices,pantry_check,,,,pantry_check,g,true,false,Check pantry
+pantry_category,category_keyword,pantry_basics,pantry_basics,pantry_check,,,,pantry_check,g,true,false,Check pantry
+white_sugar_display,display_alias,white sugar,sweeteners,pantry_check,,,,pantry_check,g,true,false,Check pantry
+brown_sugar_display,display_alias,brown sugar,sweeteners,pantry_check,,,,pantry_check,g,true,false,Check pantry
+honey_keyword,normalized_name_keyword,honey,sweeteners,pantry_check,,,,pantry_check,g,true,false,Check pantry
+sun_dried_tomatoes_display,display_alias,sun dried tomatoes in oil,sauces_canned,grams,,,,round_to_50g,g,false,true,Jar amount shown as grams

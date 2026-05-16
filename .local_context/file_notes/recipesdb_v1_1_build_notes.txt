@@ -2265,3 +2265,42 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - `python tools/extra/evaluate_generator_v1_grocery_list_v1_cleanup.py` passed.
 - Known limitation:
   - This is still a deterministic demo/debug grocery list in grams, not a realistic purchase-unit list. No package sizes, price, pantry subtraction, grocery optimization, or store/product/brand logic exists yet.
+
+## 65. Round57 / Grocery Purchase Rules v1 - 2026-05-16
+- Scope:
+  - Added deterministic Grocery Purchase Rules v1 on top of cleaned Grocery List v1 display items.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, recipes, nutrition formulas, price estimation, store/brand logic, real pantry subtraction, advanced grocery optimization, or new dependencies were changed.
+- Reference rules:
+  - Added `data/grocery/reference/grocery_purchase_rules_v1.csv`.
+  - Added `data/grocery/reference/README_grocery_purchase_rules_v1.txt`.
+  - Rules cover common demo families: eggs, onion/garlic, common vegetables, fruits, pasta/rice/oats/flour/beans, dairy, meat/fish, oils/fats, pantry basics, sugar/honey, and sun-dried tomatoes.
+  - Matching priority is: mapped food id, display alias, normalized name keyword, category keyword, then grams fallback.
+- Implementation:
+  - Added `src/generator_v1/grocery_purchase.py`.
+  - `src/generator_v1/grocery_list.py` can now optionally attach purchase suggestion fields while keeping exact grams in detail/CSV output.
+  - CLI supports `--grocery_purchase_suggestions` and optional `--grocery_purchase_rules_path`.
+  - Streamlit Grocery list draft has `Show purchase suggestions` enabled by default and keeps raw detail in the debug expander.
+- Output behavior:
+  - Examples:
+    - Eggs: grams -> pieces.
+    - Onions: grams -> medium onion count plus approximate grams.
+    - Pasta/oats/rice/beans: grams -> simple pack/bag counts.
+    - Milk/yogurt: grams -> 1L carton or 500g tub.
+    - Meat/fish: coarse grams rounding.
+    - Olive oil/salt/pepper/herbs/sugar/honey: `check pantry`.
+  - Cooked rice/green beans remain needed-grams suggestions and are flagged with cooked/raw ambiguity; no cooked-to-raw conversion was added.
+  - Unclear item `Pressed` is marked `review item` instead of being converted into a fake shopping product.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_grocery_purchase_rules_v1.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_grocery_purchase_rules_v1_summary.txt`
+    - `data/recipesdb/audit/generator_v1_grocery_purchase_rules_v1_items.csv`
+    - `data/recipesdb/audit/generator_v1_grocery_purchase_rules_v1_sample.txt`
+  - Evaluator result: `grocery_item_count=30`, `items_with_purchase_suggestions=29`, `purchase_confidence_counts=high=29; none=1`, `pantry_basic_count=7`, `package_rounded_items_count=12`, `piece_rounded_items_count=4`, `fallback_grams_only_count=0`, `cooked_raw_ambiguity_count=2`.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - CLI 3-day `v1_2_demo_final` with `--write_grocery_list --grocery_purchase_suggestions` passed.
+  - CLI result with current local feedback context: `38` shopping items, `41` display items, `43` raw items, `39` purchase-suggested display items, `1` grams-only fallback, `17` package-rounded items, `7` piece-rounded items, `8` pantry-check items.
+  - `python tools/extra/evaluate_generator_v1_grocery_purchase_rules_v1.py` passed.
+- Known limitation:
+  - This is still purchase suggestion v1 only. Package sizes are generic, leftovers are rough display values, no price/store/brand logic exists, no pantry inventory is subtracted, no advanced optimization is done, and cooked-to-raw conversion remains out of scope.

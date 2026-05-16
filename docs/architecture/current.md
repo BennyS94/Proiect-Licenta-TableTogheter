@@ -56,7 +56,8 @@ Smoke-ul curent pentru acest pachet:
 
 Limitari explicite ale demo-ului curent:
 - fara OR-Tools / KNN ca motor principal / MILP
-- fara grocery/price in Generator v1 demo
+- Grocery List v1 si Purchase Rules v1 exista ca feature determinist demo/helper
+- fara price, store, brand, pantry inventory real sau grocery optimization
 - fara household multi-member simultan
 - family-level variety este inca imperfecta
 - unele outlier risks raman cu warnings
