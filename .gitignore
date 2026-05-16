@@ -23,3 +23,31 @@ Thumbs.db
 *.log
 *.tmp
 zzzzzz_my_commands/
+
+# Stare locala/demo, nu se comite.
+data/runtime/
+
+# Artefacte locale vechi din rundele demo v1.2 care nu fac parte din commiturile active.
+data/fooddb/audit/fooddb_v1_2_manual_batch2_leftovers_summary.txt
+data/fooddb/audit/fooddb_v1_2_source_verification_batch3_candidates.csv
+data/fooddb/audit/fooddb_v1_2_source_verification_batch3_recommendation.txt
+data/recipesdb/audit/generator_v1_round45_final_demo_smoke_*
+data/recipesdb/audit/generator_v1_round46_qa_dataset_*
+data/recipesdb/audit/generator_v1_round47_risk_exposure_*
+data/recipesdb/audit/generator_v1_round47_risky_recipes_selected.csv
+data/recipesdb/audit/generator_v1_round48_cleaned_risk_impact_*
+data/recipesdb/audit/generator_v1_round48_profile_guard_*
+data/recipesdb/audit/recipes_v1_2_round45_final_*
+data/recipesdb/audit/recipes_v1_2_round46_*
+data/recipesdb/audit/recipes_v1_2_round47_*
+data/recipesdb/audit/recipes_v1_2_round48_*
+data/recipesdb/audit/untracked_artifacts_after_demo_final_audit.txt
+tools/extra/apply_recipes_v1_2_round46_safe_repairs.py
+tools/extra/audit_recipes_v1_2_round46_partial_cache_and_outliers.py
+tools/extra/evaluate_generator_v1_round45_*.py
+tools/extra/evaluate_generator_v1_round46_*.py
+tools/extra/evaluate_generator_v1_round47_*.py
+tools/extra/evaluate_generator_v1_round48_*.py
+tools/extra/evaluate_recipes_v1_2_round45_*.py
+tools/extra/plan_recipes_v1_2_round47_outlier_manual_review.py
+tools/extra/review_recipes_v1_2_round48_high_priority_outliers.py
