@@ -16,6 +16,8 @@ DEFAULT_CONFIG = {
     "include_pantry_basics": False,
     "include_purchase_suggestions": False,
     "purchase_rules_path": None,
+    "enable_cooked_to_raw_conversion": False,
+    "cooked_to_raw_rules_path": None,
     "round_grams_for_display": True,
 }
 
@@ -240,6 +242,18 @@ def build_grocery_list(
             )
             summary["purchase_piece_rounded_items_count"] = purchase_summary.get(
                 "piece_rounded_items_count",
+                0,
+            )
+            summary["cooked_to_raw_converted_item_count"] = purchase_summary.get(
+                "cooked_to_raw_converted_item_count",
+                0,
+            )
+            summary["cooked_to_raw_warning_count"] = purchase_summary.get(
+                "cooked_to_raw_warning_count",
+                0,
+            )
+            summary["cooked_raw_no_conversion_count"] = purchase_summary.get(
+                "cooked_raw_no_conversion_count",
                 0,
             )
         warnings.extend(purchase_result.get("warnings", []))
@@ -1256,6 +1270,7 @@ def _display_item_row(item: dict[str, Any]) -> dict[str, Any]:
         "warnings": _join_values(sorted(dict.fromkeys(warnings + purchase_warnings))),
         "needed_grams_exact": item.get("needed_grams_exact"),
         "needed_grams_display": item.get("needed_grams_display"),
+        "purchase_basis_grams": item.get("purchase_basis_grams"),
         "purchase_display": item.get("purchase_display"),
         "purchase_unit_type": item.get("purchase_unit_type"),
         "purchase_quantity": item.get("purchase_quantity"),
@@ -1267,6 +1282,15 @@ def _display_item_row(item: dict[str, Any]) -> dict[str, Any]:
         "purchase_rounding_strategy": item.get("purchase_rounding_strategy"),
         "purchase_is_pantry_basic": item.get("purchase_is_pantry_basic"),
         "purchase_warnings": _join_values(purchase_warnings),
+        "cooked_to_raw_applied": item.get("cooked_to_raw_applied", False),
+        "cooked_to_raw_rule_id": item.get("cooked_to_raw_rule_id"),
+        "original_needed_grams": item.get("original_needed_grams"),
+        "raw_equivalent_grams": item.get("raw_equivalent_grams"),
+        "raw_purchase_display_name": item.get("raw_purchase_display_name"),
+        "raw_equivalent_factor": item.get("raw_equivalent_factor"),
+        "raw_equivalent_basis": item.get("raw_equivalent_basis"),
+        "cooked_to_raw_confidence": item.get("cooked_to_raw_confidence"),
+        "cooked_to_raw_warning": item.get("cooked_to_raw_warning"),
     }
 
 
@@ -1307,7 +1331,9 @@ def _display_item_sort_key(item: dict[str, Any]) -> tuple[int, int, str]:
 def _display_item_suffix(item: dict[str, Any]) -> str:
     suffixes = []
     warnings = set(item.get("warnings", [])) | set(item.get("purchase_warnings", []))
-    if "cooked_raw_purchase_ambiguity" in warnings:
+    if "cooked_to_raw_estimate" in warnings:
+        suffixes.append("cooked-to-raw estimate")
+    elif "cooked_raw_purchase_ambiguity" in warnings:
         suffixes.append("check cooked/raw")
     if "unclear_grocery_item_name" in warnings:
         suffixes.append("review")
@@ -1376,6 +1402,17 @@ def _has_cooked_raw_purchase_ambiguity(item: dict[str, Any]) -> bool:
             "grains",
             "oat",
             "oats",
+            "broccoli",
+            "green beans",
+            "carrot",
+            "potato",
+            "tomato",
+            "pepper",
+            "spinach",
+            "zucchini",
+            "cabbage",
+            "vegetable",
+            "vegetables",
         ],
     )
 

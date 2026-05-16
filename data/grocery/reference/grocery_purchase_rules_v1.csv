@@ -19,11 +19,12 @@ apple_keyword,normalized_name_keyword,apple,fruits,pieces,150,,,ceil_to_piece,ap
 pasta_dry_display,display_alias,pasta dry,carbs_grains,package,,500,500g pack,ceil_to_package,pack,false,true,Dry pasta pack
 rice_raw_display,display_alias,rice raw,carbs_grains,bag,,1000,1kg bag,ceil_to_package,bag,false,true,Raw rice bag
 brown_rice_raw_display,display_alias,brown rice raw,carbs_grains,bag,,1000,1kg bag,ceil_to_package,bag,false,true,Raw rice bag
-rice_cooked_display,display_alias,rice cooked,carbs_grains,grams,,,,round_to_50g,g,false,true,Cooked rice not converted to raw
+rice_cooked_display,display_alias,rice cooked,carbs_grains,grams,,,,round_to_50g,g,false,true,Cooked rice grams fallback when cooked-to-raw conversion is disabled
 oats_display,display_alias,oats,carbs_grains,package,,500,500g pack,ceil_to_package,pack,false,true,Oats pack
 flour_keyword,normalized_name_keyword,flour,carbs_grains,bag,,1000,1kg bag,ceil_to_package,bag,false,true,Flour bag
 white_beans_dry_display,display_alias,white beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Dry beans bag
 great_northern_beans_dry_display,display_alias,great northern beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Dry beans bag
+beans_dry_display,display_alias,beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Generic dry beans bag
 milk_keyword,normalized_name_keyword,milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation
 low_fat_milk_display,display_alias,low fat milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation
 semi_skimmed_milk_display,display_alias,semi skimmed milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation

@@ -414,6 +414,12 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--grocery_purchase_suggestions", action="store_true")
     parser.add_argument("--grocery_purchase_rules_path", default=None, type=Path)
+    parser.add_argument(
+        "--grocery_cooked_to_raw",
+        action="store_true",
+        default=None,
+    )
+    parser.add_argument("--grocery_cooked_to_raw_rules_path", default=None, type=Path)
     parser.add_argument("--include_pantry_basics", action="store_true")
     parser.add_argument(
         "--out_multiday_json",
@@ -1844,6 +1850,11 @@ def _build_write_print_grocery_list(
     fooddb_df: pd.DataFrame,
     args: argparse.Namespace,
 ) -> dict[str, object]:
+    enable_cooked_to_raw = (
+        bool(args.grocery_purchase_suggestions)
+        if args.grocery_cooked_to_raw is None
+        else bool(args.grocery_cooked_to_raw)
+    )
     grocery_list = build_grocery_list(
         plan,
         recipe_ingredients_df,
@@ -1852,6 +1863,8 @@ def _build_write_print_grocery_list(
             "include_pantry_basics": bool(args.include_pantry_basics),
             "include_purchase_suggestions": bool(args.grocery_purchase_suggestions),
             "purchase_rules_path": args.grocery_purchase_rules_path,
+            "enable_cooked_to_raw_conversion": enable_cooked_to_raw,
+            "cooked_to_raw_rules_path": args.grocery_cooked_to_raw_rules_path,
             "exclude_water": True,
         },
     )
@@ -1899,6 +1912,12 @@ def _print_grocery_list_summary(
             f"packages={purchase_summary.get('package_rounded_items_count', 0)}; "
             f"pieces={purchase_summary.get('piece_rounded_items_count', 0)}; "
             f"pantry_check={purchase_summary.get('pantry_basic_count', 0)}"
+        )
+        print(
+            "  cooked_to_raw="
+            f"converted={purchase_summary.get('cooked_to_raw_converted_item_count', 0)}; "
+            f"warnings={purchase_summary.get('cooked_to_raw_warning_count', 0)}; "
+            f"no_conversion={purchase_summary.get('cooked_raw_no_conversion_count', 0)}"
         )
     warnings = grocery_list.get("warnings", [])
     if warnings:

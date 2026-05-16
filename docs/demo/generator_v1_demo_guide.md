@@ -150,11 +150,18 @@ CLI grocery list cu purchase suggestions:
 python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions
 ```
 
+CLI grocery list cu purchase suggestions si estimari cooked-to-raw:
+
+```powershell
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions --grocery_cooked_to_raw
+```
+
 Output:
 - `outputs/generator_v1_grocery_list.csv`
 - `outputs/generator_v1_grocery_list.txt`
 
 Regulile implicite sunt in `data/grocery/reference/grocery_purchase_rules_v1.csv`; pentru teste punctuale pot fi suprascrise cu `--grocery_purchase_rules_path`.
+Regulile cooked-to-raw sunt in `data/grocery/reference/grocery_cooked_to_raw_rules_v1.csv`; pentru teste punctuale pot fi suprascrise cu `--grocery_cooked_to_raw_rules_path`.
 
 Exemple de sugestii:
 - `Eggs: need ~264g; buy 6 eggs`
@@ -163,15 +170,22 @@ Exemple de sugestii:
 - `Rice (raw): need ~444g; buy 1 x 1kg bag`
 - `Greek yogurt: need ~270g; buy 1 x 500g tub`
 - `Olive oil: check pantry; need about 89.6g`
+- `Rice (cooked): need ~228g cooked; buy about 80g raw rice`
 
-In Streamlit, dupa generarea unui meniu, deschide `Grocery list draft`. Checkbox-ul `Show purchase suggestions` afiseaza coloana de sugestie de cumparare si actualizeaza textul copy-friendly.
+In Streamlit, dupa generarea unui meniu, deschide `Grocery list draft`. Checkbox-ul `Show purchase suggestions` afiseaza coloana de sugestie de cumparare si actualizeaza textul copy-friendly. Checkbox-ul `Convert cooked rice/pasta/beans to raw purchase estimate` afiseaza echivalentul raw/dry aproximativ pentru cazurile acoperite.
+
+Nota cooked-to-raw:
+- acopera conservator cooked rice, cooked pasta si cooked beans/lentils/chickpeas
+- nu modifica nutrition calculation sau gramele exacte din detail/CSV
+- adauga warnings de tip `cooked_to_raw_estimate`
+- cooked/boiled vegetables raman cu warning, nu se convertesc automat
 
 Limitari:
 - nu exista preturi
 - nu exista selectie de magazin, brand sau produs
 - nu exista pantry inventory real
 - nu exista optimizare avansata de pachete
-- cooked-to-raw conversion nu este implementat inca
+- cooked-to-raw este demo-level si acopera doar cazurile explicite de mai sus
 - sugestiile sunt reguli aproximative pentru demo/readability
 
 ## Profile guard

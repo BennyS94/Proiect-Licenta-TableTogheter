@@ -6,6 +6,12 @@ import re
 from pathlib import Path
 from typing import Any
 
+from src.generator_v1.grocery_cooked_raw import (
+    apply_cooked_to_raw_conversion,
+    detect_cooked_raw_applicability,
+    load_cooked_to_raw_rules,
+)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PURCHASE_RULES_PATH = (
@@ -14,6 +20,8 @@ DEFAULT_PURCHASE_RULES_PATH = (
 
 DEFAULT_CONFIG = {
     "fallback_rounding_strategy": "round_to_50g",
+    "enable_cooked_to_raw_conversion": False,
+    "cooked_to_raw_rules_path": None,
 }
 
 
@@ -42,17 +50,32 @@ def apply_purchase_rules(
     piece_rounded_count = 0
     fallback_grams_only_count = 0
     pantry_basic_count = 0
+    cooked_to_raw_converted_count = 0
+    cooked_to_raw_warning_count = 0
+    cooked_to_raw_rules = []
+    if bool(config_data.get("enable_cooked_to_raw_conversion", False)):
+        cooked_to_raw_rules = load_cooked_to_raw_rules(
+            config_data.get("cooked_to_raw_rules_path")
+        )
 
     for item in grocery_items:
-        match = _match_rule(item, rules)
+        conversion = _cooked_to_raw_conversion(item, cooked_to_raw_rules)
+        purchase_item = _purchase_item_for_conversion(item, conversion)
+        match = _match_rule(purchase_item, rules)
         suggestion = build_purchase_suggestion(
-            item,
+            purchase_item,
             match.get("rule"),
             config=config_data,
             match_type=match.get("match_type", ""),
             confidence=match.get("confidence", "none"),
         )
+        if conversion.get("cooked_to_raw_applied"):
+            suggestion = _apply_conversion_display_to_suggestion(suggestion, conversion)
+            cooked_to_raw_converted_count += 1
+            if conversion.get("cooked_to_raw_warning"):
+                cooked_to_raw_warning_count += 1
         updated = dict(item)
+        updated.update(conversion)
         updated.update(
             {
                 "needed_grams_exact": suggestion["needed_grams_exact"],
@@ -68,6 +91,7 @@ def apply_purchase_rules(
                 "purchase_warnings": suggestion["purchase_warnings"],
                 "purchase_is_pantry_basic": suggestion["purchase_is_pantry_basic"],
                 "purchase_rounding_strategy": suggestion["purchase_rounding_strategy"],
+                "purchase_basis_grams": suggestion["purchase_basis_grams"],
             }
         )
         updated_items.append(updated)
@@ -88,6 +112,12 @@ def apply_purchase_rules(
             warning_counts[warning] = warning_counts.get(warning, 0) + 1
             warnings.append(warning)
 
+    cooked_raw_ambiguity_count = sum(
+        1
+        for item in updated_items
+        if "cooked_raw_purchase_ambiguity" in item.get("warnings", [])
+        or "cooked_raw_purchase_ambiguity" in item.get("purchase_warnings", [])
+    )
     summary = {
         "purchase_item_count": len(updated_items),
         "items_with_purchase_suggestions": sum(
@@ -98,14 +128,16 @@ def apply_purchase_rules(
         "package_rounded_items_count": package_rounded_count,
         "piece_rounded_items_count": piece_rounded_count,
         "fallback_grams_only_count": fallback_grams_only_count,
-        "cooked_raw_ambiguity_count": sum(
-            1
-            for item in updated_items
-            if "cooked_raw_purchase_ambiguity" in item.get("warnings", [])
-            or "cooked_raw_purchase_ambiguity" in item.get("purchase_warnings", [])
+        "cooked_raw_ambiguity_count": cooked_raw_ambiguity_count,
+        "cooked_to_raw_converted_item_count": cooked_to_raw_converted_count,
+        "cooked_to_raw_warning_count": cooked_to_raw_warning_count,
+        "cooked_raw_no_conversion_count": max(
+            0,
+            cooked_raw_ambiguity_count - cooked_to_raw_converted_count,
         ),
         "purchase_warning_counts": dict(sorted(warning_counts.items())),
         "rules_loaded_count": len(rules),
+        "cooked_to_raw_rules_loaded_count": len(cooked_to_raw_rules),
     }
     return {
         "items": updated_items,
@@ -431,6 +463,7 @@ def _suggestion_result(
     return {
         "needed_grams_exact": round(needed_grams, 1),
         "needed_grams_display": _format_needed_grams(needed_grams),
+        "purchase_basis_grams": round(needed_grams, 1),
         "purchase_display": purchase_display,
         "purchase_unit_type": purchase_unit_type,
         "purchase_quantity": purchase_quantity,
@@ -459,6 +492,79 @@ def _base_purchase_warnings(item: dict[str, Any]) -> list[str]:
     if "normalized_name_fallback" in item_warnings:
         warnings.append("normalized_name_fallback")
     return warnings
+
+
+def _cooked_to_raw_conversion(
+    item: dict[str, Any],
+    cooked_to_raw_rules: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if not cooked_to_raw_rules:
+        return apply_cooked_to_raw_conversion(item, None)
+    matched_rule = detect_cooked_raw_applicability(item, cooked_to_raw_rules)
+    return apply_cooked_to_raw_conversion(item, matched_rule)
+
+
+def _purchase_item_for_conversion(
+    item: dict[str, Any],
+    conversion: dict[str, Any],
+) -> dict[str, Any]:
+    if not conversion.get("cooked_to_raw_applied"):
+        return dict(item)
+
+    raw_name = _clean_text(conversion.get("raw_purchase_display_name"))
+    raw_grams = _to_float(conversion.get("raw_equivalent_grams"))
+    purchase_item = dict(item)
+    purchase_item["total_grams"] = raw_grams
+    purchase_item["display_name_clean"] = raw_name
+    purchase_item["display_name"] = raw_name
+    purchase_item["canonical_name"] = raw_name
+    purchase_item["ingredient_names_seen"] = [raw_name]
+    return purchase_item
+
+
+def _apply_conversion_display_to_suggestion(
+    suggestion: dict[str, Any],
+    conversion: dict[str, Any],
+) -> dict[str, Any]:
+    updated = dict(suggestion)
+    original_grams = _to_float(conversion.get("original_needed_grams"))
+    raw_grams = _to_float(conversion.get("raw_equivalent_grams"))
+    raw_name = _raw_purchase_phrase(conversion.get("raw_purchase_display_name"))
+    warning_code = _clean_text(conversion.get("cooked_to_raw_warning"))
+    purchase_warnings = [
+        warning
+        for warning in updated.get("purchase_warnings", [])
+        if warning != "cooked_raw_not_converted_to_raw"
+    ]
+    if warning_code:
+        purchase_warnings.append(warning_code)
+
+    updated["needed_grams_exact"] = round(original_grams, 1)
+    updated["needed_grams_display"] = f"{_format_needed_grams(original_grams)} cooked"
+    updated["purchase_basis_grams"] = round(raw_grams, 1)
+    raw_display = _format_needed_grams(raw_grams).lstrip("~")
+    updated["purchase_display"] = f"about {raw_display} {raw_name}"
+    updated["purchase_unit_type"] = "grams"
+    updated["purchase_quantity"] = None
+    updated["purchase_amount_grams"] = round(raw_grams, 1)
+    updated["estimated_leftover_grams"] = 0.0
+    updated["purchase_rounding_strategy"] = "cooked_to_raw_estimate"
+    updated["purchase_warnings"] = sorted(
+        dict.fromkeys(warning for warning in purchase_warnings if warning)
+    )
+    return updated
+
+
+def _raw_purchase_phrase(value: Any) -> str:
+    text = _clean_text(value)
+    normalised = _normalise_text(text)
+    if normalised == "rice raw":
+        return "raw rice"
+    if normalised == "pasta dry":
+        return "dry pasta"
+    if normalised == "beans dry":
+        return "dry beans"
+    return text.lower() or "raw equivalent"
 
 
 def _piece_purchase_display(

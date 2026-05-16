@@ -9,7 +9,7 @@ Scope:
 - These rules are approximate practical purchase suggestions for demo readability.
 - Exact grams remain in the detailed grocery output.
 - Purchase suggestions are derived from cleaned Grocery List v1 display items.
-- Cooked-to-raw conversions are mostly not implemented yet.
+- Cooked-to-raw conversions live in the separate grocery_cooked_to_raw_rules_v1 reference file.
 - Pantry basics are marked as check-at-home items and are not silently deleted.
 
 Rule behavior:
@@ -26,4 +26,4 @@ Known limitations:
 - No supermarket product is selected.
 - No price estimate is produced.
 - No pantry inventory subtraction is applied.
-- Cooked rice pasta beans and grains are shown as needed amounts and flagged instead of converted to raw equivalents.
+- Cooked-to-raw conversion is limited to explicit helper rules and remains approximate demo output.

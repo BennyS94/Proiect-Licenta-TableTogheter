@@ -2304,3 +2304,30 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - `python tools/extra/evaluate_generator_v1_grocery_purchase_rules_v1.py` passed.
 - Known limitation:
   - This is still purchase suggestion v1 only. Package sizes are generic, leftovers are rough display values, no price/store/brand logic exists, no pantry inventory is subtracted, no advanced optimization is done, and cooked-to-raw conversion remains out of scope.
+
+## 66. Round58 / Grocery cooked-to-raw conversion rules v1 - 2026-05-16
+- Scope:
+  - Added conservative cooked-to-raw purchase estimates on top of Grocery Purchase Rules v1.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, recipes, nutrition formulas, price/store/brand logic, real pantry subtraction, advanced grocery optimization, or new dependencies were changed.
+- Reference rules:
+  - Added `data/grocery/reference/grocery_cooked_to_raw_rules_v1.csv`.
+  - Added `data/grocery/reference/README_grocery_cooked_to_raw_rules_v1.txt`.
+  - Covered cases: cooked rice -> raw rice factor `0.35`, cooked pasta -> dry pasta factor `0.45`, cooked beans/lentils/chickpeas -> dry legumes factor `0.45`.
+- Behavior:
+  - Exact cooked grocery grams remain preserved in detail/CSV fields.
+  - Raw equivalent grams are separate `cooked_to_raw_*` fields and only affect purchase display.
+  - Converted items add `cooked_to_raw_estimate`.
+  - Cooked/boiled vegetables and ambiguous cooked items stay unconverted with cooked/raw ambiguity warnings.
+- UI/CLI:
+  - CLI supports `--grocery_cooked_to_raw` and optional `--grocery_cooked_to_raw_rules_path`.
+  - Streamlit Grocery list draft has `Convert cooked rice/pasta/beans to raw purchase estimate`.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_grocery_cooked_to_raw_v1.py`.
+  - Wrote audit outputs:
+    - `data/recipesdb/audit/generator_v1_grocery_cooked_to_raw_v1_summary.txt`
+    - `data/recipesdb/audit/generator_v1_grocery_cooked_to_raw_v1_items.csv`
+    - `data/recipesdb/audit/generator_v1_grocery_cooked_to_raw_v1_sample.txt`
+  - Evaluator result: `total_grocery_items=30`, `cooked_to_raw_converted_items=1`, `cooked_to_raw_warning_count=1`, `cooked_raw_ambiguity_count=2`, `fallback_no_conversion_count=1`.
+  - Example: `Rice (cooked): need ~548g cooked; buy about 192g raw rice`.
+- Known limitation:
+  - This remains demo/helper purchase display logic. It is not nutrition conversion, price logic, store/product selection, pantry inventory, or advanced package optimization.

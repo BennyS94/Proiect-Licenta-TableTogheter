@@ -1970,11 +1970,12 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
     run_id = _safe_widget_key(str(plan.get("run_id", "latest")))
     widget_key = f"{key_prefix}_{run_id}_include_pantry_basics"
     purchase_widget_key = f"{key_prefix}_{run_id}_purchase_suggestions"
+    cooked_to_raw_widget_key = f"{key_prefix}_{run_id}_cooked_to_raw"
     with st.expander("Grocery list draft", expanded=False):
         st.warning(
             "Draft grocery list. No prices, no store/package optimization, no pantry inventory."
         )
-        control_cols = st.columns(2)
+        control_cols = st.columns(3)
         include_pantry_basics = control_cols[0].checkbox(
             "Include pantry basics",
             value=False,
@@ -1985,11 +1986,19 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
             value=True,
             key=purchase_widget_key,
         )
+        enable_cooked_to_raw = control_cols[2].checkbox(
+            "Convert cooked rice/pasta/beans to raw purchase estimate",
+            value=bool(show_purchase_suggestions),
+            key=cooked_to_raw_widget_key,
+            disabled=not bool(show_purchase_suggestions),
+        )
         try:
             grocery_list = _dashboard_grocery_list(
                 plan,
                 include_pantry_basics=include_pantry_basics,
                 include_purchase_suggestions=show_purchase_suggestions,
+                enable_cooked_to_raw=bool(show_purchase_suggestions)
+                and bool(enable_cooked_to_raw),
             )
         except (FileNotFoundError, ValueError, OSError) as exc:
             st.error(f"Cannot build grocery list draft: {exc}")
@@ -2021,6 +2030,19 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
                     "Piece rounded",
                     purchase_summary.get("piece_rounded_items_count", 0),
                 )
+                cooked_cols = st.columns(3)
+                cooked_cols[0].metric(
+                    "Cooked-to-raw",
+                    purchase_summary.get("cooked_to_raw_converted_item_count", 0),
+                )
+                cooked_cols[1].metric(
+                    "Cooked/raw warnings",
+                    purchase_summary.get("cooked_to_raw_warning_count", 0),
+                )
+                cooked_cols[2].metric(
+                    "No conversion",
+                    purchase_summary.get("cooked_raw_no_conversion_count", 0),
+                )
 
         rows = grocery_list_rows(
             grocery_list,
@@ -2032,6 +2054,7 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
                     "item": row["display_name_clean"],
                     "needed amount": row.get("needed_grams_display") or row["display_grams"],
                     "buy suggestion": row.get("purchase_display") or row["display_grams"],
+                    "raw equivalent": row.get("raw_equivalent_grams"),
                     "category": row["category_label"],
                     "used in recipes": row["source_recipes"],
                     "warnings": row["warnings"],
@@ -2088,6 +2111,7 @@ def _dashboard_grocery_list(
     plan: dict[str, Any],
     include_pantry_basics: bool,
     include_purchase_suggestions: bool,
+    enable_cooked_to_raw: bool,
 ) -> dict[str, Any]:
     ingredients = _dashboard_recipe_ingredients(plan)
     fooddb = load_fooddb_current()
@@ -2098,6 +2122,7 @@ def _dashboard_grocery_list(
         config={
             "include_pantry_basics": include_pantry_basics,
             "include_purchase_suggestions": include_purchase_suggestions,
+            "enable_cooked_to_raw_conversion": enable_cooked_to_raw,
             "exclude_water": True,
         },
     )

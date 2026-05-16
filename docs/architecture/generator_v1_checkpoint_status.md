@@ -112,14 +112,17 @@ Comportament:
 - lapte / yogurt -> carton sau tub
 - carne / peste -> grame rotunjite grosier
 - uleiuri / sare / condimente / unele sweeteners -> `check pantry`
+- include helper-e cooked-to-raw aproximative pentru purchase display: cooked rice -> raw rice, cooked pasta -> dry pasta, cooked beans/lentils/chickpeas -> dry legumes
+- helper-ele cooked-to-raw nu modifica recipe nutrition calculations
+- cooked vegetables raman warning-only si nu sunt convertite automat
 
 Limitari:
 - nu estimeaza preturi
 - nu alege magazine, branduri sau produse
 - nu face pantry inventory real
 - nu face optimizare avansata de pachete
-- nu converteste cooked-to-raw
-- ramane demo/helper rules, nu grocery planner de productie
+- helper-ele cooked-to-raw sunt estimari demo pentru purchase display, nu conversii nutritionale
+- ramane demo/helper rules, nu grocery planner de productie si nu price/store/brand logic
 
 ## Explicit out of scope
 
