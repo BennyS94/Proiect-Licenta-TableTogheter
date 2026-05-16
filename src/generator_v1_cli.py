@@ -96,6 +96,11 @@ from src.generator_v1.feedback_store import (
     clear_feedback_events,
     load_feedback_events,
 )
+from src.generator_v1.grocery_list import (
+    build_grocery_list,
+    write_grocery_list_csv,
+    write_grocery_list_readable,
+)
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.multi_day_audit import (
     multi_day_readable_lines,
@@ -213,6 +218,13 @@ def main() -> None:
         _print_multi_day_plan(multi_day_plan)
         if not args.no_write_outputs:
             _write_multi_day_outputs(multi_day_plan, args)
+        if args.write_grocery_list:
+            _build_write_print_grocery_list(
+                multi_day_plan,
+                pool.ingredients,
+                fooddb,
+                args,
+            )
         return
 
     selector_config = _balanced_selector_config(args)
@@ -282,6 +294,13 @@ def main() -> None:
         _print_ingredient_diagnostics(ingredient_diagnostics)
     if not args.no_write_outputs:
         _write_outputs(plan, args)
+    if args.write_grocery_list:
+        _build_write_print_grocery_list(
+            plan,
+            pool.ingredients,
+            fooddb,
+            args,
+        )
 
 
 def _parse_args() -> argparse.Namespace:
@@ -382,6 +401,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--out_csv", default=Path("outputs/generator_v1_plan.csv"), type=Path)
     parser.add_argument("--out_json", default=Path("outputs/generator_v1_plan.json"), type=Path)
     parser.add_argument("--out_txt", default=Path("outputs/generator_v1_readable.txt"), type=Path)
+    parser.add_argument("--write_grocery_list", action="store_true")
+    parser.add_argument(
+        "--grocery_out_csv",
+        default=Path("outputs/generator_v1_grocery_list.csv"),
+        type=Path,
+    )
+    parser.add_argument(
+        "--grocery_out_txt",
+        default=Path("outputs/generator_v1_grocery_list.txt"),
+        type=Path,
+    )
+    parser.add_argument("--include_pantry_basics", action="store_true")
     parser.add_argument(
         "--out_multiday_json",
         default=Path("outputs/generator_v1_multiday_plan.json"),
@@ -1803,6 +1834,60 @@ def _write_multi_day_outputs(plan: dict[str, object], args: argparse.Namespace) 
     print(f"  json={args.out_multiday_json}")
     print(f"  txt={args.out_multiday_txt}")
     print(f"  csv={args.out_multiday_csv}")
+
+
+def _build_write_print_grocery_list(
+    plan: dict[str, object],
+    recipe_ingredients_df: pd.DataFrame,
+    fooddb_df: pd.DataFrame,
+    args: argparse.Namespace,
+) -> dict[str, object]:
+    grocery_list = build_grocery_list(
+        plan,
+        recipe_ingredients_df,
+        fooddb_df=fooddb_df,
+        config={
+            "include_pantry_basics": bool(args.include_pantry_basics),
+            "exclude_water": True,
+        },
+    )
+    write_grocery_list_csv(
+        grocery_list,
+        args.grocery_out_csv,
+        include_pantry_basics=bool(args.include_pantry_basics),
+    )
+    write_grocery_list_readable(
+        grocery_list,
+        args.grocery_out_txt,
+        include_pantry_basics=bool(args.include_pantry_basics),
+    )
+    _print_grocery_list_summary(grocery_list, args)
+    return grocery_list
+
+
+def _print_grocery_list_summary(
+    grocery_list: dict[str, object],
+    args: argparse.Namespace,
+) -> None:
+    summary = grocery_list.get("summary", {})
+    if not isinstance(summary, dict):
+        summary = {}
+    print("Generator v1 grocery list written")
+    print(f"  csv={args.grocery_out_csv}")
+    print(f"  txt={args.grocery_out_txt}")
+    print(
+        "  items="
+        f"{summary.get('shopping_item_count', 0)} shopping / "
+        f"{summary.get('display_item_count', summary.get('item_count', 0))} display / "
+        f"{summary.get('raw_item_count', summary.get('item_count', 0))} raw; "
+        f"mapped={summary.get('mapped_item_count', 0)}; "
+        f"fallback={summary.get('fallback_item_count', 0)}; "
+        f"pantry_basic={summary.get('pantry_basic_count', 0)}; "
+        f"alias_groups={summary.get('safe_alias_group_count', 0)}"
+    )
+    warnings = grocery_list.get("warnings", [])
+    if warnings:
+        print("  warnings=" + "; ".join(str(item) for item in warnings))
 
 
 if __name__ == "__main__":

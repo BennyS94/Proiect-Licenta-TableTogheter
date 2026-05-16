@@ -106,6 +106,12 @@ from src.generator_v1.feedback_store import (
     clear_feedback_events,
     load_feedback_events,
 )
+from src.generator_v1.grocery_list import (
+    build_grocery_list,
+    grocery_list_readable_lines,
+    grocery_raw_item_rows,
+    grocery_list_rows,
+)
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.multi_day_audit import multi_day_readable_lines
 from src.generator_v1.multi_day_selector import (
@@ -1817,6 +1823,7 @@ def _render_multi_day_plan(
 
     st.markdown("#### Copy multi-day draft plan")
     st.code("\n".join(multi_day_readable_lines(plan)), language=None)
+    _render_grocery_list_draft(plan, key_prefix="multiday")
 
 
 def _render_multi_day_day(day: dict[str, Any], parent_plan: dict[str, Any]) -> None:
@@ -1952,10 +1959,135 @@ def _render_plan(
     else:
         st.caption("Warnings: none")
 
+    _render_grocery_list_draft(plan, key_prefix="oneday")
     _render_nutrition_cache_diagnostics(plan.get("nutrition_cache_diagnostics", {}))
     _render_pilot_servings_diagnostics(plan.get("pilot_servings_diagnostics", {}))
     _render_pilot_nutrition_overlay_details(plan)
     _render_ingredient_diagnostics(plan.get("ingredient_diagnostics", {}))
+
+
+def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
+    run_id = _safe_widget_key(str(plan.get("run_id", "latest")))
+    widget_key = f"{key_prefix}_{run_id}_include_pantry_basics"
+    with st.expander("Grocery list draft", expanded=False):
+        st.warning(
+            "Draft grocery list. No prices, no package-size optimization, no pantry inventory."
+        )
+        include_pantry_basics = st.checkbox(
+            "Include pantry basics",
+            value=False,
+            key=widget_key,
+        )
+        try:
+            grocery_list = _dashboard_grocery_list(
+                plan,
+                include_pantry_basics=include_pantry_basics,
+            )
+        except (FileNotFoundError, ValueError, OSError) as exc:
+            st.error(f"Cannot build grocery list draft: {exc}")
+            return
+
+        summary = grocery_list.get("summary", {})
+        if isinstance(summary, dict):
+            cols = st.columns(4)
+            cols[0].metric("Shopping items", summary.get("shopping_item_count", 0))
+            cols[1].metric("Display items", summary.get("display_item_count", 0))
+            cols[2].metric("Fallback", summary.get("fallback_item_count", 0))
+            cols[3].metric("Alias groups", summary.get("safe_alias_group_count", 0))
+
+        rows = grocery_list_rows(
+            grocery_list,
+            include_pantry_basics=include_pantry_basics,
+        )
+        if rows:
+            table_rows = [
+                {
+                    "item": row["display_name_clean"],
+                    "grams": row["display_grams"],
+                    "category": row["category_label"],
+                    "used in recipes": row["source_recipes"],
+                    "used in meals": row["source_meals"],
+                    "warnings": row["warnings"],
+                }
+                for row in rows
+            ]
+            st.dataframe(
+                pd.DataFrame(table_rows),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("No grocery items for the current display filters.")
+
+        st.markdown("#### Copy-friendly grocery list")
+        st.code(
+            "\n".join(
+                grocery_list_readable_lines(
+                    grocery_list,
+                    include_pantry_basics=include_pantry_basics,
+                )
+            ),
+            language=None,
+        )
+        warnings = grocery_list.get("warnings", [])
+        if warnings:
+            with st.expander("Grocery list warnings", expanded=False):
+                for warning in warnings:
+                    st.write(f"- {warning}")
+                warning_counts = summary.get("warning_counts", {}) if isinstance(summary, dict) else {}
+                if isinstance(warning_counts, dict) and warning_counts:
+                    st.dataframe(
+                        pd.DataFrame(
+                            [
+                                {"warning": key, "count": value}
+                                for key, value in warning_counts.items()
+                            ]
+                        ),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+        raw_rows = grocery_raw_item_rows(grocery_list)
+        if raw_rows:
+            with st.expander("Raw grocery debug detail", expanded=False):
+                st.dataframe(
+                    pd.DataFrame(raw_rows),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+
+def _dashboard_grocery_list(
+    plan: dict[str, Any],
+    include_pantry_basics: bool,
+) -> dict[str, Any]:
+    ingredients = _dashboard_recipe_ingredients(plan)
+    fooddb = load_fooddb_current()
+    return build_grocery_list(
+        plan,
+        ingredients,
+        fooddb_df=fooddb,
+        config={
+            "include_pantry_basics": include_pantry_basics,
+            "exclude_water": True,
+        },
+    )
+
+
+def _dashboard_recipe_ingredients(plan: dict[str, Any]) -> pd.DataFrame:
+    pool_summary = plan.get("pool_summary", {})
+    ingredients_path = ""
+    if isinstance(pool_summary, dict):
+        ingredients_path = str(pool_summary.get("ingredients_path") or "")
+    if not ingredients_path:
+        ingredients_path = str(_current_dataset_config()["ingredients_path"])
+    path = Path(ingredients_path)
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    return pd.read_csv(path)
+
+
+def _safe_widget_key(value: str) -> str:
+    return "".join(ch if ch.isalnum() else "_" for ch in value)
 
 
 def _render_runtime_diagnostics(plan: dict[str, Any]) -> None:

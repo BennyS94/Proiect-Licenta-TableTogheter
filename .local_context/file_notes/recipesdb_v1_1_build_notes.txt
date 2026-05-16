@@ -2189,3 +2189,79 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - `pilot_current --days 1` still runs and remains the known `invalid_nutrition`; `--days 6` is rejected.
 - Limitation:
   - This remains demo/draft multi-day generation, not full weekly planning or grocery/household optimization.
+
+## 63. Grocery List v1 draft for Generator v1 demo - 2026-05-16
+- Scope:
+  - Added deterministic Grocery List v1 draft for Generator v1 one-day and multi-day generated plans.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, nutrition target formulas, generator selection logic, price estimation, package optimization, pantry inventory, household balancing, OR-Tools/KNN, or new dependencies were changed.
+- Grouping logic:
+  - Reads selected recipes from the generated plan and multiplies `quantity_grams_estimated` by each selected `portion_multiplier`.
+  - Groups by `mapped_food_id` when available.
+  - Falls back to `ingredient_name_normalized` only when `mapped_food_id` is missing, with explicit fallback warnings.
+  - Excludes water by default.
+  - Marks salt/black pepper style basics as `pantry_basic` instead of deleting them silently.
+  - Keeps seasonings as low-priority draft items.
+- Implemented files:
+  - `src/generator_v1/grocery_list.py`
+  - CLI support in `src/generator_v1_cli.py` via `--write_grocery_list`, `--grocery_out_csv`, `--grocery_out_txt`, `--include_pantry_basics`.
+  - Streamlit support in `streamlit_app/generator_v1_dashboard.py` under `Grocery list draft`.
+  - Demo evaluator `tools/extra/evaluate_generator_v1_grocery_list_v1_demo.py`.
+- Demo outputs:
+  - CLI 3-day run wrote `outputs/generator_v1_grocery_list.csv` and `outputs/generator_v1_grocery_list.txt`.
+  - CLI 3-day grocery summary with current local feedback context: `43` total items, `41` shopping items, `32` mapped, `11` fallback, `2` pantry basics.
+  - Dedicated evaluator wrote:
+    - `data/recipesdb/audit/generator_v1_grocery_list_v1_demo_summary.txt`
+    - `data/recipesdb/audit/generator_v1_grocery_list_v1_demo_items.csv`
+    - `data/recipesdb/audit/generator_v1_grocery_list_v1_demo_recipe_breakdown.csv`
+  - Evaluator result: `32` total/shopping items, `25` mapped, `7` fallback, `2` pantry basics, `1` water row excluded, `demo_usable=yes`.
+- Known limitations:
+  - Draft grams only; no package sizes.
+  - No price estimation.
+  - No grocery optimization.
+  - No pantry/inventory subtraction.
+  - No ambiguous ingredient merging beyond exact mapped Food_DB id or exact normalized fallback name.
+  - Some fallback names remain raw-ish because source ingredient normalization is still imperfect.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - CLI 3-day `v1_2_demo_final` with `--write_grocery_list` passed.
+  - CLI 1-day `v1_2_demo_final` with `--write_grocery_list` passed: `20` total/shopping items, `16` mapped, `4` fallback, `0` pantry basics.
+  - `python tools/extra/evaluate_generator_v1_grocery_list_v1_demo.py` passed.
+
+## 64. Round56 / Grocery List v1 display cleanup and grouping normalization - 2026-05-16
+- Scope:
+  - Cleaned Grocery List v1 display output without changing generator selection logic, nutrition formulas, recipes, current data, price estimation, package optimization, pantry inventory, store/product logic, or dependencies.
+  - No `data/recipesdb/current`, `data/fooddb/current`, or `src/legacy` changes.
+- Display cleanup:
+  - Added cleaned grocery display names for common raw/debug names.
+  - Examples: `Freshly Parmesan Cheese` -> `Parmesan cheese`, `Freshly Black Pepper` -> `Black pepper`, `2 Low Fat Milk` -> `Low-fat milk`, `Virgin Olive Oil` -> `Olive oil`, `Sugar, brown` -> `Brown sugar`.
+  - Unclear names such as `Pressed` remain separate and receive `unclear_grocery_item_name`.
+  - `Oil Sun Tomatoes` is displayed as `Sun-dried tomatoes in oil` only as a narrow display cleanup.
+- Safe display grouping:
+  - Added display-level safe alias grouping for obvious aliases only.
+  - Current safe groups include olive oil variants, parmesan variants, black pepper variants, and salt variants.
+  - Raw/detail rows keep exact item ids, mapped food ids, exact grams, source names, and grouping diagnostics.
+  - No cooked/raw rice, cooked/raw pasta, dry/cooked beans, broad cheese, meat, sugar, or milk family merging was added.
+- Categories and rounding:
+  - Added cleaner demo categories: `meat_fish`, `dairy_eggs`, `carbs_grains`, `vegetables`, `fruits`, `legumes_beans`, `oils_fats`, `pantry_basics`, `seasonings_spices`, `sauces_canned`, `sweeteners`, `other_review`.
+  - Beans, green beans, honey/sugar, oils, dairy/eggs, and common vegetables are categorized more clearly.
+  - Copy/TXT output uses rounded display grams while CSV/detail keeps exact `total_grams`.
+- Warnings:
+  - Standardized grocery warnings include `fallback_grouped_items_present`, `normalized_name_fallback`, `display_alias_grouping_used`, `unclear_grocery_item_name`, `cooked_raw_purchase_ambiguity`, `pantry_basic_detected`, `water_excluded_by_default`, `missing_or_zero_quantity_skipped`, and `low_priority_seasoning`.
+  - Cooked rice/pasta/beans/grains are flagged for purchase ambiguity, but no cooked-to-raw conversion is attempted.
+- UI/CLI:
+  - CLI TXT output is grouped by clean category and uses cleaned names plus rounded grams.
+  - CLI CSV output includes display fields and exact grams.
+  - Streamlit Grocery list draft now shows display items, warning counts, clean categories, rounded grams, copy-friendly text, and raw debug details in a separate expander.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_grocery_list_v1_cleanup.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_grocery_list_v1_cleanup_summary.txt`
+    - `data/recipesdb/audit/generator_v1_grocery_list_v1_cleanup_items.csv`
+    - `data/recipesdb/audit/generator_v1_grocery_list_v1_cleanup_sample.txt`
+  - Cleanup evaluator result: `raw_item_count=32`, `display_item_count=30`, `shopping_item_count=30`, `safe_alias_groups_applied=3`, `fallback_grouped_item_count=5`, `pantry_basic_count=2`, `cooked_raw_ambiguity_count=2`.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - CLI 3-day `v1_2_demo_final` with `--write_grocery_list` passed: `38` shopping items, `41` display items, `43` raw items, `32` mapped raw items, `8` fallback display items, `3` pantry basics, `4` alias groups.
+  - `python tools/extra/evaluate_generator_v1_grocery_list_v1_cleanup.py` passed.
+- Known limitation:
+  - This is still a deterministic demo/debug grocery list in grams, not a realistic purchase-unit list. No package sizes, price, pantry subtraction, grocery optimization, or store/product/brand logic exists yet.
