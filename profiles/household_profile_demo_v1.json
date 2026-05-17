@@ -1,0 +1,133 @@
+{
+  "household_id": "household_demo_family_001",
+  "household_name": "Demo Family Household",
+  "active_member_ids": [
+    "member_demo_adult_male_001",
+    "member_demo_adult_female_001",
+    "member_demo_lower_target_001"
+  ],
+  "members": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "display_name": "Alex",
+      "age": 35,
+      "sex": "male",
+      "weight_kg": 82.0,
+      "height_cm": 180.0,
+      "activity_level": "moderately_active",
+      "goal": "gain",
+      "goal_speed": "slow",
+      "training": {
+        "sessions_per_week": 4,
+        "type": "weights"
+      },
+      "meal_config": {
+        "meals_per_day": 3,
+        "include_snacks": true,
+        "day_structure": "3_meals_plus_snack"
+      },
+      "dietary_preferences": {
+        "no_beef": false,
+        "no_chicken": false,
+        "no_fish": false,
+        "no_dairy": false,
+        "vegetarian": false,
+        "vegan": false,
+        "gluten_free": false
+      },
+      "bf_profile": "normal"
+    },
+    {
+      "member_id": "member_demo_adult_female_001",
+      "display_name": "Mara",
+      "age": 34,
+      "sex": "female",
+      "weight_kg": 64.0,
+      "height_cm": 168.0,
+      "activity_level": "lightly_active",
+      "goal": "lose",
+      "goal_speed": "slow",
+      "training": {
+        "sessions_per_week": 2,
+        "type": "mixed"
+      },
+      "meal_config": {
+        "meals_per_day": 3,
+        "include_snacks": true,
+        "day_structure": "3_meals_plus_snack"
+      },
+      "dietary_preferences": {
+        "no_beef": false,
+        "no_chicken": false,
+        "no_fish": false,
+        "no_dairy": false,
+        "vegetarian": false,
+        "vegan": false,
+        "gluten_free": false
+      },
+      "bf_profile": "normal"
+    },
+    {
+      "member_id": "member_demo_lower_target_001",
+      "display_name": "Nina",
+      "age": 21,
+      "sex": "female",
+      "weight_kg": 52.0,
+      "height_cm": 162.0,
+      "activity_level": "lightly_active",
+      "goal": "maintain",
+      "goal_speed": "normal",
+      "training": {
+        "sessions_per_week": 1,
+        "type": "mixed"
+      },
+      "meal_config": {
+        "meals_per_day": 3,
+        "include_snacks": true,
+        "day_structure": "3_meals_plus_snack"
+      },
+      "dietary_preferences": {
+        "no_beef": false,
+        "no_chicken": false,
+        "no_fish": false,
+        "no_dairy": false,
+        "vegetarian": false,
+        "vegan": false,
+        "gluten_free": false
+      },
+      "bf_profile": "normal"
+    }
+  ],
+  "household_preferences": {
+    "banned_recipe_ids": [],
+    "banned_ingredient_names": [],
+    "liked_recipe_ids": [],
+    "disliked_recipe_ids": [],
+    "too_long_recipe_ids": [],
+    "shared_meal_preference": true,
+    "max_unique_dinners_per_day": 1,
+    "cook_once_share_meal": true
+  },
+  "meal_config": {
+    "meals_per_day": 3,
+    "include_snacks": true,
+    "day_structure": "3_meals_plus_snack"
+  },
+  "planning_config": {
+    "days": 3,
+    "shared_meals": [
+      "lunch",
+      "dinner"
+    ],
+    "breakfast_mode": "flexible",
+    "snack_mode": "individual",
+    "portion_allocation_mode": "proportional_to_energy_target",
+    "portion_multiplier_min": 0.4,
+    "portion_multiplier_max": 1.8
+  },
+  "notes": {
+    "profile_version": "household_profile_demo_v1",
+    "scope": "demo_audit_only",
+    "preferred_model": "shared_recipes_with_member_specific_portions"
+  }
+}
