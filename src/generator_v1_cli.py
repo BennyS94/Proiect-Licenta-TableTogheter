@@ -105,6 +105,24 @@ from src.generator_v1.grocery_list import (
     write_grocery_list_csv,
     write_grocery_list_readable,
 )
+from src.generator_v1.household_generator import (
+    HOUSEHOLD_ALLOCATION_MODES,
+    HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN,
+    HOUSEHOLD_MODE_OFF,
+    HOUSEHOLD_MODE_SHARED_ALL_SLOTS,
+    HOUSEHOLD_MODE_SHARED_MAIN_MEALS,
+    build_household_aggregate_target,
+    build_household_slot_candidates,
+    build_member_targets,
+    generate_household_plan,
+    household_plan_readable_lines,
+    load_household_profile,
+    write_household_allocations_csv,
+    write_household_grocery_scaling_csv,
+    write_household_member_macros_csv,
+    write_household_plan_json,
+    write_household_plan_readable,
+)
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.multi_day_audit import (
     multi_day_readable_lines,
@@ -145,6 +163,10 @@ def main() -> None:
     if args.clear_feedback:
         clear_feedback_events(args.feedback_events_path)
         print(f"Feedback events cleared: {_feedback_events_path(args)}")
+        return
+
+    if _should_run_household(args):
+        _run_household_generation(args)
         return
 
     profile = load_member_profile(args.profile)
@@ -309,7 +331,11 @@ def main() -> None:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Smoke test pentru Generator v1.")
-    parser.add_argument("--profile", required=True, type=Path)
+    parser.add_argument(
+        "--profile",
+        default=Path("profiles/member_profile_demo_v1.json"),
+        type=Path,
+    )
     parser.add_argument(
         "--dataset_profile",
         choices=[
@@ -428,6 +454,47 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--grocery_cooked_to_raw_rules_path", default=None, type=Path)
     parser.add_argument("--include_pantry_basics", action="store_true")
+    parser.add_argument("--household_profile", default=None, type=Path)
+    parser.add_argument(
+        "--household_mode",
+        choices=[
+            HOUSEHOLD_MODE_OFF,
+            HOUSEHOLD_MODE_SHARED_ALL_SLOTS,
+            HOUSEHOLD_MODE_SHARED_MAIN_MEALS,
+            HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN,
+        ],
+        default=HOUSEHOLD_MODE_OFF,
+    )
+    parser.add_argument(
+        "--household_allocation_mode",
+        choices=list(HOUSEHOLD_ALLOCATION_MODES),
+        default="macro_aware_simple",
+    )
+    parser.add_argument(
+        "--out_household_json",
+        default=Path("outputs/generator_v1_household_plan.json"),
+        type=Path,
+    )
+    parser.add_argument(
+        "--out_household_txt",
+        default=Path("outputs/generator_v1_household_readable.txt"),
+        type=Path,
+    )
+    parser.add_argument(
+        "--out_household_allocations_csv",
+        default=Path("outputs/generator_v1_household_allocations.csv"),
+        type=Path,
+    )
+    parser.add_argument(
+        "--out_household_member_macros_csv",
+        default=Path("outputs/generator_v1_household_member_macros.csv"),
+        type=Path,
+    )
+    parser.add_argument(
+        "--out_household_grocery_scaling_csv",
+        default=Path("outputs/generator_v1_household_grocery_scaling.csv"),
+        type=Path,
+    )
     parser.add_argument(
         "--out_multiday_json",
         default=Path("outputs/generator_v1_multiday_plan.json"),
@@ -450,6 +517,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--show_pilot_nutrition_overlay", action="store_true")
     args = parser.parse_args()
     _validate_days(args, parser)
+    _validate_household_args(args, parser)
     _apply_test_preset(args)
     _apply_multi_day_defaults(args)
     _resolve_dataset_paths(args)
@@ -459,6 +527,11 @@ def _parse_args() -> argparse.Namespace:
 def _validate_days(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
     if int(args.days or 0) < 1 or int(args.days or 0) > 5:
         parser.error("argument --days: trebuie sa fie intre 1 si 5.")
+
+
+def _validate_household_args(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    if args.household_mode != HOUSEHOLD_MODE_OFF and not args.household_profile:
+        parser.error("argument --household_profile este obligatoriu cand --household_mode nu este off.")
 
 
 def _apply_test_preset(args: argparse.Namespace) -> None:
@@ -1061,6 +1134,98 @@ def _should_run_multi_day(args: argparse.Namespace) -> bool:
     return int(getattr(args, "days", 1) or 1) > 1
 
 
+def _should_run_household(args: argparse.Namespace) -> bool:
+    return bool(args.household_profile) and args.household_mode != HOUSEHOLD_MODE_OFF
+
+
+def _run_household_generation(args: argparse.Namespace) -> None:
+    household_profile = load_household_profile(args.household_profile)
+    member_targets = build_member_targets(household_profile)
+    household_target = build_household_aggregate_target(member_targets)
+    primary_member = _primary_household_member(household_profile)
+    primary_context_profile = _household_context_profile(household_profile, primary_member)
+    preference_context = build_profile_preference_context(primary_context_profile)
+
+    pool = load_recipe_candidate_pool(
+        recipes_path=args.recipes,
+        ingredients_path=args.ingredients,
+        nutrition_path=args.nutrition,
+        dataset_profile=args.dataset_profile,
+    )
+    fooddb = load_fooddb_current()
+    filtered_candidates = filter_recipe_candidates(
+        eligible_candidates=pool.eligible_candidates,
+        ingredients=pool.ingredients,
+        context=preference_context,
+    )
+    slot_candidates = build_slot_candidates(
+        target=household_target,
+        filtered_candidates=filtered_candidates,
+        time_sensitivity=preference_context.time_sensitivity,
+        ingredients=pool.ingredients,
+        fooddb=fooddb,
+        portion_policy_mode="target_aware",
+    )
+    household_candidate_config = _household_generation_config(args)
+    household_candidates = build_household_slot_candidates(
+        slot_candidates,
+        member_targets,
+        household_candidate_config,
+    )
+    candidate_diagnostics = build_candidate_diagnostics(
+        slot_candidates=household_candidates,
+        slot_targets=household_target.slot_targets,
+    )
+    plan = generate_household_plan(
+        household_profile,
+        slot_candidates=household_candidates,
+        individual_slot_candidates=slot_candidates,
+        days=args.days,
+        config=household_candidate_config,
+        profile=primary_member,
+    )
+    plan["candidate_diagnostics"] = candidate_diagnostics
+    plan["pool_summary"] = _pool_summary(
+        args,
+        pool,
+        filtered_candidates,
+        household_candidates,
+    )
+    _print_household_plan(plan)
+    if not args.no_write_outputs:
+        _write_household_outputs(plan, args)
+
+
+def _household_generation_config(args: argparse.Namespace) -> dict[str, object]:
+    config = _multi_day_selector_config(args)
+    config.update(
+        {
+            "household_mode": args.household_mode,
+            "allocation_mode": args.household_allocation_mode,
+            "household_profile_path": args.household_profile,
+            "meal_realism_mode": args.meal_realism_mode,
+            "quality_gate": args.quality_gate,
+            "global_max_candidates_per_slot": min(
+                int(config.get("global_max_candidates_per_slot", 26) or 26),
+                16,
+            ),
+            "day_candidate_pool_size_target": min(
+                int(config.get("day_candidate_pool_size_target", 75) or 75),
+                40,
+            ),
+            "day_candidate_pool_max": min(
+                int(config.get("day_candidate_pool_max", 150) or 150),
+                80,
+            ),
+            "direct_slot_shortlist_size": min(
+                int(config.get("direct_slot_shortlist_size", 12) or 12),
+                8,
+            ),
+        }
+    )
+    return config
+
+
 def _multi_day_selector_config(args: argparse.Namespace) -> dict[str, object]:
     config: dict[str, object] = {
         "selection_mode": "balanced_day",
@@ -1085,6 +1250,64 @@ def _multi_day_selector_config(args: argparse.Namespace) -> dict[str, object]:
     if args.day_candidate_builder:
         config["day_candidate_builder"] = args.day_candidate_builder
     return config
+
+
+def _primary_household_member(household_profile: dict[str, object]) -> dict[str, object]:
+    active_ids = {
+        str(member_id).strip()
+        for member_id in household_profile.get("active_member_ids", [])
+        if str(member_id).strip()
+    }
+    for member in household_profile.get("members", []):
+        if str(member.get("member_id", "")).strip() in active_ids:
+            return dict(member)
+    raise ValueError("Household profile nu are membri activi.")
+
+
+def _household_context_profile(
+    household_profile: dict[str, object],
+    primary_member: dict[str, object],
+) -> dict[str, object]:
+    profile = dict(primary_member)
+    preferences = household_profile.get("household_preferences") or {}
+    profile["banned_recipe_ids"] = preferences.get("banned_recipe_ids", [])
+    profile["banned_ingredient_names"] = preferences.get("banned_ingredient_names", [])
+    profile["dietary_preferences"] = _merged_household_dietary_preferences(
+        household_profile,
+        primary_member,
+    )
+    return profile
+
+
+def _merged_household_dietary_preferences(
+    household_profile: dict[str, object],
+    primary_member: dict[str, object],
+) -> dict[str, bool]:
+    keys = [
+        "no_beef",
+        "no_chicken",
+        "no_fish",
+        "no_dairy",
+        "vegetarian",
+        "vegan",
+        "gluten_free",
+    ]
+    result = {
+        key: bool((primary_member.get("dietary_preferences") or {}).get(key, False))
+        for key in keys
+    }
+    active_ids = {
+        str(member_id).strip()
+        for member_id in household_profile.get("active_member_ids", [])
+        if str(member_id).strip()
+    }
+    for member in household_profile.get("members", []):
+        if str(member.get("member_id", "")).strip() not in active_ids:
+            continue
+        dietary = member.get("dietary_preferences") or {}
+        for key in keys:
+            result[key] = bool(result[key] or dietary.get(key, False))
+    return result
 
 
 def _parse_recent_recipe_ids(value: str | None) -> list[str]:
@@ -1237,6 +1460,42 @@ def _print_multi_day_plan(plan: dict[str, object]) -> None:
             print("  warnings=" + " | ".join(str(item) for item in warnings))
         else:
             print("  warnings=none")
+
+
+def _print_household_plan(plan: dict[str, object]) -> None:
+    summary = plan.get("household_summary", {})
+    print("Household Generation v1 Lite")
+    print(f"  household={plan.get('household_name')}")
+    print(f"  mode={plan.get('household_mode')}")
+    print(f"  allocation_mode={plan.get('household_allocation_mode')}")
+    if isinstance(summary, dict):
+        print(f"  member_count={summary.get('member_count')}")
+        print(f"  days_generated={summary.get('days_generated')}")
+        print(f"  household_quality_status={summary.get('household_quality_status')}")
+        print(f"  household_accept_days={summary.get('household_accept_day_count')}")
+        print(f"  household_review_days={summary.get('household_review_day_count')}")
+        print(f"  household_reject_days={summary.get('household_reject_day_count')}")
+        print(
+            "  mean_abs_kcal_deviation_pct="
+            f"{summary.get('mean_abs_kcal_deviation_pct')}"
+        )
+        print(
+            "  mean_abs_protein_deviation_pct="
+            f"{summary.get('mean_abs_protein_deviation_pct')}"
+        )
+        print(f"  min_protein_ratio={summary.get('min_protein_ratio')}")
+        print(f"  worst_protein_member={summary.get('worst_protein_member')}")
+        print(
+            "  protein_correction_applied_count="
+            f"{summary.get('protein_correction_applied_count')}"
+        )
+        print(f"  protein_gap_count={summary.get('protein_gap_count')}")
+        print(f"  min_portion_multiplier={summary.get('min_portion_multiplier')}")
+        print(f"  max_portion_multiplier={summary.get('max_portion_multiplier')}")
+        print(f"  clamped_portion_count={summary.get('clamped_portion_count')}")
+        print(f"  max_grocery_scaling_factor={summary.get('max_grocery_scaling_factor')}")
+    for line in household_plan_readable_lines(plan)[:140]:
+        print(line)
 
 
 def _print_selected_day_plan(plan: dict[str, object]) -> None:
@@ -1858,6 +2117,20 @@ def _write_multi_day_outputs(plan: dict[str, object], args: argparse.Namespace) 
     print(f"  json={args.out_multiday_json}")
     print(f"  txt={args.out_multiday_txt}")
     print(f"  csv={args.out_multiday_csv}")
+
+
+def _write_household_outputs(plan: dict[str, object], args: argparse.Namespace) -> None:
+    write_household_plan_json(plan, args.out_household_json)
+    write_household_plan_readable(plan, args.out_household_txt)
+    write_household_allocations_csv(plan, args.out_household_allocations_csv)
+    write_household_member_macros_csv(plan, args.out_household_member_macros_csv)
+    write_household_grocery_scaling_csv(plan, args.out_household_grocery_scaling_csv)
+    print("Generator v1 household outputs written")
+    print(f"  json={args.out_household_json}")
+    print(f"  txt={args.out_household_txt}")
+    print(f"  allocations_csv={args.out_household_allocations_csv}")
+    print(f"  member_macros_csv={args.out_household_member_macros_csv}")
+    print(f"  grocery_scaling_csv={args.out_household_grocery_scaling_csv}")
 
 
 def _build_write_print_grocery_list(

@@ -84,6 +84,16 @@ SELECTED_MEAL_FIELDS = [
     "variety_fit",
     "score_preview",
     "slot_fit_reasons",
+    "household_portion_sum",
+    "single_profile_portion_reference",
+    "household_grocery_scaling_factor",
+    "member_portion_summary_json",
+    "household_fit",
+    "household_loss",
+    "household_fit_warnings",
+    "household_generation_shared_slot",
+    "household_allocation_mode",
+    "household_member_count",
 ]
 
 SORT_COLUMNS = [

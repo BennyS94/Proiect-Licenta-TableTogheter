@@ -2614,3 +2614,80 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - Collapsed runtime/candidate/selector/quality/profile/feedback/grocery diagnostics by default.
 - Validation:
   - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+
+## 72. Round68 / Household Generation v1 Lite - 2026-05-17
+- Scope:
+  - Added a first functional household generation layer for demo/audit.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, nutrition target formulas, grocery pricing optimization, backend/API/mobile, or new dependencies were changed.
+- Implementation:
+  - Added `src/generator_v1/household_generator.py`.
+  - Household Lite computes member targets, household aggregate target, household-aware candidate rows, per-member portions, per-member daily macro totals, and household grocery scaling.
+  - Main mode implemented: `shared_all_slots`.
+  - Allocation mode: `macro_aware_simple`.
+  - Existing individual Generator v1 path remains unchanged.
+- CLI:
+  - Added `--household_profile`, `--household_mode`, and `--household_allocation_mode`.
+  - Added household outputs:
+    - `outputs/generator_v1_household_plan.json`
+    - `outputs/generator_v1_household_readable.txt`
+    - `outputs/generator_v1_household_allocations.csv`
+    - `outputs/generator_v1_household_member_macros.csv`
+    - `outputs/generator_v1_household_grocery_scaling.csv`
+- Streamlit:
+  - Added `Household generation v1 (draft)` next to the existing Household Preview panel.
+  - UI now distinguishes preview from household generation.
+  - Shows generated shared plan, per-member portions, member macro totals, grocery scaling, copy-ready output, and diagnostics.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_round68_household_generation.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round68_household_generation_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round68_household_generation_days.csv`
+    - `data/recipesdb/audit/generator_v1_round68_household_generation_allocations.csv`
+    - `data/recipesdb/audit/generator_v1_round68_household_generation_member_macros.csv`
+    - `data/recipesdb/audit/generator_v1_round68_household_generation_grocery_scaling.csv`
+    - `data/recipesdb/audit/generator_v1_round68_household_generation_comparison.csv`
+- Result:
+  - `member_count=3`, `days_generated=3`, baseline `valid_days=3`, baseline `accept_days=3`.
+  - Household Lite: `household_quality_status=review`, `household_accept_day_count=0`, `household_review_day_count=3`, `household_reject_day_count=0`.
+  - `mean_abs_kcal_deviation_pct=0.8`, `mean_abs_protein_deviation_pct=19.9`.
+  - `min_portion_multiplier=0.7`, `max_portion_multiplier=1.8`, `clamped_portion_count=0`.
+  - `max_grocery_scaling_factor=3.85`.
+  - `household_generation_usable_for_demo=True`.
+- Known limitation:
+  - This is not a production household optimizer. Protein fit can remain review-level for some members, `shared_all_slots` is a Lite validation mode, and grocery scaling is quantity-only.
+
+## 73. Round69 / Household modes and protein correction audit - 2026-05-17
+- Scope:
+  - Improved Household Generation v1 Lite mode handling and protein correction diagnostics.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, nutrition target formulas, grocery price optimization, backend/API/mobile, or new dependencies were changed.
+- Implementation:
+  - Kept `shared_all_slots` as Round68 baseline/debug mode.
+  - Added `individual_breakfast_shared_main` as a supported household mode.
+  - `shared_main_meals` and `individual_breakfast_shared_main` now use shared lunch/dinner plus individual breakfast/snack selection from existing candidates.
+  - Added protein correction audit fields:
+    - `protein_gap_before_g`
+    - `protein_gap_after_g`
+    - `protein_correction_applied`
+    - `selected_correction_meals`
+  - Updated household quality thresholds to accept days when kcal ratios are roughly in range and protein ratio is at least `0.80`.
+- CLI/Streamlit:
+  - CLI supports `--household_mode individual_breakfast_shared_main`.
+  - Streamlit Household generation panel exposes `individual_breakfast_shared_main` first and marks it as recommended demo mode.
+  - Streamlit shows protein correction audit rows and per-member macro ratios.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_round69_household_modes.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round69_household_modes_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round69_household_modes_days.csv`
+    - `data/recipesdb/audit/generator_v1_round69_household_modes_allocations.csv`
+    - `data/recipesdb/audit/generator_v1_round69_household_modes_member_macros.csv`
+    - `data/recipesdb/audit/generator_v1_round69_household_modes_grocery_scaling.csv`
+    - `data/recipesdb/audit/generator_v1_round69_household_modes_comparison.csv`
+- Result:
+  - `shared_all_slots`: `household_quality_status=review`, `min_protein_ratio=0.727`, worst member `Mara`.
+  - `shared_main_meals`: `household_quality_status=accept`, `accept_day_count=3`, `min_protein_ratio=0.938`.
+  - `individual_breakfast_shared_main`: `household_quality_status=accept`, `accept_day_count=3`, `min_protein_ratio=0.938`.
+  - Mara protein improved from `0.727` to `0.938` in the recommended mode.
+  - Recommended household mode: `individual_breakfast_shared_main`.
+- Known limitation:
+  - This is still Household Generation Lite. `shared_main_meals` and `individual_breakfast_shared_main` share the same individual breakfast/snack implementation for now, there is no global household optimizer, and grocery scaling remains quantity-only.

@@ -283,6 +283,87 @@ Urmatorii pasi recomandati:
 3. household grocery list pe baza portiilor alocate;
 4. backend/mobile mai tarziu.
 
+## Round68 Household Generation v1 Lite Implementation Status
+
+Status: implementat ca prim strat functional household, demo/audit-level.
+
+Module si fisiere:
+
+- `src/generator_v1/household_generator.py`
+- `src/generator_v1_cli.py`
+- `streamlit_app/generator_v1_dashboard.py`
+- `tools/extra/evaluate_generator_v1_round68_household_generation.py`
+
+Diferenta fata de Household Preview:
+
+- Household Preview porneste de la ultimul plan individual si aloca portii dupa selectie.
+- Household Generation v1 Lite construieste targetul agregat al householdului, transforma candidatii pe portii simulate per membru si genereaza planul folosind acele targeturi household.
+
+Comportament Round68:
+
+- mod principal: `shared_all_slots`;
+- allocation mode: `macro_aware_simple`;
+- selecteaza retete shared;
+- aloca portii diferite per membru;
+- calculeaza totaluri macro per membru;
+- calculeaza grocery scaling cantitativ.
+
+Rezultat evaluator Round68 pe `v1_2_demo_final`:
+
+- `member_count=3`;
+- `days_generated=3`;
+- baseline individual: `valid_days=3`, `accept_days=3`;
+- household generation: `valid_days=3`, `household_quality_status=review`;
+- `mean_abs_kcal_deviation_pct=0.8`;
+- `mean_abs_protein_deviation_pct=19.9`;
+- `min_portion_multiplier=0.7`;
+- `max_portion_multiplier=1.8`;
+- `clamped_portion_count=0`;
+- `max_grocery_scaling_factor=3.85`;
+- `household_generation_usable_for_demo=True`;
+- planul household Lite difera de preview baseline.
+
+Limitari Round68:
+
+- nu este optimizer household global;
+- `shared_all_slots` este prima varianta Lite, nu modul final recomandat pentru productie;
+- nu genereaza meniuri separate per membru;
+- proteina poate ramane in `review` pentru unii membri chiar daca kcal este aproape de target;
+- grocery scaling este cantitativ, nu grocery optimization;
+- nu exista backend/mobile/account household.
+
+## Round69 Household Modes And Protein Correction Status
+
+Status: implementat ca imbunatatire Lite, demo/audit-level.
+
+Moduri suportate:
+
+- `shared_all_slots`: baseline/debug Round68, toate sloturile sunt shared.
+- `shared_main_meals`: lunch si dinner sunt shared, breakfast/snack sunt selectate individual per membru.
+- `individual_breakfast_shared_main`: modul recomandat pentru demo; breakfast/snack individual, lunch/dinner shared.
+
+Protein correction v1:
+
+- dupa alocarea meselor shared, sistemul calculeaza gap-ul de proteina per membru;
+- pentru breakfast/snack individual prefera candidati existenti cu densitate proteica mai buna si kcal rezonabil;
+- nu foloseste suplimente, produse artificiale sau ingrediente noi;
+- raporteaza `protein_gap_before`, `protein_gap_after`, `protein_correction_applied` si mesele de corectie selectate.
+
+Rezultat evaluator Round69 pe `v1_2_demo_final`:
+
+- `shared_all_slots`: `household_quality_status=review`, `min_protein_ratio=0.727`, worst member `Mara`.
+- `shared_main_meals`: `household_quality_status=accept`, `accept_day_count=3`, `min_protein_ratio=0.938`.
+- `individual_breakfast_shared_main`: `household_quality_status=accept`, `accept_day_count=3`, `min_protein_ratio=0.938`.
+- pentru Mara, proteina s-a imbunatatit de la aproximativ `0.727` in baseline la `0.938` in modul recomandat.
+- `max_grocery_scaling_factor=3.45` in modul recomandat.
+
+Limitari Round69:
+
+- `shared_main_meals` si `individual_breakfast_shared_main` folosesc aceeasi selectie individuala breakfast/snack in implementarea Lite curenta;
+- nu exista inca optimizer household global;
+- nu exista meniuri complet separate per membru;
+- grocery scaling ramane cantitativ, fara price/grocery optimization.
+
 ## Limitations
 
 - Auditul foloseste un plan baseline generat pentru primul membru, nu o selectie household-native.
