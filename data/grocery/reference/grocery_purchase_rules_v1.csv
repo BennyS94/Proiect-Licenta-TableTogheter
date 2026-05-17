@@ -7,6 +7,8 @@ onion_keyword,normalized_name_keyword,onion,vegetables,pieces,100,,,ceil_to_piec
 garlic_display,display_alias,garlic,seasonings_spices,pantry_check,3,,,pantry_check,g,true,false,Check garlic at home for v1
 sweet_pepper_display,display_alias,sweet peppers,vegetables,pieces,120,,,ceil_to_piece,medium pepper,false,true,Medium pepper approximation
 bell_pepper_keyword,normalized_name_keyword,bell pepper,vegetables,pieces,120,,,ceil_to_piece,medium pepper,false,true,Medium pepper approximation
+tomato_puree_display,display_alias,canned tomato puree|tomato puree canned|tomato puree,sauces_canned,can,,400,400g can,ceil_to_package,can,false,true,Canned tomato puree should not use fresh tomato pieces
+tomato_paste_keyword,normalized_name_keyword,tomato puree|tomato paste|tomato sauce,sauces_canned,can,,400,400g can,ceil_to_package,can,false,true,Canned tomato product approximation
 tomato_display,display_alias,tomatoes,vegetables,pieces,120,,,ceil_to_piece,medium tomato,false,true,Medium tomato approximation
 tomato_keyword,normalized_name_keyword,tomato,vegetables,pieces,120,,,ceil_to_piece,medium tomato,false,true,Medium tomato approximation
 carrot_keyword,normalized_name_keyword,carrot,vegetables,pieces,70,,,ceil_to_piece,medium carrot,false,true,Medium carrot approximation
@@ -25,6 +27,8 @@ flour_keyword,normalized_name_keyword,flour,carbs_grains,bag,,1000,1kg bag,ceil_
 white_beans_dry_display,display_alias,white beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Dry beans bag
 great_northern_beans_dry_display,display_alias,great northern beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Dry beans bag
 beans_dry_display,display_alias,beans dry,legumes_beans,bag,,500,500g bag,ceil_to_package,bag,false,true,Generic dry beans bag
+plain_yogurt_display,display_alias,plain yogurt|yogurt plain,dairy_eggs,tub,,500,500g tub,ceil_to_package,tub,false,true,Plain yogurt tub
+plain_yogurt_keyword,normalized_name_keyword,plain yogurt,dairy_eggs,tub,,500,500g tub,ceil_to_package,tub,false,true,Plain yogurt tub
 milk_keyword,normalized_name_keyword,milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation
 low_fat_milk_display,display_alias,low fat milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation
 semi_skimmed_milk_display,display_alias,semi skimmed milk,dairy_eggs,carton,1000,,1L carton,ceil_to_liter,L,false,true,Milk carton approximation

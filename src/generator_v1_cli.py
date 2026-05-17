@@ -1167,6 +1167,7 @@ def _run_household_generation(args: argparse.Namespace) -> None:
         portion_policy_mode="target_aware",
     )
     household_candidate_config = _household_generation_config(args)
+    household_candidate_config["recipe_ingredients_df"] = pool.ingredients
     household_candidates = build_household_slot_candidates(
         slot_candidates,
         member_targets,

@@ -14,6 +14,10 @@ from src.generator_v1.household_preview import (
     build_household_member_targets,
     load_household_profile,
 )
+from src.generator_v1.household_ingredient_guard import (
+    audit_household_ingredient_load,
+    candidate_egg_load,
+)
 from src.generator_v1.macro_fit import macro_fit
 from src.generator_v1.multi_day_selector import (
     MULTI_DAY_MODE_GLOBAL,
@@ -46,6 +50,31 @@ PORTION_MAX_DEFAULT = 1.8
 
 def build_member_targets(household_profile: dict[str, Any]) -> dict[str, Any]:
     return build_household_member_targets(household_profile)
+
+
+def filter_household_profile_members(
+    household_profile: Mapping[str, Any],
+    selected_member_ids: Sequence[str],
+) -> dict[str, Any]:
+    selected_ids = [
+        str(member_id).strip()
+        for member_id in selected_member_ids
+        if str(member_id).strip()
+    ]
+    selected_set = set(selected_ids)
+    profile = json.loads(json.dumps(dict(household_profile), ensure_ascii=True))
+    members = [
+        dict(member)
+        for member in profile.get("members", [])
+        if str(member.get("member_id") or "").strip() in selected_set
+    ]
+    profile["active_member_ids"] = [
+        str(member.get("member_id") or "").strip()
+        for member in members
+        if str(member.get("member_id") or "").strip()
+    ]
+    profile["members"] = members
+    return profile
 
 
 def build_household_aggregate_target(member_targets: dict[str, Any]) -> NutritionTarget:
@@ -276,7 +305,7 @@ def generate_household_plan(
             },
             "multi_day_validation": base_plan["validation"],
             "target": _target_to_dict(aggregate_target),
-            "config": dict(resolved_config),
+            "config": _serializable_config(resolved_config),
         }
     else:
         base_plan = generate_multi_day_plan(
@@ -449,6 +478,11 @@ def _household_candidate_row(
     household_grams = _household_grams(row, household_portion_sum)
     warnings = _candidate_warnings(allocations)
     household_loss = _household_loss(allocations)
+    egg_guard = _household_candidate_egg_guard(row, allocations, config)
+    egg_penalty = _to_float(egg_guard.get("egg_load_penalty")) or 0.0
+    if egg_penalty > 0:
+        household_loss += egg_penalty
+        warnings.append("direct_egg_load_candidate_penalty")
     row = dict(row)
     row.update(household_macros)
     row["portion_multiplier"] = round(household_portion_sum, 3)
@@ -460,6 +494,11 @@ def _household_candidate_row(
     row["household_fit_warnings"] = ";".join(warnings)
     row["household_loss"] = round(household_loss, 6)
     row["household_fit"] = round(max(0.0, 1.0 - household_loss), 4)
+    row["egg_load_status"] = egg_guard.get("egg_load_status", "ok")
+    row["direct_egg_count"] = egg_guard.get("direct_egg_count", 0.0)
+    row["total_egg_count"] = egg_guard.get("egg_count", 0.0)
+    row["egg_load_penalty"] = round(egg_penalty, 6)
+    row["egg_load_reasons"] = ";".join(egg_guard.get("egg_load_reasons", []))
     row["household_generation_shared_slot"] = True
     row["household_allocation_mode"] = config["allocation_mode"]
     row["household_member_count"] = len(allocations)
@@ -551,6 +590,13 @@ def _decorate_household_plan(
     )
     protein_correction_rows = _protein_correction_rows(member_daily_rows)
     result = dict(base_plan)
+    ingredient_audit = audit_household_ingredient_load(
+        {"days": days, "household_summary": summary},
+        allocations,
+        config=config,
+    )
+    egg_load = ingredient_audit.get("egg_load", {})
+    summary.update(_egg_summary_fields(egg_load))
     result.update(
         {
             "household_generation_version": "v1_lite",
@@ -572,6 +618,8 @@ def _decorate_household_plan(
             "member_daily_rows": member_daily_rows,
             "household_day_quality_rows": day_quality,
             "grocery_scaling": grocery_scaling,
+            "household_ingredient_audit": ingredient_audit,
+            "egg_load_audit": egg_load,
             "household_summary": summary,
             "warnings": _household_warnings(config, summary),
         }
@@ -887,6 +935,15 @@ def _select_individual_candidate(
         if recipe_id in used_recipe_ids:
             loss += 0.18
             warnings.append("individual_recipe_repeat_pressure")
+        egg_guard = _individual_candidate_egg_guard(
+            row=row,
+            portion_multiplier=multiplier,
+            config=config,
+        )
+        egg_penalty = _to_float(egg_guard.get("egg_load_penalty")) or 0.0
+        if egg_penalty > 0:
+            loss += egg_penalty
+            warnings.append("direct_egg_load_candidate_penalty")
         protein_density = _protein_density(actual)
         score_preview = _to_float(row.get("score_preview")) or 0.0
         key = (
@@ -940,11 +997,89 @@ def _select_individual_candidate(
                 "protein_density_g_per_100_kcal": round(protein_density, 2),
                 "protein_correction_applied": bool(protein_priority),
                 "individual_candidate_loss": round(loss, 6),
+                "egg_load_status": egg_guard.get("egg_load_status", "ok"),
+                "egg_source_type": egg_guard.get("egg_source_type", ""),
+                "direct_egg_count": egg_guard.get("direct_egg_count", 0.0),
+                "total_egg_count": egg_guard.get("egg_count", 0.0),
+                "egg_load_penalty": round(egg_penalty, 6),
+                "egg_load_reasons": ";".join(egg_guard.get("egg_load_reasons", [])),
                 "allocation_scope": "individual",
                 "household_generation_shared_slot": False,
                 "household_portion_fit_warning": ";".join(warnings),
             }
     return best
+
+
+def _household_candidate_egg_guard(
+    row: Mapping[str, Any],
+    allocations: Sequence[Mapping[str, Any]],
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not bool(config.get("enable_egg_load_guard", True)):
+        return _empty_egg_guard()
+    ingredients = config.get("recipe_ingredients_df")
+    if ingredients is None:
+        return _empty_egg_guard()
+    total_load = _empty_egg_guard()
+    total_penalty = 0.0
+    direct_count = 0.0
+    total_count = 0.0
+    reasons: list[str] = []
+    status = "ok"
+    for allocation in allocations:
+        multiplier = _to_float(allocation.get("portion_multiplier_member")) or 1.0
+        load = candidate_egg_load(
+            row,
+            recipe_ingredients_df=ingredients,
+            portion_multiplier=multiplier,
+            config=config,
+        )
+        total_penalty += _to_float(load.get("egg_load_penalty")) or 0.0
+        direct_count += _to_float(load.get("direct_egg_count")) or 0.0
+        total_count += _to_float(load.get("egg_count")) or 0.0
+        reasons.extend(str(reason) for reason in load.get("egg_load_reasons", []) if reason)
+        if _status_rank(str(load.get("egg_load_status") or "ok")) > _status_rank(status):
+            status = str(load.get("egg_load_status") or "ok")
+    total_load.update(
+        {
+            "egg_load_status": status,
+            "direct_egg_count": round(direct_count, 3),
+            "egg_count": round(total_count, 3),
+            "egg_load_penalty": round(total_penalty, 6),
+            "egg_load_reasons": sorted(dict.fromkeys(reasons)),
+        }
+    )
+    return total_load
+
+
+def _individual_candidate_egg_guard(
+    *,
+    row: Mapping[str, Any],
+    portion_multiplier: float,
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not bool(config.get("enable_egg_load_guard", True)):
+        return _empty_egg_guard()
+    ingredients = config.get("recipe_ingredients_df")
+    if ingredients is None:
+        return _empty_egg_guard()
+    return candidate_egg_load(
+        row,
+        recipe_ingredients_df=ingredients,
+        portion_multiplier=portion_multiplier,
+        config=config,
+    )
+
+
+def _empty_egg_guard() -> dict[str, Any]:
+    return {
+        "egg_load_status": "ok",
+        "egg_source_type": "",
+        "direct_egg_count": 0.0,
+        "egg_count": 0.0,
+        "egg_load_penalty": 0.0,
+        "egg_load_reasons": [],
+    }
 
 
 def _grocery_scaling_rows(days: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1141,9 +1276,39 @@ def _household_warnings(config: Mapping[str, Any], summary: Mapping[str, Any]) -
         warnings.append("member_portion_clamps_present")
     if int(summary.get("protein_gap_count") or 0) > 0:
         warnings.append("member_protein_gap_remaining")
+    direct_eggs_per_person_day = _to_float(summary.get("direct_eggs_per_person_per_day")) or 0.0
+    egg_status = str(summary.get("egg_load_status") or "ok")
+    if direct_eggs_per_person_day > 3.0:
+        warnings.append("household_direct_egg_load_severe_warning")
+    elif direct_eggs_per_person_day > 2.0:
+        warnings.append("household_direct_egg_load_warning")
+    elif egg_status == "severe_warning":
+        warnings.append("household_total_egg_load_severe_warning")
+    elif egg_status == "warning":
+        warnings.append("household_total_egg_load_warning")
     if str(summary.get("household_quality_status") or "") != "accept":
         warnings.append("household_quality_review_needed")
     return warnings
+
+
+def _egg_summary_fields(egg_load: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "egg_load_status": egg_load.get("egg_load_status", "ok"),
+        "total_egg_count": egg_load.get("total_egg_count", 0.0),
+        "direct_egg_count": egg_load.get("direct_egg_count", 0.0),
+        "embedded_egg_count": egg_load.get("embedded_egg_count", 0.0),
+        "uncertain_egg_count": egg_load.get("uncertain_egg_count", 0.0),
+        "eggs_per_person_per_day": egg_load.get("eggs_per_person_per_day", 0.0),
+        "direct_eggs_per_person_per_day": egg_load.get(
+            "direct_eggs_per_person_per_day",
+            0.0,
+        ),
+        "egg_load_reasons": ";".join(egg_load.get("egg_load_reasons", [])),
+    }
+
+
+def _status_rank(status: str) -> int:
+    return {"ok": 0, "warning": 1, "severe_warning": 2}.get(str(status), 0)
 
 
 def _candidate_frame(value: pd.DataFrame | Mapping[str, pd.DataFrame]) -> pd.DataFrame:
@@ -1190,7 +1355,30 @@ def _resolved_config(config: Mapping[str, Any] | None) -> dict[str, Any]:
         or PORTION_MIN_DEFAULT,
         "portion_multiplier_max": _to_float(raw.get("portion_multiplier_max"))
         or PORTION_MAX_DEFAULT,
+        "enable_egg_load_guard": bool(raw.get("enable_egg_load_guard", True)),
+        "egg_guard_warning_penalty_per_egg": _to_float(
+            raw.get("egg_guard_warning_penalty_per_egg")
+        )
+        or 0.25,
+        "egg_guard_severe_penalty_per_egg": _to_float(
+            raw.get("egg_guard_severe_penalty_per_egg")
+        )
+        or 0.55,
+        "egg_guard_total_penalty_per_egg": _to_float(
+            raw.get("egg_guard_total_penalty_per_egg")
+        )
+        or 0.08,
     }
+
+
+def _serializable_config(config: Mapping[str, Any]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in dict(config).items():
+        if isinstance(value, pd.DataFrame):
+            result[key] = f"<DataFrame rows={len(value)}>"
+        else:
+            result[key] = value
+    return result
 
 
 def _one_day_config(config: Mapping[str, Any]) -> dict[str, Any]:

@@ -126,8 +126,8 @@ from src.generator_v1.household_generator import (
     HOUSEHOLD_MODE_SHARED_ALL_SLOTS,
     HOUSEHOLD_MODE_SHARED_MAIN_MEALS,
     build_household_aggregate_target,
+    filter_household_profile_members,
     generate_household_plan as generate_household_lite_plan,
-    household_plan_readable_lines as household_generation_readable_lines,
 )
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.multi_day_audit import multi_day_readable_lines
@@ -153,7 +153,7 @@ from src.generator_v1.target_builder import NutritionTarget, build_nutrition_tar
 
 PROFILE_PATH = Path("profiles/member_profile_demo_v1.json")
 HOUSEHOLD_PROFILE_PATH = Path("profiles/household_profile_demo_v1.json")
-SESSION_SCHEMA_VERSION = 26
+SESSION_SCHEMA_VERSION = 27
 SESSION_SCHEMA_KEY = "generator_v1_dashboard_schema_version"
 SESSION_MENUS_KEY = "generator_v1_generated_menus"
 SESSION_LATEST_MENU_KEY = "generator_v1_latest_menu"
@@ -181,9 +181,18 @@ SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY = "generator_v1_allow_unsupported_profile"
 SESSION_RECOMMENDED_PRESET_APPLIED_KEY = "generator_v1_recommended_preset_applied"
 SESSION_GENERATION_DAYS_KEY = "generator_v1_generation_days"
 SESSION_GROCERY_PRICE_ESTIMATES_KEY = "generator_v1_grocery_price_estimates"
+SESSION_LATEST_GENERATION_RESULT_KEY = "generator_v1_latest_generation_result"
+SESSION_LATEST_GENERATION_TYPE_KEY = "generator_v1_latest_generation_type"
 SESSION_HOUSEHOLD_PREVIEW_KEY = "generator_v1_household_preview"
 SESSION_HOUSEHOLD_PREVIEW_SOURCE_KEY = "generator_v1_household_preview_source"
 SESSION_HOUSEHOLD_GENERATION_KEY = "generator_v1_household_generation"
+SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY = "generator_v1_household_selected_member_ids"
+SESSION_HOUSEHOLD_SELECTED_MEMBER_NAMES_KEY = "generator_v1_household_selected_member_names"
+SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY = "generator_v1_household_member_view_index"
+SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY = "generator_v1_household_day_view_index"
+SESSION_HOUSEHOLD_MODE_KEY = "generator_v1_household_mode"
+SESSION_HOUSEHOLD_ALLOCATION_MODE_KEY = "generator_v1_household_allocation_mode"
+DEFAULT_VISIBLE_MEMBER_ID = "member_demo_adult_male_001"
 RECENT_MENUS_FOR_VARIATION = 2
 V1_1_RECOMMENDED_SELECTION_MODE = "balanced_day"
 V1_1_RECOMMENDED_ALTERNATIVE_COUNT = 3
@@ -432,7 +441,6 @@ def main() -> None:
         _render_pipeline()
 
     st.title("TableTogether Debug Tool")
-    _render_recommended_v1_2_preset_section()
     dataset_config = _render_configuration_controls()
     active_config = _current_generation_config(dataset_config)
     guard_profile = load_member_profile(PROFILE_PATH)
@@ -444,8 +452,18 @@ def main() -> None:
     )
     _render_active_generation_config(active_config, profile_guard_result)
     _render_profile_guard_status(profile_guard_result)
-    generation_blocked = _dashboard_profile_guard_blocks(profile_guard_result)
-    _render_primary_generation_controls(generation_blocked)
+    household_profile = _dashboard_household_profile()
+    selected_member_ids: list[str] = []
+    if household_profile:
+        selected_member_ids = _render_main_member_selection(household_profile)
+    _render_recommended_v1_2_preset_button()
+    generation_blocked = _dashboard_profile_guard_blocks(profile_guard_result) or not bool(
+        selected_member_ids
+    )
+    _render_primary_generation_controls(
+        generation_blocked,
+        selected_member_count=len(selected_member_ids),
+    )
     if active_config["multi_day_speed_mode"] == "quality":
         st.warning("Quality mode can take multiple minutes for multi-day generation.")
     if active_config["day_candidate_builder"] == "balanced_repeated":
@@ -455,7 +473,21 @@ def main() -> None:
 
     generated_menus = st.session_state[SESSION_MENUS_KEY]
     latest_multi_day = st.session_state.get(SESSION_LATEST_MULTIDAY_KEY)
-    _render_household_preview_panel(_latest_generation_record())
+    latest_generation_result = st.session_state.get(SESSION_LATEST_GENERATION_RESULT_KEY)
+    if isinstance(latest_generation_result, dict):
+        _render_generated_history_controls(generated_menus, latest_multi_day)
+        _render_member_aware_generation_result(latest_generation_result)
+        _render_household_preview_panel(
+            _latest_generation_record(),
+            include_generation_panel=False,
+        )
+        _render_feedback_events()
+        with st.expander("Legacy one-day/multi-day debug history", expanded=False):
+            _render_recent_recipe_debug(generated_menus)
+            if generated_menus:
+                _render_session_menu_history(generated_menus)
+        return
+
     if not generated_menus and not latest_multi_day:
         st.info("No generated menu yet.")
         return
@@ -486,7 +518,7 @@ def main() -> None:
         _render_plan("Previous menu", generated_menus[1], enable_feedback=False)
 
 
-def _render_recommended_v1_2_preset_section() -> None:
+def _render_recommended_v1_2_preset_button() -> None:
     if st.session_state.get(SESSION_RECOMMENDED_PRESET_APPLIED_KEY):
         st.success("Recommended v1.2 preset applied. Generation was not started.")
         st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
@@ -498,6 +530,9 @@ def _render_recommended_v1_2_preset_section() -> None:
         _apply_recommended_v1_2_test_preset()
         st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = True
         st.rerun()
+
+
+def _render_recommended_v1_2_preset_details() -> None:
     with st.expander("Recommended v1.2 demo settings details", expanded=False):
         display_rows = [
             {"setting": key, "value": RECOMMENDED_V1_2_TEST_PRESET[key]}
@@ -549,24 +584,86 @@ def _apply_recommended_v1_2_test_preset() -> None:
     st.session_state[SESSION_GROCERY_PRICE_ESTIMATES_KEY] = True
 
 
-def _render_primary_generation_controls(generation_blocked: bool) -> None:
+def _dashboard_household_profile() -> dict[str, Any] | None:
+    try:
+        return load_household_profile(HOUSEHOLD_PROFILE_PATH)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        st.error(f"Cannot load household profile: {exc}")
+        return None
+
+
+def _render_main_member_selection(household_profile: dict[str, Any]) -> list[str]:
+    st.markdown("#### Household members")
+    st.caption(
+        "Selectia membrilor decide automat fluxul: un membru = single-member view; "
+        "doi sau mai multi = household generation."
+    )
+    selected_member_ids = _render_household_member_selection(
+        household_profile,
+        default_member_ids=_default_main_member_ids(household_profile),
+        widget_namespace="main",
+    )
+    if not selected_member_ids:
+        st.warning("Select at least one member before generating.")
+    elif len(selected_member_ids) == 1:
+        st.caption(
+            "One selected member behaves like an individual generation, but uses the same member-aware view."
+        )
+    else:
+        st.caption(
+            "Multiple selected members generate one household plan with shared main meals and member portions."
+        )
+    return selected_member_ids
+
+
+def _default_main_member_ids(household_profile: dict[str, Any]) -> list[str]:
+    members = [dict(member) for member in household_profile.get("members", [])]
+    for member in members:
+        member_id = str(member.get("member_id") or "").strip()
+        display_name = str(member.get("display_name") or "").strip().lower()
+        if member_id == DEFAULT_VISIBLE_MEMBER_ID or display_name == "alex":
+            return [member_id]
+    active_ids = [
+        str(member_id).strip()
+        for member_id in household_profile.get("active_member_ids", [])
+        if str(member_id).strip()
+    ]
+    if active_ids:
+        return [active_ids[0]]
+    all_ids = [
+        str(member.get("member_id") or "").strip()
+        for member in members
+        if str(member.get("member_id") or "").strip()
+    ]
+    return all_ids[:1]
+
+
+def _render_primary_generation_controls(
+    generation_blocked: bool,
+    selected_member_count: int,
+) -> None:
     control_cols = st.columns([1.0, 2.0])
     control_cols[0].select_slider(
-        "Days",
+        "Number of days",
         options=[1, 2, 3, 4, 5],
         key=SESSION_GENERATION_DAYS_KEY,
-        help="1 zi foloseste selectorul one-day; 2-5 zile folosesc multi-day draft.",
+        help="Generarea principala foloseste membrii selectati si produce un view per membru.",
     )
     control_cols[1].button(
         "Generate",
         type="primary",
-        on_click=_generate_and_store_selected_days,
+        on_click=_generate_and_store_member_aware_generation,
         use_container_width=True,
         disabled=generation_blocked,
     )
-    st.caption(
-        "Generate foloseste 1-day path pentru `days=1` si multi-day path pentru `days>1`."
-    )
+    if selected_member_count <= 0:
+        st.caption("Generate is disabled until at least one household member is selected.")
+    elif selected_member_count == 1:
+        st.caption("Generate will create a single-member plan and show it in the member menu view.")
+    else:
+        st.caption(
+            "Generate will create one household plan for the selected members and one aggregate grocery list."
+        )
 
 
 def _render_configuration_controls() -> dict[str, Any]:
@@ -577,6 +674,7 @@ def _render_configuration_controls() -> dict[str, Any]:
             "Butoanele principale de generare raman vizibile pe pagina. "
             "Schimba datasetul aici doar pentru debug."
         )
+        _render_recommended_v1_2_preset_details()
         selection_mode = _render_selection_mode_selector()
         _render_portion_policy_selector()
         st.caption("Aceste optiuni sunt pentru comparatii rapide intre moduri interne.")
@@ -619,6 +717,27 @@ def _render_configuration_controls() -> dict[str, Any]:
             disabled=_dashboard_profile_guard_blocks(
                 _current_profile_guard_for_dashboard(dataset_config)
             ),
+        )
+
+        st.markdown("##### Household generation")
+        household_cols = st.columns(2)
+        household_cols[0].selectbox(
+            "Household mode",
+            [
+                HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN,
+                HOUSEHOLD_MODE_SHARED_MAIN_MEALS,
+                HOUSEHOLD_MODE_SHARED_ALL_SLOTS,
+            ],
+            key=SESSION_HOUSEHOLD_MODE_KEY,
+            help=(
+                "Main flow uses the selected members. "
+                "Recommended demo mode: individual_breakfast_shared_main."
+            ),
+        )
+        household_cols[1].selectbox(
+            "Household allocation mode",
+            list(HOUSEHOLD_ALLOCATION_MODES),
+            key=SESSION_HOUSEHOLD_ALLOCATION_MODE_KEY,
         )
 
         st.markdown("##### Grocery/pricing")
@@ -1082,6 +1201,30 @@ def _current_grocery_price_estimates_enabled() -> bool:
     return bool(st.session_state.get(SESSION_GROCERY_PRICE_ESTIMATES_KEY, True))
 
 
+def _current_household_mode() -> str:
+    value = str(
+        st.session_state.get(
+            SESSION_HOUSEHOLD_MODE_KEY,
+            HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN,
+        )
+    )
+    allowed = {
+        HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN,
+        HOUSEHOLD_MODE_SHARED_MAIN_MEALS,
+        HOUSEHOLD_MODE_SHARED_ALL_SLOTS,
+    }
+    if value in allowed:
+        return value
+    return HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN
+
+
+def _current_household_allocation_mode() -> str:
+    value = str(st.session_state.get(SESSION_HOUSEHOLD_ALLOCATION_MODE_KEY, DEFAULT_ALLOCATION_MODE))
+    if value in HOUSEHOLD_ALLOCATION_MODES:
+        return value
+    return DEFAULT_ALLOCATION_MODE
+
+
 def _current_generation_config(
     dataset_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -1174,6 +1317,7 @@ def _active_feedback_event_count(config: dict[str, Any]) -> int:
 
 def _latest_generation_record() -> dict[str, Any] | None:
     candidates = [
+        st.session_state.get(SESSION_LATEST_GENERATION_RESULT_KEY),
         st.session_state.get(SESSION_LATEST_MENU_KEY),
         st.session_state.get(SESSION_LATEST_MULTIDAY_KEY),
     ]
@@ -1464,6 +1608,51 @@ def _generate_and_store_selected_days() -> None:
     _generate_and_store_multi_day_plan(days)
 
 
+def _generate_and_store_member_aware_generation() -> None:
+    household_profile = load_household_profile(HOUSEHOLD_PROFILE_PATH)
+    selected_member_ids = [
+        str(member_id).strip()
+        for member_id in st.session_state.get(SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY, [])
+        if str(member_id).strip()
+    ]
+    if not selected_member_ids:
+        return
+
+    selected_profile = filter_household_profile_members(
+        household_profile,
+        selected_member_ids,
+    )
+    selected_member_names = [
+        str(member.get("display_name") or member.get("member_id"))
+        for member in selected_profile.get("members", [])
+    ]
+    member_targets = build_household_member_targets(selected_profile)
+    days = _current_generation_days()
+    generation_type = "single_member" if len(selected_member_ids) == 1 else "household"
+    plan = _build_household_generation_result(
+        household_profile=selected_profile,
+        member_targets=member_targets,
+        days=days,
+        household_mode=_current_household_mode(),
+        allocation_mode=_current_household_allocation_mode(),
+        selected_member_ids=selected_member_ids,
+        selected_member_names=selected_member_names,
+    )
+    plan["latest_generation_type"] = generation_type
+    plan["selected_member_ids_used"] = list(selected_member_ids)
+    plan["selected_member_names_used"] = list(selected_member_names)
+    plan["days_used"] = days
+    plan["generation_trigger"] = "member_aware_generate"
+    plan["ui_generation_mode"] = generation_type
+    st.session_state[SESSION_LATEST_GENERATION_RESULT_KEY] = plan
+    st.session_state[SESSION_LATEST_GENERATION_TYPE_KEY] = generation_type
+    st.session_state[SESSION_HOUSEHOLD_GENERATION_KEY] = plan
+    st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = selected_member_ids
+    st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_NAMES_KEY] = selected_member_names
+    st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
+    st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = 1
+
+
 def _generate_and_store_three_day_plan() -> None:
     _generate_and_store_multi_day_plan(3)
 
@@ -1525,6 +1714,10 @@ def _clear_generated_menu_history() -> None:
     st.session_state[SESSION_HOUSEHOLD_PREVIEW_KEY] = None
     st.session_state[SESSION_HOUSEHOLD_PREVIEW_SOURCE_KEY] = ""
     st.session_state[SESSION_HOUSEHOLD_GENERATION_KEY] = None
+    st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
+    st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = 1
+    st.session_state[SESSION_LATEST_GENERATION_RESULT_KEY] = None
+    st.session_state[SESSION_LATEST_GENERATION_TYPE_KEY] = ""
     st.session_state[SESSION_RECENT_RECIPE_IDS_KEY] = []
     st.session_state[SESSION_RUN_COUNTER_KEY] = 0
 
@@ -1880,7 +2073,10 @@ def _build_generator_result(
     return plan
 
 
-def _render_household_preview_panel(latest_plan: dict[str, Any] | None) -> None:
+def _render_household_preview_panel(
+    latest_plan: dict[str, Any] | None,
+    include_generation_panel: bool = True,
+) -> None:
     with st.expander("Household preview (draft)", expanded=False):
         st.warning(
             "Draft preview only. It uses the latest generated plan and allocates portions per member; "
@@ -1932,8 +2128,9 @@ def _render_household_preview_panel(latest_plan: dict[str, Any] | None) -> None:
             else:
                 _render_household_preview_result(preview)
 
-        st.divider()
-        _render_household_generation_panel(household_profile, member_targets)
+        if include_generation_panel:
+            st.divider()
+            _render_household_generation_panel(household_profile, member_targets)
 
 
 def _render_household_preview_result(preview: dict[str, Any]) -> None:
@@ -2027,6 +2224,23 @@ def _render_household_generation_panel(
         "Draft household generation. This uses household aggregate targets and member portion allocation; "
         "it is still not a production household optimizer."
     )
+    selected_member_ids = _render_household_member_selection(household_profile)
+    selected_profile = filter_household_profile_members(
+        household_profile,
+        selected_member_ids,
+    )
+    selected_member_targets = build_household_member_targets(selected_profile)
+    selected_member_names = [
+        str(member.get("display_name") or member.get("member_id"))
+        for member in selected_profile.get("members", [])
+    ]
+    if not selected_member_ids:
+        st.warning("Select at least one household member before generating a household plan.")
+    elif len(selected_member_ids) == 1:
+        st.info(
+            "Household generation with one selected member behaves similarly to individual generation."
+        )
+
     control_cols = st.columns(3)
     days = control_cols[0].selectbox(
         "Household days",
@@ -2054,22 +2268,109 @@ def _render_household_generation_panel(
         type="primary",
         use_container_width=True,
         key="household_generation_v1_generate",
+        disabled=not bool(selected_member_ids),
     ):
         with st.spinner("Generating household plan..."):
             plan = _build_household_generation_result(
-                household_profile=household_profile,
-                member_targets=member_targets,
+                household_profile=selected_profile,
+                member_targets=selected_member_targets,
                 days=int(days),
                 household_mode=str(household_mode),
                 allocation_mode=str(allocation_mode),
+                selected_member_ids=selected_member_ids,
+                selected_member_names=selected_member_names,
             )
         st.session_state[SESSION_HOUSEHOLD_GENERATION_KEY] = plan
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = selected_member_ids
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_NAMES_KEY] = selected_member_names
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
 
     plan = st.session_state.get(SESSION_HOUSEHOLD_GENERATION_KEY)
     if isinstance(plan, dict):
         _render_household_generation_result(plan)
     else:
         st.caption("No household generation v1 plan built yet.")
+
+
+def _render_household_member_selection(
+    household_profile: dict[str, Any],
+    default_member_ids: list[str] | None = None,
+    widget_namespace: str = "household",
+) -> list[str]:
+    members = [dict(member) for member in household_profile.get("members", [])]
+    active_ids = [
+        str(member_id).strip()
+        for member_id in household_profile.get("active_member_ids", [])
+        if str(member_id).strip()
+    ]
+    all_ids = [
+        str(member.get("member_id") or "").strip()
+        for member in members
+        if str(member.get("member_id") or "").strip()
+    ]
+    default_ids = [
+        member_id
+        for member_id in (default_member_ids or active_ids or all_ids)
+        if member_id in set(all_ids)
+    ]
+    if SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY not in st.session_state:
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = default_ids
+
+    action_cols = st.columns([1, 1, 3])
+    if action_cols[0].button(
+        "Select all members",
+        use_container_width=True,
+        key=f"{widget_namespace}_select_all_members",
+    ):
+        for member_id in all_ids:
+            st.session_state[_household_member_checkbox_key(member_id, widget_namespace)] = True
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = all_ids
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
+        st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = 1
+        st.rerun()
+    if action_cols[1].button(
+        "Clear selection",
+        use_container_width=True,
+        key=f"{widget_namespace}_clear_members",
+    ):
+        for member_id in all_ids:
+            st.session_state[_household_member_checkbox_key(member_id, widget_namespace)] = False
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = []
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
+        st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = 1
+        st.rerun()
+
+    selected_before = [
+        str(member_id).strip()
+        for member_id in st.session_state.get(SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY, [])
+        if str(member_id).strip() in set(all_ids)
+    ]
+    if not selected_before and st.session_state.get(SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY) is None:
+        selected_before = list(default_ids)
+    selected_ids: list[str] = []
+    st.caption("Select members for this household generation run:")
+    checkbox_cols = st.columns(max(1, min(3, len(members) or 1)))
+    for index, member in enumerate(members):
+        member_id = str(member.get("member_id") or "").strip()
+        if not member_id:
+            continue
+        key = _household_member_checkbox_key(member_id, widget_namespace)
+        if key not in st.session_state:
+            st.session_state[key] = member_id in selected_before
+        label = str(member.get("display_name") or member_id)
+        checked = checkbox_cols[index % len(checkbox_cols)].checkbox(label, key=key)
+        if checked:
+            selected_ids.append(member_id)
+
+    if selected_ids != selected_before:
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = selected_ids
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
+        st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = 1
+    return selected_ids
+
+
+def _household_member_checkbox_key(member_id: str, widget_namespace: str = "household") -> str:
+    return f"{widget_namespace}_household_member_selected_{_safe_widget_key(member_id)}"
 
 
 def _render_household_generation_result(plan: dict[str, Any]) -> None:
@@ -2093,46 +2394,33 @@ def _render_household_generation_result(plan: dict[str, Any]) -> None:
         "Recommended demo mode: individual_breakfast_shared_main. "
         "shared_all_slots is kept as baseline/debug."
     )
+    selected_names = plan.get("selected_household_member_names", [])
+    if selected_names:
+        st.caption("Selected members: " + ", ".join(str(name) for name in selected_names))
+    egg_audit = plan.get("egg_load_audit") or {}
+    egg_status = str(egg_audit.get("egg_load_status") or "ok")
+    if egg_status in {"warning", "severe_warning"}:
+        direct_egg_load = _safe_float(egg_audit.get("direct_eggs_per_person_per_day")) or 0.0
+        if direct_egg_load > 2.0:
+            st.warning(
+                "High direct egg load detected: about "
+                f"{_format_number(direct_egg_load)} eggs/person/day."
+            )
+        else:
+            st.warning(
+                "High total egg load detected: about "
+                f"{_format_number(egg_audit.get('eggs_per_person_per_day'))} "
+                "eggs/person/day, mostly embedded in recipes."
+            )
 
-    days = plan.get("days", [])
-    if isinstance(days, list) and days:
-        st.markdown("##### Household generated shared plan")
-        st.dataframe(
-            pd.DataFrame(_household_generated_meal_rows(days)),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-    allocations = plan.get("allocations", [])
-    if allocations:
-        st.markdown("##### Per-member meal portions")
-        st.dataframe(
-            pd.DataFrame(_household_allocation_table_rows(allocations)),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-    protein_rows = plan.get("protein_correction_rows", [])
-    if protein_rows:
-        st.markdown("##### Protein correction audit")
-        st.dataframe(
-            pd.DataFrame(protein_rows),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-    member_daily_rows = plan.get("member_daily_rows", [])
-    if member_daily_rows:
-        st.markdown("##### Per-member daily macro totals")
-        st.dataframe(
-            pd.DataFrame(_household_member_daily_table_rows(member_daily_rows)),
-            use_container_width=True,
-            hide_index=True,
-        )
+    _render_household_member_menu_view_v2(plan)
 
     grocery_scaling = plan.get("grocery_scaling", [])
     if grocery_scaling:
-        st.markdown("##### Household grocery scaling")
+        st.markdown("##### Household grocery list / scaling")
+        st.caption(
+            "Aggregate household grocery remains household-level for all selected members."
+        )
         st.dataframe(
             pd.DataFrame(_household_grocery_scaling_table_rows(grocery_scaling)),
             use_container_width=True,
@@ -2143,8 +2431,18 @@ def _render_household_generation_result(plan: dict[str, Any]) -> None:
     if warnings:
         st.warning("Limitations: " + "; ".join(str(warning) for warning in warnings))
 
-    with st.expander("Copy-ready household generation", expanded=False):
-        st.code("\n".join(household_generation_readable_lines(plan)), language=None)
+    copy_text = "\n".join(_household_plan_copy_lines(plan))
+    st.download_button(
+        "Download full family menu TXT",
+        data=copy_text,
+        file_name="tabletogether_family_menu.txt",
+        mime="text/plain",
+        use_container_width=True,
+        key=f"download_full_family_menu_{_safe_widget_key(str(plan.get('run_id') or 'latest'))}",
+    )
+    with st.expander("Copy-ready all members menu", expanded=False):
+        st.caption("Open this box and use the copy icon from the code block.")
+        st.code(copy_text, language=None)
 
     with st.expander("Household generation diagnostics", expanded=False):
         st.dataframe(
@@ -2152,6 +2450,14 @@ def _render_household_generation_result(plan: dict[str, Any]) -> None:
             use_container_width=True,
             hide_index=True,
         )
+        member_targets = plan.get("member_targets", {})
+        if isinstance(member_targets, dict) and member_targets.get("target_rows"):
+            st.caption("Selected member targets")
+            st.dataframe(
+                pd.DataFrame(_household_target_table_rows(member_targets)),
+                use_container_width=True,
+                hide_index=True,
+            )
         day_quality = plan.get("household_day_quality_rows", [])
         if day_quality:
             st.caption("Day quality")
@@ -2160,6 +2466,427 @@ def _render_household_generation_result(plan: dict[str, Any]) -> None:
                 use_container_width=True,
                 hide_index=True,
             )
+        protein_rows = plan.get("protein_correction_rows", [])
+        if protein_rows:
+            st.caption("Protein correction audit")
+            st.dataframe(
+                pd.DataFrame(protein_rows),
+                use_container_width=True,
+                hide_index=True,
+            )
+        if egg_audit:
+            st.caption("Egg-load audit")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "status": egg_audit.get("egg_load_status"),
+                            "total eggs": egg_audit.get("total_egg_count"),
+                            "direct eggs": egg_audit.get("direct_egg_count"),
+                            "embedded eggs": egg_audit.get("embedded_egg_count"),
+                            "direct eggs/person/day": egg_audit.get(
+                                "direct_eggs_per_person_per_day"
+                            ),
+                            "reasons": "; ".join(egg_audit.get("egg_load_reasons", [])),
+                        }
+                    ]
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+            egg_sources = egg_audit.get("egg_source_breakdown", [])
+            if egg_sources:
+                st.caption("Egg sources")
+                st.dataframe(
+                    pd.DataFrame(egg_sources),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+        member_daily_rows = plan.get("member_daily_rows", [])
+        if member_daily_rows:
+            st.caption("All member daily macro totals")
+            st.dataframe(
+                pd.DataFrame(_household_member_daily_table_rows(member_daily_rows)),
+                use_container_width=True,
+                hide_index=True,
+            )
+        days = plan.get("days", [])
+        if isinstance(days, list) and days:
+            st.caption("Shared generated plan")
+            st.dataframe(
+                pd.DataFrame(_household_generated_meal_rows(days)),
+                use_container_width=True,
+                hide_index=True,
+            )
+        allocations = plan.get("allocations", [])
+        if allocations:
+            st.caption("Household allocation debug table")
+            st.dataframe(
+                pd.DataFrame(_household_allocation_table_rows(allocations)),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+
+def _render_member_aware_generation_result(plan: dict[str, Any]) -> None:
+    generation_type = str(
+        plan.get("latest_generation_type")
+        or plan.get("ui_generation_mode")
+        or st.session_state.get(SESSION_LATEST_GENERATION_TYPE_KEY)
+        or "household"
+    )
+    selected_names = plan.get("selected_member_names_used") or plan.get(
+        "selected_household_member_names",
+        [],
+    )
+    st.subheader("Generated menu")
+    st.caption(
+        f"type={generation_type}; days={plan.get('days_used', plan.get('generation_config', {}).get('days'))}; "
+        f"selected_members={', '.join(str(name) for name in selected_names) or 'missing'}"
+    )
+    if generation_type == "single_member":
+        st.info(
+            "Single selected member. The plan is shown through the same member-aware view; "
+            "the aggregate grocery list is for this member only."
+        )
+    _render_household_generation_result(plan)
+    st.markdown("#### Aggregate grocery list for selected members")
+    st.caption(
+        "One household grocery list only. Shared meals use household portion sums; "
+        "individual breakfast/snack rows are included for the selected members."
+    )
+    grocery_plan = _member_aware_plan_for_grocery(plan)
+    _render_grocery_list_draft(
+        grocery_plan,
+        key_prefix="memberaware",
+        section_title="Aggregate grocery list",
+        expanded=True,
+    )
+
+
+def _member_aware_plan_for_grocery(plan: dict[str, Any]) -> dict[str, Any]:
+    if plan.get("household_generation_version") != "v1_lite":
+        return plan
+    individual_by_day: dict[int, list[dict[str, Any]]] = {}
+    for row in plan.get("individual_meals", []):
+        day_index = int(row.get("day_index") or 1)
+        individual_by_day.setdefault(day_index, []).append(dict(row))
+
+    grocery_days: list[dict[str, Any]] = []
+    for day in plan.get("days", []):
+        if not isinstance(day, dict):
+            continue
+        day_index = int(day.get("day_index") or len(grocery_days) + 1)
+        selected_meals: list[dict[str, Any]] = []
+        for meal in day.get("selected_meals", []):
+            if not isinstance(meal, dict):
+                continue
+            if not bool(meal.get("household_generation_shared_slot", True)):
+                continue
+            shared_meal = dict(meal)
+            shared_meal["portion_multiplier"] = (
+                _safe_float(meal.get("household_portion_sum"))
+                or _safe_float(meal.get("portion_multiplier"))
+                or 1.0
+            )
+            selected_meals.append(shared_meal)
+        for row in individual_by_day.get(day_index, []):
+            selected_meals.append(
+                {
+                    "slot": row.get("slot"),
+                    "recipe_id": row.get("recipe_id"),
+                    "display_name": row.get("display_name") or row.get("recipe"),
+                    "portion_multiplier": (
+                        _safe_float(row.get("portion_multiplier_member"))
+                        or _safe_float(row.get("portion_multiplier"))
+                        or 1.0
+                    ),
+                    "allocation_scope": "individual",
+                    "member_id": row.get("member_id"),
+                    "member": row.get("member"),
+                }
+            )
+        grocery_day = dict(day)
+        grocery_day["selected_meals"] = selected_meals
+        grocery_days.append(grocery_day)
+
+    result = dict(plan)
+    result["days"] = grocery_days
+    result["run_id"] = f"{plan.get('run_id', 'latest')}-aggregate-grocery"
+    result["generation_trigger"] = "aggregate_household_grocery"
+    return result
+
+
+def _render_household_member_menu_view(plan: dict[str, Any]) -> None:
+    members = _household_plan_members(plan)
+    if not members:
+        st.info("No member rows available for this household plan.")
+        return
+    st.markdown("##### Member menu view")
+    index = int(st.session_state.get(SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY, 0) or 0)
+    index = index % len(members)
+    run_key = _safe_widget_key(str(plan.get("run_id") or "latest_household"))
+    nav_cols = st.columns([1, 4, 1])
+    if nav_cols[0].button("←", key=f"household_member_prev_{run_key}", use_container_width=True):
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = (index - 1) % len(members)
+        st.rerun()
+    current_member = members[index]
+    nav_cols[1].markdown(
+        f"<div style='text-align:center; font-weight:700; font-size:1.05rem;'>{current_member.get('member')}</div>",
+        unsafe_allow_html=True,
+    )
+    if nav_cols[2].button("→", key=f"household_member_next_{run_key}", use_container_width=True):
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = (index + 1) % len(members)
+        st.rerun()
+
+    member_id = str(current_member.get("member_id") or "")
+    target_cols = st.columns(4)
+    target_cols[0].metric("Kcal target", _format_number(current_member.get("kcal_target")))
+    target_cols[1].metric("Protein", _format_number(current_member.get("protein_g_target"), "g"))
+    target_cols[2].metric("Carbs", _format_number(current_member.get("carbs_g_target"), "g"))
+    target_cols[3].metric("Fat", _format_number(current_member.get("fat_g_target"), "g"))
+
+    for day in sorted(_household_plan_day_indexes(plan)):
+        st.markdown(f"##### Day {day}")
+        menu_rows = _household_member_day_menu_rows(plan, member_id, day)
+        if menu_rows:
+            st.dataframe(pd.DataFrame(menu_rows), use_container_width=True, hide_index=True)
+        daily_row = _household_member_daily_row(plan, member_id, day)
+        if daily_row:
+            total_cols = st.columns(4)
+            total_cols[0].metric(
+                "Kcal",
+                _format_number(daily_row.get("kcal")),
+                f"{_format_number(daily_row.get('kcal_deviation_pct'))}%",
+            )
+            total_cols[1].metric(
+                "Protein",
+                _format_number(daily_row.get("protein_g"), "g"),
+                f"{_format_number(daily_row.get('protein_deviation_pct'))}%",
+            )
+            total_cols[2].metric(
+                "Carbs",
+                _format_number(daily_row.get("carbs_g"), "g"),
+                f"{_format_number(daily_row.get('carbs_deviation_pct'))}%",
+            )
+            total_cols[3].metric(
+                "Fat",
+                _format_number(daily_row.get("fat_g"), "g"),
+                f"{_format_number(daily_row.get('fat_deviation_pct'))}%",
+            )
+
+    with st.expander(f"Copy-ready menu for {current_member.get('member')}", expanded=False):
+        st.code("\n".join(_household_member_readable_lines(plan, member_id)), language=None)
+
+
+def _household_plan_members(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    member_targets = plan.get("member_targets", {})
+    if not isinstance(member_targets, dict):
+        return []
+    return [dict(row) for row in member_targets.get("target_rows", [])]
+
+
+def _household_plan_day_indexes(plan: dict[str, Any]) -> list[int]:
+    day_indexes = {
+        int(day.get("day_index") or 0)
+        for day in plan.get("days", [])
+        if isinstance(day, dict)
+    }
+    for row in plan.get("allocations", []):
+        day_indexes.add(int(row.get("day_index") or 0))
+    return [day for day in day_indexes if day > 0]
+
+
+def _household_member_day_menu_rows(
+    plan: dict[str, Any],
+    member_id: str,
+    day_index: int,
+) -> list[dict[str, Any]]:
+    rows = [
+        row
+        for row in plan.get("allocations", [])
+        if str(row.get("member_id") or "") == member_id
+        and int(row.get("day_index") or 0) == int(day_index)
+    ]
+    rows.sort(key=lambda row: (_slot_sort_value(row.get("slot")), str(row.get("recipe") or "")))
+    return [
+        {
+            "slot": row.get("slot"),
+            "meal type": "shared meal"
+            if str(row.get("allocation_scope") or "shared") == "shared"
+            else "individual meal",
+            "recipe": row.get("recipe") or row.get("display_name"),
+            "portion": row.get("portion_multiplier_member"),
+            "kcal": row.get("kcal"),
+            "protein g": row.get("protein_g"),
+            "carbs g": row.get("carbs_g"),
+            "fat g": row.get("fat_g"),
+            "warnings": row.get("household_portion_fit_warning"),
+        }
+        for row in rows
+    ]
+
+
+def _household_member_daily_row(
+    plan: dict[str, Any],
+    member_id: str,
+    day_index: int,
+) -> dict[str, Any] | None:
+    for row in plan.get("member_daily_rows", []):
+        if (
+            str(row.get("member_id") or "") == member_id
+            and int(row.get("day_index") or 0) == int(day_index)
+        ):
+            return dict(row)
+    return None
+
+
+def _household_member_readable_lines(plan: dict[str, Any], member_id: str) -> list[str]:
+    member = next(
+        (
+            row
+            for row in _household_plan_members(plan)
+            if str(row.get("member_id") or "") == member_id
+        ),
+        {},
+    )
+    lines = [
+        f"Household member menu: {member.get('member', member_id)}",
+        "",
+        "Targets:",
+        f"- kcal: {_format_number(member.get('kcal_target'))}",
+        f"- protein: {_format_number(member.get('protein_g_target'), 'g')}",
+        f"- carbs: {_format_number(member.get('carbs_g_target'), 'g')}",
+        f"- fat: {_format_number(member.get('fat_g_target'), 'g')}",
+    ]
+    for day in sorted(_household_plan_day_indexes(plan)):
+        lines.extend(["", f"Day {day}"])
+        for row in _household_member_day_menu_rows(plan, member_id, day):
+            lines.append(
+                "- "
+                f"{row.get('slot')} ({row.get('meal type')}): "
+                f"{row.get('recipe')} | "
+                f"{_format_number(row.get('portion'), 'x')} | "
+                f"{_format_number(row.get('kcal'))} kcal, "
+                f"P {_format_number(row.get('protein g'), 'g')}"
+            )
+        daily = _household_member_daily_row(plan, member_id, day)
+        if daily:
+            lines.append(
+                "Total: "
+                f"{_format_number(daily.get('kcal'))} kcal "
+                f"({_format_number(daily.get('kcal_deviation_pct'))}%), "
+                f"protein {_format_number(daily.get('protein_g'), 'g')} "
+                f"({_format_number(daily.get('protein_deviation_pct'))}%)"
+            )
+    return lines
+
+
+def _render_household_member_menu_view_v2(plan: dict[str, Any]) -> None:
+    members = _household_plan_members(plan)
+    if not members:
+        st.info("No member rows available for this household plan.")
+        return
+    st.markdown("##### Member menu view")
+    index = int(st.session_state.get(SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY, 0) or 0)
+    index = index % len(members)
+    run_key = _safe_widget_key(str(plan.get("run_id") or "latest_household"))
+    nav_cols = st.columns([1, 4, 1])
+    if nav_cols[0].button("←", key=f"household_member_prev_v2_{run_key}", use_container_width=True):
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = (index - 1) % len(members)
+        st.rerun()
+    current_member = members[index]
+    nav_cols[1].markdown(
+        f"<div style='text-align:center; font-weight:700; font-size:1.05rem;'>{current_member.get('member')}</div>",
+        unsafe_allow_html=True,
+    )
+    if nav_cols[2].button("→", key=f"household_member_next_v2_{run_key}", use_container_width=True):
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = (index + 1) % len(members)
+        st.rerun()
+
+    member_id = str(current_member.get("member_id") or "")
+    target_cols = st.columns(4)
+    target_cols[0].metric("Kcal target", _format_number(current_member.get("kcal_target")))
+    target_cols[1].metric("Protein", _format_number(current_member.get("protein_g_target"), "g"))
+    target_cols[2].metric("Carbs", _format_number(current_member.get("carbs_g_target"), "g"))
+    target_cols[3].metric("Fat", _format_number(current_member.get("fat_g_target"), "g"))
+
+    day_options = sorted(_household_plan_day_indexes(plan))
+    if not day_options:
+        st.info("No day rows available for this member.")
+        return
+    current_day = int(
+        st.session_state.get(SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY, day_options[0])
+        or day_options[0]
+    )
+    if current_day not in day_options:
+        current_day = day_options[0]
+        st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = current_day
+    selected_day = st.selectbox(
+        "Day",
+        day_options,
+        index=day_options.index(current_day),
+        format_func=lambda value: f"Day {value}",
+        key=f"household_day_select_v2_{run_key}_{_safe_widget_key(member_id)}",
+    )
+    st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = int(selected_day)
+
+    st.markdown(f"##### Day {selected_day}")
+    menu_rows = _household_member_day_menu_rows(plan, member_id, int(selected_day))
+    if menu_rows:
+        st.dataframe(pd.DataFrame(menu_rows), use_container_width=True, hide_index=True)
+    daily_row = _household_member_daily_row(plan, member_id, int(selected_day))
+    if daily_row:
+        total_cols = st.columns(4)
+        total_cols[0].metric(
+            "Kcal",
+            _format_number(daily_row.get("kcal")),
+            f"{_format_number(daily_row.get('kcal_deviation_pct'))}%",
+        )
+        total_cols[1].metric(
+            "Protein",
+            _format_number(daily_row.get("protein_g"), "g"),
+            f"{_format_number(daily_row.get('protein_deviation_pct'))}%",
+        )
+        total_cols[2].metric(
+            "Carbs",
+            _format_number(daily_row.get("carbs_g"), "g"),
+            f"{_format_number(daily_row.get('carbs_deviation_pct'))}%",
+        )
+        total_cols[3].metric(
+            "Fat",
+            _format_number(daily_row.get("fat_g"), "g"),
+            f"{_format_number(daily_row.get('fat_deviation_pct'))}%",
+        )
+
+    with st.expander("Copy-ready current member menu", expanded=False):
+        st.code("\n".join(_household_member_readable_lines(plan, member_id)), language=None)
+
+
+def _household_plan_copy_lines(plan: dict[str, Any]) -> list[str]:
+    lines = [
+        "Household plan",
+        "",
+        "Selected members: "
+        + ", ".join(str(name) for name in plan.get("selected_household_member_names", [])),
+        "",
+    ]
+    for member in _household_plan_members(plan):
+        lines.extend(_household_member_readable_lines(plan, str(member.get("member_id") or "")))
+        lines.append("")
+    lines.extend(["Household grocery scaling"])
+    for row in _household_grocery_scaling_table_rows(plan.get("grocery_scaling", [])):
+        lines.append(
+            "- "
+            f"Day {row.get('day')} {row.get('slot')}: {row.get('recipe')} | "
+            f"factor {row.get('household quantity factor')}x"
+        )
+    return lines
+
+
+def _slot_sort_value(slot: object) -> int:
+    order = {"breakfast": 0, "lunch": 1, "dinner": 2, "snack": 3}
+    return order.get(str(slot), 99)
 
 
 def _build_household_generation_result(
@@ -2169,6 +2896,8 @@ def _build_household_generation_result(
     days: int,
     household_mode: str,
     allocation_mode: str,
+    selected_member_ids: list[str],
+    selected_member_names: list[str],
 ) -> dict[str, Any]:
     dataset_config = _current_dataset_config()
     household_target = build_household_aggregate_target(member_targets)
@@ -2197,11 +2926,13 @@ def _build_household_generation_result(
         portion_policy_mode="target_aware",
     )
     generation_config = {
+        **_current_generation_config(dataset_config),
         "household_mode": household_mode,
         "allocation_mode": allocation_mode,
         "meal_realism_mode": "practical",
         "quality_gate": "demo_safe",
         "multi_day_mode": _current_multi_day_mode(),
+        "multi_day_no_repeat_policy": _current_multi_day_no_repeat_policy(),
         "no_repeat_policy": _current_multi_day_no_repeat_policy(),
         "multi_day_speed_mode": "fast",
         "day_candidate_builder": "direct_from_slots",
@@ -2210,11 +2941,16 @@ def _build_household_generation_result(
         "day_candidate_pool_max": 80,
         "direct_slot_shortlist_size": 8,
     }
+    generation_config_for_run = {
+        **generation_config,
+        "recipe_ingredients_df": pool.ingredients,
+    }
     plan = generate_household_lite_plan(
         household_profile,
         slot_candidates=slot_candidates,
+        individual_slot_candidates=slot_candidates,
         days=days,
-        config=generation_config,
+        config=generation_config_for_run,
         profile=primary_member,
     )
     run_counter = int(st.session_state.get(SESSION_RUN_COUNTER_KEY, 0)) + 1
@@ -2222,17 +2958,32 @@ def _build_household_generation_result(
     plan["run_id"] = f"streamlit-household-{run_counter}"
     plan["generated_at"] = datetime.now().isoformat(timespec="seconds")
     plan["generation_trigger"] = "household_generation_v1_lite"
+    plan["selected_household_member_ids"] = list(selected_member_ids)
+    plan["selected_household_member_names"] = list(selected_member_names)
+    plan["household_run_id"] = plan["run_id"]
     plan["generation_config"] = {
         **generation_config,
         "dataset_profile": str(dataset_config["dataset_profile"]),
         "days": days,
+        "selected_household_member_ids": list(selected_member_ids),
+        "selected_household_member_names": list(selected_member_names),
     }
     plan["pool_summary"] = {
         "dataset_profile": dataset_config["dataset_profile"],
+        "recipes_path": str(dataset_config["recipes_path"]),
+        "ingredients_path": str(dataset_config["ingredients_path"]),
+        "nutrition_path": str(dataset_config["nutrition_path"]),
         "total_recipes_loaded": len(pool.candidates),
         "eligible_candidate_count": len(pool.eligible_candidates),
         "filtered_candidate_count": len(filtered_candidates),
         "slot_candidate_count": len(slot_candidates),
+        "selection_mode": _current_selection_mode(),
+        "portion_policy": _current_portion_policy(),
+        "meal_realism_mode": "practical",
+        "quality_gate": "demo_safe",
+        "days": days,
+        "household_mode": household_mode,
+        "allocation_mode": allocation_mode,
     }
     return plan
 
@@ -2666,13 +3417,18 @@ def _render_plan(
     _render_ingredient_diagnostics(plan.get("ingredient_diagnostics", {}))
 
 
-def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
+def _render_grocery_list_draft(
+    plan: dict[str, Any],
+    key_prefix: str,
+    section_title: str = "Grocery list draft",
+    expanded: bool = False,
+) -> None:
     run_id = _safe_widget_key(str(plan.get("run_id", "latest")))
     widget_key = f"{key_prefix}_{run_id}_include_pantry_basics"
     purchase_widget_key = f"{key_prefix}_{run_id}_purchase_suggestions"
     cooked_to_raw_widget_key = f"{key_prefix}_{run_id}_cooked_to_raw"
     price_widget_key = f"{key_prefix}_{run_id}_price_estimates"
-    with st.expander("Grocery list draft", expanded=False):
+    with st.expander(section_title, expanded=expanded):
         st.warning(
             "Draft grocery list. Prices are demo estimates if enabled and may vary by store/date. "
             "No store/package optimization, no pantry inventory."
@@ -4241,6 +4997,9 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_HOUSEHOLD_PREVIEW_KEY] = None
         st.session_state[SESSION_HOUSEHOLD_PREVIEW_SOURCE_KEY] = ""
         st.session_state[SESSION_HOUSEHOLD_GENERATION_KEY] = None
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = [DEFAULT_VISIBLE_MEMBER_ID]
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_NAMES_KEY] = []
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
         st.session_state[SESSION_FEEDBACK_KEY] = []
         st.session_state[SESSION_FEEDBACK_NOTICE_KEY] = ""
         st.session_state[SESSION_RECENT_RECIPE_IDS_KEY] = []
@@ -4262,9 +5021,17 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
         st.session_state[SESSION_GENERATION_DAYS_KEY] = 3
         st.session_state[SESSION_GROCERY_PRICE_ESTIMATES_KEY] = True
+        st.session_state[SESSION_LATEST_GENERATION_RESULT_KEY] = None
+        st.session_state[SESSION_LATEST_GENERATION_TYPE_KEY] = ""
         st.session_state[SESSION_HOUSEHOLD_PREVIEW_KEY] = None
         st.session_state[SESSION_HOUSEHOLD_PREVIEW_SOURCE_KEY] = ""
         st.session_state[SESSION_HOUSEHOLD_GENERATION_KEY] = None
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = [DEFAULT_VISIBLE_MEMBER_ID]
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_NAMES_KEY] = []
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
+        st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = 1
+        st.session_state[SESSION_HOUSEHOLD_MODE_KEY] = HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN
+        st.session_state[SESSION_HOUSEHOLD_ALLOCATION_MODE_KEY] = DEFAULT_ALLOCATION_MODE
         return
     if SESSION_MENUS_KEY not in st.session_state:
         st.session_state[SESSION_MENUS_KEY] = []
@@ -4324,12 +5091,28 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_HOUSEHOLD_PREVIEW_SOURCE_KEY] = ""
     if SESSION_HOUSEHOLD_GENERATION_KEY not in st.session_state:
         st.session_state[SESSION_HOUSEHOLD_GENERATION_KEY] = None
+    if SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY not in st.session_state:
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_IDS_KEY] = [DEFAULT_VISIBLE_MEMBER_ID]
+    if SESSION_HOUSEHOLD_SELECTED_MEMBER_NAMES_KEY not in st.session_state:
+        st.session_state[SESSION_HOUSEHOLD_SELECTED_MEMBER_NAMES_KEY] = []
+    if SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY not in st.session_state:
+        st.session_state[SESSION_HOUSEHOLD_MEMBER_VIEW_INDEX_KEY] = 0
     if SESSION_RECOMMENDED_PRESET_APPLIED_KEY not in st.session_state:
         st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
     if SESSION_GENERATION_DAYS_KEY not in st.session_state:
         st.session_state[SESSION_GENERATION_DAYS_KEY] = 3
     if SESSION_GROCERY_PRICE_ESTIMATES_KEY not in st.session_state:
         st.session_state[SESSION_GROCERY_PRICE_ESTIMATES_KEY] = True
+    if SESSION_LATEST_GENERATION_RESULT_KEY not in st.session_state:
+        st.session_state[SESSION_LATEST_GENERATION_RESULT_KEY] = None
+    if SESSION_LATEST_GENERATION_TYPE_KEY not in st.session_state:
+        st.session_state[SESSION_LATEST_GENERATION_TYPE_KEY] = ""
+    if SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY not in st.session_state:
+        st.session_state[SESSION_HOUSEHOLD_DAY_VIEW_INDEX_KEY] = 1
+    if SESSION_HOUSEHOLD_MODE_KEY not in st.session_state:
+        st.session_state[SESSION_HOUSEHOLD_MODE_KEY] = HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN
+    if SESSION_HOUSEHOLD_ALLOCATION_MODE_KEY not in st.session_state:
+        st.session_state[SESSION_HOUSEHOLD_ALLOCATION_MODE_KEY] = DEFAULT_ALLOCATION_MODE
 
 
 def _slot_order(target: NutritionTarget) -> list[str]:
@@ -4453,6 +5236,13 @@ def _target_to_dict(target: NutritionTarget) -> dict[str, Any]:
         "fat_g": target.fat_g,
         "slot_targets": target.slot_targets,
     }
+
+
+def _safe_float(value: object) -> float | None:
+    numeric_value = pd.to_numeric(value, errors="coerce")
+    if pd.isna(numeric_value):
+        return None
+    return float(numeric_value)
 
 
 def _format_number(value: object, suffix: str = "") -> str:

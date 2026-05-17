@@ -100,7 +100,17 @@ def apply_purchase_rules(
         confidence_counts[confidence] = confidence_counts.get(confidence, 0) + 1
         strategy = str(updated.get("purchase_rounding_strategy") or "")
         unit_type = str(updated.get("purchase_unit_type") or "")
-        if strategy == "ceil_to_package" or unit_type in {"package", "bag", "tub", "carton", "bottle"}:
+        if strategy == "ceil_to_package" or unit_type in {
+            "package",
+            "bag",
+            "tub",
+            "carton",
+            "bottle",
+            "can",
+            "jar",
+            "tube",
+            "pack",
+        }:
             package_rounded_count += 1
         if strategy == "ceil_to_piece" or unit_type == "pieces":
             piece_rounded_count += 1
@@ -231,7 +241,16 @@ def build_purchase_suggestion(
             is_pantry_basic=is_pantry_basic,
         )
 
-    if strategy == "ceil_to_package" or unit_type in {"package", "bag", "tub", "bottle"}:
+    if strategy == "ceil_to_package" or unit_type in {
+        "package",
+        "bag",
+        "tub",
+        "bottle",
+        "can",
+        "jar",
+        "tube",
+        "pack",
+    }:
         package_grams = max(
             0.1,
             _to_float(
@@ -564,6 +583,8 @@ def _raw_purchase_phrase(value: Any) -> str:
         return "dry pasta"
     if normalised == "beans dry":
         return "dry beans"
+    if normalised == "lentils dry":
+        return "dry lentils"
     return text.lower() or "raw equivalent"
 
 
