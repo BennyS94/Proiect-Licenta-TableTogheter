@@ -995,6 +995,118 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Validation:
   - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
 
+## 74. Round67 / Household Preview v1 documentation - 2026-05-17
+- Scope:
+  - Documented Household Preview v1 as a demo/audit feature.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator logic, grocery/pricing logic, or recipes were changed.
+- Docs updated:
+  - `docs/demo/generator_v1_demo_guide.md`
+  - `docs/architecture/generator_v1_checkpoint_status.md`
+  - `docs/architecture/current.md`
+  - `docs/architecture/household_generation_v1_design.md`
+- Documented behavior:
+  - Streamlit panel `Household preview (draft)`.
+  - Uses latest generated plan and `profiles/household_profile_demo_v1.json`.
+  - Shows member targets, per-member shared meal portions, per-member macro totals, grocery scaling, copy-ready output, and diagnostics.
+- Documented limitations:
+  - Not household-native generation.
+  - Does not optimize recipe selection across all members simultaneously.
+  - Not OR-Tools/MILP/CP-SAT.
+  - Not production household planning or backend/mobile household accounts.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+
+## 73. Round66 / Household Generation v1 Streamlit preview panel - 2026-05-17
+- Scope:
+  - Added a Household preview draft panel to the Streamlit debug dashboard.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, nutrition target formulas, grocery/pricing logic, backend/API/mobile, or full household-native selector was changed.
+- Reusable preview module:
+  - Added `src/generator_v1/household_preview.py`.
+  - Functions include:
+    - `load_household_profile`
+    - `build_household_member_targets`
+    - `allocate_shared_meal_portions`
+    - `summarize_household_plan`
+    - `compute_household_grocery_scaling`
+  - Allocation mode used for preview: `macro_aware_simple`.
+- Streamlit:
+  - Updated `streamlit_app/generator_v1_dashboard.py`.
+  - Added collapsed `Household preview (draft)` panel.
+  - The panel loads `profiles/household_profile_demo_v1.json`, shows member target table, and can build a preview from the latest generated plan.
+  - It displays per-member shared meal portions, per-member daily macro totals, household grocery scaling, copy-ready output, and diagnostics.
+  - The panel is explicit that this is not household-native recipe selection.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_round66_household_preview.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round66_household_preview_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round66_household_preview_allocations.csv`
+    - `data/recipesdb/audit/generator_v1_round66_household_preview_member_macros.csv`
+    - `data/recipesdb/audit/generator_v1_round66_household_preview_grocery_scaling.csv`
+  - Result: `member_count=3`, `days_generated=3`, `plan_accept_day_count=3`, `shared_meal_count=6`, `allocation_count=18`, `min_portion_multiplier=0.6`, `max_portion_multiplier=1.8`, `max_grocery_scaling_factor=2.194`.
+  - Macro deviations: mean abs kcal `0.7%`, max abs kcal `1.9%`, mean abs protein `11.5%`, max abs protein `23.0%`.
+  - `preview_usable_for_demo=True`.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/evaluate_generator_v1_round66_household_preview.py` passed.
+- Known limitations:
+  - Preview uses latest generated plan; it does not select recipes household-native.
+  - Breakfast/snack are treated as individual target-fill assumptions in macro totals.
+  - Grocery scaling is quantity scaling only, not grocery optimization.
+  - Next recommendation: add a real `household_plan` contract or a first household-native scoring prototype.
+
+## 72. Round65 / Household Family Generation v1 design and feasibility audit - 2026-05-17
+- Scope:
+  - Prepared Household / Family Generation v1 as design/audit/prototype planning only.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, nutrition target formulas, recipes, grocery optimization, price optimization, mobile/API/backend, or full household generator implementation was changed.
+- Household profile:
+  - Added `profiles/household_profile_demo_v1.json`.
+  - Active demo members: Alex, Mara, Nina.
+  - Preferred model: shared recipes with per-member portion multipliers.
+  - Planning default: `days=3`, shared `lunch` + `dinner`, flexible breakfast, individual snack, allocation default `proportional_to_energy_target`.
+- Target audit:
+  - Added `tools/extra/audit_generator_v1_round65_household_targets.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round65_household_target_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round65_household_member_targets.csv`
+  - Household target total: `6157.0 kcal`, `358.8g protein`, `824.0g carbs`, `158.4g fat`.
+  - Member targets:
+    - Alex: `2862.5 kcal`, `147.6g protein`, `420.4g carbs`, `65.6g fat`.
+    - Mara: `1584.7 kcal`, `128.0g protein`, `153.0g carbs`, `51.2g fat`.
+    - Nina: `1709.8 kcal`, `83.2g protein`, `250.6g carbs`, `41.6g fat`.
+- Portion allocation audit:
+  - Added `tools/extra/round65_household_common.py`.
+  - Added `tools/extra/audit_generator_v1_round65_household_portion_allocation.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round65_household_portion_allocation_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round65_household_portion_allocation.csv`
+  - Baseline dataset used: `v1_2_demo_final_time_layer`.
+  - Generated 3 accepted days, `multi_day_loss=0.008484`.
+  - Best prototype allocation method in audit: `macro_aware_simple`.
+  - Practical first implementation candidate remains `proportional_to_slot_kcal` because it is simpler and stable.
+- Shared meal feasibility:
+  - Added `tools/extra/evaluate_generator_v1_round65_household_shared_meal_feasibility.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round65_household_shared_meal_feasibility_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round65_household_shared_meal_days.csv`
+    - `data/recipesdb/audit/generator_v1_round65_household_shared_meal_member_macros.csv`
+    - `data/recipesdb/audit/generator_v1_round65_household_shared_meal_warnings.csv`
+    - `data/recipesdb/audit/generator_v1_round65_household_grocery_scaling.csv`
+  - Feasible scenarios in audit:
+    - `shared_dinner_only`
+    - `shared_lunch_dinner`
+    - `shared_all_except_snack`
+    - `individual_breakfast_shared_main`
+  - Recommended first implementation mode: `individual_breakfast_shared_main`.
+  - Observed max household quantity factor: `2.19x` versus single-profile portion.
+- Design doc:
+  - Added `docs/architecture/household_generation_v1_design.md`.
+  - It documents purpose, non-goals, contracts, portion allocation, grocery scaling, Streamlit preview recommendation, limitations, and next steps.
+- Known limitations:
+  - Audit uses baseline selection for the primary member, not household-native recipe selection.
+  - Breakfast/snack individual are modeled as target-fill in audit, not generated separately per member.
+  - Macro allocation is deterministic heuristic only.
+  - Grocery scaling is quantity-only, not grocery optimization.
+
 ## 72. Round64 / Recipe Time Layer v1 audit and normalization - 2026-05-17
 - Scope:
   - Added deterministic Recipe Time Layer v1 audit/cache for `v1_2_demo_final`.

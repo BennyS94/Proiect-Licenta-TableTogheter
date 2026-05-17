@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft configurabil 1-5 zile pe datasetul `v1_2_demo_final`, Feedback v1 local/demo si Grocery List v1 cu Purchase Rules v1 demo.
+Starea curenta: Generator v1 este demo/testing-ready pentru un profil activ, cu demo multi-day draft configurabil 1-5 zile pe datasetul `v1_2_demo_final`, Feedback v1 local/demo, Grocery List v1 cu Purchase Rules v1 demo si Household Preview v1 draft.
 
 Dataset demo:
 - `dataset_profile=v1_2_demo_final`
@@ -124,13 +124,39 @@ Limitari:
 - helper-ele cooked-to-raw sunt estimari demo pentru purchase display, nu conversii nutritionale
 - ramane demo/helper rules, nu grocery planner de productie si nu price/store/brand logic
 
+## Household Preview v1
+
+Status: implementat ca feature local/demo-audit pentru Streamlit.
+
+Rol:
+- incarca `profiles/household_profile_demo_v1.json`
+- afiseaza targeturile nutritionale pentru membrii household demo
+- foloseste ultimul plan generat in dashboard
+- aloca portii per membru pentru mesele shared
+- afiseaza totaluri macro per membru/zi
+- afiseaza factorul de grocery scaling pentru mesele shared
+- ofera output copy-ready si diagnostice
+
+Comportament curent:
+- allocation mode: `macro_aware_simple`
+- conceptul recomandat ramane `individual_breakfast_shared_main`
+- Round66 smoke: `member_count=3`, `days_generated=3`, `plan_accept_day_count=3`, `shared_meal_count=6`, `max_grocery_scaling_factor=2.194`, `preview_usable_for_demo=True`
+
+Limitari:
+- nu este household-native selection
+- nu selecteaza retete optimizand toti membrii simultan
+- breakfast/snack sunt tratate ca asumptii individuale/flexibile in preview
+- grocery scaling este cantitativ, nu grocery optimization
+- household-native selector ramane lucru viitor
+
 ## Explicit out of scope
 
 - Nu exista OR-Tools / MILP / CP-SAT.
 - KNN nu este motor principal de selectie.
 - Nu exista price, store, brand sau grocery optimization in Generator v1 demo.
 - Nu exista weekly planning complet; 5 zile ramane demo/debug planning.
-- Nu exista household multi-member simultan.
+- Nu exista household-native multi-member selection.
+- Household Preview v1 exista doar ca preview peste un plan deja generat.
 - Feedback v1 nu este backend de productie.
 - Feedback v1 nu este sistem de conturi utilizator.
 - Feedback v1 nu este ML/KNN.
@@ -145,7 +171,7 @@ Limitari:
 - Feedback v1 este local JSONL si nu este bucla reala de invatare.
 - Feedback v1 nu propaga inca preferinte la nivel de ingrediente/familie.
 - Grocery List v1 si Purchase Rules v1 sunt demo-level; nu sunt grocery planner de productie.
-- Household multi-member este ulterior.
+- Household Preview v1 este disponibil in Streamlit, dar household-native generation ramane ulterior.
 
 ## Urmatoarele checkpoint-uri posibile
 
@@ -157,4 +183,4 @@ C. Source verification batch3.
 
 D. Grocery purchase-unit polish.
 
-E. Household multi-member later.
+E. Household-native candidate scoring/audit.

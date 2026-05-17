@@ -53,10 +53,10 @@ streamlit run streamlit_app/generator_v1_dashboard.py
 In dashboard:
 - selecteaza `Recipes_DB v1.2 demo-final draft`
 - verifica `Profile guard = demo`
-- foloseste `Generate 1 day` pentru demo rapid
-- foloseste `Generate 3 days` pentru quick action multi-day
-- pentru `1..5` zile configurabile foloseste CLI-ul Round54
+- foloseste selectorul `Days` si butonul `Generate`
+- pentru demo rapid, foloseste `3` zile cu presetul recomandat
 - dupa generare, foloseste expanderul `Grocery list draft` pentru lista de cumparaturi draft si sugestii de achizitie
+- pentru demo household, foloseste expanderul `Household preview (draft)`
 
 Pentru dataseturile v1.2 demo, Streamlit seteaza implicit `profile_guard=demo`.
 
@@ -188,6 +188,34 @@ Limitari:
 - cooked-to-raw este demo-level si acopera doar cazurile explicite de mai sus
 - sugestiile sunt reguli aproximative pentru demo/readability
 
+## Household Preview v1
+
+Household Preview v1 este un preview demo/audit pentru directia household/family. Nu este inca household-native generation.
+
+In Streamlit:
+- genereaza mai intai un plan de 3 zile;
+- deschide `Household preview (draft)`;
+- verifica targeturile membrilor din `profiles/household_profile_demo_v1.json`;
+- apasa `Build household preview from latest generated plan`;
+- verifica portiile pe membru pentru mesele shared;
+- verifica totalurile macro per membru;
+- verifica `household quantity factor` pentru grocery scaling;
+- foloseste `Copy-ready household preview` pentru text demonstrabil.
+
+Ce sa spui in demo:
+- TableTogether este orientat pe gospodarie/familie, nu doar pe un profil individual.
+- Preview-ul arata cum aceeasi masa shared poate avea portii diferite pentru fiecare membru.
+- Grocery quantities pot fi scalate de la profil unic la nevoi household.
+- Este primul pas spre family generation.
+
+Ce sa nu pretinzi:
+- nu este full household-native optimization;
+- nu selecteaza retete optimizand toti membrii simultan;
+- nu genereaza meniuri complet separate per membru;
+- nu foloseste OR-Tools/MILP/CP-SAT;
+- nu este household planning de productie;
+- nu include backend, mobile app sau household account system real.
+
 ## Profile guard
 
 `profile_guard` este un strat de protectie pentru demo. Nu modifica profilul si nu modifica formulele din `target_builder`.
@@ -215,12 +243,14 @@ Exemplu demonstrabil:
 - `profile_guard` ca protectie pentru profiluri extreme
 - Feedback v1: Like, Dislike, Too long, Avoid this recipe
 - Grocery list draft si purchase suggestions v1 ca helper demo determinist
+- Household Preview v1: mese shared cu portii diferite per membru si grocery scaling
 - Faptul ca datasetul demo-final este draft/demo si nu modifica `current`
 
 ## Ce sa nu pretinzi
 
 - Nu pretinde ca este productie.
-- Nu pretinde ca exista household multi-member simultan.
+- Nu pretinde ca exista household-native multi-member optimization.
+- Nu pretinde ca Household Preview v1 selecteaza retete optimizand toti membrii simultan.
 - Nu pretinde ca exista preturi, magazine, branduri sau grocery optimization.
 - Nu pretinde ca purchase suggestions sunt o lista realista finala cu inventar/pachete optimizate.
 - Nu pretinde ca 5 zile este weekly planning complet.
@@ -235,4 +265,5 @@ Exemplu demonstrabil:
 - family-level variety polish
 - Food_DB/source verification batch3
 - grocery purchase-unit polish
-- household multi-member ulterior
+- household-native candidate scoring/audit
+- household grocery list pe baza portiilor alocate

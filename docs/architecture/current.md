@@ -57,8 +57,9 @@ Smoke-ul curent pentru acest pachet:
 Limitari explicite ale demo-ului curent:
 - fara OR-Tools / KNN ca motor principal / MILP
 - Grocery List v1 si Purchase Rules v1 exista ca feature determinist demo/helper
+- Household Preview v1 exista in Streamlit ca preview demo/audit peste ultimul plan generat
 - fara price, store, brand, pantry inventory real sau grocery optimization
-- fara household multi-member simultan
+- fara household-native multi-member selection
 - family-level variety este inca imperfecta
 - unele outlier risks raman cu warnings
 - Feedback v1 este local/demo, nu productie
