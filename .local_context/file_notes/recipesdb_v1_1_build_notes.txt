@@ -994,6 +994,51 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - Next recommended step: inspect day-level objective/accept thresholds and main-meal macro targets before adding recipes in bulk.
 - Validation:
   - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+
+## 72. Round64 / Recipe Time Layer v1 audit and normalization - 2026-05-17
+- Scope:
+  - Added deterministic Recipe Time Layer v1 audit/cache for `v1_2_demo_final`.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, nutrition target formulas, web scraping, external AI/API, or broad generator selection logic changes.
+- Time audit:
+  - Added `tools/extra/audit_recipes_v1_2_round64_time_layer.py`.
+  - Wrote:
+    - `data/recipesdb/audit/recipes_v1_2_round64_time_inventory_summary.txt`
+    - `data/recipesdb/audit/recipes_v1_2_round64_time_audit.csv`
+    - `data/recipesdb/audit/recipes_v1_2_round64_time_risk_review.csv`
+  - Audit result: `266` recipes, all with prep/cook/total fields, `245` complete, `21` suspicious/review, `0` missing source time fields.
+  - Risk flags include `very_long_total_time`, `likely_passive_time`, `main_too_long`, and `breakfast_too_long`.
+- Time layer module/cache:
+  - Added `src/generator_v1/recipe_time_layer.py`.
+  - `normalize_recipe_time()` outputs active time, passive time, total elapsed time, effective scoring time, confidence, method, warnings, and reasons.
+  - Added `tools/extra/build_recipes_v1_2_round64_time_layer_cache.py`.
+  - Wrote:
+    - `data/recipesdb/draft/recipes_v1_2_round64_time_layer_cache.csv`
+    - `data/recipesdb/audit/recipes_v1_2_round64_time_layer_summary.txt`
+    - `data/recipesdb/audit/recipes_v1_2_round64_time_layer_review.csv`
+  - Cache result: `266` rows, `19` review rows, `9` long-passive recipes, `19` effective-time changes, `0` active-time changes.
+- Materialized draft dataset:
+  - Created `data/recipesdb/draft/v1_2_demo_final_time_layer/`.
+  - Copied `recipe_ingredients.csv` and `recipe_nutrition_cache.csv` from `v1_2_demo_final`.
+  - Added normalized time fields to draft `recipes.csv`.
+  - Added dataset profile `v1_2_demo_final_time_layer` to data loader, CLI, and Streamlit.
+  - The legacy `v1_2_demo_final` path keeps legacy time adapter behavior; Round64 normalized fields apply when the time-layer dataset is used.
+- Generator impact:
+  - Added `tools/extra/evaluate_generator_v1_round64_time_layer_impact.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round64_time_layer_impact_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round64_time_layer_days.csv`
+    - `data/recipesdb/audit/generator_v1_round64_time_layer_meals.csv`
+    - `data/recipesdb/audit/generator_v1_round64_time_selected_recipe_time_details.csv`
+  - Comparison result: baseline and time-layer select the same 12 recipes for the canonical 3-day demo; both remain `valid_day_count=3`, `accept_day_count=3`, `multi_day_loss=0.006322`.
+  - Time-layer adds selected-plan time diagnostics: `time_warning_selected_count=4`, mostly passive/simmer/slow-cook warnings.
+- CLI/Streamlit:
+  - CLI and Streamlit diagnostics now expose `total_elapsed_time_min`, `active_time_estimated_min`, `passive_time_estimated_min`, `effective_time_min_for_scoring`, `time_confidence`, `time_estimation_method`, and `time_warnings` where available.
+  - CLI smoke for `v1_2_demo_final_time_layer` passed with 3 valid/accepted days.
+- Limitations:
+  - Deterministic heuristic only.
+  - No web/API/AI time estimation.
+  - Total elapsed time and effective scoring time remain separate.
+  - Passive time detection is warning-backed and should still be manually reviewed for long or ambiguous recipes.
   - `python tools/extra/evaluate_generator_v1_round24_candidate_scarcity.py` passed.
 
 ## 32. Round25 / Day-level objective and accept-threshold audit - 2026-05-12

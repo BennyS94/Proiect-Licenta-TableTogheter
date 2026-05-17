@@ -157,6 +157,15 @@ V1_2_DEMO_FINAL_INGREDIENTS_PATH = Path(
 V1_2_DEMO_FINAL_NUTRITION_PATH = Path(
     "data/recipesdb/draft/v1_2_demo_final/recipe_nutrition_cache.csv"
 )
+V1_2_DEMO_FINAL_TIME_LAYER_RECIPES_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_final_time_layer/recipes.csv"
+)
+V1_2_DEMO_FINAL_TIME_LAYER_INGREDIENTS_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_final_time_layer/recipe_ingredients.csv"
+)
+V1_2_DEMO_FINAL_TIME_LAYER_NUTRITION_PATH = Path(
+    "data/recipesdb/draft/v1_2_demo_final_time_layer/recipe_nutrition_cache.csv"
+)
 
 PILOT_CURRENT_PROFILE = "pilot_current"
 V1_1_GENERATOR_READY_PROFILE = "v1_1_generator_ready"
@@ -192,6 +201,7 @@ V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE = (
 )
 V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE = "v1_2_demo_candidate_round48_cleaned"
 V1_2_DEMO_FINAL_PROFILE = "v1_2_demo_final"
+V1_2_DEMO_FINAL_TIME_LAYER_PROFILE = "v1_2_demo_final_time_layer"
 
 DATASET_PROFILE_PRESETS = {
     PILOT_CURRENT_PROFILE: {
@@ -392,6 +402,19 @@ DATASET_PROFILE_PRESETS = {
         "require_per_serving_macros": True,
     },
     V1_2_DEMO_FINAL_PROFILE: {
+        "allowed_scope_statuses": {
+            "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+            "v1_1_generator_ready_draft",
+            "v1_2_generator_ready_draft",
+        },
+        "allowed_cache_statuses": {
+            "usable_from_mapped_ingredients",
+            "partial_from_mapped_ingredients",
+        },
+        "min_mapped_weight_ratio": None,
+        "require_per_serving_macros": True,
+    },
+    V1_2_DEMO_FINAL_TIME_LAYER_PROFILE: {
         "allowed_scope_statuses": {
             "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
             "v1_1_generator_ready_draft",

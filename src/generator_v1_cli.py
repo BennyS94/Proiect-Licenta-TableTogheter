@@ -30,6 +30,10 @@ from src.generator_v1.data_loader import (
     V1_2_DEMO_FINAL_NUTRITION_PATH,
     V1_2_DEMO_FINAL_PROFILE,
     V1_2_DEMO_FINAL_RECIPES_PATH,
+    V1_2_DEMO_FINAL_TIME_LAYER_INGREDIENTS_PATH,
+    V1_2_DEMO_FINAL_TIME_LAYER_NUTRITION_PATH,
+    V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
+    V1_2_DEMO_FINAL_TIME_LAYER_RECIPES_PATH,
     V1_1_GENERATOR_READY_INGREDIENTS_PATH,
     V1_1_GENERATOR_READY_NUTRITION_PATH,
     V1_1_GENERATOR_READY_PROFILE,
@@ -327,6 +331,7 @@ def _parse_args() -> argparse.Namespace:
             V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
             V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
             V1_2_DEMO_FINAL_PROFILE,
+            V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
         ],
         default=PILOT_CURRENT_PROFILE,
     )
@@ -481,6 +486,11 @@ def _apply_multi_day_defaults(args: argparse.Namespace) -> None:
 
 
 def _resolve_dataset_paths(args: argparse.Namespace) -> None:
+    if args.dataset_profile == V1_2_DEMO_FINAL_TIME_LAYER_PROFILE:
+        args.recipes = args.recipes or V1_2_DEMO_FINAL_TIME_LAYER_RECIPES_PATH
+        args.ingredients = args.ingredients or V1_2_DEMO_FINAL_TIME_LAYER_INGREDIENTS_PATH
+        args.nutrition = args.nutrition or V1_2_DEMO_FINAL_TIME_LAYER_NUTRITION_PATH
+        return
     if args.dataset_profile == V1_2_DEMO_FINAL_PROFILE:
         args.recipes = args.recipes or V1_2_DEMO_FINAL_RECIPES_PATH
         args.ingredients = args.ingredients or V1_2_DEMO_FINAL_INGREDIENTS_PATH
@@ -631,6 +641,7 @@ def _print_dataset_summary(args: argparse.Namespace, pool: object) -> None:
         V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
         V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
         V1_2_DEMO_FINAL_PROFILE,
+        V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
     }:
         is_recommended = (
             args.selection_mode == "balanced_day"
@@ -1258,6 +1269,9 @@ def _print_selected_day_plan(plan: dict[str, object]) -> None:
             f"{_format_number(meal['original_effective_time_min_for_scoring'], decimals=0)}, "
             f"has_long_passive_time={meal['has_long_passive_time']}, "
             f"uses_pilot_time_fallback={meal['uses_pilot_time_fallback']}, "
+            f"time_confidence={_safe_text(meal.get('time_confidence'))}, "
+            f"time_estimation_method={_safe_text(meal.get('time_estimation_method'))}, "
+            f"time_warnings={_format_reasons(meal.get('time_warnings'))}, "
             f"time_estimation_reasons={_format_reasons(meal.get('time_estimation_reasons'))}, "
             "time_feedback_penalty="
             f"{_format_number(meal.get('time_feedback_penalty'), decimals=2)}, "

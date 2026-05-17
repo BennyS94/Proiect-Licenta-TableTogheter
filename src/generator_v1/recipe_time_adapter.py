@@ -4,6 +4,8 @@ import math
 import re
 from typing import Any
 
+from src.generator_v1.recipe_time_layer import normalize_recipe_time
+
 
 PASSIVE_KEYWORDS = (
     "marinate",
@@ -33,6 +35,39 @@ APPROX_TIME_EQUAL_TOLERANCE_MIN = 5.0
 
 
 def compute_time_features(recipe_row: Any) -> dict[str, object]:
+    if not _has_round64_time_layer_fields(recipe_row):
+        legacy = compute_legacy_time_features(recipe_row)
+        legacy["total_elapsed_time_min"] = _to_non_negative_float(
+            _get_value(recipe_row, "total_time_min")
+        )
+        legacy["time_confidence"] = _clean_time_value(
+            _get_value(recipe_row, "time_estimation_confidence")
+        ) or "unknown"
+        legacy["time_estimation_method"] = _clean_time_value(
+            _get_value(recipe_row, "time_estimation_method")
+        )
+        legacy["time_warnings"] = []
+        return legacy
+
+    normalized = normalize_recipe_time(recipe_row)
+    return {
+        "active_time_estimated_min": normalized["active_time_estimated_min"],
+        "passive_time_estimated_min": normalized["passive_time_estimated_min"],
+        "total_elapsed_time_min": normalized["total_elapsed_time_min"],
+        "effective_time_min_for_scoring": normalized["effective_time_min_for_scoring"],
+        "original_effective_time_min_for_scoring": normalized[
+            "original_effective_time_min_for_scoring"
+        ],
+        "has_long_passive_time": normalized["has_long_passive_time"],
+        "uses_pilot_time_fallback": normalized["uses_pilot_time_fallback"],
+        "time_confidence": normalized["time_confidence"],
+        "time_estimation_method": normalized["time_estimation_method"],
+        "time_warnings": normalized["time_warnings"],
+        "time_estimation_reasons": normalized["time_estimation_reasons"],
+    }
+
+
+def compute_legacy_time_features(recipe_row: Any) -> dict[str, object]:
     prep_time = _to_non_negative_float(_get_value(recipe_row, "prep_time_min"))
     cook_time = _to_non_negative_float(_get_value(recipe_row, "cook_time_min"))
     total_time = _to_non_negative_float(_get_value(recipe_row, "total_time_min"))
@@ -155,6 +190,22 @@ def _get_value(recipe_row: Any, key: str) -> object:
     if hasattr(recipe_row, "get"):
         return recipe_row.get(key)
     return getattr(recipe_row, key, None)
+
+
+def _has_round64_time_layer_fields(recipe_row: Any) -> bool:
+    return any(
+        _clean_time_value(_get_value(recipe_row, key))
+        for key in ("time_confidence", "time_warnings", "total_elapsed_time_min")
+    )
+
+
+def _clean_time_value(value: object) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if text.lower() in {"", "nan", "none", "null"}:
+        return ""
+    return text
 
 
 def _to_non_negative_float(value: object) -> float | None:

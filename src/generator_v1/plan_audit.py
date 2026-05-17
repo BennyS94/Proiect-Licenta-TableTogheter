@@ -25,6 +25,7 @@ def write_plan_csv(plan: dict[str, Any], out_csv: str | Path) -> None:
         row["time_estimation_reasons"] = _format_reasons(
             row.get("time_estimation_reasons")
         )
+        row["time_warnings"] = _format_reasons(row.get("time_warnings"))
         row["time_fit_reasons"] = _format_reasons(row.get("time_fit_reasons"))
         row["feedback_reasons"] = _format_reasons(row.get("feedback_reasons"))
         row["pilot_nutrition_overlay_reasons"] = _format_reasons(
@@ -105,6 +106,8 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                     "uses_pilot_nutrition_overlay="
                     f"{meal.get('uses_pilot_nutrition_overlay')}, "
                     f"total_time_min={_fmt(meal.get('total_time_min'), decimals=0)}, "
+                    "total_elapsed_time_min="
+                    f"{_fmt(meal.get('total_elapsed_time_min'), decimals=0)}, "
                     "active_time_estimated_min="
                     f"{_fmt(meal.get('active_time_estimated_min'), decimals=0)}, "
                     "passive_time_estimated_min="
@@ -114,7 +117,9 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                     "original_effective_time_min_for_scoring="
                     f"{_fmt(meal.get('original_effective_time_min_for_scoring'), decimals=0)}, "
                     f"has_long_passive_time={meal.get('has_long_passive_time')}, "
-                    f"uses_pilot_time_fallback={meal.get('uses_pilot_time_fallback')}"
+                    f"uses_pilot_time_fallback={meal.get('uses_pilot_time_fallback')}, "
+                    f"time_confidence={meal.get('time_confidence')}, "
+                    f"time_estimation_method={meal.get('time_estimation_method')}"
                 ),
                 (
                     f"  score_preview={_fmt(meal.get('score_preview'), decimals=2)}, "
@@ -148,6 +153,10 @@ def _readable_lines(plan: dict[str, Any]) -> list[str]:
                 (
                     "  time_estimation_reasons="
                     + _format_reasons(meal.get("time_estimation_reasons"))
+                ),
+                (
+                    "  time_warnings="
+                    + _format_reasons(meal.get("time_warnings"))
                 ),
                 (
                     "  time_fit_reasons="

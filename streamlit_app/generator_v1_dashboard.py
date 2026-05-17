@@ -45,6 +45,10 @@ from src.generator_v1.data_loader import (
     V1_2_DEMO_FINAL_NUTRITION_PATH,
     V1_2_DEMO_FINAL_PROFILE,
     V1_2_DEMO_FINAL_RECIPES_PATH,
+    V1_2_DEMO_FINAL_TIME_LAYER_INGREDIENTS_PATH,
+    V1_2_DEMO_FINAL_TIME_LAYER_NUTRITION_PATH,
+    V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
+    V1_2_DEMO_FINAL_TIME_LAYER_RECIPES_PATH,
     V1_1_GENERATOR_READY_INGREDIENTS_PATH,
     V1_1_GENERATOR_READY_NUTRITION_PATH,
     V1_1_GENERATOR_READY_PROFILE,
@@ -358,6 +362,13 @@ DATASET_OPTIONS = {
         "nutrition_path": V1_2_DEMO_FINAL_NUTRITION_PATH,
         "is_draft": True,
     },
+    "Recipes_DB v1.2 demo-final time-layer draft": {
+        "dataset_profile": V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
+        "recipes_path": V1_2_DEMO_FINAL_TIME_LAYER_RECIPES_PATH,
+        "ingredients_path": V1_2_DEMO_FINAL_TIME_LAYER_INGREDIENTS_PATH,
+        "nutrition_path": V1_2_DEMO_FINAL_TIME_LAYER_NUTRITION_PATH,
+        "is_draft": True,
+    },
 }
 
 PIPELINE_STEPS = [
@@ -368,6 +379,7 @@ PIPELINE_STEPS = [
     "candidate_filter.py",
     "portion_policy.py",
     "slot_candidates.py",
+    "recipe_time_layer.py",
     "recipe_time_adapter.py",
     "time_fit.py",
     "macro_fit.py",
@@ -691,6 +703,7 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
         V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
         V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
         V1_2_DEMO_FINAL_PROFILE,
+        V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
     }:
         st.session_state[SESSION_MULTIDAY_NO_REPEAT_POLICY_KEY] = "hard"
         st.session_state[SESSION_DAY_CANDIDATE_POOL_SIZE_KEY] = 50
@@ -712,6 +725,7 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
         V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
         V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
         V1_2_DEMO_FINAL_PROFILE,
+        V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
     }:
         st.session_state[SESSION_SELECTION_MODE_KEY] = V1_1_RECOMMENDED_SELECTION_MODE
         st.session_state[SESSION_ALTERNATIVE_COUNT_KEY] = V1_1_RECOMMENDED_ALTERNATIVE_COUNT
@@ -732,6 +746,7 @@ def _apply_dataset_recommendations(dataset_profile: str) -> None:
             V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_PROFILE,
             V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_PROFILE,
             V1_2_DEMO_FINAL_PROFILE,
+            V1_2_DEMO_FINAL_TIME_LAYER_PROFILE,
         }:
             st.session_state[SESSION_MULTIDAY_NO_REPEAT_POLICY_KEY] = "prefer"
             st.session_state[SESSION_DAY_CANDIDATE_POOL_SIZE_KEY] = 75
@@ -2821,13 +2836,18 @@ def _selected_meals_frame(selected_meals: list[dict[str, Any]]) -> pd.DataFrame:
                 "carbs_g": meal.get("carbs_g"),
                 "fat_g": meal.get("fat_g"),
                 "total_time_min": meal.get("total_time_min"),
+                "total_elapsed_time_min": meal.get("total_elapsed_time_min"),
                 "effective_time_min": meal.get("effective_time_min_for_scoring"),
+                "active_time_min": meal.get("active_time_estimated_min"),
+                "passive_time_min": meal.get("passive_time_estimated_min"),
+                "time_confidence": meal.get("time_confidence"),
+                "time_estimation_method": meal.get("time_estimation_method"),
+                "time_warnings": _format_reasons(meal.get("time_warnings")),
                 "time_feedback_penalty": meal.get("time_feedback_penalty"),
                 "time_fit_reasons": _format_reasons(meal.get("time_fit_reasons")),
                 "original_effective_time_min": meal.get(
                     "original_effective_time_min_for_scoring"
                 ),
-                "passive_time_min": meal.get("passive_time_estimated_min"),
                 "long_passive": meal.get("has_long_passive_time"),
                 "pilot_time_fallback": meal.get("uses_pilot_time_fallback"),
                 "score_preview": meal.get("score_preview"),
@@ -2912,6 +2932,10 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
                 f"{_format_number(meal.get('passive_time_estimated_min'))}, "
                 f"long_passive={meal.get('has_long_passive_time')}, "
                 f"pilot_time_fallback={meal.get('uses_pilot_time_fallback')}, "
+                f"time_confidence={meal.get('time_confidence')}, "
+                f"time_estimation_method={meal.get('time_estimation_method')}, "
+                "time_warnings="
+                f"{_format_reasons(meal.get('time_warnings'))}, "
                 "time_feedback_penalty="
                 f"{_format_number(meal.get('time_feedback_penalty'))}, "
                 "time_fit_reasons="

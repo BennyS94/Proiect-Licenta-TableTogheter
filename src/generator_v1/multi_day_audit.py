@@ -206,6 +206,12 @@ def multi_day_meal_rows(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "carbs_g": meal.get("carbs_g"),
                     "fat_g": meal.get("fat_g"),
                     "effective_time_min": meal.get("effective_time_min_for_scoring"),
+                    "total_elapsed_time_min": meal.get("total_elapsed_time_min"),
+                    "active_time_estimated_min": meal.get("active_time_estimated_min"),
+                    "passive_time_estimated_min": meal.get("passive_time_estimated_min"),
+                    "time_confidence": meal.get("time_confidence"),
+                    "time_estimation_method": meal.get("time_estimation_method"),
+                    "time_warnings": _format_reasons(meal.get("time_warnings")),
                     "time_feedback_penalty": meal.get("time_feedback_penalty"),
                     "feedback_fit": meal.get("feedback_fit"),
                     "feedback_reasons": _format_reasons(
@@ -272,6 +278,9 @@ def multi_day_readable_lines(plan: Mapping[str, Any]) -> list[str]:
                     f"P/C/F={_fmt(meal.get('protein_g'))}/"
                     f"{_fmt(meal.get('carbs_g'))}/"
                     f"{_fmt(meal.get('fat_g'))} | "
+                    f"time_confidence={meal.get('time_confidence', 'unknown')} | "
+                    "time_warnings="
+                    f"{_format_reasons(meal.get('time_warnings'))} | "
                     "realism_flags="
                     f"{_format_reasons(meal.get('meal_realism_flags'))}"
                 )
