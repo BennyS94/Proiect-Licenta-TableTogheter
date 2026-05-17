@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import importlib
 import sys
 import time
 from pathlib import Path
@@ -106,12 +107,8 @@ from src.generator_v1.feedback_store import (
     clear_feedback_events,
     load_feedback_events,
 )
-from src.generator_v1.grocery_list import (
-    build_grocery_list,
-    grocery_list_readable_lines,
-    grocery_raw_item_rows,
-    grocery_list_rows,
-)
+import src.generator_v1.grocery_list as grocery_list_module
+grocery_list_module = importlib.reload(grocery_list_module)
 from src.generator_v1.ingredient_diagnostics import build_ingredient_diagnostics
 from src.generator_v1.multi_day_audit import multi_day_readable_lines
 from src.generator_v1.multi_day_selector import (
@@ -161,6 +158,8 @@ SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY = "generator_v1_direct_slot_shortlist_siz
 SESSION_PROFILE_GUARD_KEY = "generator_v1_profile_guard"
 SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY = "generator_v1_allow_unsupported_profile"
 SESSION_RECOMMENDED_PRESET_APPLIED_KEY = "generator_v1_recommended_preset_applied"
+SESSION_GENERATION_DAYS_KEY = "generator_v1_generation_days"
+SESSION_GROCERY_PRICE_ESTIMATES_KEY = "generator_v1_grocery_price_estimates"
 RECENT_MENUS_FOR_VARIATION = 2
 V1_1_RECOMMENDED_SELECTION_MODE = "balanced_day"
 V1_1_RECOMMENDED_ALTERNATIVE_COUNT = 3
@@ -216,6 +215,21 @@ MULTI_DAY_SPEED_MODE_OPTIONS = ["fast", "quality"]
 DAY_CANDIDATE_BUILDER_OPTIONS = ["direct_from_slots", "balanced_repeated"]
 DIRECT_SLOT_SHORTLIST_SIZE_OPTIONS = [8, 10, 12, 15]
 PROFILE_GUARD_OPTIONS = ["off", "demo", "permissive"]
+GROCERY_CATEGORY_LABELS = {
+    "meat_fish": "Meat & fish",
+    "dairy_eggs": "Dairy & eggs",
+    "carbs_grains": "Carbs & grains",
+    "vegetables": "Vegetables",
+    "fruits": "Fruits",
+    "legumes_beans": "Legumes & beans",
+    "oils_fats": "Oils & fats",
+    "sauces_canned": "Sauces & canned",
+    "sweeteners": "Sweeteners",
+    "seasonings_spices": "Seasonings & spices",
+    "pantry_basics": "Pantry basics / check at home",
+    "other_review": "Other / review",
+}
+GROCERY_CATEGORY_ORDER = list(GROCERY_CATEGORY_LABELS)
 
 DATASET_OPTIONS = {
     "Pilot current": {
@@ -376,7 +390,7 @@ PIPELINE_STEPS = [
 
 def main() -> None:
     st.set_page_config(
-        page_title="Generator v1 Test Dashboard",
+        page_title="TableTogether Debug Tool",
         layout="wide",
     )
     _render_styles()
@@ -385,12 +399,10 @@ def main() -> None:
     with st.sidebar.expander("Generator v1 pipeline", expanded=False):
         _render_pipeline()
 
-    st.title("TableTogether / Generator v1 Test Dashboard")
+    st.title("TableTogether Debug Tool")
     _render_recommended_v1_2_preset_section()
     dataset_config = _render_configuration_controls()
     active_config = _current_generation_config(dataset_config)
-    _render_active_generation_config(active_config)
-    _render_feedback_context_panel(active_config)
     guard_profile = load_member_profile(PROFILE_PATH)
     guard_target = build_nutrition_target(guard_profile)
     profile_guard_result = _dashboard_profile_guard_result(
@@ -398,40 +410,10 @@ def main() -> None:
         profile=guard_profile,
         target=guard_target,
     )
+    _render_active_generation_config(active_config, profile_guard_result)
     _render_profile_guard_status(profile_guard_result)
     generation_blocked = _dashboard_profile_guard_blocks(profile_guard_result)
-    button_cols = st.columns([1.0, 1.0, 1.0, 1.8])
-    button_cols[0].button(
-        "Generate 1 day",
-        type="primary",
-        on_click=_generate_and_store_one_day_menu,
-        use_container_width=True,
-        disabled=generation_blocked,
-    )
-    button_cols[1].button(
-        "Generate 3 days",
-        type="secondary",
-        on_click=_generate_and_store_three_day_plan,
-        use_container_width=True,
-        disabled=generation_blocked,
-    )
-    button_cols[2].button(
-        "Generate varied",
-        type="secondary",
-        on_click=_generate_and_store_varied_menu,
-        use_container_width=True,
-        disabled=generation_blocked,
-    )
-    button_cols[3].button(
-        "Clear generated menu history",
-        type="secondary",
-        on_click=_clear_generated_menu_history,
-        use_container_width=True,
-    )
-    st.caption(
-        "Generator v1 supports 1-5 day demo/debug generation. "
-        "This dashboard quick action currently generates 3 days; use CLI for other day counts."
-    )
+    _render_primary_generation_controls(generation_blocked)
     if active_config["multi_day_speed_mode"] == "quality":
         st.warning("Quality mode can take multiple minutes for multi-day generation.")
     if active_config["day_candidate_builder"] == "balanced_repeated":
@@ -444,6 +426,8 @@ def main() -> None:
     if not generated_menus and not latest_multi_day:
         st.info("No generated menu yet.")
         return
+
+    _render_generated_history_controls(generated_menus, latest_multi_day)
 
     if latest_multi_day:
         _render_multi_day_plan("Latest multi-day draft plan", latest_multi_day)
@@ -458,9 +442,10 @@ def main() -> None:
     if _menu_config_differs(latest, active_config):
         st.warning("Latest menu was generated with a different config.")
     _render_plan("Latest menu", latest, enable_feedback=True)
-    st.subheader("Copy latest menu")
-    st.code(_menu_as_text(latest), language=None)
+    with st.expander("Copy-ready menu", expanded=False):
+        st.code(_menu_as_text(latest), language=None)
     _render_feedback_events()
+    _render_recent_recipe_debug(generated_menus)
     _render_session_menu_history(generated_menus)
 
     if len(generated_menus) > 1:
@@ -472,7 +457,15 @@ def _render_recommended_v1_2_preset_section() -> None:
     if st.session_state.get(SESSION_RECOMMENDED_PRESET_APPLIED_KEY):
         st.success("Recommended v1.2 preset applied. Generation was not started.")
         st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
-    with st.expander("Recommended v1.2 test preset", expanded=False):
+    if st.button(
+        "Apply recommended v1.2 demo settings",
+        type="primary",
+        use_container_width=True,
+    ):
+        _apply_recommended_v1_2_test_preset()
+        st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = True
+        st.rerun()
+    with st.expander("Recommended v1.2 demo settings details", expanded=False):
         display_rows = [
             {"setting": key, "value": RECOMMENDED_V1_2_TEST_PRESET[key]}
             for key in RECOMMENDED_V1_2_PRESET_DISPLAY_KEYS
@@ -488,14 +481,6 @@ def _render_recommended_v1_2_preset_section() -> None:
             f"direct_slot_shortlist_size={RECOMMENDED_V1_2_TEST_PRESET['direct_slot_shortlist_size']}, "
             "allow_unsupported_profile=False."
         )
-        if st.button(
-            "Apply recommended v1.2 preset",
-            type="primary",
-            use_container_width=False,
-        ):
-            _apply_recommended_v1_2_test_preset()
-            st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = True
-            st.rerun()
 
 
 def _apply_recommended_v1_2_test_preset() -> None:
@@ -527,35 +512,48 @@ def _apply_recommended_v1_2_test_preset() -> None:
     st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = bool(
         preset["allow_unsupported_profile"]
     )
+    st.session_state[SESSION_GENERATION_DAYS_KEY] = 3
+    st.session_state[SESSION_GROCERY_PRICE_ESTIMATES_KEY] = True
+
+
+def _render_primary_generation_controls(generation_blocked: bool) -> None:
+    control_cols = st.columns([1.0, 2.0])
+    control_cols[0].select_slider(
+        "Days",
+        options=[1, 2, 3, 4, 5],
+        key=SESSION_GENERATION_DAYS_KEY,
+        help="1 zi foloseste selectorul one-day; 2-5 zile folosesc multi-day draft.",
+    )
+    control_cols[1].button(
+        "Generate",
+        type="primary",
+        on_click=_generate_and_store_selected_days,
+        use_container_width=True,
+        disabled=generation_blocked,
+    )
+    st.caption(
+        "Generate foloseste 1-day path pentru `days=1` si multi-day path pentru `days>1`."
+    )
 
 
 def _render_configuration_controls() -> dict[str, Any]:
-    dataset_config = _current_dataset_config()
-    with st.expander("Run controls", expanded=False):
+    with st.expander("Advanced debug controls", expanded=False):
+        st.markdown("##### Dataset/config")
         dataset_config = _render_dataset_selector()
         st.caption(
             "Butoanele principale de generare raman vizibile pe pagina. "
             "Schimba datasetul aici doar pentru debug."
         )
-
-    with st.expander("Advanced debug controls", expanded=False):
         selection_mode = _render_selection_mode_selector()
         _render_portion_policy_selector()
         st.caption("Aceste optiuni sunt pentru comparatii rapide intre moduri interne.")
 
-    with st.expander("1-5 day / multi-day controls", expanded=False):
-        _render_multi_day_mode_selector()
-        _render_multi_day_no_repeat_policy_selector()
-        _render_day_candidate_pool_size_selector()
-        _render_multi_day_speed_mode_selector()
-        _render_day_candidate_builder_selector()
-        _render_direct_slot_shortlist_size_selector()
-
-    with st.expander("Reroll / diversity controls", expanded=False):
+        st.markdown("##### One-day selector")
         selection_mode = _current_selection_mode()
         _render_alternative_controls(selection_mode)
-        st.button(
-            "Generate best",
+        debug_button_cols = st.columns(2)
+        debug_button_cols[0].button(
+            "Generate best one-day",
             type="secondary",
             on_click=_generate_and_store_best_menu,
             use_container_width=True,
@@ -563,12 +561,68 @@ def _render_configuration_controls() -> dict[str, Any]:
                 _current_profile_guard_for_dashboard(dataset_config)
             ),
         )
+        debug_button_cols[1].button(
+            "Generate varied one-day",
+            type="secondary",
+            on_click=_generate_and_store_varied_menu,
+            use_container_width=True,
+            disabled=_dashboard_profile_guard_blocks(
+                _current_profile_guard_for_dashboard(dataset_config)
+            ),
+        )
 
-    with st.expander("Profile guard / quality controls", expanded=False):
+        st.markdown("##### Multi-day selector")
+        _render_multi_day_mode_selector()
+        _render_multi_day_no_repeat_policy_selector()
+        _render_day_candidate_pool_size_selector()
+        _render_multi_day_speed_mode_selector()
+        _render_day_candidate_builder_selector()
+        _render_direct_slot_shortlist_size_selector()
+        st.button(
+            "Generate 3-day debug plan",
+            type="secondary",
+            on_click=_generate_and_store_three_day_plan,
+            use_container_width=True,
+            disabled=_dashboard_profile_guard_blocks(
+                _current_profile_guard_for_dashboard(dataset_config)
+            ),
+        )
+
+        st.markdown("##### Grocery/pricing")
+        st.checkbox(
+            "Show estimated prices by default in grocery lists",
+            key=SESSION_GROCERY_PRICE_ESTIMATES_KEY,
+            help="Controleaza doar afisarea Streamlit, nu logica de pricing.",
+        )
+
+        st.markdown("##### Feedback/profile guard")
         _render_meal_realism_selector()
         _render_quality_gate_selector()
         _render_profile_guard_selector(dataset_config)
+        _render_feedback_context_panel(
+            _current_generation_config(dataset_config),
+            embedded=True,
+        )
     return _current_dataset_config()
+
+
+def _render_generated_history_controls(
+    generated_menus: list[dict[str, Any]],
+    latest_multi_day: dict[str, Any] | None,
+) -> None:
+    history_cols = st.columns([2.0, 1.0])
+    multi_day_count = 1 if latest_multi_day else 0
+    history_cols[0].caption(
+        "Stored results in this Streamlit session: "
+        f"{len(generated_menus)} one-day menu(s), {multi_day_count} latest multi-day plan."
+    )
+    history_cols[1].button(
+        "Clear generated menu history",
+        type="secondary",
+        on_click=_clear_generated_menu_history,
+        use_container_width=True,
+        key="clear_generated_menu_history_visible",
+    )
 
 
 def _current_profile_guard_for_dashboard(
@@ -980,12 +1034,25 @@ def _current_direct_slot_shortlist_size() -> int:
     return value if value in DIRECT_SLOT_SHORTLIST_SIZE_OPTIONS else 12
 
 
+def _current_generation_days() -> int:
+    try:
+        value = int(st.session_state.get(SESSION_GENERATION_DAYS_KEY, 3))
+    except (TypeError, ValueError):
+        value = 3
+    return max(1, min(5, value))
+
+
+def _current_grocery_price_estimates_enabled() -> bool:
+    return bool(st.session_state.get(SESSION_GROCERY_PRICE_ESTIMATES_KEY, True))
+
+
 def _current_generation_config(
     dataset_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config = dataset_config or _current_dataset_config()
     return {
         "dataset_profile": str(config["dataset_profile"]),
+        "days": _current_generation_days(),
         "selection_mode": _current_selection_mode(),
         "portion_policy": _current_portion_policy(),
         "meal_realism_mode": _current_meal_realism_mode(),
@@ -1003,17 +1070,25 @@ def _current_generation_config(
     }
 
 
-def _render_active_generation_config(config: dict[str, Any]) -> None:
+def _render_active_generation_config(
+    config: dict[str, Any],
+    guard_result: dict[str, Any] | None,
+) -> None:
+    feedback_count = _active_feedback_event_count(config)
+    guard_status = (
+        str(guard_result.get("profile_guard_status", "off"))
+        if isinstance(guard_result, dict)
+        else "off"
+    )
     st.caption(
-        "Active config: "
-        f"dataset={config['dataset_profile']}; "
-        f"selection={config['selection_mode']}; "
-        f"portion={config['portion_policy']}; "
-        f"realism={config['meal_realism_mode']}; "
-        f"quality={config['quality_gate']}; "
-        f"profile_guard={config['profile_guard']}; "
-        f"multi_day={config['multi_day_mode']}; "
-        f"no_repeat={config['multi_day_no_repeat_policy']}"
+        "Active: "
+        f"dataset_profile={config['dataset_profile']} | "
+        f"days={config.get('days', 1)} | "
+        f"profile_guard_status={guard_status} | "
+        f"selection_mode={config['selection_mode']} | "
+        "grocery_price_estimates="
+        f"{'enabled' if _current_grocery_price_estimates_enabled() else 'disabled'} | "
+        f"feedback_events={feedback_count}"
     )
     latest = _latest_generation_record()
     if latest is None:
@@ -1052,6 +1127,15 @@ def _render_active_generation_config(config: dict[str, Any]) -> None:
         st.warning("Latest menu was generated with a different config.")
 
 
+def _active_feedback_event_count(config: dict[str, Any]) -> int:
+    profile = load_member_profile(PROFILE_PATH)
+    context = _current_feedback_preference_context(
+        profile=profile,
+        dataset_profile=str(config.get("dataset_profile", "")),
+    )
+    return _feedback_event_count(context)
+
+
 def _latest_generation_record() -> dict[str, Any] | None:
     candidates = [
         st.session_state.get(SESSION_LATEST_MENU_KEY),
@@ -1071,9 +1155,10 @@ def _generation_config_differs(
     if not stored_config:
         return True
     active_normalised = _normalise_generation_config(active_config)
-    if generation.get("generation_trigger") == "three_day":
+    if int(stored_config.get("days", 1) or 1) > 1:
         compared_keys = [
             "dataset_profile",
+            "days",
             "selection_mode",
             "portion_policy",
             "meal_realism_mode",
@@ -1150,6 +1235,10 @@ def _normalise_generation_config(config: dict[str, Any]) -> dict[str, Any]:
         normalised["alternative_count"] = int(config.get("alternative_count", 1))
     except (TypeError, ValueError):
         normalised["alternative_count"] = 1
+    try:
+        normalised["days"] = int(config.get("days", 1))
+    except (TypeError, ValueError):
+        normalised["days"] = 1
     try:
         normalised["day_candidate_pool_size"] = int(
             config.get("day_candidate_pool_size", 75)
@@ -1232,21 +1321,11 @@ def _dashboard_profile_guard_result(
 
 def _render_profile_guard_status(guard_result: dict[str, Any] | None) -> None:
     if guard_result is None:
-        st.caption("profile_guard=off")
         st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
         return
 
     status = str(guard_result.get("profile_guard_status", "missing"))
     should_block = bool(guard_result.get("should_block_generation", False))
-    st.markdown("#### Profile guard")
-    metric_cols = st.columns(3)
-    metric_cols[0].metric("Status", status)
-    metric_cols[1].metric("Block", str(should_block))
-    metric_cols[2].metric(
-        "Override",
-        str(_current_allow_unsupported_profile()),
-    )
-
     message = (
         "Reasons: "
         f"{_format_reasons(guard_result.get('profile_guard_reasons'))}; "
@@ -1258,7 +1337,7 @@ def _render_profile_guard_status(guard_result: dict[str, Any] | None) -> None:
     elif status in {"unsupported_for_demo", "edge_needs_warning"}:
         st.warning(message)
     else:
-        st.success(message)
+        st.caption(f"profile_guard_status={status}")
 
     _render_profile_guard_diagnostics(guard_result)
 
@@ -1341,11 +1420,24 @@ def _generate_and_store_varied_menu() -> None:
     )
 
 
+def _generate_and_store_selected_days() -> None:
+    days = _current_generation_days()
+    if days <= 1:
+        _generate_and_store_one_day_menu()
+        return
+    _generate_and_store_multi_day_plan(days)
+
+
 def _generate_and_store_three_day_plan() -> None:
+    _generate_and_store_multi_day_plan(3)
+
+
+def _generate_and_store_multi_day_plan(days: int) -> None:
     run_counter = int(st.session_state.get(SESSION_RUN_COUNTER_KEY, 0)) + 1
     st.session_state[SESSION_RUN_COUNTER_KEY] = run_counter
     generated_at = datetime.now().isoformat(timespec="seconds")
     latest_plan = _build_multi_day_result(
+        days=days,
         run_id=f"streamlit-{run_counter}",
         generated_at=generated_at,
     )
@@ -1399,9 +1491,11 @@ def _clear_generated_menu_history() -> None:
 
 
 def _build_multi_day_result(
+    days: int = 3,
     run_id: str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
+    requested_days = max(1, min(5, int(days)))
     dataset_config = _current_dataset_config()
     multi_day_mode = _current_multi_day_mode()
     no_repeat_policy = _current_multi_day_no_repeat_policy()
@@ -1460,7 +1554,7 @@ def _build_multi_day_result(
         profile=profile,
         target=target,
         slot_candidates=slot_candidates,
-        days=3,
+        days=requested_days,
         config={
             "selection_mode": "balanced_day",
             "portion_policy": "target_aware",
@@ -1489,7 +1583,7 @@ def _build_multi_day_result(
         "quality_gate": "demo_safe",
         "alternative_count": 3,
         "diversity_mode": "quality_gated_multi_day",
-        "days": 3,
+        "days": requested_days,
         "multi_day_mode": multi_day_mode,
         "multi_day_no_repeat_policy": no_repeat_policy,
         "day_candidate_pool_size": day_candidate_pool_size,
@@ -1501,7 +1595,7 @@ def _build_multi_day_result(
     }
     plan["run_id"] = run_id
     plan["generated_at"] = generated_at
-    plan["generation_trigger"] = "three_day"
+    plan["generation_trigger"] = "multi_day"
     plan["generation_config"] = generation_config
     plan["generation_config_used"] = generation_config
     plan["generation_runtime_seconds"] = generation_seconds
@@ -1513,7 +1607,7 @@ def _build_multi_day_result(
     plan["pool_summary"] = {
         "run_id": run_id,
         "generated_at": generated_at,
-        "generation_trigger": "three_day",
+        "generation_trigger": "multi_day",
         "dataset_profile": dataset_config["dataset_profile"],
         "recipes_path": str(dataset_config["recipes_path"]),
         "ingredients_path": str(dataset_config["ingredients_path"]),
@@ -1533,7 +1627,7 @@ def _build_multi_day_result(
         "meal_realism_mode": "practical",
         "quality_gate": "demo_safe",
         "alternative_count": 3,
-        "days": 3,
+        "days": requested_days,
         "multi_day_mode": multi_day_mode,
         "multi_day_no_repeat_policy": no_repeat_policy,
         "day_candidate_pool_size": day_candidate_pool_size,
@@ -1569,6 +1663,7 @@ def _build_generator_result(
     meal_realism_mode = _current_meal_realism_mode()
     quality_gate = _current_quality_gate()
     generation_config = _current_generation_config(dataset_config)
+    generation_config["days"] = 1
     generation_config["diversity_mode"] = diversity_mode
     generated_at = generated_at or datetime.now().isoformat(timespec="seconds")
     run_id = run_id or f"streamlit-{generated_at}"
@@ -1719,6 +1814,7 @@ def _build_generator_result(
             0,
         ),
         "selection_mode": selection_mode,
+        "days": 1,
         "portion_policy": portion_policy,
         "meal_realism_mode": meal_realism_mode,
         "quality_gate": quality_gate,
@@ -1755,7 +1851,7 @@ def _render_multi_day_plan(
     st.subheader(title)
     st.caption(
         f"Run: {plan.get('run_id', 'missing')}; "
-        f"trigger={plan.get('generation_trigger', 'three_day')}; "
+        f"trigger={plan.get('generation_trigger', 'multi_day')}; "
         f"generated_at={plan.get('generated_at', 'missing')}; "
         f"multi_day_mode={plan.get('multi_day_selector_mode', 'simple_3_day')}"
     )
@@ -1795,7 +1891,7 @@ def _render_multi_day_plan(
     if isinstance(validation, dict):
         warnings.extend(validation.get("warnings", []))
     if warnings:
-        with st.expander("Multi-day warnings", expanded=True):
+        with st.expander("Multi-day warnings", expanded=False):
             for warning in dict.fromkeys(str(item) for item in warnings):
                 st.write(f"- {warning}")
 
@@ -1821,8 +1917,8 @@ def _render_multi_day_plan(
         with tab:
             _render_multi_day_day(day, plan)
 
-    st.markdown("#### Copy multi-day draft plan")
-    st.code("\n".join(multi_day_readable_lines(plan)), language=None)
+    with st.expander("Copy-ready menu", expanded=False):
+        st.code("\n".join(multi_day_readable_lines(plan)), language=None)
     _render_grocery_list_draft(plan, key_prefix="multiday")
 
 
@@ -1889,7 +1985,7 @@ def _render_multi_day_day(day: dict[str, Any], parent_plan: dict[str, Any]) -> N
         )
     day_warnings = day.get("warnings", [])
     if day_warnings:
-        with st.expander("Day warnings", expanded=True):
+        with st.expander("Day warnings", expanded=False):
             for warning in day_warnings:
                 st.write(f"- {warning}")
 
@@ -1953,7 +2049,7 @@ def _render_plan(
         st.info("Nu exista mese selectate.")
 
     if warnings:
-        with st.expander("Warnings", expanded=True):
+        with st.expander("Warnings", expanded=False):
             for warning in warnings:
                 st.write(f"- {warning}")
     else:
@@ -1971,11 +2067,13 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
     widget_key = f"{key_prefix}_{run_id}_include_pantry_basics"
     purchase_widget_key = f"{key_prefix}_{run_id}_purchase_suggestions"
     cooked_to_raw_widget_key = f"{key_prefix}_{run_id}_cooked_to_raw"
+    price_widget_key = f"{key_prefix}_{run_id}_price_estimates"
     with st.expander("Grocery list draft", expanded=False):
         st.warning(
-            "Draft grocery list. No prices, no store/package optimization, no pantry inventory."
+            "Draft grocery list. Prices are demo estimates if enabled and may vary by store/date. "
+            "No store/package optimization, no pantry inventory."
         )
-        control_cols = st.columns(3)
+        control_cols = st.columns(4)
         include_pantry_basics = control_cols[0].checkbox(
             "Include pantry basics",
             value=False,
@@ -1992,6 +2090,12 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
             key=cooked_to_raw_widget_key,
             disabled=not bool(show_purchase_suggestions),
         )
+        show_price_estimates = control_cols[3].checkbox(
+            "Show estimated prices",
+            value=_current_grocery_price_estimates_enabled(),
+            key=price_widget_key,
+            disabled=not bool(show_purchase_suggestions),
+        )
         try:
             grocery_list = _dashboard_grocery_list(
                 plan,
@@ -1999,6 +2103,8 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
                 include_purchase_suggestions=show_purchase_suggestions,
                 enable_cooked_to_raw=bool(show_purchase_suggestions)
                 and bool(enable_cooked_to_raw),
+                include_price_estimates=bool(show_purchase_suggestions)
+                and bool(show_price_estimates),
             )
         except (FileNotFoundError, ValueError, OSError) as exc:
             st.error(f"Cannot build grocery list draft: {exc}")
@@ -2043,24 +2149,23 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
                     "No conversion",
                     purchase_summary.get("cooked_raw_no_conversion_count", 0),
                 )
+            pricing_summary = summary.get("pricing_summary", {})
+            if isinstance(pricing_summary, dict) and pricing_summary:
+                total = pricing_summary.get("total_estimated_cost")
+                currency = pricing_summary.get("currency") or "RON"
+                total_label = f"{float(total):.2f} {currency}" if total is not None else "Unavailable"
+                price_cols = st.columns(3)
+                price_cols[0].metric("Estimated total", total_label)
+                price_cols[1].metric("Priced items", pricing_summary.get("priced_item_count", 0))
+                price_cols[2].metric("Missing prices", pricing_summary.get("unpriced_item_count", 0))
 
-        rows = grocery_list_rows(
+        rows = _grocery_list_rows(
             grocery_list,
             include_pantry_basics=include_pantry_basics,
         )
         if rows:
-            table_rows = [
-                {
-                    "item": row["display_name_clean"],
-                    "needed amount": row.get("needed_grams_display") or row["display_grams"],
-                    "buy suggestion": row.get("purchase_display") or row["display_grams"],
-                    "raw equivalent": row.get("raw_equivalent_grams"),
-                    "category": row["category_label"],
-                    "used in recipes": row["source_recipes"],
-                    "warnings": row["warnings"],
-                }
-                for row in rows
-            ]
+            detail_rows = [_grocery_table_row(row) for row in rows]
+            table_rows = [_grocery_compact_table_row(row) for row in detail_rows]
             st.dataframe(
                 pd.DataFrame(table_rows),
                 use_container_width=True,
@@ -2069,17 +2174,18 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
         else:
             st.info("No grocery items for the current display filters.")
 
-        st.markdown("#### Copy-friendly grocery list")
-        st.code(
-            "\n".join(
-                grocery_list_readable_lines(
-                    grocery_list,
-                    include_pantry_basics=include_pantry_basics,
-                    include_purchase_suggestions=show_purchase_suggestions,
-                )
-            ),
-            language=None,
-        )
+        with st.expander("Copy-ready grocery list", expanded=False):
+            st.code(
+                "\n".join(
+                    _grocery_readable_lines(
+                        grocery_list=grocery_list,
+                        include_pantry_basics=include_pantry_basics,
+                        include_purchase_suggestions=show_purchase_suggestions,
+                        include_price_estimates=show_price_estimates,
+                    )
+                ),
+                language=None,
+            )
         warnings = grocery_list.get("warnings", [])
         if warnings:
             with st.expander("Grocery list warnings", expanded=False):
@@ -2097,14 +2203,23 @@ def _render_grocery_list_draft(plan: dict[str, Any], key_prefix: str) -> None:
                         use_container_width=True,
                         hide_index=True,
                     )
-        raw_rows = grocery_raw_item_rows(grocery_list)
-        if raw_rows:
-            with st.expander("Raw grocery debug detail", expanded=False):
-                st.dataframe(
-                    pd.DataFrame(raw_rows),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+        raw_rows = _grocery_raw_item_rows(grocery_list)
+        if rows or raw_rows:
+            with st.expander("Grocery raw/debug details", expanded=False):
+                if rows:
+                    st.caption("Display/detail rows")
+                    st.dataframe(
+                        pd.DataFrame([_grocery_table_row(row) for row in rows]),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                if raw_rows:
+                    st.caption("Raw ingredient rows - not the shopping list")
+                    st.dataframe(
+                        pd.DataFrame(raw_rows),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
 
 
 def _dashboard_grocery_list(
@@ -2112,10 +2227,11 @@ def _dashboard_grocery_list(
     include_pantry_basics: bool,
     include_purchase_suggestions: bool,
     enable_cooked_to_raw: bool,
+    include_price_estimates: bool,
 ) -> dict[str, Any]:
     ingredients = _dashboard_recipe_ingredients(plan)
     fooddb = load_fooddb_current()
-    return build_grocery_list(
+    return grocery_list_module.build_grocery_list(
         plan,
         ingredients,
         fooddb_df=fooddb,
@@ -2123,9 +2239,257 @@ def _dashboard_grocery_list(
             "include_pantry_basics": include_pantry_basics,
             "include_purchase_suggestions": include_purchase_suggestions,
             "enable_cooked_to_raw_conversion": enable_cooked_to_raw,
+            "include_price_estimates": include_price_estimates,
             "exclude_water": True,
         },
     )
+
+
+def _grocery_table_row(row: dict[str, Any]) -> dict[str, Any]:
+    display_name = (
+        row.get("display_name_clean")
+        or row.get("display_name")
+        or row.get("canonical_name")
+        or "Unknown item"
+    )
+    display_grams = row.get("display_grams") or row.get("total_grams") or ""
+    return {
+        "item": display_name,
+        "needed amount": row.get("needed_grams_display") or display_grams,
+        "buy suggestion": row.get("purchase_display") or display_grams,
+        "estimated cost": row.get("estimated_cost_display") or "",
+        "price confidence": row.get("price_confidence") or "",
+        "price source/store": row.get("price_store_name") or row.get("price_source_name") or "",
+        "price warning": row.get("price_warning") or "",
+        "raw equivalent": row.get("raw_equivalent_grams", ""),
+        "category": row.get("category_label") or row.get("grocery_category") or "",
+        "grocery_category": row.get("grocery_category") or "",
+        "used in recipes": row.get("source_recipes", ""),
+        "warnings": row.get("warnings", ""),
+    }
+
+
+def _grocery_compact_table_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "item": row.get("item", ""),
+        "needed amount": row.get("needed amount", ""),
+        "buy suggestion": row.get("buy suggestion", ""),
+        "estimated cost": row.get("estimated cost", ""),
+        "category": row.get("category", ""),
+        "warnings": _grocery_warning_summary(row.get("warnings", "")),
+    }
+
+
+def _grocery_warning_summary(value: object) -> str:
+    warnings = [item.strip() for item in str(value or "").split(";") if item.strip()]
+    if not warnings:
+        return ""
+    readable = [_grocery_warning_label(item) for item in warnings[:3]]
+    suffix = f" (+{len(warnings) - 3})" if len(warnings) > 3 else ""
+    return " ".join(readable) + suffix
+
+
+def _grocery_list_rows(
+    grocery_list: dict[str, Any],
+    include_pantry_basics: bool,
+) -> list[dict[str, Any]]:
+    row_builder = getattr(grocery_list_module, "grocery_list_rows", None)
+    if callable(row_builder):
+        return row_builder(
+            grocery_list,
+            include_pantry_basics=include_pantry_basics,
+        )
+    rows: list[dict[str, Any]] = []
+    display_items = grocery_list.get("display_items", []) or grocery_list.get("items", [])
+    for item in display_items:
+        if item.get("not_for_purchase", False):
+            continue
+        if not include_pantry_basics and (
+            item.get("is_pantry_basic", False)
+            or item.get("grocery_category") == "pantry_basics"
+        ):
+            continue
+        rows.append(item)
+    return rows
+
+
+def _grocery_readable_lines(
+    grocery_list: dict[str, Any],
+    include_pantry_basics: bool,
+    include_purchase_suggestions: bool,
+    include_price_estimates: bool,
+) -> list[str]:
+    lines = ["Grocery List"]
+    rows = _grocery_list_rows(
+        grocery_list,
+        include_pantry_basics=include_pantry_basics,
+    )
+    if not rows:
+        return lines + ["- No grocery items generated."]
+    table_rows = [_grocery_table_row(row) for row in rows]
+    for category_key in GROCERY_CATEGORY_ORDER:
+        category_label = GROCERY_CATEGORY_LABELS[category_key]
+        category_rows = [
+            row
+            for row in table_rows
+            if row.get("grocery_category") == category_key
+            or row.get("category") == category_label
+        ]
+        if not category_rows:
+            continue
+        lines.extend(["", category_label])
+        for row in category_rows:
+            lines.append(
+                _grocery_readable_line(
+                    row,
+                    include_purchase_suggestions,
+                    include_price_estimates,
+                )
+            )
+    if include_price_estimates:
+        lines.extend(["", "Estimated prices (demo)"])
+        lines.append(_grocery_price_total_line(table_rows))
+        lines.append("- Prices are demo estimates and may vary by store/date.")
+    warnings = _grocery_readable_warnings(grocery_list)
+    if warnings:
+        lines.extend(["", "Warnings"])
+        lines.extend(f"- {warning}" for warning in warnings)
+    return lines
+
+
+def _grocery_readable_line(
+    row: dict[str, Any],
+    include_purchase_suggestions: bool,
+    include_price_estimates: bool,
+) -> str:
+    name = row["item"]
+    needed = row.get("needed amount") or ""
+    buy_suggestion = str(row.get("buy suggestion") or "").strip()
+    warnings = str(row.get("warnings") or "")
+    suffix = _grocery_warning_suffix(warnings)
+    price_suffix = _grocery_price_suffix(row) if include_price_estimates else ""
+    if include_purchase_suggestions and buy_suggestion:
+        if buy_suggestion.startswith("check pantry"):
+            return f"- {name}: {buy_suggestion}{price_suffix}{suffix}"
+        if buy_suggestion.startswith("review item"):
+            return f"- {name}: {buy_suggestion}{price_suffix}{suffix}"
+        return f"- {name}: need {needed}; buy {buy_suggestion}{price_suffix}{suffix}"
+    return f"- {name}: {needed}{price_suffix}{suffix}"
+
+
+def _grocery_price_suffix(row: dict[str, Any]) -> str:
+    cost = str(row.get("estimated cost") or "").strip()
+    if cost:
+        return f"; est. {cost}"
+    warning = str(row.get("price warning") or "").strip()
+    if warning == "price_missing":
+        return "; price missing"
+    if warning == "price_pantry_check":
+        return "; price not counted"
+    if warning:
+        return f"; price warning: {warning}"
+    return ""
+
+
+def _grocery_price_total_line(rows: list[dict[str, Any]]) -> str:
+    total = 0.0
+    count = 0
+    missing = 0
+    currency = "RON"
+    for row in rows:
+        raw_cost = row.get("estimated cost")
+        if raw_cost:
+            text = str(raw_cost)
+            parts = text.split()
+            try:
+                total += float(parts[0])
+                count += 1
+                if len(parts) > 1:
+                    currency = parts[1]
+            except ValueError:
+                missing += 1
+        elif row.get("price warning"):
+            missing += 1
+    if count == 0:
+        return f"- Estimated total: unavailable; missing prices for {missing} items."
+    missing_text = f"; missing prices for {missing} items" if missing else ""
+    return f"- Estimated total: {total:.2f} {currency} ({count} priced items{missing_text})."
+
+
+def _grocery_warning_suffix(warnings: str) -> str:
+    warning_text = warnings.lower()
+    suffixes = []
+    if "cooked_to_raw_estimate" in warning_text:
+        suffixes.append("cooked-to-raw estimate")
+    elif "cooked_raw_purchase_ambiguity" in warning_text:
+        suffixes.append("check cooked/raw")
+    if "unclear_grocery_item_name" in warning_text:
+        suffixes.append("review")
+    if "normalized_name_fallback" in warning_text:
+        suffixes.append("fallback")
+    if not suffixes:
+        return ""
+    return " (" + ", ".join(suffixes) + ")"
+
+
+def _grocery_readable_warnings(grocery_list: dict[str, Any]) -> list[str]:
+    warnings = list(grocery_list.get("warnings", []))
+    for item in grocery_list.get("display_items", []):
+        warnings.extend(str(warning) for warning in item.get("warnings", []))
+        warnings.extend(str(warning) for warning in item.get("purchase_warnings", []))
+        price_warning = str(item.get("price_warning") or "").strip()
+        if price_warning:
+            warnings.append(price_warning)
+    readable = [_grocery_warning_label(str(warning)) for warning in warnings if str(warning).strip()]
+    return sorted(dict.fromkeys(label for label in readable if label))
+
+
+def _grocery_warning_label(warning: str) -> str:
+    labels = {
+        "fallback_grouped_items_present": "Some items were grouped by fallback name.",
+        "normalized_name_fallback": "Some items were grouped by fallback name.",
+        "missing_or_zero_quantity_skipped": "Some missing/zero quantity ingredients were skipped.",
+        "ingredients_with_missing_or_zero_quantity_skipped": "Some missing/zero quantity ingredients were skipped.",
+        "pantry_basic_detected": "Pantry basics are shown separately.",
+        "pantry_basic_items_not_in_main_list": "Pantry basics are shown separately.",
+        "water_excluded_by_default": "Water was excluded by default.",
+        "display_alias_grouping_used": "Some obvious aliases were grouped for display.",
+        "cooked_to_raw_estimate": "Some cooked items use approximate raw purchase estimates.",
+        "cooked_raw_purchase_ambiguity": "Some cooked items were left as purchase-amount warnings.",
+        "cooked_raw_not_converted_to_raw": "Some cooked items were not converted to raw equivalents.",
+        "low_priority_seasoning": "Some seasonings are low-priority grocery items.",
+        "purchase_pantry_check": "Some items are marked as check-at-home pantry basics.",
+        "purchase_rule_missing": "Some items need review because no purchase rule matched.",
+        "purchase_fallback_grams_only": "Some items use grams-only purchase suggestions.",
+        "purchase_review_before_buying": "Some unclear items should be reviewed before buying.",
+        "unclear_grocery_item_name": "Some grocery item names are unclear and need review.",
+        "price_demo_estimate": "Prices are demo estimates and may vary by store/date.",
+        "price_missing": "Some items are missing source-backed price estimates.",
+        "price_quantity_missing": "Some items have price data but missing purchase quantity.",
+        "price_pantry_check": "Some pantry-check items were not costed.",
+    }
+    return labels.get(warning, warning.replace("_", " ").capitalize() + ".")
+
+
+def _grocery_raw_item_rows(grocery_list: dict[str, Any]) -> list[dict[str, Any]]:
+    row_builder = getattr(grocery_list_module, "grocery_raw_item_rows", None)
+    if callable(row_builder):
+        return row_builder(grocery_list)
+    rows: list[dict[str, Any]] = []
+    for item in grocery_list.get("items", []):
+        rows.append(
+            {
+                "grocery_item_id": item.get("grocery_item_id"),
+                "display_name": item.get("display_name"),
+                "canonical_name": item.get("canonical_name"),
+                "mapped_food_id": item.get("mapped_food_id"),
+                "total_grams": item.get("total_grams"),
+                "grocery_category": item.get("grocery_category"),
+                "grouping_method": item.get("grouping_method"),
+                "warnings": "; ".join(str(value) for value in item.get("warnings", [])),
+            }
+        )
+    return rows
 
 
 def _dashboard_recipe_ingredients(plan: dict[str, Any]) -> pd.DataFrame:
@@ -2486,7 +2850,7 @@ def _menu_as_text(plan: dict[str, Any]) -> str:
     validation = plan.get("validation", {})
     totals = plan.get("day_totals", {})
     lines = [
-        "TableTogether / Generator v1 latest menu",
+        "TableTogether Debug Tool latest menu",
         f"run_id={plan.get('run_id', 'missing')}",
         f"generation_trigger={plan.get('generation_trigger', 'unknown')}",
         f"diversity_mode_used={plan.get('diversity_mode_used', 'none')}",
@@ -2855,7 +3219,7 @@ def _render_long_passive_notes(selected_meals: list[dict[str, Any]]) -> None:
     if not long_passive_meals:
         return
 
-    with st.expander("Long passive time notes", expanded=True):
+    with st.expander("Long passive time notes", expanded=False):
         for meal in long_passive_meals:
             if meal.get("uses_pilot_time_fallback"):
                 st.warning(
@@ -2883,7 +3247,7 @@ def _render_slot_suspicion_notes(selected_meals: list[dict[str, Any]]) -> None:
     if not suspicious_meals:
         return
 
-    with st.expander("Slot realism notes", expanded=True):
+    with st.expander("Slot realism notes", expanded=False):
         for meal in suspicious_meals:
             st.warning(
                 (
@@ -2950,7 +3314,7 @@ def _render_meal_realism_notes(selected_meals: list[dict[str, Any]]) -> None:
             )
     if not rows:
         return
-    with st.expander("Meal realism QA warnings", expanded=True):
+    with st.expander("Meal realism QA warnings", expanded=False):
         st.warning("Some selected meals need realism review; validation status alone is not enough.")
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
@@ -2985,17 +3349,20 @@ def _store_feedback_event(
 
 
 def _render_feedback_events() -> None:
-    st.markdown("#### Collected feedback")
-    st.caption(f"Stored in {DEFAULT_FEEDBACK_EVENTS_PATH}")
-    events = load_feedback_events()
-    st.session_state[SESSION_FEEDBACK_KEY] = events
-    if not events:
-        st.caption("No feedback collected yet.")
-        return
-    st.dataframe(pd.DataFrame(events), use_container_width=True, hide_index=True)
+    with st.expander("Feedback events", expanded=False):
+        st.caption(f"Stored in {DEFAULT_FEEDBACK_EVENTS_PATH}")
+        events = load_feedback_events()
+        st.session_state[SESSION_FEEDBACK_KEY] = events
+        if not events:
+            st.caption("No feedback collected yet.")
+            return
+        st.dataframe(pd.DataFrame(events), use_container_width=True, hide_index=True)
 
 
-def _render_feedback_context_panel(active_config: dict[str, Any]) -> None:
+def _render_feedback_context_panel(
+    active_config: dict[str, Any],
+    embedded: bool = False,
+) -> None:
     notice = st.session_state.get(SESSION_FEEDBACK_NOTICE_KEY)
     if notice:
         st.success(str(notice))
@@ -3008,29 +3375,36 @@ def _render_feedback_context_panel(active_config: dict[str, Any]) -> None:
     )
     event_count = _feedback_event_count(context)
     st.caption(f"Active feedback events for this dataset/profile: {event_count}")
+    if embedded:
+        _render_feedback_context_body(context)
+        return
     with st.expander("Feedback context", expanded=False):
-        metric_cols = st.columns(4)
-        metric_cols[0].metric("Liked", len(_feedback_count_rows(context, "liked")))
-        metric_cols[1].metric("Disliked", len(_feedback_count_rows(context, "disliked")))
-        metric_cols[2].metric("Too long", len(_feedback_count_rows(context, "too_long")))
-        metric_cols[3].metric("Avoided", len(_feedback_avoided_rows(context)))
-        st.caption(f"Storage path: {DEFAULT_FEEDBACK_EVENTS_PATH}")
-        rows = []
-        rows.extend(_feedback_count_rows(context, "liked"))
-        rows.extend(_feedback_count_rows(context, "disliked"))
-        rows.extend(_feedback_count_rows(context, "too_long"))
-        rows.extend(_feedback_avoided_rows(context))
-        if rows:
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-        else:
-            st.write("No active feedback for the current dataset/profile.")
-        if st.button(
-            "Clear feedback events",
-            type="secondary",
-            use_container_width=False,
-        ):
-            _clear_feedback_events_callback()
-            st.rerun()
+        _render_feedback_context_body(context)
+
+
+def _render_feedback_context_body(context: dict[str, Any]) -> None:
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Liked", len(_feedback_count_rows(context, "liked")))
+    metric_cols[1].metric("Disliked", len(_feedback_count_rows(context, "disliked")))
+    metric_cols[2].metric("Too long", len(_feedback_count_rows(context, "too_long")))
+    metric_cols[3].metric("Avoided", len(_feedback_avoided_rows(context)))
+    st.caption(f"Storage path: {DEFAULT_FEEDBACK_EVENTS_PATH}")
+    rows = []
+    rows.extend(_feedback_count_rows(context, "liked"))
+    rows.extend(_feedback_count_rows(context, "disliked"))
+    rows.extend(_feedback_count_rows(context, "too_long"))
+    rows.extend(_feedback_avoided_rows(context))
+    if rows:
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    else:
+        st.write("No active feedback for the current dataset/profile.")
+    if st.button(
+        "Clear feedback events",
+        type="secondary",
+        use_container_width=False,
+    ):
+        _clear_feedback_events_callback()
+        st.rerun()
 
 
 def _feedback_plan_meta(
@@ -3270,6 +3644,8 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_DIRECT_SLOT_SHORTLIST_SIZE_KEY] = 12
         st.session_state[SESSION_PROFILE_GUARD_KEY] = "off"
         st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
+        st.session_state[SESSION_GENERATION_DAYS_KEY] = 3
+        st.session_state[SESSION_GROCERY_PRICE_ESTIMATES_KEY] = True
         return
     if SESSION_MENUS_KEY not in st.session_state:
         st.session_state[SESSION_MENUS_KEY] = []
@@ -3325,6 +3701,10 @@ def _ensure_session_state() -> None:
         st.session_state[SESSION_ALLOW_UNSUPPORTED_PROFILE_KEY] = False
     if SESSION_RECOMMENDED_PRESET_APPLIED_KEY not in st.session_state:
         st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
+    if SESSION_GENERATION_DAYS_KEY not in st.session_state:
+        st.session_state[SESSION_GENERATION_DAYS_KEY] = 3
+    if SESSION_GROCERY_PRICE_ESTIMATES_KEY not in st.session_state:
+        st.session_state[SESSION_GROCERY_PRICE_ESTIMATES_KEY] = True
 
 
 def _slot_order(target: NutritionTarget) -> list[str]:

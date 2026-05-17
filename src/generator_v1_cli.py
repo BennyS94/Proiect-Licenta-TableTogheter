@@ -414,6 +414,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--grocery_purchase_suggestions", action="store_true")
     parser.add_argument("--grocery_purchase_rules_path", default=None, type=Path)
+    parser.add_argument("--grocery_price_estimates", action="store_true")
+    parser.add_argument("--grocery_product_catalog_path", default=None, type=Path)
     parser.add_argument(
         "--grocery_cooked_to_raw",
         action="store_true",
@@ -1865,6 +1867,8 @@ def _build_write_print_grocery_list(
             "purchase_rules_path": args.grocery_purchase_rules_path,
             "enable_cooked_to_raw_conversion": enable_cooked_to_raw,
             "cooked_to_raw_rules_path": args.grocery_cooked_to_raw_rules_path,
+            "include_price_estimates": bool(args.grocery_price_estimates),
+            "product_catalog_path": args.grocery_product_catalog_path,
             "exclude_water": True,
         },
     )
@@ -1878,6 +1882,7 @@ def _build_write_print_grocery_list(
         args.grocery_out_txt,
         include_pantry_basics=bool(args.include_pantry_basics),
         include_purchase_suggestions=bool(args.grocery_purchase_suggestions),
+        include_price_estimates=bool(args.grocery_price_estimates),
     )
     _print_grocery_list_summary(grocery_list, args)
     return grocery_list
@@ -1918,6 +1923,19 @@ def _print_grocery_list_summary(
             f"converted={purchase_summary.get('cooked_to_raw_converted_item_count', 0)}; "
             f"warnings={purchase_summary.get('cooked_to_raw_warning_count', 0)}; "
             f"no_conversion={purchase_summary.get('cooked_raw_no_conversion_count', 0)}"
+        )
+    pricing_summary = summary.get("pricing_summary", {})
+    if isinstance(pricing_summary, dict) and pricing_summary:
+        total = pricing_summary.get("total_estimated_cost")
+        currency = pricing_summary.get("currency") or "RON"
+        total_text = f"{float(total):.2f} {currency}" if total is not None else "unavailable"
+        print(
+            "  pricing="
+            f"priced={pricing_summary.get('priced_item_count', 0)}; "
+            f"missing={pricing_summary.get('unpriced_item_count', 0)}; "
+            f"safe_catalog_rows={pricing_summary.get('safe_catalog_rows_loaded', 0)}; "
+            f"estimated_total={total_text}; "
+            "label=demo estimates"
         )
     warnings = grocery_list.get("warnings", [])
     if warnings:

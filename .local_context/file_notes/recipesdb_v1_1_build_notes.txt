@@ -2331,3 +2331,129 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - Example: `Rice (cooked): need ~548g cooked; buy about 192g raw rice`.
 - Known limitation:
   - This remains demo/helper purchase display logic. It is not nutrition conversion, price logic, store/product selection, pantry inventory, or advanced package optimization.
+
+## 67. Round59 / Grocery Streamlit purchase display fix - 2026-05-16
+- Scope:
+  - Fixed Grocery List v1 Streamlit main/copy-friendly output to use cleaned purchase suggestion display by default.
+  - Raw grocery/debug rows remain available only in the collapsed `Raw grocery debug detail - not the shopping list` expander.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, recipes, price/store/brand logic, or pantry inventory behavior was changed.
+- Display behavior:
+  - Added safe display alias grouping for egg variants so raw egg and hard-boiled egg display together as `Eggs`.
+  - Main grocery text now uses needed amount plus purchase suggestion when purchase suggestions are enabled.
+  - Internal warning codes are mapped to readable warning labels in user-facing copy output.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_grocery_round59_streamlit_output.py`.
+  - Wrote audit outputs:
+    - `data/recipesdb/audit/generator_v1_grocery_round59_output_summary.txt`
+    - `data/recipesdb/audit/generator_v1_grocery_round59_items.csv`
+    - `data/recipesdb/audit/generator_v1_grocery_round59_sample.txt`
+  - Evaluator result: `display_item_count=30`, `raw_item_count=32`, `shopping_item_count=30`, `items_with_purchase_suggestions=29`, `cooked_to_raw_converted_items=1`.
+  - Checks passed: `eggs_grouped=True`, `eggs_purchase_display=True`, `no_raw_egg_split_in_sample=True`, `raw_debug_has_egg_source_rows=True`, `raw_and_hard_boiled_eggs_grouped=True`.
+  - Fixture example: `Eggs: total_grams=335.0`, `purchase=7 eggs`, source items `Egg Hard Boiled; Egg Raw`.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - CLI 3-day `v1_2_demo_final` with `--write_grocery_list --grocery_purchase_suggestions --grocery_cooked_to_raw` passed.
+  - `python tools/extra/evaluate_generator_v1_grocery_round59_streamlit_output.py` passed.
+- Known limitation:
+  - Purchase suggestions remain demo/helper output. Unclear items like `Pressed` are still review-backed, not guessed.
+
+## 68. Round60 / Grocery Product Catalog v1 price research template - 2026-05-16
+- Scope:
+  - Prepared a Grocery Product Catalog v1 price research template and safe pricing skeleton.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, recipes, price data, scraping, store/brand optimization, live price fetching, or pantry inventory behavior was changed.
+- Template:
+  - Added `tools/extra/build_grocery_product_catalog_v1_template.py`.
+  - Wrote `data/grocery/draft/grocery_product_catalog_v1_price_research_template.csv`.
+  - Wrote audit files:
+    - `data/grocery/audit/grocery_product_catalog_v1_template_summary.txt`
+    - `data/grocery/audit/grocery_product_catalog_v1_template_items.csv`
+    - `data/grocery/audit/grocery_product_catalog_v1_price_research_prompt.txt`
+  - Template result: `90` rows, `57` high priority rows, `30` rows used in representative demo grocery output, `90` rows with blank price/source fields.
+  - All rows start with `decision_status=pending_research`.
+- Pricing skeleton:
+  - Added `src/generator_v1/grocery_pricing.py`.
+  - It loads catalog rows, matches grocery items, and estimates cost only for rows marked `decision_status=safe_to_use_demo`.
+  - Current template has no safe rows, so pricing returns `price_missing` and no estimated costs.
+- Evaluator:
+  - Added `tools/extra/evaluate_grocery_product_catalog_v1_template.py`.
+  - Wrote `data/grocery/audit/grocery_product_catalog_v1_template_eval_summary.txt`.
+  - Evaluation result: `catalog_rows=90`, `priority_counts=high=57; medium=29; low=4`, `used_in_demo_grocery_count=30`, `missing_price_field_count=90`, `ready_for_research=true`.
+- Next step:
+  - Send the template and research prompt to a separate manual/source-verification workflow.
+  - Fill only source-backed price fields, then mark eligible rows `safe_to_use_demo`.
+
+## 69. Round61 / Grocery Product Catalog price batch1 - 2026-05-16
+- Scope:
+  - Validated and applied Grocery Product Catalog v1 price research batch1 for demo/audit grocery pricing.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, generator selection logic, scraping, invented prices, store/brand optimization, live price fetching, or pantry inventory behavior was changed.
+- Batch validation:
+  - Input: `data/grocery/draft/grocery_product_catalog_v1_price_research_filled_batch1.csv`.
+  - Added `tools/extra/validate_apply_grocery_product_catalog_v1_batch1.py`.
+  - Reviewed `30` rows: `23` safe-to-use demo rows, `6` needs_review rows, `1` keep_deferred row.
+  - Applied only `23` rows with `decision_status=safe_to_use_demo` and passing sanity checks.
+  - Wrote:
+    - `data/grocery/draft/grocery_product_catalog_v1_batch1.csv`
+    - `data/grocery/audit/grocery_product_catalog_v1_batch1_validation.csv`
+    - `data/grocery/audit/grocery_product_catalog_v1_batch1_summary.txt`
+    - `data/grocery/audit/grocery_product_catalog_v1_batch1_deferred.csv`
+- Pricing integration:
+  - Extended `src/generator_v1/grocery_pricing.py` to load the applied batch1 catalog by default when present.
+  - Extended `src/generator_v1/grocery_list.py` with optional `include_price_estimates` and price fields in TXT/CSV rows.
+  - Added CLI flags `--grocery_price_estimates` and `--grocery_product_catalog_path`.
+  - Added Streamlit checkbox `Show estimated prices`, estimated-cost columns, total estimate metric, and demo-price warning.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_grocery_price_batch1.py`.
+  - Wrote:
+    - `data/grocery/audit/grocery_price_batch1_demo_summary.txt`
+    - `data/grocery/audit/grocery_price_batch1_demo_items.csv`
+    - `data/grocery/audit/grocery_price_batch1_demo_sample.txt`
+  - Canonical evaluator result: `catalog_rows_safe=23`, `grocery_items_with_price=22`, `grocery_items_missing_price=8`, `estimated_total_cost=246.62 RON`.
+  - CLI validation with local feedback context produced `priced=21`, `missing=19`, `estimated_total=242.56 RON`.
+- Known limitation:
+  - Prices are source-backed demo estimates only. They may vary by store/date, do not optimize store/brand/package choices, and do not subtract pantry inventory.
+
+## 70. Grocery Product Catalog full price batch - 2026-05-16
+- Scope:
+  - Validated and applied the full filled Grocery Product Catalog v1 price CSV for draft/audit/demo pricing.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, generator selection logic, scraping, invented prices, store/brand optimization, live price fetching, or pantry inventory behavior was changed.
+- Full batch validation:
+  - Input: `data/grocery/draft/grocery_product_catalog_v1_price_research_filled_all.csv`.
+  - Added `tools/extra/validate_apply_grocery_product_catalog_v1_full.py`.
+  - Reviewed `90` rows: `48` submitted as `safe_to_use_demo`, `38` `needs_review`, `4` `keep_deferred`.
+  - Applied `41` safe rows that passed sanity checks.
+  - Rejected `7` submitted-safe rows because price fields did not match `price_method`.
+  - Wrote:
+    - `data/grocery/draft/grocery_product_catalog_v1_full.csv`
+    - `data/grocery/audit/grocery_product_catalog_v1_full_validation.csv`
+    - `data/grocery/audit/grocery_product_catalog_v1_full_summary.txt`
+    - `data/grocery/audit/grocery_product_catalog_v1_full_deferred.csv`
+- Pricing integration:
+  - Updated `src/generator_v1/grocery_pricing.py` so default pricing prefers `grocery_product_catalog_v1_full.csv` when present, then falls back to batch1/template.
+  - Existing CLI/Streamlit price display uses the full catalog through the same `--grocery_price_estimates` / `Show estimated prices` flow.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_grocery_price_full_catalog.py`.
+  - Wrote:
+    - `data/grocery/audit/grocery_price_full_catalog_demo_summary.txt`
+    - `data/grocery/audit/grocery_price_full_catalog_demo_items.csv`
+    - `data/grocery/audit/grocery_price_full_catalog_demo_sample.txt`
+  - Evaluator result: `safe_rows_applied=41`, `grocery_items_with_price=22`, `grocery_items_missing_price=8`, `estimated_total_cost=246.62 RON`.
+  - CLI validation with the current generated plan produced `priced=21`, `missing=19`, `estimated_total=242.56 RON`.
+- Known limitation:
+  - Full catalog pricing is still demo estimate output only. Some submitted-safe rows were not applied because the CSV price method/fields were inconsistent. Remaining missing items need corrected source-backed rows before they can be priced.
+
+## 71. Round63 / Streamlit debug dashboard layout cleanup - 2026-05-17
+- Scope:
+  - Cleaned up `streamlit_app/generator_v1_dashboard.py` for demo/debug usability.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator logic, grocery logic, pricing logic, recipes, or nutrition formulas were changed.
+- Layout changes:
+  - Added a visible full-width `Apply recommended v1.2 demo settings` button above generation.
+  - Replaced visible separate generate buttons with a `Days` selector (`1..5`) plus one full-width `Generate` button.
+  - `days=1` uses the one-day path; `days>1` uses the multi-day draft path.
+  - Consolidated scattered config controls under one `Advanced debug controls` expander with subsections for dataset/config, one-day selector, multi-day selector, grocery/pricing, and feedback/profile guard.
+  - Moved debug generate shortcuts and clear history into advanced controls.
+  - Added compact active summary near the top: dataset, selected days, profile guard status, selection mode, grocery price estimate display state, and feedback event count.
+  - Put menu and grocery copy-ready text into collapsed expanders.
+  - Kept the main grocery table compact and moved exact/raw/debug fields into `Grocery raw/debug details`.
+  - Collapsed runtime/candidate/selector/quality/profile/feedback/grocery diagnostics by default.
+- Validation:
+  - `python -m compileall tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.

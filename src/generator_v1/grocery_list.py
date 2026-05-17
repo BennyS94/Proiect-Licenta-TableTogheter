@@ -9,6 +9,10 @@ from src.generator_v1.grocery_purchase import (
     apply_purchase_rules,
     load_grocery_purchase_rules,
 )
+from src.generator_v1.grocery_pricing import (
+    apply_price_estimates,
+    load_grocery_product_catalog,
+)
 
 
 DEFAULT_CONFIG = {
@@ -18,6 +22,8 @@ DEFAULT_CONFIG = {
     "purchase_rules_path": None,
     "enable_cooked_to_raw_conversion": False,
     "cooked_to_raw_rules_path": None,
+    "include_price_estimates": False,
+    "product_catalog_path": None,
     "round_grams_for_display": True,
 }
 
@@ -52,6 +58,7 @@ CATEGORY_LABELS = {
 }
 
 SAFE_ALIAS_CATEGORIES = {
+    "Eggs": "dairy_eggs",
     "Olive oil": "oils_fats",
     "Parmesan cheese": "dairy_eggs",
     "Black pepper": "pantry_basics",
@@ -209,6 +216,15 @@ def build_grocery_list(
             config=config_data,
         )
         display_items = purchase_result["items"]
+    pricing_result: dict[str, Any] | None = None
+    if bool(config_data.get("include_price_estimates", False)):
+        product_catalog = load_grocery_product_catalog(config_data.get("product_catalog_path"))
+        pricing_result = apply_price_estimates(
+            display_items,
+            product_catalog,
+            config=config_data,
+        )
+        display_items = pricing_result["items"]
     summary = _summary(
         raw_items=raw_items,
         display_items=display_items,
@@ -257,6 +273,16 @@ def build_grocery_list(
                 0,
             )
         warnings.extend(purchase_result.get("warnings", []))
+    if pricing_result is not None:
+        pricing_summary = pricing_result.get("summary", {})
+        if isinstance(pricing_summary, dict):
+            summary["pricing_summary"] = pricing_summary
+            summary["pricing_item_count"] = pricing_summary.get("pricing_item_count", 0)
+            summary["priced_item_count"] = pricing_summary.get("priced_item_count", 0)
+            summary["unpriced_item_count"] = pricing_summary.get("unpriced_item_count", 0)
+            summary["estimated_total_cost"] = pricing_summary.get("total_estimated_cost")
+            summary["estimated_total_currency"] = pricing_summary.get("currency", "")
+            summary["price_warning_counts"] = pricing_summary.get("price_warning_counts", {})
     warnings.extend(_summary_warnings(summary))
     return {
         "items": raw_items,
@@ -302,9 +328,9 @@ def normalize_grocery_display_name(item: dict[str, Any]) -> str:
         return "Cooked ham"
     if "salmon smoked" in text:
         return "Smoked salmon"
-    if "egg hard boiled" in text:
+    if "egg" in text and "hard boiled" in text:
         return "Hard-boiled eggs"
-    if "egg raw" in text:
+    if "egg" in text and "raw" in text:
         return "Eggs"
     if "cheddar cheese" in text:
         return "Cheddar cheese"
@@ -430,6 +456,18 @@ def normalize_grocery_category(item: dict[str, Any]) -> str:
 
 def get_display_group_alias(item: dict[str, Any]) -> str | None:
     clean_name = _clean_text(item.get("display_name_clean")) or normalize_grocery_display_name(item)
+    text = _normalise_name(
+        " ".join(
+            [
+                clean_name,
+                _clean_text(item.get("display_name")),
+                _clean_text(item.get("canonical_name")),
+                " ".join(str(value) for value in item.get("ingredient_names_seen", [])),
+            ]
+        )
+    )
+    if _is_egg_display_alias(text):
+        return "Eggs"
     if clean_name in SAFE_ALIAS_CATEGORIES:
         return clean_name
     return None
@@ -524,10 +562,13 @@ def grocery_list_readable_lines(
     grocery_list: dict[str, Any],
     include_pantry_basics: bool = False,
     include_purchase_suggestions: bool | None = None,
+    include_price_estimates: bool | None = None,
 ) -> list[str]:
     lines = ["Grocery List"]
     if include_purchase_suggestions is None:
         include_purchase_suggestions = _has_purchase_suggestions(grocery_list)
+    if include_price_estimates is None:
+        include_price_estimates = _has_price_estimates(grocery_list)
     display_items = [
         item
         for item in _display_items(grocery_list)
@@ -556,12 +597,29 @@ def grocery_list_readable_lines(
             continue
         lines.extend(["", CATEGORY_LABELS.get(category, category)])
         for item in category_items:
-            lines.append(_readable_item_line(item, bool(include_purchase_suggestions)))
+            lines.append(
+                _readable_item_line(
+                    item,
+                    bool(include_purchase_suggestions),
+                    bool(include_price_estimates),
+                )
+            )
 
     if pantry_items:
         lines.extend(["", CATEGORY_LABELS["pantry_basics"]])
         for item in pantry_items:
-            lines.append(_readable_item_line(item, bool(include_purchase_suggestions)))
+            lines.append(
+                _readable_item_line(
+                    item,
+                    bool(include_purchase_suggestions),
+                    bool(include_price_estimates),
+                )
+            )
+
+    if bool(include_price_estimates):
+        lines.extend(["", "Estimated prices (demo)"])
+        lines.append(_readable_price_total_line(display_items))
+        lines.append("- Prices are demo estimates and may vary by store/date.")
 
     warnings = _readable_warnings(grocery_list)
     if warnings:
@@ -589,6 +647,7 @@ def write_grocery_list_readable(
     path: Path,
     include_pantry_basics: bool = False,
     include_purchase_suggestions: bool | None = None,
+    include_price_estimates: bool | None = None,
 ) -> None:
     _ensure_parent(path)
     path.write_text(
@@ -597,6 +656,7 @@ def write_grocery_list_readable(
                 grocery_list,
                 include_pantry_basics=include_pantry_basics,
                 include_purchase_suggestions=include_purchase_suggestions,
+                include_price_estimates=include_price_estimates,
             )
         )
         + "\n",
@@ -1227,6 +1287,14 @@ def _summary_warnings(summary: dict[str, Any]) -> list[str]:
         ]:
             if int(warning_counts.get(warning, 0) or 0) > 0:
                 warnings.append(warning)
+    pricing_summary = summary.get("pricing_summary", {})
+    if isinstance(pricing_summary, dict) and int(pricing_summary.get("priced_item_count", 0) or 0) > 0:
+        warnings.append("price_demo_estimate")
+    price_warning_counts = summary.get("price_warning_counts", {})
+    if isinstance(price_warning_counts, dict):
+        for warning, count in price_warning_counts.items():
+            if int(count or 0) > 0:
+                warnings.append(str(warning))
     return warnings
 
 
@@ -1291,6 +1359,15 @@ def _display_item_row(item: dict[str, Any]) -> dict[str, Any]:
         "raw_equivalent_basis": item.get("raw_equivalent_basis"),
         "cooked_to_raw_confidence": item.get("cooked_to_raw_confidence"),
         "cooked_to_raw_warning": item.get("cooked_to_raw_warning"),
+        "estimated_cost": item.get("estimated_cost"),
+        "currency": item.get("currency"),
+        "estimated_cost_display": _format_cost(item.get("estimated_cost"), item.get("currency")),
+        "price_source_name": item.get("price_source_name"),
+        "price_store_name": item.get("price_store_name"),
+        "price_source_url": item.get("price_source_url"),
+        "price_confidence": item.get("price_confidence"),
+        "price_warning": item.get("price_warning"),
+        "price_catalog_item_id": item.get("price_catalog_item_id"),
     }
 
 
@@ -1351,16 +1428,65 @@ def _has_purchase_suggestions(grocery_list: dict[str, Any]) -> bool:
     )
 
 
-def _readable_item_line(item: dict[str, Any], include_purchase_suggestions: bool) -> str:
+def _has_price_estimates(grocery_list: dict[str, Any]) -> bool:
+    summary = grocery_list.get("summary", {})
+    if isinstance(summary, dict) and summary.get("pricing_summary"):
+        return True
+    return any(
+        "estimated_cost" in item or "price_warning" in item
+        for item in _display_items(grocery_list)
+    )
+
+
+def _readable_item_line(
+    item: dict[str, Any],
+    include_purchase_suggestions: bool,
+    include_price_estimates: bool = False,
+) -> str:
     name = item.get("display_name_clean")
     suffix = _display_item_suffix(item)
+    price_suffix = _readable_price_suffix(item) if include_price_estimates else ""
     if include_purchase_suggestions and item.get("purchase_display"):
         needed = item.get("needed_grams_display") or item.get("display_grams")
         purchase_display = str(item.get("purchase_display") or "").strip()
         if purchase_display.startswith("check pantry") or purchase_display.startswith("review item"):
-            return f"- {name}: {purchase_display}{suffix}"
-        return f"- {name}: need {needed}; buy {purchase_display}{suffix}"
-    return f"- {name}: {item.get('display_grams')}{suffix}"
+            return f"- {name}: {purchase_display}{price_suffix}{suffix}"
+        return f"- {name}: need {needed}; buy {purchase_display}{price_suffix}{suffix}"
+    return f"- {name}: {item.get('display_grams')}{price_suffix}{suffix}"
+
+
+def _readable_price_suffix(item: dict[str, Any]) -> str:
+    cost = item.get("estimated_cost")
+    if cost is not None and _clean_text(cost):
+        return f"; est. {_format_cost(cost, item.get('currency'))}"
+    warning = _clean_text(item.get("price_warning"))
+    if warning == "price_missing":
+        return "; price missing"
+    if warning == "price_pantry_check":
+        return "; price not counted"
+    if warning:
+        return f"; price warning: {warning}"
+    return ""
+
+
+def _readable_price_total_line(items: list[dict[str, Any]]) -> str:
+    total = 0.0
+    currency = ""
+    count = 0
+    missing = 0
+    for item in items:
+        cost = _to_float(item.get("estimated_cost"))
+        if cost > 0:
+            total += cost
+            count += 1
+            if not currency:
+                currency = _clean_text(item.get("currency"))
+        elif _clean_text(item.get("price_warning")):
+            missing += 1
+    if count == 0:
+        return f"- Estimated total: unavailable; missing prices for {missing} items."
+    missing_text = f"; missing prices for {missing} items" if missing else ""
+    return f"- Estimated total: {_format_cost(total, currency)} ({count} priced items{missing_text})."
 
 
 def _readable_warnings(grocery_list: dict[str, Any]) -> list[str]:
@@ -1368,13 +1494,69 @@ def _readable_warnings(grocery_list: dict[str, Any]) -> list[str]:
     for item in _display_items(grocery_list):
         warnings.extend(str(warning) for warning in item.get("warnings", []))
         warnings.extend(str(warning) for warning in item.get("purchase_warnings", []))
-    return sorted(dict.fromkeys(str(item) for item in warnings if str(item).strip()))
+        price_warning = _clean_text(item.get("price_warning"))
+        if price_warning:
+            warnings.append(price_warning)
+    readable_warnings = [
+        _readable_warning_label(str(item))
+        for item in warnings
+        if str(item).strip()
+    ]
+    return sorted(dict.fromkeys(item for item in readable_warnings if item))
+
+
+def _readable_warning_label(warning: str) -> str:
+    labels = {
+        "fallback_grouped_items_present": "Some items were grouped by fallback name.",
+        "normalized_name_fallback": "Some items were grouped by fallback name.",
+        "missing_or_zero_quantity_skipped": "Some missing/zero quantity ingredients were skipped.",
+        "ingredients_with_missing_or_zero_quantity_skipped": "Some missing/zero quantity ingredients were skipped.",
+        "pantry_basic_detected": "Pantry basics are shown separately.",
+        "pantry_basic_items_not_in_main_list": "Pantry basics are shown separately.",
+        "water_excluded_by_default": "Water was excluded by default.",
+        "display_alias_grouping_used": "Some obvious aliases were grouped for display.",
+        "cooked_to_raw_estimate": "Some cooked items use approximate raw purchase estimates.",
+        "cooked_raw_purchase_ambiguity": "Some cooked items were left as purchase-amount warnings.",
+        "cooked_raw_not_converted_to_raw": "Some cooked items were not converted to raw equivalents.",
+        "low_priority_seasoning": "Some seasonings are low-priority grocery items.",
+        "purchase_pantry_check": "Some items are marked as check-at-home pantry basics.",
+        "purchase_rule_missing": "Some items need review because no purchase rule matched.",
+        "purchase_fallback_grams_only": "Some items use grams-only purchase suggestions.",
+        "purchase_review_before_buying": "Some unclear items should be reviewed before buying.",
+        "unclear_grocery_item_name": "Some grocery item names are unclear and need review.",
+        "price_demo_estimate": "Prices are demo estimates and may vary by store/date.",
+        "price_missing": "Some items are missing source-backed price estimates.",
+        "price_quantity_missing": "Some items have price data but missing purchase quantity.",
+        "price_pantry_check": "Some pantry-check items were not costed.",
+    }
+    return labels.get(warning, warning.replace("_", " ").capitalize() + ".")
 
 
 def _is_unclear_grocery_item_name(item: dict[str, Any]) -> bool:
     display_name = _normalise_name(item.get("display_name_clean") or item.get("display_name"))
     canonical = _normalise_name(item.get("canonical_name"))
     return display_name in {"pressed", "unknown item", "unknown ingredient"} or canonical == "pressed"
+
+
+def _is_egg_display_alias(text: str) -> bool:
+    normalised = _normalise_name(text)
+    if normalised in {"egg", "eggs"}:
+        return True
+    if "egg" in normalised and "raw" in normalised:
+        return True
+    if "egg" in normalised and "hard boiled" in normalised:
+        return True
+    padded = f" {normalised} "
+    return any(
+        f" {keyword} " in padded
+        for keyword in [
+            "egg raw",
+            "raw egg",
+            "egg hard boiled",
+            "hard boiled egg",
+            "hard boiled eggs",
+        ]
+    )
 
 
 def _has_cooked_raw_purchase_ambiguity(item: dict[str, Any]) -> bool:
@@ -1514,6 +1696,14 @@ def _format_grams(value: Any) -> str:
     if abs(grams - round(grams)) < 0.05:
         return f"{int(round(grams))}g"
     return f"{grams:.1f}g"
+
+
+def _format_cost(value: Any, currency: Any = "RON") -> str:
+    if value is None or not _clean_text(value):
+        return ""
+    amount = _to_float(value)
+    currency_text = _clean_text(currency) or "RON"
+    return f"{amount:.2f} {currency_text}"
 
 
 def _join_values(values: list[Any]) -> str:
