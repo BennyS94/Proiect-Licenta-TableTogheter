@@ -1,0 +1,100 @@
+{
+  "dataset_profile": "v1_2_demo_final",
+  "days": 3,
+  "household_profile": {
+    "household_id": "household_demo_family_001",
+    "household_name": "Demo Family Household",
+    "active_member_ids": [
+      "member_demo_adult_male_001",
+      "member_demo_adult_female_001",
+      "member_demo_lower_target_001"
+    ],
+    "members": [
+      {
+        "member_id": "member_demo_adult_male_001",
+        "display_name": "Alex",
+        "age": 35,
+        "sex": "male",
+        "weight_kg": 82.0,
+        "height_cm": 180.0,
+        "activity_level": "moderately_active",
+        "goal": "gain",
+        "goal_speed": "slow",
+        "training": {
+          "sessions_per_week": 4,
+          "type": "weights"
+        },
+        "meal_config": {
+          "meals_per_day": 3,
+          "include_snacks": true,
+          "day_structure": "3_meals_plus_snack"
+        },
+        "dietary_preferences": {
+          "no_beef": false,
+          "no_chicken": false,
+          "no_fish": false,
+          "no_dairy": false,
+          "vegetarian": false,
+          "vegan": false,
+          "gluten_free": false
+        },
+        "bf_profile": "normal"
+      },
+      {
+        "member_id": "member_demo_adult_female_001",
+        "display_name": "Mara",
+        "age": 34,
+        "sex": "female",
+        "weight_kg": 64.0,
+        "height_cm": 168.0,
+        "activity_level": "lightly_active",
+        "goal": "lose",
+        "goal_speed": "slow",
+        "training": {
+          "sessions_per_week": 2,
+          "type": "mixed"
+        },
+        "meal_config": {
+          "meals_per_day": 3,
+          "include_snacks": true,
+          "day_structure": "3_meals_plus_snack"
+        },
+        "dietary_preferences": {
+          "no_beef": false,
+          "no_chicken": false,
+          "no_fish": false,
+          "no_dairy": false,
+          "vegetarian": false,
+          "vegan": false,
+          "gluten_free": false
+        },
+        "bf_profile": "normal"
+      }
+    ],
+    "household_preferences": {
+      "shared_meal_preference": true,
+      "max_unique_dinners_per_day": 1,
+      "cook_once_share_meal": true
+    }
+  },
+  "selected_member_ids": [
+    "member_demo_adult_male_001",
+    "member_demo_adult_female_001"
+  ],
+  "household_mode": "individual_breakfast_shared_main",
+  "household_allocation_mode": "macro_aware_simple",
+  "generation_options": {
+    "selection_mode": "balanced_day",
+    "portion_policy": "target_aware",
+    "meal_realism_mode": "practical",
+    "quality_gate": "demo_safe",
+    "profile_guard": "demo",
+    "multi_day_mode": "global_alternatives_3_day",
+    "multi_day_no_repeat_policy": "hard",
+    "day_candidate_builder": "direct_from_slots",
+    "include_grocery_list": true,
+    "include_purchase_suggestions": true,
+    "include_price_estimates": true,
+    "feedback_enabled": true
+  }
+}

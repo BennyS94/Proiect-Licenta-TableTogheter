@@ -1,0 +1,92 @@
+{
+  "plan_id": "plan_demo_individual_001",
+  "generation_type": "individual",
+  "member_profile_id": "member_demo_001",
+  "days": 3,
+  "daily_plan": [
+    {
+      "day_index": 1,
+      "validation_status": "valid",
+      "quality_status": "accept",
+      "totals": {
+        "kcal": 2225.0,
+        "protein_g": 148.4,
+        "carbs_g": 255.2,
+        "fat_g": 72.1
+      },
+      "selected_meals": [
+        {
+          "slot": "breakfast",
+          "recipe_id": "recipes_v1_2_round42_dataset_015",
+          "display_name": "Egg-Free and Milk-Free Baked Oatmeal",
+          "recipe_family_name": "Egg-Free and Milk-Free Baked Oatmeal",
+          "portion_multiplier": 1.0,
+          "portion_grams_estimated": 328.1,
+          "kcal": 547.8,
+          "protein_g": 24.6,
+          "carbs_g": 75.1,
+          "fat_g": 13.1,
+          "effective_time_min_for_scoring": 35.0,
+          "macro_fit": 0.9429,
+          "time_fit": 0.55,
+          "slot_fit": 0.6,
+          "feedback_fit": 0.5,
+          "score_preview": 0.7661,
+          "warnings": []
+        },
+        {
+          "slot": "lunch",
+          "recipe_id": "recipes_v1_2_round41_manual_025",
+          "display_name": "Turkey Egg Rice Bowl",
+          "recipe_family_name": "Turkey Egg Rice Bowl",
+          "portion_multiplier": 1.2,
+          "portion_grams_estimated": 621.6,
+          "kcal": 775.0,
+          "protein_g": 45.1,
+          "carbs_g": 98.8,
+          "fat_g": 21.4,
+          "effective_time_min_for_scoring": 20.0,
+          "macro_fit": 0.88,
+          "time_fit": 0.85,
+          "slot_fit": 0.7,
+          "feedback_fit": 0.5,
+          "score_preview": 0.812,
+          "warnings": []
+        }
+      ]
+    }
+  ],
+  "grocery_list": {
+    "grocery_list_id": "grocery_demo_individual_001",
+    "plan_id": "plan_demo_individual_001",
+    "currency": "RON",
+    "total_estimated_cost": 242.56,
+    "items": [
+      {
+        "display_name": "Eggs",
+        "category": "protein",
+        "needed_grams": 264.0,
+        "purchase_display": "buy 6 eggs",
+        "estimated_cost": 8.99,
+        "currency": "RON",
+        "warnings": []
+      }
+    ]
+  },
+  "feedback_context_summary": {
+    "event_count": 0,
+    "explicit_avoid_count": 0,
+    "liked_count": 0,
+    "disliked_count": 0,
+    "too_long_count": 0
+  },
+  "warnings": [],
+  "diagnostics_summary": {
+    "dataset_profile": "v1_2_demo_final",
+    "profile_guard_status": "normal_demo_safe",
+    "valid_days": 3,
+    "accept_days": 3,
+    "repeated_recipes": 0,
+    "multi_day_loss": 0.006322
+  }
+}

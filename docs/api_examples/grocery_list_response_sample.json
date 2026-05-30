@@ -1,0 +1,51 @@
+{
+  "grocery_list_id": "grocery_demo_household_001",
+  "plan_id": "household_plan_demo_001",
+  "household_id": "household_demo_family_001",
+  "currency": "RON",
+  "total_estimated_cost": 303.77,
+  "items": [
+    {
+      "display_name": "Eggs",
+      "category": "protein",
+      "needed_grams": 1515.0,
+      "purchase_display": "buy 31 eggs",
+      "estimated_cost": 46.5,
+      "currency": "RON",
+      "source": "purchase_rules_v1",
+      "warnings": [
+        "egg_load_review"
+      ]
+    },
+    {
+      "display_name": "Rice (cooked)",
+      "category": "carb",
+      "needed_grams": 684.0,
+      "purchase_display": "buy about 240g raw rice",
+      "estimated_cost": 3.8,
+      "currency": "RON",
+      "source": "cooked_to_raw_helper",
+      "warnings": [
+        "cooked_to_raw_estimate"
+      ]
+    },
+    {
+      "display_name": "Olive oil",
+      "category": "pantry",
+      "needed_grams": 89.6,
+      "purchase_display": "check pantry; need about 89.6g",
+      "estimated_cost": null,
+      "currency": "RON",
+      "source": "purchase_rules_v1",
+      "warnings": [
+        "missing_demo_price"
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "code": "demo_price_estimate",
+      "message": "Prices are source-backed demo estimates, not live store prices."
+    }
+  ]
+}

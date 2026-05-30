@@ -2691,3 +2691,11 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - Recommended household mode: `individual_breakfast_shared_main`.
 - Known limitation:
   - This is still Household Generation Lite. `shared_main_meals` and `individual_breakfast_shared_main` share the same individual breakfast/snack implementation for now, there is no global household optimizer, and grocery scaling remains quantity-only.
+
+## 79. Backend Prep 1 API contract and SQLite planning - 2026-05-30
+- API contract prepared in `docs/architecture/api_contract_v1.md`.
+- SQLite MVP schema prepared in `docs/architecture/sqlite_schema_v1.md`.
+- Generator service wrapper plan prepared in `docs/architecture/generator_service_wrapper_plan.md`.
+- Backend readiness checklist prepared in `docs/architecture/backend_readiness_checklist.md`.
+- Sample request/response JSON files prepared in `docs/api_examples/`.
+- Next implementation checkpoint should be backend skeleton, not mobile UI and not generator logic changes.

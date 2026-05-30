@@ -1,0 +1,21 @@
+{
+  "household_id": "household_demo_family_001",
+  "member_profile_id": "member_demo_adult_male_001",
+  "event_count": 4,
+  "liked_recipe_ids": [
+    "recipes_v1_2_round41_manual_021"
+  ],
+  "disliked_recipe_ids": [
+    "recipes_v1_2_round42_dataset_027"
+  ],
+  "too_long_recipe_ids": [
+    "recipes_v1_2_round42_dataset_016"
+  ],
+  "explicit_avoid_recipe_ids": [],
+  "summary": {
+    "liked_count": 1,
+    "disliked_count": 1,
+    "too_long_count": 1,
+    "explicit_avoid_count": 0
+  }
+}

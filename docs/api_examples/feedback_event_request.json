@@ -1,0 +1,9 @@
+{
+  "household_id": "household_demo_family_001",
+  "member_profile_id": "member_demo_adult_male_001",
+  "plan_id": "household_plan_demo_001",
+  "recipe_id": "recipes_v1_2_round41_manual_021",
+  "slot": "lunch",
+  "feedback_type": "liked",
+  "notes": "Worked well as shared lunch."
+}

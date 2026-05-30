@@ -1,0 +1,51 @@
+{
+  "dataset_profile": "v1_2_demo_final",
+  "days": 3,
+  "member_profile": {
+    "account_id": "account_demo_001",
+    "household_id": "household_demo_001",
+    "member_profile_id": "member_demo_001",
+    "profile_name": "Demo Member",
+    "is_active": true,
+    "age": 22,
+    "sex": "male",
+    "weight_kg": 67.0,
+    "height_cm": 176.0,
+    "activity_level": "moderately_active",
+    "goal": "maintain",
+    "goal_speed": "normal",
+    "training": {
+      "sessions_per_week": 3,
+      "type": "weights"
+    },
+    "meal_config": {
+      "meals_per_day": 3,
+      "include_snacks": true,
+      "day_structure": "3_meals_plus_snack"
+    },
+    "dietary_preferences": {
+      "no_beef": false,
+      "no_chicken": false,
+      "no_fish": false,
+      "no_dairy": false,
+      "vegetarian": false,
+      "vegan": false,
+      "gluten_free": false
+    },
+    "bf_profile": "normal"
+  },
+  "generation_options": {
+    "selection_mode": "balanced_day",
+    "portion_policy": "target_aware",
+    "meal_realism_mode": "practical",
+    "quality_gate": "demo_safe",
+    "profile_guard": "demo",
+    "multi_day_mode": "global_alternatives_3_day",
+    "multi_day_no_repeat_policy": "hard",
+    "day_candidate_builder": "direct_from_slots",
+    "include_grocery_list": true,
+    "include_purchase_suggestions": true,
+    "include_price_estimates": true,
+    "feedback_enabled": true
+  }
+}

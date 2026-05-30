@@ -1,0 +1,131 @@
+{
+  "household_plan_id": "household_plan_demo_001",
+  "generation_type": "household",
+  "selected_members": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "display_name": "Alex"
+    },
+    {
+      "member_id": "member_demo_adult_female_001",
+      "display_name": "Mara"
+    }
+  ],
+  "member_targets": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "display_name": "Alex",
+      "target_kcal": 2920.0,
+      "target_protein_g": 164.0
+    },
+    {
+      "member_id": "member_demo_adult_female_001",
+      "display_name": "Mara",
+      "target_kcal": 1780.0,
+      "target_protein_g": 112.0
+    }
+  ],
+  "days": 3,
+  "per_member_menus": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "display_name": "Alex",
+      "day_index": 1,
+      "meals": [
+        {
+          "slot": "breakfast",
+          "recipe_id": "recipes_v1_2_round42_dataset_016",
+          "display_name": "Brunch Enchiladas",
+          "portion_multiplier": 1.2,
+          "meal_scope": "individual",
+          "kcal": 742.6,
+          "protein_g": 48.8
+        },
+        {
+          "slot": "lunch",
+          "recipe_id": "recipes_v1_2_round41_manual_021",
+          "display_name": "Chicken Lentil Rice Bowl",
+          "portion_multiplier": 1.8,
+          "meal_scope": "shared",
+          "kcal": 1068.2,
+          "protein_g": 83.8
+        }
+      ],
+      "daily_totals": {
+        "kcal": 2910.0,
+        "protein_g": 157.0,
+        "carbs_g": 330.0,
+        "fat_g": 84.0
+      }
+    }
+  ],
+  "shared_meals": [
+    {
+      "day_index": 1,
+      "slot": "lunch",
+      "recipe_id": "recipes_v1_2_round41_manual_021",
+      "display_name": "Chicken Lentil Rice Bowl",
+      "household_portion_sum": 3.45,
+      "household_grocery_scaling_factor": 3.45
+    }
+  ],
+  "household_grocery_list": {
+    "grocery_list_id": "grocery_demo_household_001",
+    "plan_id": "household_plan_demo_001",
+    "currency": "RON",
+    "total_estimated_cost": 303.77,
+    "items": [
+      {
+        "display_name": "Eggs",
+        "category": "protein",
+        "needed_grams": 1515.0,
+        "purchase_display": "buy 31 eggs",
+        "estimated_cost": 46.5,
+        "currency": "RON",
+        "warnings": [
+          "egg_load_review"
+        ]
+      }
+    ]
+  },
+  "household_grocery_scaling": [
+    {
+      "day_index": 1,
+      "slot": "lunch",
+      "recipe_id": "recipes_v1_2_round41_manual_021",
+      "household_grocery_scaling_factor": 3.45
+    }
+  ],
+  "member_macro_summaries": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "day_index": 1,
+      "kcal_total": 2910.0,
+      "protein_total_g": 157.0,
+      "kcal_ratio": 0.997,
+      "protein_ratio": 0.957
+    },
+    {
+      "member_id": "member_demo_adult_female_001",
+      "day_index": 1,
+      "kcal_total": 1768.0,
+      "protein_total_g": 105.0,
+      "kcal_ratio": 0.993,
+      "protein_ratio": 0.938
+    }
+  ],
+  "warnings": [
+    {
+      "code": "household_generation_lite",
+      "message": "Household generation is demo/audit level."
+    }
+  ],
+  "diagnostics_summary": {
+    "dataset_profile": "v1_2_demo_final",
+    "household_mode": "individual_breakfast_shared_main",
+    "household_allocation_mode": "macro_aware_simple",
+    "household_quality_status": "accept",
+    "accept_day_count": 3,
+    "max_grocery_scaling_factor": 3.45
+  }
+}
