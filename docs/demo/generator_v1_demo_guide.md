@@ -13,6 +13,10 @@ Demo-ul arata:
 
 Demo-ul nu trebuie prezentat ca productie, weekly planning complet sau arhitectura finala.
 
+Nota produs:
+- Streamlit este in prezent dashboard de debug/demo.
+- Aplicatia mobila viitoare trebuie sa consume un backend FastAPI si nu trebuie sa ruleze generatorul direct.
+
 ## Dataset si config recomandat
 
 Dataset:
@@ -174,6 +178,10 @@ Exemple de sugestii:
 
 In Streamlit, dupa generarea unui meniu, deschide `Grocery list draft`. Checkbox-ul `Show purchase suggestions` afiseaza coloana de sugestie de cumparare si actualizeaza textul copy-friendly. Checkbox-ul `Convert cooked rice/pasta/beans to raw purchase estimate` afiseaza echivalentul raw/dry aproximativ pentru cazurile acoperite.
 
+Nota Round73:
+- purchase suggestions au reguli corectate pentru plain yogurt ca tub, canned tomato puree ca produs conservat si cooked lentils ca dry lentils;
+- itemii neclari, de exemplu `Pressed`, raman review/warning si nu sunt ghiciti automat.
+
 Nota cooked-to-raw:
 - acopera conservator cooked rice, cooked pasta si cooked beans/lentils/chickpeas
 - nu modifica nutrition calculation sau gramele exacte din detail/CSV
@@ -206,6 +214,7 @@ Ce sa spui in demo:
 - TableTogether este orientat pe gospodarie/familie, nu doar pe un profil individual.
 - Preview-ul arata cum aceeasi masa shared poate avea portii diferite pentru fiecare membru.
 - Grocery quantities pot fi scalate de la profil unic la nevoi household.
+- Household Generation Lite include un guard pentru oua directe excesive; este o penalizare/warning de realism, nu o interdictie generala pentru oua.
 - Este primul pas spre family generation.
 
 Ce sa nu pretinzi:

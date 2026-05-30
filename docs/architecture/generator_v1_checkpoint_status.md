@@ -16,6 +16,10 @@ Date neatinse:
 - `data/recipesdb/current`
 - `data/fooddb/current`
 
+Nota backend/API:
+- Generator v1 are acum o fundatie demo suficient de clara pentru a fi expusa printr-un backend API intr-un checkpoint viitor.
+- Urmatorul pas de produs trebuie sa fie un wrapper backend/API peste generator, nu mutarea logicii in aplicatia mobila.
+
 ## Checkpoint 0
 
 Status: conceptual complet.
@@ -135,6 +139,7 @@ Rol:
 - aloca portii per membru pentru mesele shared
 - afiseaza totaluri macro per membru/zi
 - afiseaza factorul de grocery scaling pentru mesele shared
+- Household Grocery realism guard este implementat: penalizare/warning pentru oua directe excesive, fara ban global pe oua.
 - ofera output copy-ready si diagnostice
 
 Comportament curent:

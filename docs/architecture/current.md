@@ -94,6 +94,12 @@ Limitari:
 - fara propagare la nivel de ingrediente
 - context household/demo only
 
+## 2.3. Next product direction: Android mobile MVP via FastAPI backend
+
+Directia urmatoare de produs este un MVP Android care consuma un backend FastAPI prin HTTP/JSON. Generatorul ramane Python in backend, iar aplicatia mobila nu citeste CSV-uri, nu ruleaza generatorul si nu acceseaza direct Food_DB sau Recipes_DB.
+
+Roadmap-ul pentru aceasta directie este documentat in `docs/architecture/mobile_backend_roadmap.md`.
+
 ## 3. Current data model reality
 
 Modelul actual este construit peste un dataset nutritional prelucrat, imbogatit cu clasificari suplimentare si semnale utile pentru generare. In aceasta forma, baza de date curenta este suficienta pentru rularea pipeline-ului existent, dar nu separa inca suficient de clar:
