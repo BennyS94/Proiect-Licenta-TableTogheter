@@ -10,6 +10,9 @@ import type {
   HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
+  MemberProfileCreateRequest,
+  MemberProfileResponse,
+  ProfilesListResponse,
 } from "../types/api";
 
 export type { HealthResponse } from "../types/api";
@@ -34,6 +37,35 @@ export async function getDemoHousehold(): Promise<DemoHouseholdResponse> {
     throw new Error("Demo household response does not include members");
   }
   return payload;
+}
+
+export async function getProfiles(householdId?: string): Promise<MemberProfileResponse[]> {
+  const params = new URLSearchParams();
+  if (householdId) {
+    params.set("household_id", householdId);
+  }
+  const query = params.toString();
+  const payload = await requestJson<ProfilesListResponse>(`/profiles${query ? `?${query}` : ""}`);
+  if (!Array.isArray(payload.profiles)) {
+    throw new Error("Profiles response does not include profiles");
+  }
+  return payload.profiles;
+}
+
+export async function createProfile(
+  request: MemberProfileCreateRequest,
+): Promise<MemberProfileResponse> {
+  return requestJson<MemberProfileResponse>("/profiles", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getProfile(memberProfileId: string): Promise<MemberProfileResponse> {
+  return requestJson<MemberProfileResponse>(`/profiles/${encodeURIComponent(memberProfileId)}`);
 }
 
 export async function generateIndividualPlan(

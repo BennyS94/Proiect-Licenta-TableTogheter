@@ -13,14 +13,18 @@ import { HouseholdMemberPlanView } from "../components/HouseholdMemberPlanView";
 import { HouseholdMemberSwitcher } from "../components/HouseholdMemberSwitcher";
 import { MemberCard } from "../components/MemberCard";
 import { PlanDayCard } from "../components/PlanDayCard";
+import { ProfileCard } from "../components/ProfileCard";
+import { ProfileForm } from "../components/ProfileForm";
 import { StatusCard } from "../components/StatusCard";
 import { API_BASE_URL } from "../config/api";
 import {
+  createProfile,
   generateHouseholdPlan,
   generateIndividualPlan,
   getDemoHousehold,
   getFeedbackContext,
   getHealth,
+  getProfiles,
   submitFeedback,
 } from "../services/apiClient";
 import type {
@@ -35,6 +39,8 @@ import type {
   HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
+  MemberProfileCreateRequest,
+  MemberProfileResponse,
 } from "../types/api";
 
 type HealthState = "idle" | "loading" | "connected" | "error";
@@ -62,16 +68,22 @@ const FEEDBACK_TYPES: FeedbackType[] = [
   "explicit_avoid",
 ];
 
+const DEFAULT_HOUSEHOLD_ID = "household_demo_family_001";
+
 export function HomeScreen() {
   const [healthStatus, setHealthStatus] = useState<HealthState>("idle");
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [demoHousehold, setDemoHousehold] = useState<DemoHouseholdResponse | null>(null);
+  const [savedProfiles, setSavedProfiles] = useState<MemberProfileResponse[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState("");
+  const [selectedSavedProfileId, setSelectedSavedProfileId] = useState("");
   const [generationMode, setGenerationMode] = useState<GenerationMode>("individual");
   const [selectedHouseholdMemberIds, setSelectedHouseholdMemberIds] = useState<string[]>([]);
   const [currentHouseholdMemberIndex, setCurrentHouseholdMemberIndex] = useState(0);
   const [selectedHouseholdDayIndex, setSelectedHouseholdDayIndex] = useState(1);
   const [isLoadingHousehold, setIsLoadingHousehold] = useState(false);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isGeneratingHouseholdPlan, setIsGeneratingHouseholdPlan] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<IndividualPlanGenerateResponse | null>(
@@ -86,6 +98,8 @@ export function HomeScreen() {
   const [feedbackError, setFeedbackError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [householdErrorMessage, setHouseholdErrorMessage] = useState("");
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileErrorMessage, setProfileErrorMessage] = useState("");
 
   const selectedMember = useMemo(
     () =>
@@ -93,6 +107,13 @@ export function HomeScreen() {
         (member) => memberKey(member) === selectedMemberId,
       ) ?? null,
     [demoHousehold, selectedMemberId],
+  );
+  const selectedSavedProfile = useMemo(
+    () =>
+      savedProfiles.find(
+        (profile) => profile.member_profile_id === selectedSavedProfileId,
+      ) ?? null,
+    [savedProfiles, selectedSavedProfileId],
   );
   const selectedHouseholdMembers = useMemo(
     () =>
@@ -109,8 +130,22 @@ export function HomeScreen() {
   const householdGroceryList = generatedHouseholdPlan
     ? getHouseholdGroceryListFromResponse(generatedHouseholdPlan)
     : null;
-  const activeHouseholdId = getActiveHouseholdId(demoHousehold, selectedMember);
-  const activeMemberProfileId = selectedMember ? getMemberProfileId(selectedMember) : "";
+  const savedProfileHouseholdId = demoHousehold?.household_id ?? DEFAULT_HOUSEHOLD_ID;
+  const activeHouseholdId = getActiveHouseholdId(
+    demoHousehold,
+    selectedMember,
+    selectedSavedProfile,
+  );
+  const activeMemberProfileId = selectedSavedProfile
+    ? selectedSavedProfile.member_profile_id
+    : selectedMember
+      ? getMemberProfileId(selectedMember)
+      : "";
+  const selectedIndividualSource = selectedSavedProfile
+    ? "Saved profile"
+    : selectedMember
+      ? "Demo member"
+      : "None";
   const feedbackStats = getFeedbackStats(feedbackContext);
 
   async function checkBackendHealth() {
@@ -156,9 +191,56 @@ export function HomeScreen() {
     }
   }
 
+  async function loadSavedProfiles(profileIdToSelect?: string, quiet = false) {
+    setIsLoadingProfiles(true);
+    if (!quiet) {
+      setProfileMessage("");
+      setProfileErrorMessage("");
+    }
+
+    try {
+      const profiles = await getProfiles(savedProfileHouseholdId);
+      setSavedProfiles(profiles);
+      if (profileIdToSelect) {
+        setSelectedSavedProfileId(profileIdToSelect);
+        setSelectedMemberId("");
+      } else if (
+        selectedSavedProfileId &&
+        !profiles.some((profile) => profile.member_profile_id === selectedSavedProfileId)
+      ) {
+        setSelectedSavedProfileId("");
+      }
+    } catch (error) {
+      setProfileErrorMessage(error instanceof Error ? error.message : "Profiles fetch failed");
+    } finally {
+      setIsLoadingProfiles(false);
+    }
+  }
+
+  async function createSavedProfile(request: MemberProfileCreateRequest) {
+    setIsCreatingProfile(true);
+    setProfileMessage("");
+    setProfileErrorMessage("");
+
+    try {
+      const createdProfile = await createProfile(request);
+      const profiles = await getProfiles(createdProfile.household_id);
+      setSavedProfiles(profiles);
+      setSelectedSavedProfileId(createdProfile.member_profile_id);
+      setSelectedMemberId("");
+      setProfileMessage(`Profile saved: ${createdProfile.display_name}`);
+      setGeneratedPlan(null);
+      setFeedbackContext(null);
+    } catch (error) {
+      setProfileErrorMessage(error instanceof Error ? error.message : "Profile save failed");
+    } finally {
+      setIsCreatingProfile(false);
+    }
+  }
+
   async function generatePlanForSelectedMember() {
-    if (!selectedMember) {
-      setErrorMessage("Select a demo member before generating a plan.");
+    if (!selectedMember && !selectedSavedProfile) {
+      setErrorMessage("Select a demo member or a saved profile before generating a plan.");
       return;
     }
 
@@ -169,7 +251,9 @@ export function HomeScreen() {
     setFeedbackError("");
 
     try {
-      const request = buildGenerateRequest(selectedMember, demoHousehold);
+      const request = selectedSavedProfile
+        ? buildSavedProfileGenerateRequest(selectedSavedProfile)
+        : buildGenerateRequest(selectedMember as DemoMemberProfile, demoHousehold);
       const response = await generateIndividualPlan(request);
       setGeneratedPlan(response);
       if (response.status === "blocked") {
@@ -214,6 +298,20 @@ export function HomeScreen() {
     } finally {
       setIsGeneratingHouseholdPlan(false);
     }
+  }
+
+  function selectDemoMember(memberId: string) {
+    setSelectedMemberId(memberId);
+    setSelectedSavedProfileId("");
+    setFeedbackContext(null);
+    setGeneratedPlan(null);
+  }
+
+  function selectSavedProfile(memberProfileId: string) {
+    setSelectedSavedProfileId(memberProfileId);
+    setSelectedMemberId("");
+    setFeedbackContext(null);
+    setGeneratedPlan(null);
   }
 
   function toggleHouseholdMember(memberId: string) {
@@ -370,7 +468,7 @@ export function HomeScreen() {
 
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>Demo household</Text>
+          <Text style={styles.panelTitle}>Demo household members</Text>
           <Text style={styles.panelMeta}>
             {demoHousehold ? `${demoHousehold.members.length} members` : "Not loaded"}
           </Text>
@@ -400,7 +498,7 @@ export function HomeScreen() {
                   }
                   onPress={() =>
                     generationMode === "individual"
-                      ? setSelectedMemberId(key)
+                      ? selectDemoMember(key)
                       : toggleHouseholdMember(key)
                   }
                 />
@@ -415,6 +513,44 @@ export function HomeScreen() {
         ) : null}
       </View>
 
+      <View style={styles.panel}>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Saved profiles</Text>
+          <Text style={styles.panelMeta}>
+            {savedProfiles.length ? `${savedProfiles.length} profiles` : "SQLite demo"}
+          </Text>
+        </View>
+        <ActionButton
+          disabled={isLoadingProfiles}
+          loading={isLoadingProfiles}
+          label="Load saved profiles"
+          onPress={() => loadSavedProfiles()}
+          variant="secondary"
+        />
+        <Text style={styles.mutedText}>
+          Profiles are stored in backend SQLite for household {savedProfileHouseholdId}.
+        </Text>
+        <View style={styles.memberList}>
+          {savedProfiles.length ? (
+            savedProfiles.map((profile) => (
+              <ProfileCard
+                key={profile.member_profile_id}
+                onPress={() => selectSavedProfile(profile.member_profile_id)}
+                profile={profile}
+                selected={profile.member_profile_id === selectedSavedProfileId}
+              />
+            ))
+          ) : (
+            <Text style={styles.mutedText}>No saved profiles loaded.</Text>
+          )}
+        </View>
+        <ProfileForm
+          defaultHouseholdId={savedProfileHouseholdId}
+          disabled={isCreatingProfile}
+          onSubmit={createSavedProfile}
+        />
+      </View>
+
       {generationMode === "individual" ? (
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
@@ -422,17 +558,25 @@ export function HomeScreen() {
             <Text style={styles.panelMeta}>3 days / grocery / feedback</Text>
           </View>
           <ActionButton
-            disabled={!selectedMember || isGeneratingPlan}
+            disabled={(!selectedMember && !selectedSavedProfile) || isGeneratingPlan}
             loading={isGeneratingPlan}
-            label="Generate plan for selected member"
+            label="Generate plan for selected profile"
             onPress={generatePlanForSelectedMember}
           />
-          {selectedMember ? (
-            <Text style={styles.mutedText}>
-              Selected: {selectedMember.display_name ?? selectedMember.profile_name}
-            </Text>
+          {selectedMember || selectedSavedProfile ? (
+            <>
+              <Text style={styles.mutedText}>Selected source: {selectedIndividualSource}</Text>
+              <Text style={styles.mutedText}>
+                Selected:{" "}
+                {selectedSavedProfile
+                  ? selectedSavedProfile.display_name
+                  : selectedMember?.display_name ?? selectedMember?.profile_name}
+              </Text>
+            </>
           ) : (
-            <Text style={styles.mutedText}>Select a member to enable generation.</Text>
+            <Text style={styles.mutedText}>
+              Select a demo member or saved profile to enable generation.
+            </Text>
           )}
         </View>
       ) : null}
@@ -490,6 +634,10 @@ export function HomeScreen() {
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
       {householdErrorMessage ? (
         <Text style={styles.errorText}>{householdErrorMessage}</Text>
+      ) : null}
+      {profileMessage ? <Text style={styles.successText}>{profileMessage}</Text> : null}
+      {profileErrorMessage ? (
+        <Text style={styles.errorText}>{profileErrorMessage}</Text>
       ) : null}
       {feedbackMessage ? <Text style={styles.successText}>{feedbackMessage}</Text> : null}
       {feedbackError ? <Text style={styles.errorText}>{feedbackError}</Text> : null}
@@ -670,6 +818,22 @@ function buildGenerateRequest(
   };
 }
 
+function buildSavedProfileGenerateRequest(
+  profile: MemberProfileResponse,
+): IndividualPlanGenerateRequest {
+  return {
+    dataset_profile: "v1_2_demo_final",
+    days: 3,
+    household_id: profile.household_id,
+    member_profile_id: profile.member_profile_id,
+    generation_options: GENERATION_OPTIONS,
+    include_grocery_list: true,
+    include_purchase_suggestions: true,
+    include_price_estimates: true,
+    feedback_enabled: true,
+  };
+}
+
 function buildHouseholdGenerateRequest(
   household: DemoHouseholdResponse,
   selectedMemberIds: string[],
@@ -709,8 +873,11 @@ function buildHouseholdGenerateRequest(
 function getActiveHouseholdId(
   household: DemoHouseholdResponse | null,
   member: DemoMemberProfile | null,
+  savedProfile?: MemberProfileResponse | null,
 ): string {
-  return String(household?.household_id ?? member?.household_id ?? "").trim();
+  return String(
+    savedProfile?.household_id ?? household?.household_id ?? member?.household_id ?? "",
+  ).trim();
 }
 
 function getMemberProfileId(member: DemoMemberProfile): string {

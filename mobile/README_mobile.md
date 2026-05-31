@@ -83,6 +83,8 @@ http://127.0.0.1:8000
 - Afiseaza butoane feedback pentru mesele generate si salveaza feedback-ul prin backend.
 - Genereaza un plan household de 3 zile prin `POST /household-plans/generate`.
 - Afiseaza cate un membru household pe rand, cu selector de zi, mese, totaluri si grocery list agregata cand backend-ul o returneaza.
+- Listeaza si creeaza profiluri salvate prin backend SQLite.
+- Poate genera plan individual folosind `member_profile_id` pentru un profil salvat.
 
 ## Mobile M2 Flow
 
@@ -142,6 +144,22 @@ Aplicatia trimite requestul catre `POST /household-plans/generate` si afiseaza r
 
 Modul household este inca demo Android-first. Nu exista auth/login, cloud sync, UI polish final sau ecran separat pentru household setup.
 
+## Mobile M6 Flow
+
+Mobile M6 adauga profiluri persistente demo in acelasi ecran principal:
+
+1. Porneste backend-ul FastAPI.
+2. Apasa `Check backend health`.
+3. Apasa `Load saved profiles`.
+4. Completeaza formularul `Create profile`.
+5. Apasa `Save profile`.
+6. Selecteaza profilul salvat.
+7. Apasa `Generate plan for selected profile`.
+
+Profilurile sunt create prin `POST /profiles`, listate prin `GET /profiles` si stocate in SQLite local/demo in backend. Generarea individuala poate trimite doar `member_profile_id`, iar backend-ul incarca profilul salvat si il foloseste pentru Generator v1.
+
+Membrii demo raman disponibili prin `GET /households/demo`, iar household generation ramane pe flow-ul M5. Nu exista login/auth, cloud sync sau conturi reale. Daca baza locala `data/runtime/tabletogether_demo.db` este stearsa, profilurile salvate dispar.
+
 ## Next Step
 
-Urmatorul pas este Mobile M6: profil persistent / create profile UI, urmat de polish UI pentru flow-ul demo.
+Urmatorul pas este Mobile M7: polish UI pentru flow-ul demo si separare mai clara a ecranelor.

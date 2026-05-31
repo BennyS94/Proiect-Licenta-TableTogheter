@@ -32,12 +32,58 @@ export type DemoHouseholdResponse = {
   [key: string]: unknown;
 };
 
+export type MemberProfileCreateRequest = {
+  household_id: string;
+  member_profile_id?: string;
+  display_name: string;
+  age: number;
+  sex: string;
+  weight_kg: number;
+  height_cm: number;
+  activity_level: string;
+  goal: string;
+  goal_speed: string;
+  training: Record<string, unknown>;
+  meal_config: Record<string, unknown>;
+  dietary_preferences: Record<string, unknown>;
+  bf_profile?: string;
+  [key: string]: unknown;
+};
+
+export type MemberProfileResponse = {
+  member_profile_id: string;
+  household_id: string;
+  display_name: string;
+  age: number;
+  sex: string;
+  weight_kg: number;
+  height_cm: number;
+  activity_level: string;
+  goal: string;
+  goal_speed: string;
+  training: Record<string, unknown>;
+  meal_config: Record<string, unknown>;
+  dietary_preferences: Record<string, unknown>;
+  bf_profile?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+};
+
+export type ProfilesListResponse = {
+  household_id?: string | null;
+  source?: string;
+  profiles: MemberProfileResponse[];
+  [key: string]: unknown;
+};
+
 export type IndividualPlanGenerateRequest = {
   dataset_profile: string;
   days: number;
   household_id?: string;
   member_profile_id?: string;
-  member_profile: DemoMemberProfile;
+  member_profile?: DemoMemberProfile;
   generation_options: Record<string, unknown>;
   include_grocery_list: boolean;
   include_purchase_suggestions: boolean;
