@@ -9,11 +9,14 @@ import {
 } from "react-native";
 
 import { GroceryListSection } from "../components/GroceryListSection";
+import { HouseholdMemberPlanView } from "../components/HouseholdMemberPlanView";
+import { HouseholdMemberSwitcher } from "../components/HouseholdMemberSwitcher";
 import { MemberCard } from "../components/MemberCard";
 import { PlanDayCard } from "../components/PlanDayCard";
 import { StatusCard } from "../components/StatusCard";
 import { API_BASE_URL } from "../config/api";
 import {
+  generateHouseholdPlan,
   generateIndividualPlan,
   getDemoHousehold,
   getFeedbackContext,
@@ -28,11 +31,14 @@ import type {
   GeneratedMeal,
   GroceryListResponse,
   HealthResponse,
+  HouseholdPlanGenerateRequest,
+  HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
 } from "../types/api";
 
 type HealthState = "idle" | "loading" | "connected" | "error";
+type GenerationMode = "individual" | "household";
 
 const GENERATION_OPTIONS = {
   selection_mode: "balanced_day",
@@ -61,17 +67,25 @@ export function HomeScreen() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [demoHousehold, setDemoHousehold] = useState<DemoHouseholdResponse | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState("");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("individual");
+  const [selectedHouseholdMemberIds, setSelectedHouseholdMemberIds] = useState<string[]>([]);
+  const [currentHouseholdMemberIndex, setCurrentHouseholdMemberIndex] = useState(0);
+  const [selectedHouseholdDayIndex, setSelectedHouseholdDayIndex] = useState(1);
   const [isLoadingHousehold, setIsLoadingHousehold] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [isGeneratingHouseholdPlan, setIsGeneratingHouseholdPlan] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<IndividualPlanGenerateResponse | null>(
     null,
   );
+  const [generatedHouseholdPlan, setGeneratedHouseholdPlan] =
+    useState<HouseholdPlanGenerateResponse | null>(null);
   const [feedbackContext, setFeedbackContext] = useState<FeedbackContextResponse | null>(null);
   const [isLoadingFeedbackContext, setIsLoadingFeedbackContext] = useState(false);
   const [pendingFeedbackKey, setPendingFeedbackKey] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackError, setFeedbackError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [householdErrorMessage, setHouseholdErrorMessage] = useState("");
 
   const selectedMember = useMemo(
     () =>
@@ -80,7 +94,21 @@ export function HomeScreen() {
       ) ?? null,
     [demoHousehold, selectedMemberId],
   );
+  const selectedHouseholdMembers = useMemo(
+    () =>
+      (demoHousehold?.members ?? []).filter((member) =>
+        selectedHouseholdMemberIds.includes(memberKey(member)),
+      ),
+    [demoHousehold, selectedHouseholdMemberIds],
+  );
+  const currentHouseholdMember =
+    selectedHouseholdMembers[currentHouseholdMemberIndex] ??
+    selectedHouseholdMembers[0] ??
+    null;
   const groceryList = generatedPlan ? getGroceryListFromPlanResponse(generatedPlan) : null;
+  const householdGroceryList = generatedHouseholdPlan
+    ? getHouseholdGroceryListFromResponse(generatedHouseholdPlan)
+    : null;
   const activeHouseholdId = getActiveHouseholdId(demoHousehold, selectedMember);
   const activeMemberProfileId = selectedMember ? getMemberProfileId(selectedMember) : "";
   const feedbackStats = getFeedbackStats(feedbackContext);
@@ -103,18 +131,25 @@ export function HomeScreen() {
   async function loadDemoHousehold() {
     setIsLoadingHousehold(true);
     setErrorMessage("");
+    setHouseholdErrorMessage("");
     setGeneratedPlan(null);
+    setGeneratedHouseholdPlan(null);
     setFeedbackContext(null);
     setFeedbackMessage("");
     setFeedbackError("");
 
     try {
       const household = await getDemoHousehold();
+      const householdMemberIds = household.members.map(memberKey).filter(Boolean);
       setDemoHousehold(household);
       setSelectedMemberId("");
+      setSelectedHouseholdMemberIds(householdMemberIds);
+      setCurrentHouseholdMemberIndex(0);
+      setSelectedHouseholdDayIndex(1);
     } catch (error) {
       setDemoHousehold(null);
       setSelectedMemberId("");
+      setSelectedHouseholdMemberIds([]);
       setErrorMessage(error instanceof Error ? error.message : "Household fetch failed");
     } finally {
       setIsLoadingHousehold(false);
@@ -145,6 +180,69 @@ export function HomeScreen() {
     } finally {
       setIsGeneratingPlan(false);
     }
+  }
+
+  async function generateHouseholdPlanForSelectedMembers() {
+    if (!demoHousehold) {
+      setHouseholdErrorMessage("Load a demo household before generating a household plan.");
+      return;
+    }
+    if (!selectedHouseholdMemberIds.length) {
+      setHouseholdErrorMessage("Select at least one member for household generation.");
+      return;
+    }
+
+    setIsGeneratingHouseholdPlan(true);
+    setHouseholdErrorMessage("");
+    setGeneratedHouseholdPlan(null);
+    setFeedbackMessage("");
+    setFeedbackError("");
+
+    try {
+      const request = buildHouseholdGenerateRequest(demoHousehold, selectedHouseholdMemberIds);
+      const response = await generateHouseholdPlan(request);
+      setGeneratedHouseholdPlan(response);
+      setCurrentHouseholdMemberIndex(0);
+      setSelectedHouseholdDayIndex(1);
+      if (response.status === "blocked") {
+        setHouseholdErrorMessage("Household generation was blocked by the backend.");
+      }
+    } catch (error) {
+      setHouseholdErrorMessage(
+        error instanceof Error ? error.message : "Household generate failed",
+      );
+    } finally {
+      setIsGeneratingHouseholdPlan(false);
+    }
+  }
+
+  function toggleHouseholdMember(memberId: string) {
+    setHouseholdErrorMessage("");
+    setCurrentHouseholdMemberIndex(0);
+    setSelectedHouseholdMemberIds((current) => {
+      const next = current.includes(memberId)
+        ? current.filter((selectedId) => selectedId !== memberId)
+        : [...current, memberId];
+      return next;
+    });
+  }
+
+  function showPreviousHouseholdMember() {
+    if (!selectedHouseholdMembers.length) {
+      return;
+    }
+    setCurrentHouseholdMemberIndex((current) =>
+      current <= 0 ? selectedHouseholdMembers.length - 1 : current - 1,
+    );
+  }
+
+  function showNextHouseholdMember() {
+    if (!selectedHouseholdMembers.length) {
+      return;
+    }
+    setCurrentHouseholdMemberIndex((current) =>
+      current >= selectedHouseholdMembers.length - 1 ? 0 : current + 1,
+    );
   }
 
   async function refreshFeedbackContext(quiet = false) {
@@ -251,6 +349,27 @@ export function HomeScreen() {
 
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Generation mode</Text>
+          <Text style={styles.panelMeta}>
+            {generationMode === "individual" ? "One member" : "Household"}
+          </Text>
+        </View>
+        <View style={styles.modeSelector}>
+          <ModeButton
+            label="Individual plan"
+            selected={generationMode === "individual"}
+            onPress={() => setGenerationMode("individual")}
+          />
+          <ModeButton
+            label="Household plan"
+            selected={generationMode === "household"}
+            onPress={() => setGenerationMode("household")}
+          />
+        </View>
+      </View>
+
+      <View style={styles.panel}>
+        <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Demo household</Text>
           <Text style={styles.panelMeta}>
             {demoHousehold ? `${demoHousehold.members.length} members` : "Not loaded"}
@@ -274,34 +393,76 @@ export function HomeScreen() {
                 <MemberCard
                   key={key}
                   member={member}
-                  selected={key === selectedMemberId}
-                  onPress={() => setSelectedMemberId(key)}
+                  selected={
+                    generationMode === "individual"
+                      ? key === selectedMemberId
+                      : selectedHouseholdMemberIds.includes(key)
+                  }
+                  onPress={() =>
+                    generationMode === "individual"
+                      ? setSelectedMemberId(key)
+                      : toggleHouseholdMember(key)
+                  }
                 />
               );
             })}
+            {generationMode === "household" ? (
+              <Text style={styles.mutedText}>
+                Household members selected: {selectedHouseholdMemberIds.length}
+              </Text>
+            ) : null}
           </View>
         ) : null}
       </View>
 
-      <View style={styles.panel}>
-        <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>Individual plan</Text>
-          <Text style={styles.panelMeta}>3 days / grocery / feedback</Text>
+      {generationMode === "individual" ? (
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>Individual plan</Text>
+            <Text style={styles.panelMeta}>3 days / grocery / feedback</Text>
+          </View>
+          <ActionButton
+            disabled={!selectedMember || isGeneratingPlan}
+            loading={isGeneratingPlan}
+            label="Generate plan for selected member"
+            onPress={generatePlanForSelectedMember}
+          />
+          {selectedMember ? (
+            <Text style={styles.mutedText}>
+              Selected: {selectedMember.display_name ?? selectedMember.profile_name}
+            </Text>
+          ) : (
+            <Text style={styles.mutedText}>Select a member to enable generation.</Text>
+          )}
         </View>
-        <ActionButton
-          disabled={!selectedMember || isGeneratingPlan}
-          loading={isGeneratingPlan}
-          label="Generate plan for selected member"
-          onPress={generatePlanForSelectedMember}
-        />
-        {selectedMember ? (
-          <Text style={styles.mutedText}>
-            Selected: {selectedMember.display_name ?? selectedMember.profile_name}
-          </Text>
-        ) : (
-          <Text style={styles.mutedText}>Select a member to enable generation.</Text>
-        )}
-      </View>
+      ) : null}
+
+      {generationMode === "household" ? (
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>Household plan</Text>
+            <Text style={styles.panelMeta}>3 days / shared meals</Text>
+          </View>
+          <ActionButton
+            disabled={!selectedHouseholdMemberIds.length || isGeneratingHouseholdPlan}
+            loading={isGeneratingHouseholdPlan}
+            label="Generate household plan"
+            onPress={generateHouseholdPlanForSelectedMembers}
+          />
+          {selectedHouseholdMemberIds.length === 1 ? (
+            <Text style={styles.mutedText}>
+              One member selected. Household endpoint will still be used.
+            </Text>
+          ) : (
+            <Text style={styles.mutedText}>
+              Selected members: {selectedHouseholdMemberIds.length}
+            </Text>
+          )}
+          {!selectedHouseholdMemberIds.length ? (
+            <Text style={styles.errorText}>Select at least one member.</Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
@@ -327,10 +488,13 @@ export function HomeScreen() {
       </View>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      {householdErrorMessage ? (
+        <Text style={styles.errorText}>{householdErrorMessage}</Text>
+      ) : null}
       {feedbackMessage ? <Text style={styles.successText}>{feedbackMessage}</Text> : null}
       {feedbackError ? <Text style={styles.errorText}>{feedbackError}</Text> : null}
 
-      {generatedPlan ? (
+      {generationMode === "individual" && generatedPlan ? (
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <Text style={styles.panelTitle}>Generated plan</Text>
@@ -353,7 +517,54 @@ export function HomeScreen() {
         </View>
       ) : null}
 
-      {generatedPlan ? <GroceryListSection groceryList={groceryList} /> : null}
+      {generationMode === "individual" && generatedPlan ? (
+        <GroceryListSection groceryList={groceryList} />
+      ) : null}
+
+      {generationMode === "household" && generatedHouseholdPlan ? (
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>Generated household plan</Text>
+            <Text style={styles.panelMeta}>Status: {generatedHouseholdPlan.status}</Text>
+          </View>
+          <InfoRow label="Plan ID" value={getHouseholdPlanId(generatedHouseholdPlan) ?? "missing"} />
+          <InfoRow label="Selected members" value={String(selectedHouseholdMembers.length)} />
+          <InfoRow label="Days" value={String(generatedHouseholdPlan.days ?? "-")} />
+          <InfoRow label="Quality" value={getHouseholdQualitySummary(generatedHouseholdPlan).quality} />
+          <InfoRow
+            label="Accept/review/reject"
+            value={getHouseholdQualitySummary(generatedHouseholdPlan).counts}
+          />
+          {renderWarnings(generatedHouseholdPlan.warnings)}
+
+          <HouseholdMemberSwitcher
+            currentIndex={currentHouseholdMemberIndex}
+            members={selectedHouseholdMembers}
+            onNext={showNextHouseholdMember}
+            onPrevious={showPreviousHouseholdMember}
+          />
+
+          {currentHouseholdMember ? (
+            <HouseholdMemberPlanView
+              memberId={memberKey(currentHouseholdMember)}
+              members={selectedHouseholdMembers}
+              onSelectDay={setSelectedHouseholdDayIndex}
+              plan={generatedHouseholdPlan}
+              selectedDayIndex={selectedHouseholdDayIndex}
+            />
+          ) : (
+            <Text style={styles.mutedText}>Select a member to inspect household meals.</Text>
+          )}
+        </View>
+      ) : null}
+
+      {generationMode === "household" && generatedHouseholdPlan ? (
+        <GroceryListSection
+          emptyMessage="No household grocery list returned."
+          groceryList={householdGroceryList}
+          title="Household grocery list"
+        />
+      ) : null}
     </ScrollView>
   );
 }
@@ -399,6 +610,32 @@ function ActionButton({
   );
 }
 
+function ModeButton({
+  label,
+  onPress,
+  selected,
+}: {
+  label: string;
+  onPress: () => void;
+  selected: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.modeButton,
+        selected ? styles.modeButtonSelected : null,
+        pressed ? styles.buttonPressed : null,
+      ]}
+    >
+      <Text style={[styles.modeButtonText, selected ? styles.modeButtonTextSelected : null]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.infoRow}>
@@ -430,6 +667,42 @@ function buildGenerateRequest(
     include_purchase_suggestions: true,
     include_price_estimates: true,
     feedback_enabled: true,
+  };
+}
+
+function buildHouseholdGenerateRequest(
+  household: DemoHouseholdResponse,
+  selectedMemberIds: string[],
+): HouseholdPlanGenerateRequest {
+  const householdId = String(household.household_id ?? "").trim();
+  const members = household.members.map((member) => {
+    const profileId = getMemberProfileId(member) || memberKey(member);
+    return {
+      ...member,
+      household_id: householdId || member.household_id,
+      member_profile_id: profileId,
+      member_id: member.member_id ?? profileId,
+      profile_name: member.profile_name ?? member.display_name ?? profileId,
+    };
+  });
+
+  return {
+    dataset_profile: "v1_2_demo_final",
+    days: 3,
+    household_id: householdId || undefined,
+    household_profile: {
+      ...household,
+      household_id: householdId,
+      members,
+    },
+    selected_member_ids: selectedMemberIds,
+    generation_options: GENERATION_OPTIONS,
+    include_grocery_list: true,
+    include_purchase_suggestions: true,
+    include_price_estimates: true,
+    feedback_enabled: true,
+    household_mode: "individual_breakfast_shared_main",
+    household_allocation_mode: "macro_aware_simple",
   };
 }
 
@@ -471,6 +744,79 @@ function getGroceryListFromPlanResponse(
   return null;
 }
 
+function getHouseholdGroceryListFromResponse(
+  response: HouseholdPlanGenerateResponse,
+): GroceryListResponse | null {
+  const candidate = response.household_grocery_list ?? response.grocery_list;
+  if (isRecord(candidate)) {
+    return candidate as GroceryListResponse;
+  }
+  return null;
+}
+
+function getHouseholdPlanId(response: HouseholdPlanGenerateResponse): string | undefined {
+  const planId = String(response.household_plan_id ?? response.plan_id ?? "").trim();
+  return planId || undefined;
+}
+
+function getHouseholdQualitySummary(response: HouseholdPlanGenerateResponse) {
+  const diagnostics = asRecord(response.diagnostics_summary);
+  const quality =
+    stringValue(diagnostics.quality) ??
+    stringValue(diagnostics.quality_status) ??
+    firstDailyAllocationText(response, "quality") ??
+    firstDailyAllocationText(response, "status") ??
+    "-";
+  const acceptCount =
+    numberValue(diagnostics.accept_count) ?? sumDailyAllocationCount(response, "accept_count");
+  const reviewCount =
+    numberValue(diagnostics.review_count) ?? sumDailyAllocationCount(response, "review_count");
+  const rejectCount =
+    numberValue(diagnostics.reject_count) ?? sumDailyAllocationCount(response, "reject_count");
+
+  return {
+    quality,
+    counts: `${formatNullableCount(acceptCount)}/${formatNullableCount(
+      reviewCount,
+    )}/${formatNullableCount(rejectCount)}`,
+  };
+}
+
+function firstDailyAllocationText(
+  response: HouseholdPlanGenerateResponse,
+  key: string,
+): string | null {
+  for (const day of response.daily_plan ?? []) {
+    const allocation = asRecord(day.allocation);
+    const value = stringValue(allocation[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function sumDailyAllocationCount(
+  response: HouseholdPlanGenerateResponse,
+  key: string,
+): number | null {
+  let total = 0;
+  let hasValue = false;
+  for (const day of response.daily_plan ?? []) {
+    const allocation = asRecord(day.allocation);
+    const value = numberValue(allocation[key]);
+    if (value !== null) {
+      total += value;
+      hasValue = true;
+    }
+  }
+  return hasValue ? total : null;
+}
+
+function formatNullableCount(value: number | null): string {
+  return value === null ? "-" : String(value);
+}
+
 function getFeedbackStats(context: FeedbackContextResponse | null) {
   const hardFilters = context?.hard_filters ?? {};
   const scorePreferences = context?.score_preferences ?? {};
@@ -500,6 +846,25 @@ function countBucket(value: unknown): number {
   return 0;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+function stringValue(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function numberValue(value: unknown): number | null {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return value;
+}
+
 function memberKey(member: DemoMemberProfile): string {
   return String(member.member_profile_id ?? member.member_id ?? member.display_name ?? "member");
 }
@@ -508,20 +873,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function renderWarnings(warnings: unknown[] | undefined) {
-  if (!warnings?.length) {
+function renderWarnings(warnings: unknown[] | string | undefined) {
+  const normalizedWarnings = normalizeWarnings(warnings);
+  if (!normalizedWarnings.length) {
     return null;
   }
   return (
     <View style={styles.warningBox}>
       <Text style={styles.warningTitle}>Warnings</Text>
-      {warnings.slice(0, 4).map((warning, index) => (
+      {normalizedWarnings.slice(0, 4).map((warning, index) => (
         <Text key={`${index}`} style={styles.warningText}>
-          {typeof warning === "string" ? warning : JSON.stringify(warning)}
+          {warning}
         </Text>
       ))}
     </View>
   );
+}
+
+function normalizeWarnings(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  if (value == null) {
+    return [];
+  }
+  return [String(value)];
 }
 
 const styles = StyleSheet.create({
@@ -584,6 +966,32 @@ const styles = StyleSheet.create({
     color: "#1F2933",
     fontSize: 16,
     fontWeight: "800",
+  },
+  modeButton: {
+    alignItems: "center",
+    borderColor: "#165D77",
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  modeButtonSelected: {
+    backgroundColor: "#165D77",
+  },
+  modeButtonText: {
+    color: "#165D77",
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  modeButtonTextSelected: {
+    color: "#FFFFFF",
+  },
+  modeSelector: {
+    flexDirection: "row",
+    gap: 10,
   },
   dayList: {
     gap: 12,

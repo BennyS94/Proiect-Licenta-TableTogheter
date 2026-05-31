@@ -45,6 +45,22 @@ export type IndividualPlanGenerateRequest = {
   feedback_enabled: boolean;
 };
 
+export type HouseholdPlanGenerateRequest = {
+  dataset_profile: string;
+  days: number;
+  household_id?: string;
+  household_profile?: DemoHouseholdResponse;
+  selected_member_ids: string[];
+  generation_options: Record<string, unknown>;
+  include_grocery_list: boolean;
+  include_purchase_suggestions: boolean;
+  include_price_estimates: boolean;
+  feedback_enabled: boolean;
+  household_mode?: string;
+  household_allocation_mode?: string;
+  [key: string]: unknown;
+};
+
 export type GroceryListItem = {
   display_name?: string;
   display_name_clean?: string;
@@ -106,6 +122,13 @@ export type GeneratedMeal = {
   [key: string]: unknown;
 };
 
+export type HouseholdMeal = GeneratedMeal & {
+  carbs_g?: number;
+  fat_g?: number;
+  meal_scope?: string;
+  portion_multiplier?: number;
+};
+
 export type GeneratedDay = {
   day_index?: number;
   selected_meals?: GeneratedMeal[];
@@ -116,6 +139,79 @@ export type GeneratedDay = {
     fat_g?: number;
     [key: string]: unknown;
   };
+  [key: string]: unknown;
+};
+
+export type HouseholdMacroTotals = {
+  kcal?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  [key: string]: unknown;
+};
+
+export type HouseholdAllocation = {
+  quality?: string;
+  status?: string;
+  accept_count?: number;
+  review_count?: number;
+  reject_count?: number;
+  warnings?: unknown[] | string;
+  [key: string]: unknown;
+};
+
+export type HouseholdGeneratedDay = Omit<GeneratedDay, "selected_meals"> & {
+  selected_meals?: HouseholdMeal[];
+  meals?: HouseholdMeal[];
+  shared_meals?: HouseholdMeal[];
+  quality?: string;
+  quality_status?: string;
+  allocation?: HouseholdAllocation;
+};
+
+export type HouseholdMemberMenu = {
+  member_id?: string;
+  member_profile_id?: string;
+  day_index?: number;
+  day?: number;
+  meals?: HouseholdMeal[];
+  selected_meals?: HouseholdMeal[];
+  totals?: HouseholdMacroTotals;
+  daily_totals?: HouseholdMacroTotals;
+  macro_totals?: HouseholdMacroTotals;
+  [key: string]: unknown;
+};
+
+export type HouseholdMemberTarget = {
+  member_id?: string;
+  member_profile_id?: string;
+  display_name?: string;
+  profile_name?: string;
+  target_kcal?: number;
+  kcal?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  [key: string]: unknown;
+};
+
+export type HouseholdMemberMacroSummary = {
+  member_id?: string;
+  member_profile_id?: string;
+  day_index?: number;
+  day?: number;
+  kcal?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  target_kcal?: number;
+  kcal_ratio?: number;
+  protein_ratio?: number;
+  carbs_ratio?: number;
+  fat_ratio?: number;
+  ratios?: Record<string, unknown>;
+  totals?: HouseholdMacroTotals;
+  targets?: HouseholdMacroTotals;
   [key: string]: unknown;
 };
 
@@ -130,6 +226,28 @@ export type IndividualPlanGenerateResponse = {
   warnings?: unknown[];
   diagnostics_summary?: Record<string, unknown>;
   feedback_context_summary?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type HouseholdPlanGenerateResponse = {
+  status: string;
+  plan_id?: string;
+  household_plan_id?: string;
+  generation_type?: string;
+  dataset_profile?: string;
+  household_id?: string;
+  selected_members?: DemoMemberProfile[];
+  days?: number;
+  daily_plan?: HouseholdGeneratedDay[];
+  member_targets?: HouseholdMemberTarget[];
+  per_member_menus?: HouseholdMemberMenu[];
+  shared_meals?: unknown[];
+  household_grocery_list?: GroceryListResponse | null;
+  household_grocery_scaling?: Record<string, unknown>;
+  member_macro_summaries?: HouseholdMemberMacroSummary[];
+  diagnostics_summary?: Record<string, unknown>;
+  feedback_context_summary?: Record<string, unknown>;
+  warnings?: unknown[] | string;
   [key: string]: unknown;
 };
 

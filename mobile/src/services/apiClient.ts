@@ -6,6 +6,8 @@ import type {
   FeedbackEventRequest,
   FeedbackEventResponse,
   HealthResponse,
+  HouseholdPlanGenerateRequest,
+  HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
 } from "../types/api";
@@ -38,6 +40,18 @@ export async function generateIndividualPlan(
   request: IndividualPlanGenerateRequest,
 ): Promise<IndividualPlanGenerateResponse> {
   return requestJson<IndividualPlanGenerateResponse>("/plans/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function generateHouseholdPlan(
+  request: HouseholdPlanGenerateRequest,
+): Promise<HouseholdPlanGenerateResponse> {
+  return requestJson<HouseholdPlanGenerateResponse>("/household-plans/generate", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

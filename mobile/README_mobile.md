@@ -4,7 +4,7 @@
 
 Acest folder contine scheletul Android MVP pentru aplicatia mobila TableTogether.
 
-Scopul curent este conectivitatea cu backend-ul FastAPI si un flow demo minim: health check, incarcare household demo, selectie membru si generare plan individual. Aplicatia mobila nu citeste CSV-uri, nu ruleaza generatorul si nu contine logica nutritionala.
+Scopul curent este conectivitatea cu backend-ul FastAPI si un flow demo minim: health check, incarcare household demo, selectie membru, generare plan individual si generare plan household. Aplicatia mobila nu citeste CSV-uri, nu ruleaza generatorul si nu contine logica nutritionala.
 
 ## Requirements
 
@@ -81,6 +81,8 @@ http://127.0.0.1:8000
 - Afiseaza zilele generate si mesele cu kcal/protein cand sunt disponibile.
 - Cere si afiseaza grocery list pentru planul generat cand backend-ul o returneaza.
 - Afiseaza butoane feedback pentru mesele generate si salveaza feedback-ul prin backend.
+- Genereaza un plan household de 3 zile prin `POST /household-plans/generate`.
+- Afiseaza cate un membru household pe rand, cu selector de zi, mese, totaluri si grocery list agregata cand backend-ul o returneaza.
 
 ## Mobile M2 Flow
 
@@ -92,7 +94,7 @@ http://127.0.0.1:8000
 
 Mobile M2 trimite profilul demo inline din `/households/demo`. Nu foloseste inca `member_profile_id` persistent din SQLite.
 
-Grocery screen, feedback buttons, household generation screen, auth/login si cloud sync raman pentru checkpointuri ulterioare.
+Auth/login si cloud sync raman pentru checkpointuri ulterioare.
 
 ## Mobile M3 Flow
 
@@ -125,6 +127,21 @@ Sectiunea `Feedback context` poate reimprospata `GET /feedback/context` si afise
 
 Nu exista inca account/auth, cloud sync sau feedback screen separat. Feedback-ul este comportament demo/local SQLite prin FastAPI, iar mobile nu citeste CSV-uri si nu ruleaza generatorul.
 
+## Mobile M5 Flow
+
+Mobile M5 adauga modul `Household plan` in acelasi ecran principal:
+
+1. Porneste backend-ul FastAPI.
+2. Apasa `Check backend health`.
+3. Apasa `Load demo household`.
+4. Alege `Household plan`.
+5. Selecteaza unul sau mai multi membri demo.
+6. Apasa `Generate household plan`.
+
+Aplicatia trimite requestul catre `POST /household-plans/generate` si afiseaza raspunsul backend-ului: summary household, selector de membru, selector de zi, mese pe membru, portion multiplier, macro-uri disponibile si grocery list agregata.
+
+Modul household este inca demo Android-first. Nu exista auth/login, cloud sync, UI polish final sau ecran separat pentru household setup.
+
 ## Next Step
 
-Urmatorul pas este Mobile M5: ecran pentru household generation sau Mobile M6: profil persistent / create profile UI.
+Urmatorul pas este Mobile M6: profil persistent / create profile UI, urmat de polish UI pentru flow-ul demo.

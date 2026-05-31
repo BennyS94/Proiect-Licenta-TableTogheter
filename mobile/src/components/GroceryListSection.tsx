@@ -4,7 +4,9 @@ import type { GroceryListItem, GroceryListResponse } from "../types/api";
 import { GroceryItemRow } from "./GroceryItemRow";
 
 type GroceryListSectionProps = {
+  emptyMessage?: string;
   groceryList: GroceryListResponse | null;
+  title?: string;
 };
 
 type GroceryGroup = {
@@ -27,12 +29,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   vegetables: "Vegetables",
 };
 
-export function GroceryListSection({ groceryList }: GroceryListSectionProps) {
+export function GroceryListSection({
+  emptyMessage = "No grocery list returned for this plan.",
+  groceryList,
+  title = "Grocery list",
+}: GroceryListSectionProps) {
   if (!groceryList) {
     return (
       <View style={styles.panel}>
-        <Text style={styles.title}>Grocery list</Text>
-        <Text style={styles.mutedText}>No grocery list returned for this plan.</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.mutedText}>{emptyMessage}</Text>
       </View>
     );
   }
@@ -48,7 +54,7 @@ export function GroceryListSection({ groceryList }: GroceryListSectionProps) {
   return (
     <View style={styles.panel}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Grocery list</Text>
+        <Text style={styles.title}>{title}</Text>
         <Text style={styles.meta}>{items.length} items</Text>
       </View>
 
