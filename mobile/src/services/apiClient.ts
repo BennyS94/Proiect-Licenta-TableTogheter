@@ -1,6 +1,10 @@
 import { API_BASE_URL } from "../config/api";
 import type {
   DemoHouseholdResponse,
+  FeedbackContextResponse,
+  FeedbackDeleteResponse,
+  FeedbackEventRequest,
+  FeedbackEventResponse,
   HealthResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
@@ -39,6 +43,51 @@ export async function generateIndividualPlan(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(request),
+  });
+}
+
+export async function submitFeedback(
+  request: FeedbackEventRequest,
+): Promise<FeedbackEventResponse> {
+  return requestJson<FeedbackEventResponse>("/feedback", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getFeedbackContext(
+  householdId?: string,
+  memberProfileId?: string,
+): Promise<FeedbackContextResponse> {
+  const params = new URLSearchParams();
+  if (householdId) {
+    params.set("household_id", householdId);
+  }
+  if (memberProfileId) {
+    params.set("member_profile_id", memberProfileId);
+  }
+  const query = params.toString();
+  return requestJson<FeedbackContextResponse>(`/feedback/context${query ? `?${query}` : ""}`);
+}
+
+export async function clearFeedback(
+  householdId?: string,
+  memberProfileId?: string,
+  confirm = true,
+): Promise<FeedbackDeleteResponse> {
+  const params = new URLSearchParams();
+  params.set("confirm", confirm ? "true" : "false");
+  if (householdId) {
+    params.set("household_id", householdId);
+  }
+  if (memberProfileId) {
+    params.set("member_profile_id", memberProfileId);
+  }
+  return requestJson<FeedbackDeleteResponse>(`/feedback?${params.toString()}`, {
+    method: "DELETE",
   });
 }
 

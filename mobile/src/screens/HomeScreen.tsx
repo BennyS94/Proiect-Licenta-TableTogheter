@@ -16,11 +16,16 @@ import { API_BASE_URL } from "../config/api";
 import {
   generateIndividualPlan,
   getDemoHousehold,
+  getFeedbackContext,
   getHealth,
+  submitFeedback,
 } from "../services/apiClient";
 import type {
   DemoHouseholdResponse,
   DemoMemberProfile,
+  FeedbackContextResponse,
+  FeedbackType,
+  GeneratedMeal,
   GroceryListResponse,
   HealthResponse,
   IndividualPlanGenerateRequest,
@@ -41,8 +46,15 @@ const GENERATION_OPTIONS = {
   include_grocery_list: true,
   include_purchase_suggestions: true,
   include_price_estimates: true,
-  feedback_enabled: false,
+  feedback_enabled: true,
 };
+
+const FEEDBACK_TYPES: FeedbackType[] = [
+  "liked",
+  "disliked",
+  "too_long",
+  "explicit_avoid",
+];
 
 export function HomeScreen() {
   const [healthStatus, setHealthStatus] = useState<HealthState>("idle");
@@ -54,6 +66,11 @@ export function HomeScreen() {
   const [generatedPlan, setGeneratedPlan] = useState<IndividualPlanGenerateResponse | null>(
     null,
   );
+  const [feedbackContext, setFeedbackContext] = useState<FeedbackContextResponse | null>(null);
+  const [isLoadingFeedbackContext, setIsLoadingFeedbackContext] = useState(false);
+  const [pendingFeedbackKey, setPendingFeedbackKey] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const selectedMember = useMemo(
@@ -64,6 +81,9 @@ export function HomeScreen() {
     [demoHousehold, selectedMemberId],
   );
   const groceryList = generatedPlan ? getGroceryListFromPlanResponse(generatedPlan) : null;
+  const activeHouseholdId = getActiveHouseholdId(demoHousehold, selectedMember);
+  const activeMemberProfileId = selectedMember ? getMemberProfileId(selectedMember) : "";
+  const feedbackStats = getFeedbackStats(feedbackContext);
 
   async function checkBackendHealth() {
     setHealthStatus("loading");
@@ -84,6 +104,9 @@ export function HomeScreen() {
     setIsLoadingHousehold(true);
     setErrorMessage("");
     setGeneratedPlan(null);
+    setFeedbackContext(null);
+    setFeedbackMessage("");
+    setFeedbackError("");
 
     try {
       const household = await getDemoHousehold();
@@ -107,9 +130,11 @@ export function HomeScreen() {
     setIsGeneratingPlan(true);
     setErrorMessage("");
     setGeneratedPlan(null);
+    setFeedbackMessage("");
+    setFeedbackError("");
 
     try {
-      const request = buildGenerateRequest(selectedMember);
+      const request = buildGenerateRequest(selectedMember, demoHousehold);
       const response = await generateIndividualPlan(request);
       setGeneratedPlan(response);
       if (response.status === "blocked") {
@@ -120,6 +145,76 @@ export function HomeScreen() {
     } finally {
       setIsGeneratingPlan(false);
     }
+  }
+
+  async function refreshFeedbackContext(quiet = false) {
+    if (!activeHouseholdId) {
+      setFeedbackError("Load a household before refreshing feedback context.");
+      return;
+    }
+
+    setIsLoadingFeedbackContext(true);
+    if (!quiet) {
+      setFeedbackMessage("");
+      setFeedbackError("");
+    }
+
+    try {
+      const context = await getFeedbackContext(activeHouseholdId, activeMemberProfileId);
+      setFeedbackContext(context);
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : "Feedback context failed");
+    } finally {
+      setIsLoadingFeedbackContext(false);
+    }
+  }
+
+  async function submitMealFeedback(meal: GeneratedMeal, feedbackType: FeedbackType) {
+    const recipeId = getMealRecipeId(meal);
+    if (!recipeId) {
+      setFeedbackError("Feedback unavailable for this meal.");
+      return;
+    }
+    if (!activeHouseholdId) {
+      setFeedbackError("Load a household before saving feedback.");
+      return;
+    }
+
+    const slot = getMealSlot(meal);
+    const feedbackKey = buildFeedbackKey(meal, feedbackType);
+    setPendingFeedbackKey(feedbackKey);
+    setFeedbackMessage("");
+    setFeedbackError("");
+
+    try {
+      await submitFeedback({
+        household_id: activeHouseholdId,
+        member_profile_id: activeMemberProfileId || undefined,
+        plan_id: generatedPlan ? getPlanIdFromResponse(generatedPlan) : undefined,
+        recipe_id: recipeId,
+        slot: slot || undefined,
+        feedback_type: feedbackType,
+        source: "mobile",
+      });
+      setFeedbackMessage("Feedback saved. Generate again to apply it.");
+      await refreshFeedbackContext(true);
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : "Feedback save failed");
+    } finally {
+      setPendingFeedbackKey("");
+    }
+  }
+
+  function getPendingFeedbackType(meal: GeneratedMeal): FeedbackType | null {
+    if (!pendingFeedbackKey) {
+      return null;
+    }
+    for (const feedbackType of FEEDBACK_TYPES) {
+      if (pendingFeedbackKey === buildFeedbackKey(meal, feedbackType)) {
+        return feedbackType;
+      }
+    }
+    return null;
   }
 
   return (
@@ -191,7 +286,7 @@ export function HomeScreen() {
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Individual plan</Text>
-          <Text style={styles.panelMeta}>3 days / grocery</Text>
+          <Text style={styles.panelMeta}>3 days / grocery / feedback</Text>
         </View>
         <ActionButton
           disabled={!selectedMember || isGeneratingPlan}
@@ -208,7 +303,32 @@ export function HomeScreen() {
         )}
       </View>
 
+      <View style={styles.panel}>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Feedback context</Text>
+          <Text style={styles.panelMeta}>{feedbackStats.eventCount} events</Text>
+        </View>
+        <ActionButton
+          disabled={!activeHouseholdId || isLoadingFeedbackContext}
+          loading={isLoadingFeedbackContext}
+          label="Refresh feedback context"
+          onPress={() => refreshFeedbackContext(false)}
+          variant="secondary"
+        />
+        <View style={styles.statsGrid}>
+          <InfoRow label="Avoided" value={String(feedbackStats.avoidedCount)} />
+          <InfoRow label="Liked" value={String(feedbackStats.likedCount)} />
+          <InfoRow label="Disliked" value={String(feedbackStats.dislikedCount)} />
+          <InfoRow label="Too long" value={String(feedbackStats.tooLongCount)} />
+        </View>
+        <Text style={styles.mutedText}>
+          Next generation uses saved feedback when available.
+        </Text>
+      </View>
+
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      {feedbackMessage ? <Text style={styles.successText}>{feedbackMessage}</Text> : null}
+      {feedbackError ? <Text style={styles.errorText}>{feedbackError}</Text> : null}
 
       {generatedPlan ? (
         <View style={styles.panel}>
@@ -221,7 +341,13 @@ export function HomeScreen() {
           {renderWarnings(generatedPlan.warnings)}
           <View style={styles.dayList}>
             {(generatedPlan.daily_plan ?? []).map((day, index) => (
-              <PlanDayCard key={`${day.day_index ?? index}`} day={day} />
+              <PlanDayCard
+                feedbackDisabled={Boolean(pendingFeedbackKey)}
+                getPendingFeedbackType={getPendingFeedbackType}
+                key={`${day.day_index ?? index}`}
+                day={day}
+                onSubmitFeedback={submitMealFeedback}
+              />
             ))}
           </View>
         </View>
@@ -282,22 +408,57 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function buildGenerateRequest(member: DemoMemberProfile): IndividualPlanGenerateRequest {
-  const profileId = String(member.member_profile_id ?? member.member_id ?? "demo_member");
+function buildGenerateRequest(
+  member: DemoMemberProfile,
+  household: DemoHouseholdResponse | null,
+): IndividualPlanGenerateRequest {
+  const profileId = getMemberProfileId(member) || "demo_member";
+  const householdId = getActiveHouseholdId(household, member);
   return {
     dataset_profile: "v1_2_demo_final",
     days: 3,
+    household_id: householdId || undefined,
+    member_profile_id: profileId,
     member_profile: {
       ...member,
       member_profile_id: profileId,
+      household_id: householdId || member.household_id,
       profile_name: member.profile_name ?? member.display_name ?? profileId,
     },
     generation_options: GENERATION_OPTIONS,
     include_grocery_list: true,
     include_purchase_suggestions: true,
     include_price_estimates: true,
-    feedback_enabled: false,
+    feedback_enabled: true,
   };
+}
+
+function getActiveHouseholdId(
+  household: DemoHouseholdResponse | null,
+  member: DemoMemberProfile | null,
+): string {
+  return String(household?.household_id ?? member?.household_id ?? "").trim();
+}
+
+function getMemberProfileId(member: DemoMemberProfile): string {
+  return String(member.member_profile_id ?? member.member_id ?? "").trim();
+}
+
+function getPlanIdFromResponse(response: IndividualPlanGenerateResponse): string | undefined {
+  const planId = String(response.plan_id ?? response.household_plan_id ?? "").trim();
+  return planId || undefined;
+}
+
+function getMealRecipeId(meal: GeneratedMeal): string {
+  return String(meal.recipe_id ?? "").trim();
+}
+
+function getMealSlot(meal: GeneratedMeal): string {
+  return String(meal.slot ?? "").trim();
+}
+
+function buildFeedbackKey(meal: GeneratedMeal, feedbackType: FeedbackType): string {
+  return `${getMealRecipeId(meal)}:${getMealSlot(meal)}:${feedbackType}`;
 }
 
 function getGroceryListFromPlanResponse(
@@ -308,6 +469,35 @@ function getGroceryListFromPlanResponse(
     return candidate as GroceryListResponse;
   }
   return null;
+}
+
+function getFeedbackStats(context: FeedbackContextResponse | null) {
+  const hardFilters = context?.hard_filters ?? {};
+  const scorePreferences = context?.score_preferences ?? {};
+  const timePreferences = context?.time_preferences ?? {};
+
+  return {
+    eventCount: Number(context?.event_count ?? 0),
+    avoidedCount: countBucket(hardFilters.banned_recipe_ids),
+    likedCount: countBucket(scorePreferences.liked_recipe_ids),
+    dislikedCount: countBucket(scorePreferences.disliked_recipe_ids),
+    tooLongCount: countBucket(timePreferences.too_long_recipe_ids),
+  };
+}
+
+function countBucket(value: unknown): number {
+  if (Array.isArray(value)) {
+    return value.length;
+  }
+  if (isRecord(value)) {
+    return Object.values(value).reduce<number>((total, item) => {
+      if (typeof item === "number" && Number.isFinite(item)) {
+        return total + item;
+      }
+      return total + 1;
+    }, 0);
+  }
+  return 0;
 }
 
 function memberKey(member: DemoMemberProfile): string {
@@ -398,6 +588,9 @@ const styles = StyleSheet.create({
   dayList: {
     gap: 12,
   },
+  statsGrid: {
+    gap: 8,
+  },
   button: {
     minHeight: 48,
     alignItems: "center",
@@ -450,6 +643,11 @@ const styles = StyleSheet.create({
     color: "#B42318",
     fontSize: 15,
     fontWeight: "700",
+  },
+  successText: {
+    color: "#1E7A4C",
+    fontSize: 15,
+    fontWeight: "800",
   },
   warningBox: {
     borderWidth: 1,

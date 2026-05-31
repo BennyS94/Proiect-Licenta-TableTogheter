@@ -1,22 +1,41 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import type { GeneratedMeal } from "../types/api";
+import type { FeedbackType, GeneratedMeal } from "../types/api";
+import { MealFeedbackButtons } from "./MealFeedbackButtons";
 
 type MealRowProps = {
   meal: GeneratedMeal;
+  feedbackDisabled?: boolean;
+  pendingFeedbackType?: FeedbackType | null;
+  onSubmitFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => void;
 };
 
-export function MealRow({ meal }: MealRowProps) {
+export function MealRow({
+  meal,
+  feedbackDisabled,
+  pendingFeedbackType,
+  onSubmitFeedback,
+}: MealRowProps) {
   return (
-    <View style={styles.row}>
-      <View style={styles.main}>
-        <Text style={styles.slot}>{String(meal.slot ?? "meal")}</Text>
-        <Text style={styles.name}>{String(meal.display_name ?? meal.recipe_id ?? "Recipe")}</Text>
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <View style={styles.main}>
+          <Text style={styles.slot}>{String(meal.slot ?? "meal")}</Text>
+          <Text style={styles.name}>{String(meal.display_name ?? meal.recipe_id ?? "Recipe")}</Text>
+        </View>
+        <View style={styles.macros}>
+          <Text style={styles.macro}>{formatNumber(meal.kcal)} kcal</Text>
+          <Text style={styles.macro}>{formatNumber(meal.protein_g)}g protein</Text>
+        </View>
       </View>
-      <View style={styles.macros}>
-        <Text style={styles.macro}>{formatNumber(meal.kcal)} kcal</Text>
-        <Text style={styles.macro}>{formatNumber(meal.protein_g)}g protein</Text>
-      </View>
+      {onSubmitFeedback ? (
+        <MealFeedbackButtons
+          disabled={feedbackDisabled}
+          meal={meal}
+          onSubmit={onSubmitFeedback}
+          pendingFeedbackType={pendingFeedbackType}
+        />
+      ) : null}
     </View>
   );
 }
@@ -29,13 +48,16 @@ function formatNumber(value: unknown): string {
 }
 
 const styles = StyleSheet.create({
-  row: {
+  container: {
     borderTopWidth: 1,
     borderTopColor: "#E5E0D5",
+    gap: 2,
+    paddingTop: 10,
+  },
+  row: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
-    paddingTop: 10,
   },
   main: {
     flex: 1,

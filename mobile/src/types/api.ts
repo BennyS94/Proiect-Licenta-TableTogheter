@@ -35,6 +35,8 @@ export type DemoHouseholdResponse = {
 export type IndividualPlanGenerateRequest = {
   dataset_profile: string;
   days: number;
+  household_id?: string;
+  member_profile_id?: string;
   member_profile: DemoMemberProfile;
   generation_options: Record<string, unknown>;
   include_grocery_list: boolean;
@@ -129,4 +131,43 @@ export type IndividualPlanGenerateResponse = {
   diagnostics_summary?: Record<string, unknown>;
   feedback_context_summary?: Record<string, unknown>;
   [key: string]: unknown;
+};
+
+export type FeedbackType = "liked" | "disliked" | "too_long" | "explicit_avoid";
+
+export type FeedbackEventRequest = {
+  household_id: string;
+  member_profile_id?: string;
+  plan_id?: string;
+  recipe_id: string;
+  slot?: string;
+  feedback_type: FeedbackType;
+  notes?: string;
+  source: "mobile";
+};
+
+export type FeedbackEventResponse = {
+  event_id: string;
+  status: string;
+  feedback_type: FeedbackType;
+  recipe_id: string;
+  created_at: string;
+};
+
+export type FeedbackContextResponse = {
+  household_id?: string;
+  member_profile_id?: string;
+  event_count: number;
+  hard_filters?: Record<string, unknown>;
+  score_preferences?: Record<string, unknown>;
+  time_preferences?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type FeedbackDeleteResponse = {
+  deleted: boolean;
+  deleted_event_count: number;
+  household_id?: string;
+  member_profile_id?: string;
 };

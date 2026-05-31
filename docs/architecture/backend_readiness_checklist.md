@@ -69,6 +69,10 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 - [x] Mobile M1 Expo Android skeleton created under `mobile/`.
 - [x] Mobile M1 can call `GET /health` through a small fetch client.
 - [x] Mobile M1 structure smoke exists at `tools/extra/check_mobile_m1_structure.py`.
+- [x] Mobile M2 demo household, member selection, individual generation and plan display implemented.
+- [x] Mobile M3 grocery list display with purchase suggestions and price estimates implemented.
+- [x] Mobile M4 meal feedback buttons, feedback context panel and regenerate-with-feedback flow implemented.
+- [x] Mobile M4 runtime validation confirmed `Avoid` feedback can remove the avoided recipe from the next plan when alternatives exist.
 
 ## Next checkpoint
 
@@ -77,7 +81,12 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 - [x] Backend M4: feedback endpoints and profile/household CRUD-lite.
 - [x] Backend M5: persistence-aware generation endpoints.
 - [x] Mobile M1: Expo Android skeleton with `/health` connectivity.
-- [ ] Mobile M2: call profile/generation endpoints from mobile.
+- [x] Mobile M2: call demo household and generation endpoints from mobile.
+- [x] Mobile M3: display grocery list from generated plan response.
+- [x] Mobile M4: submit feedback and regenerate with SQLite feedback context.
+- [ ] Mobile M5: household generation mobile screen.
+- [ ] Mobile M6: profile persistence / create profile UI.
+- [ ] Mobile M7: UI polish for MVP demo.
 
 ## Non-goals for backend skeleton
 

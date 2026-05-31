@@ -179,14 +179,14 @@ M3 - API endpoints:
 - grocery list retrieval
 - feedback submission
 
-M4 - Mobile skeleton:
+M4 - Mobile skeleton (implemented):
 
 - folder `mobile/`
 - React Native + Expo app
 - setup Android emulator
 - apel `GET /health` din mobile
 
-M5 - Mobile MVP screens:
+M5 - Mobile MVP screens (partially implemented through Mobile M2-M4):
 
 - Home / Dashboard
 - Household setup
@@ -197,23 +197,55 @@ M5 - Mobile MVP screens:
 - Grocery list screen
 - Feedback buttons
 
-M6 - Demo flow:
+M6 - Demo flow (individual demo flow implemented):
 
 - profile -> generate -> plan -> grocery list -> feedback -> regenerate
 
-## Current mobile implementation status
+## Current implementation status
 
-Mobile M1 este creat ca skeleton Expo Android sub `mobile/`.
+Backend M1-M5 sunt implementate:
 
-Scope curent:
+- M1: FastAPI skeleton, `GET /health`, SQLite init si configurare de baza.
+- M2: Generator v1 service wrapper fara dependenta de Streamlit/CLI.
+- M3: endpointuri de generare individuala/household, retrieval plan si grocery list, cu persistenta SQLite demo.
+- M4: demo household, profile endpoints si feedback endpoints.
+- M5: generatie persistence-aware cu profile SQLite si injectare de feedback context cand `feedback_enabled=true`.
 
-- aplicatie React Native + Expo minimal manual scaffolded
-- `API_BASE_URL` implicit pentru emulator Android: `http://10.0.2.2:8000`
-- client `fetch` pentru `GET /health`
-- Home screen care afiseaza status backend, service/version si database status
-- smoke structural local fara rulare Expo
+Mobile M1-M4 sunt implementate si testate runtime pe Android emulator:
 
-Nu exista inca ecrane pentru profiluri, generare plan, grocery list sau feedback. Acestea raman pentru checkpointurile mobile urmatoare, dupa contractele API existente.
+- M1: Expo Android skeleton si `GET /health`.
+- M2: `GET /households/demo`, selectie membru demo, `POST /plans/generate` si afisare plan individual pe 3 zile.
+- M3: request de generare cu grocery list, purchase suggestions si price estimates; afisare grocery list pe categorii.
+- M4: butoane feedback per masa, `POST /feedback`, panel `GET /feedback/context`, regenerare cu `feedback_enabled=true`.
+
+Flow mobil validat:
+
+```text
+health -> load demo household -> select member -> generate plan -> grocery list -> feedback -> regenerate
+```
+
+Runtime M4 a confirmat ca feedback-ul `Avoid` salvat din mobile a fost aplicat la urmatoarea regenerare si reteta evitata nu a mai aparut cand au existat alternative.
+
+## Remaining mobile milestones
+
+M5 - Household generation mobile screen:
+
+- selectie mai multi membri
+- apel `POST /household-plans/generate`
+- afisare plan household si grocery list household
+
+M6 - Profile persistence / create profile UI:
+
+- creare profil prin `POST /profiles`
+- listare profiluri persistente
+- generare pe baza de `member_profile_id`
+
+M7 - UI polish:
+
+- structurare mai clara a ecranelor
+- detalii masa mai bune
+- stari loading/error mai polishate
+- pregatire demo MVP mai apropiata de produs
 
 ## Non-goals for now
 
@@ -227,6 +259,8 @@ Nu exista inca ecrane pentru profiluri, generare plan, grocery list sau feedback
 - Fara CSV reads din mobile.
 - Fara live price scraping.
 - Fara advanced household optimizer.
+- Fara full household mobile screen de productie inca.
+- Fara polish final de produs; aplicatia ramane Android-first demo/MVP.
 
 ## Implementation guardrails
 

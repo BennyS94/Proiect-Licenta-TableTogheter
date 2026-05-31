@@ -80,6 +80,7 @@ http://127.0.0.1:8000
 - Genereaza un plan individual de 3 zile prin `POST /plans/generate`.
 - Afiseaza zilele generate si mesele cu kcal/protein cand sunt disponibile.
 - Cere si afiseaza grocery list pentru planul generat cand backend-ul o returneaza.
+- Afiseaza butoane feedback pentru mesele generate si salveaza feedback-ul prin backend.
 
 ## Mobile M2 Flow
 
@@ -107,6 +108,23 @@ Preturile sunt estimari demo, nu preturi live. Unele itemuri pot ramane fara est
 
 Nu exista inca feedback screen, household mobile generation, auth/login sau cloud sync. Aplicatia mobila continua sa consume doar FastAPI prin HTTP/JSON si nu citeste CSV-uri.
 
+## Mobile M4 Flow
+
+Mobile M4 adauga butoane feedback compacte pentru fiecare masa generata:
+
+- `Like`
+- `Dislike`
+- `Too long`
+- `Avoid`
+
+Feedback-ul este trimis catre backend prin `POST /feedback` si salvat in SQLite local/demo. Dupa salvare, aplicatia afiseaza mesajul `Feedback saved. Generate again to apply it.`
+
+Generarea individuala foloseste acum `feedback_enabled=true`, astfel incat urmatorul `POST /plans/generate` poate primi contextul feedback agregat din backend. Pentru `Avoid`, backend-ul trateaza reteta ca preferinta hard cand exista alternative.
+
+Sectiunea `Feedback context` poate reimprospata `GET /feedback/context` si afiseaza numarul total de evenimente plus numerele pentru avoided, liked, disliked si too long.
+
+Nu exista inca account/auth, cloud sync sau feedback screen separat. Feedback-ul este comportament demo/local SQLite prin FastAPI, iar mobile nu citeste CSV-uri si nu ruleaza generatorul.
+
 ## Next Step
 
-Urmatorul pas este validarea runtime repetata pentru Mobile M3, apoi profil persistent sau feedback screen intr-un checkpoint separat.
+Urmatorul pas este Mobile M5: ecran pentru household generation sau Mobile M6: profil persistent / create profile UI.
