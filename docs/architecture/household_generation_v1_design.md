@@ -364,6 +364,25 @@ Limitari Round69:
 - nu exista meniuri complet separate per membru;
 - grocery scaling ramane cantitativ, fara price/grocery optimization.
 
+## Round73 Egg-Load Guard Status
+
+Status: implementat ca realism guard demo/audit pentru Household Generation Lite.
+
+Comportament:
+
+- guard-ul distinge intre oua directe si oua embedded in retete;
+- exemple de oua directe: boiled eggs, egg toast, creamed eggs, omelet/scrambled/frittata/quiche;
+- exemple de oua embedded: waffles, pancakes, baked oatmeal, batter/dough sau binder;
+- cand ouale directe sunt excesive, selectia primeste o penalizare soft si Streamlit afiseaza warning/diagnostic;
+- nu este un egg ban global: retetele cu ou pot ramane daca sunt rezonabile sau daca nu exista alternativa mai buna.
+
+Rezultat Round73 pe household demo:
+
+- direct eggs/person/day: `4.72 -> 0.0`;
+- total eggs: `50.28 -> 30.3`;
+- household quality a ramas `accept`;
+- egg load ramas este in principal embedded, nu mese directe cu oua.
+
 ## Limitations
 
 - Auditul foloseste un plan baseline generat pentru primul membru, nu o selectie household-native.

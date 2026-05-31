@@ -1,0 +1,29 @@
+{
+  "household_id": "household_demo_family_001",
+  "member_profile_id": "member_demo_adult_male_001",
+  "event_count": 4,
+  "hard_filters": {
+    "banned_recipe_ids": [
+      "recipes_v1_2_round42_dataset_015"
+    ],
+    "banned_ingredient_names": []
+  },
+  "score_preferences": {
+    "liked_recipe_ids": {
+      "recipes_v1_2_round41_manual_021": 1
+    },
+    "disliked_recipe_ids": {
+      "recipes_v1_2_round41_manual_023": 1
+    }
+  },
+  "time_preferences": {
+    "too_long_recipe_ids": {
+      "recipes_v1_2_round42_dataset_037": 1
+    },
+    "household_time_sensitivity": "normal"
+  },
+  "meta": {
+    "event_count": 4,
+    "last_updated_at": "2026-05-30T12:00:00+00:00"
+  }
+}

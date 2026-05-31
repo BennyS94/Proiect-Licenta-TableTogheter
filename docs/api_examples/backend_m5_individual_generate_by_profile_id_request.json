@@ -1,0 +1,17 @@
+{
+  "dataset_profile": "v1_2_demo_final",
+  "days": 1,
+  "household_id": "household_backend_m5_smoke",
+  "member_profile_id": "member_backend_m5_smoke_001",
+  "include_grocery_list": true,
+  "include_purchase_suggestions": true,
+  "include_price_estimates": true,
+  "feedback_enabled": true,
+  "generation_options": {
+    "selection_mode": "balanced_day",
+    "portion_policy": "target_aware",
+    "meal_realism_mode": "practical",
+    "quality_gate": "demo_safe",
+    "profile_guard": "demo"
+  }
+}

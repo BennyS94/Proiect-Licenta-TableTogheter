@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "TableTogether",
+    "slug": "tabletogether-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "platforms": [
+      "android"
+    ],
+    "android": {
+      "package": "com.tabletogether.mobile"
+    },
+    "extra": {
+      "apiBaseUrl": "http://10.0.2.2:8000"
+    }
+  }
+}

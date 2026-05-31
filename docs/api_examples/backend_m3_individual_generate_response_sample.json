@@ -1,0 +1,84 @@
+{
+  "status": "ok",
+  "plan_id": "plan_individual_demo_m3",
+  "generation_type": "individual",
+  "dataset_profile": "v1_2_demo_final",
+  "member_profile_id": "member_demo_001",
+  "days": 3,
+  "daily_plan": [
+    {
+      "day_index": 1,
+      "validation_status": "valid",
+      "quality_status": "accept",
+      "totals": {
+        "kcal": 2518.8,
+        "protein_g": 125.0,
+        "carbs_g": 378.8,
+        "fat_g": 53.3
+      },
+      "selected_meals": [
+        {
+          "slot": "breakfast",
+          "recipe_id": "recipes_v1_2_round41_manual_012",
+          "display_name": "Smoked Salmon Toast Plate",
+          "portion_multiplier": 1.0,
+          "meal_scope": "individual",
+          "kcal": 476.7,
+          "protein_g": 29.2,
+          "carbs_g": 47.0,
+          "fat_g": 16.9,
+          "effective_time_min_for_scoring": 5.0,
+          "feedback_fit": 0.5,
+          "warnings": []
+        }
+      ]
+    }
+  ],
+  "grocery_list": {
+    "status": "ok",
+    "grocery_list_id": "grocery_demo_individual_m3",
+    "plan_id": "plan_individual_demo_m3",
+    "generation_type": "individual",
+    "currency": "RON",
+    "total_estimated_cost": 416.85,
+    "items": [
+      {
+        "display_name": "Chicken breast",
+        "category": "meat_fish",
+        "needed_grams": 900.0,
+        "purchase_display": "buy by weight",
+        "estimated_cost": 28.5,
+        "currency": "RON",
+        "warnings": []
+      }
+    ],
+    "summary": {
+      "shopping_item_count": 37,
+      "priced_item_count": 22
+    },
+    "warnings": [
+      "price_demo_estimate"
+    ]
+  },
+  "feedback_context_summary": {
+    "event_count": 0,
+    "liked_count": 0,
+    "disliked_count": 0,
+    "too_long_count": 0,
+    "explicit_avoid_count": 0
+  },
+  "warnings": [],
+  "diagnostics_summary": {
+    "dataset_profile": "v1_2_demo_final",
+    "days": 3,
+    "selection_mode": "balanced_day",
+    "portion_policy": "target_aware",
+    "quality_gate": "demo_safe",
+    "profile_guard_status": "normal_demo_safe",
+    "actual_days_generated": 3,
+    "valid_days": 3,
+    "accept_days": 3,
+    "repeated_recipes": 0,
+    "grocery_shopping_item_count": 37
+  }
+}

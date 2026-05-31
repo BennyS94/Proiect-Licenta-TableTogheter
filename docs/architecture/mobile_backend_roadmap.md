@@ -201,6 +201,20 @@ M6 - Demo flow:
 
 - profile -> generate -> plan -> grocery list -> feedback -> regenerate
 
+## Current mobile implementation status
+
+Mobile M1 este creat ca skeleton Expo Android sub `mobile/`.
+
+Scope curent:
+
+- aplicatie React Native + Expo minimal manual scaffolded
+- `API_BASE_URL` implicit pentru emulator Android: `http://10.0.2.2:8000`
+- client `fetch` pentru `GET /health`
+- Home screen care afiseaza status backend, service/version si database status
+- smoke structural local fara rulare Expo
+
+Nu exista inca ecrane pentru profiluri, generare plan, grocery list sau feedback. Acestea raman pentru checkpointurile mobile urmatoare, dupa contractele API existente.
+
 ## Non-goals for now
 
 - Fara iOS.

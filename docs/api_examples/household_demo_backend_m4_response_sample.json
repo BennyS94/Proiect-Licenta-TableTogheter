@@ -1,0 +1,42 @@
+{
+  "household_id": "household_demo_family_001",
+  "household_name": "Demo Family Household",
+  "active_member_ids": [
+    "member_demo_adult_male_001",
+    "member_demo_adult_female_001",
+    "member_demo_lower_target_001"
+  ],
+  "members": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "display_name": "Alex",
+      "age": 35,
+      "goal": "gain"
+    },
+    {
+      "member_id": "member_demo_adult_female_001",
+      "display_name": "Mara",
+      "age": 34,
+      "goal": "lose"
+    }
+  ],
+  "household_preferences": {
+    "shared_meal_preference": true,
+    "max_unique_dinners_per_day": 1,
+    "cook_once_share_meal": true
+  },
+  "meal_config": {
+    "meals_per_day": 3,
+    "include_snacks": true,
+    "day_structure": "3_meals_plus_snack"
+  },
+  "planning_config": {
+    "days": 3,
+    "shared_meals": [
+      "lunch",
+      "dinner"
+    ],
+    "breakfast_mode": "flexible",
+    "snack_mode": "individual"
+  }
+}

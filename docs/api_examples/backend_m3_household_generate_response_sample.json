@@ -1,0 +1,137 @@
+{
+  "status": "ok",
+  "plan_id": "plan_household_demo_m3",
+  "household_plan_id": "plan_household_demo_m3",
+  "generation_type": "household",
+  "dataset_profile": "v1_2_demo_final",
+  "household_id": "household_demo_family_001",
+  "selected_members": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "display_name": "Alex"
+    },
+    {
+      "member_id": "member_demo_adult_female_001",
+      "display_name": "Mara"
+    }
+  ],
+  "days": 3,
+  "daily_plan": [
+    {
+      "day_index": 1,
+      "validation_status": "valid",
+      "quality_status": "review",
+      "totals": {
+        "kcal": 3890.0,
+        "protein_g": 269.3,
+        "carbs_g": 455.5,
+        "fat_g": 101.7
+      },
+      "selected_meals": [
+        {
+          "slot": "lunch",
+          "recipe_id": "recipes_v1_2_round41_manual_021",
+          "display_name": "Chicken Lentil Rice Bowl",
+          "portion_multiplier": 2.5,
+          "meal_scope": "shared",
+          "kcal": 1483.6,
+          "protein_g": 116.4,
+          "carbs_g": 184.1,
+          "fat_g": 28.3,
+          "effective_time_min_for_scoring": 26.0,
+          "feedback_fit": 0.5,
+          "warnings": []
+        }
+      ]
+    }
+  ],
+  "per_member_menus": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "day_index": 1,
+      "meals": [
+        {
+          "slot": "lunch",
+          "recipe_id": "recipes_v1_2_round41_manual_021",
+          "display_name": "Chicken Lentil Rice Bowl",
+          "portion_multiplier": 1.6,
+          "meal_scope": "shared",
+          "kcal": 949.5,
+          "protein_g": 74.5,
+          "carbs_g": 117.8,
+          "fat_g": 18.1
+        }
+      ]
+    }
+  ],
+  "shared_meals": [
+    {
+      "day_index": 1,
+      "slot": "lunch",
+      "recipe_id": "recipes_v1_2_round41_manual_021",
+      "display_name": "Chicken Lentil Rice Bowl",
+      "household_portion_sum": 2.5,
+      "household_grocery_scaling_factor": 2.5
+    }
+  ],
+  "household_grocery_list": {
+    "status": "ok",
+    "grocery_list_id": "grocery_demo_household_m3",
+    "plan_id": "plan_household_demo_m3",
+    "generation_type": "household",
+    "currency": "RON",
+    "total_estimated_cost": 260.65,
+    "items": [
+      {
+        "display_name": "Chicken breast",
+        "category": "meat_fish",
+        "needed_grams": 1200.0,
+        "purchase_display": "buy by weight",
+        "estimated_cost": 38.0,
+        "currency": "RON",
+        "warnings": []
+      }
+    ],
+    "summary": {
+      "shopping_item_count": 29,
+      "priced_item_count": 19
+    },
+    "warnings": [
+      "price_demo_estimate"
+    ]
+  },
+  "household_grocery_scaling": [
+    {
+      "day_index": 1,
+      "slot": "lunch",
+      "recipe_id": "recipes_v1_2_round41_manual_021",
+      "display_name": "Chicken Lentil Rice Bowl",
+      "household_portion_sum": 2.5,
+      "household_quantity_factor": 2.5,
+      "warning": ""
+    }
+  ],
+  "member_macro_summaries": [
+    {
+      "member_id": "member_demo_adult_male_001",
+      "day_index": 1,
+      "kcal": 2817.5,
+      "protein_g": 186.7,
+      "kcal_ratio": 0.9843,
+      "protein_ratio": 1.2649
+    }
+  ],
+  "warnings": [
+    "household_generation_v1_lite_not_production",
+    "grocery_scaling_quantity_only"
+  ],
+  "diagnostics_summary": {
+    "dataset_profile": "v1_2_demo_final",
+    "household_mode": "individual_breakfast_shared_main",
+    "household_allocation_mode": "macro_aware_simple",
+    "household_quality_status": "accept",
+    "accept_day_count": 3,
+    "max_grocery_scaling_factor": 2.5,
+    "grocery_shopping_item_count": 29
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "status": "ok",
+  "plan_id": "plan_individual_example",
+  "generation_type": "individual",
+  "dataset_profile": "v1_2_demo_final",
+  "household_id": "household_backend_m5_smoke",
+  "member_profile_id": "member_backend_m5_smoke_001",
+  "days": 1,
+  "feedback_context_summary": {
+    "event_count": 4,
+    "liked_count": 1,
+    "disliked_count": 1,
+    "too_long_count": 1,
+    "explicit_avoid_count": 1
+  },
+  "diagnostics_summary": {
+    "dataset_profile": "v1_2_demo_final",
+    "days": 1,
+    "selection_mode": "balanced_day",
+    "portion_policy": "target_aware",
+    "quality_gate": "demo_safe",
+    "validation_status": "valid",
+    "quality_status": "accept"
+  },
+  "daily_plan": [
+    {
+      "day_index": 1,
+      "validation_status": "valid",
+      "selected_meals": [
+        {
+          "slot": "breakfast",
+          "recipe_id": "recipes_v1_2_round37_plus100_028",
+          "display_name": "Baked Oatmeal Breakfast Bars",
+          "feedback_fit": 0.5
+        }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,9 @@
 
 Acest document defineste contractul API pregatit pentru primul backend TableTogether. Scopul este sa existe o limita clara intre aplicatia Android si generatorul Python inainte de implementarea FastAPI.
 
-Contractul este planificare pentru Backend Prep 1. Nu implementeaza endpoint-uri, nu modifica Generator v1, nu modifica formule nutritionale, nu modifica grocery/pricing si nu schimba fisierele din `data/recipesdb/current` sau `data/fooddb/current`.
+Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite.
+
+Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu schimba fisierele din `data/recipesdb/current` sau `data/fooddb/current`.
 
 ## Shared conventions
 
@@ -15,6 +17,7 @@ Contractul este planificare pentru Backend Prep 1. Nu implementeaza endpoint-uri
 - Mobile app nu citeste CSV-uri si nu ruleaza generatorul.
 - FastAPI backend apeleaza un wrapper Python peste Generator v1.
 - SQLite persista household-uri, profiluri, feedback, planuri generate si grocery lists.
+- Nu exista auth/login inca; profilele si feedbackul sunt demo/local.
 
 ## Shared generation options
 
@@ -54,13 +57,15 @@ Response schema example:
 {
   "status": "ok",
   "service": "tabletogether-api",
-  "version": "v1"
+  "version": "v1",
+  "database": "ok"
 }
 ```
 
 MVP notes:
 - Nu necesita SQLite.
 - Trebuie sa fie primul endpoint implementat in backend skeleton.
+- In M1/M3 raspunsul include si `database`, cu valoarea `ok` sau `not_initialized`.
 
 Non-goals:
 - Nu verifica disponibilitatea completa a generatorului.
@@ -69,7 +74,7 @@ Non-goals:
 ## POST /plans/generate
 
 Purpose:
-- Genereaza un plan individual pentru un singur `member_profile`.
+- Genereaza un plan individual pentru un singur `member_profile` inline sau pentru un profil salvat in SQLite prin `member_profile_id`.
 
 Request schema example:
 
@@ -191,6 +196,12 @@ MVP notes:
 - Backend-ul poate salva request-ul si raspunsul complet in `generated_plans.request_json` si `generated_plans.response_json`.
 - `grocery_list` este optional si apare doar cand `include_grocery_list=true`.
 - Campurile detaliate ale meal rows pot ramane nested in `meal_json`.
+- Backend M3 implementeaza endpointul prin `src.generator_v1.service.generate_individual_plan_from_request`.
+- Backend M3 persista full request/response JSON si indexeaza best-effort zilele, mesele si grocery list-ul.
+- Backend M5 accepta `member_profile_id`; profilul este incarcat din SQLite si convertit la forma compatibila cu generatorul.
+- Profilul inline ramane suportat pentru smoke/test si compatibilitate.
+- Daca `feedback_enabled=true`, Backend M5 injecteaza contextul agregat din SQLite in requestul trimis catre service.
+- Daca `feedback_enabled=false`, generarea foloseste context feedback neutru.
 
 Non-goals:
 - Nu face weekly planning complet peste 5 zile.
@@ -333,6 +344,12 @@ MVP notes:
 - `household_mode` accepta `individual_breakfast_shared_main`, `shared_all_slots` si `shared_main_meals`.
 - `household_allocation_mode` accepta initial `macro_aware_simple`.
 - `per_member_menus` trebuie sa fie direct consumabil de mobile.
+- Backend M3 implementeaza endpointul prin `src.generator_v1.service.generate_household_plan_from_request`.
+- Backend M3 persista full request/response JSON si grocery JSON in SQLite local/demo.
+- Backend M5 poate construi `household_profile` din profilurile active SQLite pentru `household_id`.
+- `selected_member_ids` filtreaza membrii pentru profil inline, demo fallback si profil household construit din SQLite.
+- Demo fallback din `profiles/household_profile_demo_v1.json` ramane suportat.
+- Daca `feedback_enabled=true`, Backend M5 injecteaza context feedback SQLite la nivel de household.
 
 Non-goals:
 - Nu este advanced household optimizer.
@@ -372,6 +389,7 @@ Response schema example:
 
 MVP notes:
 - Poate returna direct `generated_plans.response_json`.
+- Backend M3 returneaza direct `generated_plans.response_json`.
 
 Non-goals:
 - Nu regenereaza planul.
@@ -411,6 +429,7 @@ Response schema example:
 
 MVP notes:
 - Poate returna direct `generated_plans.response_json` pentru `generation_type=household`.
+- Backend M3 returneaza direct `generated_plans.response_json` si verifica `generation_type=household`.
 
 Non-goals:
 - Nu ruleaza din nou generatorul.
@@ -463,6 +482,7 @@ Response schema example:
 MVP notes:
 - Poate returna `grocery_lists.grocery_json`.
 - `estimated_cost` poate fi null cand lipseste acoperirea catalogului demo.
+- Backend M3 returneaza `grocery_lists.grocery_json` pentru planuri individuale sau household.
 
 Non-goals:
 - Nu face live price scraping.
@@ -514,7 +534,8 @@ Response schema example:
 
 MVP notes:
 - Backend salveaza event-ul in SQLite.
-- Pentru compatibilitate demo, backend-ul poate oglindi temporar sau importa contextul local JSONL.
+- Backend M4 foloseste SQLite ca sursa pentru feedback API.
+- Backend M5 foloseste SQLite ca sursa pentru contextul feedback injectat in generare.
 
 Non-goals:
 - Nu este ML.
@@ -560,6 +581,8 @@ Response schema example:
 
 MVP notes:
 - Agregarea poate fi simpla pe `feedback_events`.
+- Backend M4 agregheaza feedback-ul din SQLite cu aceeasi forma de context folosita de `generator_v1.feedback_adapter`.
+- Backend M5 refoloseste acest context pentru endpointurile de generatie cand `feedback_enabled=true`.
 
 Non-goals:
 - Nu antreneaza un model.
@@ -591,6 +614,7 @@ Response schema example:
 
 MVP notes:
 - Endpoint-ul este util pentru demo reset.
+- Backend M4 cere `confirm=true`.
 
 Non-goals:
 - Nu implementeaza audit log de productie.
@@ -634,7 +658,8 @@ Response schema example:
 ```
 
 MVP notes:
-- Pentru demo, poate returna profilurile din SQLite sau profilul demo seed-uit.
+- Backend M4 returneaza profiluri din SQLite.
+- Daca nu exista profiluri SQLite, raspunsul este lista goala; mobile poate folosi `GET /households/demo` pentru membrii demo.
 
 Non-goals:
 - Nu implementeaza login complex.
@@ -695,10 +720,55 @@ Response schema example:
 
 MVP notes:
 - Backend-ul trebuie sa pastreze forma profilului compatibila cu `target_builder`.
+- Backend M4 salveaza profilul in SQLite si pastreaza `training`, `meal_config` si `dietary_preferences` ca JSON.
 
 Non-goals:
 - Nu valideaza medical obiectivele.
 - Nu introduce conturi reale sau autentificare complexa.
+
+## GET /profiles/{member_profile_id}
+
+Purpose:
+- Returneaza un profil salvat in SQLite.
+
+Request schema example:
+
+```json
+{
+  "path_params": {
+    "member_profile_id": "member_demo_adult_male_001"
+  }
+}
+```
+
+Response schema example:
+
+```json
+{
+  "member_profile_id": "member_demo_adult_male_001",
+  "household_id": "household_demo_family_001",
+  "display_name": "Alex",
+  "is_active": true,
+  "age": 35,
+  "sex": "male",
+  "weight_kg": 82.0,
+  "height_cm": 180.0,
+  "activity_level": "moderately_active",
+  "goal": "gain",
+  "goal_speed": "slow",
+  "training": {},
+  "meal_config": {},
+  "dietary_preferences": {},
+  "created_at": "2026-05-30T12:00:00+00:00",
+  "updated_at": "2026-05-30T12:00:00+00:00"
+}
+```
+
+MVP notes:
+- Backend M4 returneaza 404 daca profilul lipseste.
+
+Non-goals:
+- Nu face profile ownership/auth.
 
 ## GET /households/demo
 
@@ -745,6 +815,7 @@ Response schema example:
 MVP notes:
 - Endpoint util pentru demo si smoke testing mobile.
 - Poate fi seed-uit din `profiles/household_profile_demo_v1.json`.
+- Backend M4 citeste direct `profiles/household_profile_demo_v1.json` si nu il persista automat.
 
 Non-goals:
 - Nu este sistem real de onboarding.

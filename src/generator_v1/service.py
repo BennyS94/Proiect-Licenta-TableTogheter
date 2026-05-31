@@ -1,0 +1,1173 @@
+from __future__ import annotations
+
+import json
+import math
+import uuid
+from datetime import date, datetime
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, Mapping
+
+import pandas as pd
+
+from src.generator_v1.candidate_diagnostics import build_candidate_diagnostics
+from src.generator_v1.candidate_filter import (
+    build_household_preference_context as build_profile_preference_context,
+    filter_recipe_candidates,
+)
+from src.generator_v1.data_loader import (
+    V1_2_DEMO_FINAL_PROFILE,
+    load_fooddb_current,
+    load_recipe_candidate_pool,
+)
+from src.generator_v1.feedback_adapter import (
+    build_household_preference_context as build_feedback_preference_context,
+)
+from src.generator_v1.feedback_store import (
+    DEFAULT_FEEDBACK_EVENTS_PATH,
+    feedback_event_to_dict,
+    load_feedback_events,
+)
+from src.generator_v1.grocery_list import build_grocery_list
+from src.generator_v1.household_generator import (
+    HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN,
+    HOUSEHOLD_MODE_OFF,
+    build_household_aggregate_target,
+    build_household_slot_candidates,
+    build_member_targets,
+    filter_household_profile_members,
+    generate_household_plan,
+    load_household_profile,
+)
+from src.generator_v1.multi_day_selector import (
+    MULTI_DAY_MODE_GLOBAL,
+    generate_multi_day_plan,
+)
+from src.generator_v1.nutrition_cache_diagnostics import (
+    build_nutrition_cache_diagnostics,
+)
+from src.generator_v1.plan_quality_gate import evaluate_plan_quality
+from src.generator_v1.plan_validator import validate_one_day_plan
+from src.generator_v1.profile_loader import load_member_profile
+from src.generator_v1.reroll_policy import select_quality_gated_reroll
+from src.generator_v1.slot_candidates import build_slot_candidates
+from src.generator_v1.target_builder import build_nutrition_target
+from src.generator_v1_cli import (
+    _apply_multi_day_defaults,
+    _balanced_selector_config,
+    _household_context_profile,
+    _household_generation_config,
+    _multi_day_selector_config,
+    _pool_summary,
+    _primary_household_member,
+    _profile_guard_blocks,
+    _profile_guard_result,
+    _resolve_dataset_paths,
+    _select_one_day_plan,
+    _slot_candidates_by_slot,
+    _slot_order,
+    _target_to_dict,
+    _should_use_quality_gated_reroll,
+)
+
+
+DEFAULT_GENERATION_OPTIONS = {
+    "selection_mode": "balanced_day",
+    "alternative_count": 3,
+    "diversity_mode": "none",
+    "recent_recipe_ids": "",
+    "portion_policy": "target_aware",
+    "meal_realism_mode": "practical",
+    "quality_gate": "demo_safe",
+    "profile_guard": "demo",
+    "allow_unsupported_profile": False,
+    "multi_day_no_repeat_policy": "hard",
+    "day_candidate_pool_size": 75,
+    "multi_day_speed_mode": "fast",
+    "day_candidate_builder": "direct_from_slots",
+    "direct_slot_shortlist_size": 12,
+    "include_grocery_list": False,
+    "include_purchase_suggestions": False,
+    "include_price_estimates": False,
+    "include_pantry_basics": False,
+    "feedback_enabled": True,
+}
+
+INTERNAL_PATH_KEYS = {
+    "recipes_path",
+    "ingredients_path",
+    "nutrition_path",
+    "feedback_events_path",
+    "household_profile_path",
+}
+DEFAULT_DEMO_HOUSEHOLD_PROFILE_PATH = Path("profiles/household_profile_demo_v1.json")
+
+
+def generate_individual_plan_from_request(request: dict[str, Any]) -> dict[str, Any]:
+    args = _args_from_request(request)
+    profile = _member_profile_from_request(request)
+    target = build_nutrition_target(profile)
+    profile_guard_result = _profile_guard_result(args, profile, target)
+    if _profile_guard_blocks(profile_guard_result, args):
+        return to_json_safe(
+            {
+                "status": "blocked",
+                "error_code": "profile_guard_blocked",
+                "generation_type": "individual",
+                "dataset_profile": args.dataset_profile,
+                "days": args.days,
+                "member_profile_id": profile.get("member_profile_id", ""),
+                "profile_guard": profile_guard_result,
+                "warnings": ["profile_guard_blocked"],
+            }
+        )
+
+    pool = load_recipe_candidate_pool(
+        recipes_path=args.recipes,
+        ingredients_path=args.ingredients,
+        nutrition_path=args.nutrition,
+        dataset_profile=args.dataset_profile,
+    )
+    fooddb = load_fooddb_current()
+    preference_context = build_profile_preference_context(profile)
+    feedback_context = _feedback_context_for_profile(args, profile, request)
+    filtered_candidates = filter_recipe_candidates(
+        eligible_candidates=pool.eligible_candidates,
+        ingredients=pool.ingredients,
+        context=preference_context,
+        feedback_preference_context=feedback_context,
+    )
+    slot_candidates = build_slot_candidates(
+        target=target,
+        filtered_candidates=filtered_candidates,
+        time_sensitivity=preference_context.time_sensitivity,
+        ingredients=pool.ingredients,
+        fooddb=fooddb,
+        portion_policy_mode=args.portion_policy,
+        feedback_preference_context=feedback_context,
+    )
+    candidate_diagnostics = build_candidate_diagnostics(
+        slot_candidates=slot_candidates,
+        slot_targets=target.slot_targets,
+    )
+    nutrition_cache_diagnostics = build_nutrition_cache_diagnostics(
+        recipes=pool.recipes,
+        nutrition=pool.nutrition,
+        candidates=pool.candidates,
+        eligible_candidates=pool.eligible_candidates,
+    )
+
+    if int(args.days or 1) > 1:
+        plan = generate_multi_day_plan(
+            profile=profile,
+            target=target,
+            slot_candidates=slot_candidates,
+            days=args.days,
+            config=_multi_day_selector_config(args),
+        )
+        plan["candidate_diagnostics"] = candidate_diagnostics
+        plan["nutrition_cache_diagnostics"] = nutrition_cache_diagnostics
+        plan["feedback_context"] = feedback_context
+        if profile_guard_result is not None:
+            plan["profile_guard"] = profile_guard_result
+    else:
+        plan = _generate_one_day_plan(
+            args=args,
+            target=target,
+            slot_candidates=slot_candidates,
+            candidate_diagnostics=candidate_diagnostics,
+            feedback_context=feedback_context,
+            profile_guard_result=profile_guard_result,
+        )
+
+    plan["pool_summary"] = _pool_summary(
+        args,
+        pool,
+        filtered_candidates,
+        slot_candidates,
+    )
+
+    grocery_list = None
+    if _generation_option(args, "include_grocery_list", False):
+        grocery_list = _build_grocery_list_with_loaded_data(
+            plan=plan,
+            args=args,
+            recipe_ingredients_df=pool.ingredients,
+            fooddb_df=fooddb,
+            generation_type="individual",
+            plan_id="",
+        )
+
+    plan_id = _new_id("plan_individual")
+    response = {
+        "status": "ok",
+        "plan_id": plan_id,
+        "generation_type": "individual",
+        "dataset_profile": args.dataset_profile,
+        "member_profile_id": profile.get("member_profile_id", ""),
+        "days": int(args.days or 1),
+        "daily_plan": _daily_plan_view(plan),
+        "generator_plan": _strip_internal_paths(plan),
+        "grocery_list": _with_plan_id(grocery_list, plan_id) if grocery_list else None,
+        "feedback_context_summary": _feedback_context_summary(feedback_context),
+        "warnings": _response_warnings(plan),
+        "diagnostics_summary": _individual_diagnostics_summary(
+            args=args,
+            plan=plan,
+            profile_guard_result=profile_guard_result,
+            grocery_list=grocery_list,
+        ),
+    }
+    return to_json_safe(response)
+
+
+def generate_household_plan_from_request(request: dict[str, Any]) -> dict[str, Any]:
+    args = _args_from_request(request, household=True)
+    household_profile = _household_profile_from_request(request)
+    selected_member_ids = _clean_list(request.get("selected_member_ids"))
+    if selected_member_ids:
+        household_profile = filter_household_profile_members(
+            household_profile,
+            selected_member_ids,
+        )
+    if not household_profile.get("members"):
+        raise ValueError("household_profile nu are membri selectati.")
+
+    member_targets = build_member_targets(household_profile)
+    household_target = build_household_aggregate_target(member_targets)
+    primary_member = _primary_household_member(household_profile)
+    primary_context_profile = _household_context_profile(household_profile, primary_member)
+    preference_context = build_profile_preference_context(primary_context_profile)
+    feedback_context = _feedback_context_for_household(args, household_profile, request)
+    pool = load_recipe_candidate_pool(
+        recipes_path=args.recipes,
+        ingredients_path=args.ingredients,
+        nutrition_path=args.nutrition,
+        dataset_profile=args.dataset_profile,
+    )
+    fooddb = load_fooddb_current()
+    filtered_candidates = filter_recipe_candidates(
+        eligible_candidates=pool.eligible_candidates,
+        ingredients=pool.ingredients,
+        context=preference_context,
+        feedback_preference_context=feedback_context,
+    )
+    slot_candidates = build_slot_candidates(
+        target=household_target,
+        filtered_candidates=filtered_candidates,
+        time_sensitivity=preference_context.time_sensitivity,
+        ingredients=pool.ingredients,
+        fooddb=fooddb,
+        portion_policy_mode="target_aware",
+        feedback_preference_context=feedback_context,
+    )
+    household_config = _household_generation_config(args)
+    household_config["recipe_ingredients_df"] = pool.ingredients
+    household_candidates = build_household_slot_candidates(
+        slot_candidates,
+        member_targets,
+        household_config,
+    )
+    candidate_diagnostics = build_candidate_diagnostics(
+        slot_candidates=household_candidates,
+        slot_targets=household_target.slot_targets,
+    )
+    plan = generate_household_plan(
+        household_profile,
+        slot_candidates=household_candidates,
+        individual_slot_candidates=slot_candidates,
+        days=args.days,
+        config=household_config,
+        profile=primary_member,
+    )
+    plan["candidate_diagnostics"] = candidate_diagnostics
+    plan["feedback_context"] = feedback_context
+    plan["pool_summary"] = _pool_summary(
+        args,
+        pool,
+        filtered_candidates,
+        household_candidates,
+    )
+
+    grocery_list = None
+    if _generation_option(args, "include_grocery_list", False):
+        grocery_list = _build_grocery_list_with_loaded_data(
+            plan=_household_plan_for_grocery(plan),
+            args=args,
+            recipe_ingredients_df=pool.ingredients,
+            fooddb_df=fooddb,
+            generation_type="household",
+            plan_id="",
+        )
+
+    plan_id = _new_id("plan_household")
+    response = {
+        "status": "ok",
+        "household_plan_id": plan_id,
+        "generation_type": "household",
+        "dataset_profile": args.dataset_profile,
+        "household_id": household_profile.get("household_id", ""),
+        "selected_members": _selected_members(household_profile),
+        "member_targets": _member_target_rows(plan),
+        "days": int(args.days or 1),
+        "daily_plan": _daily_plan_view(plan),
+        "per_member_menus": _per_member_menus(plan),
+        "shared_meals": _shared_meals(plan),
+        "household_grocery_list": _with_plan_id(grocery_list, plan_id)
+        if grocery_list
+        else None,
+        "household_grocery_scaling": plan.get("grocery_scaling", []),
+        "member_macro_summaries": plan.get("member_daily_rows", []),
+        "generator_plan": _strip_internal_paths(plan),
+        "feedback_context_summary": _feedback_context_summary(feedback_context),
+        "warnings": _response_warnings(plan),
+        "diagnostics_summary": _household_diagnostics_summary(
+            args=args,
+            plan=plan,
+            grocery_list=grocery_list,
+        ),
+    }
+    return to_json_safe(response)
+
+
+def build_grocery_list_for_plan(
+    plan: dict[str, Any],
+    options: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    options_data = dict(options or {})
+    request = {
+        "dataset_profile": options_data.get("dataset_profile")
+        or _nested_get(plan, ("pool_summary", "dataset_profile"))
+        or V1_2_DEMO_FINAL_PROFILE,
+        "days": options_data.get("days") or _plan_day_count(plan),
+        "generation_options": options_data,
+    }
+    args = _args_from_request(request)
+    pool = load_recipe_candidate_pool(
+        recipes_path=args.recipes,
+        ingredients_path=args.ingredients,
+        nutrition_path=args.nutrition,
+        dataset_profile=args.dataset_profile,
+    )
+    fooddb = load_fooddb_current()
+    generation_type = str(options_data.get("generation_type") or plan.get("generation_type") or "")
+    grocery_plan = _household_plan_for_grocery(plan) if _is_household_plan(plan) else plan
+    return _build_grocery_list_with_loaded_data(
+        plan=grocery_plan,
+        args=args,
+        recipe_ingredients_df=pool.ingredients,
+        fooddb_df=fooddb,
+        generation_type=generation_type or ("household" if _is_household_plan(plan) else "individual"),
+        plan_id=str(options_data.get("plan_id") or plan.get("plan_id") or ""),
+    )
+
+
+def build_feedback_context_from_request(request: dict[str, Any]) -> dict[str, Any]:
+    events = _feedback_events_from_request(request)
+    context = build_feedback_preference_context(
+        events=events,
+        household_id=_clean_text(request.get("household_id")),
+        member_profile_id=_clean_text(request.get("member_profile_id")),
+        dataset_profile=_clean_text(request.get("dataset_profile")) or V1_2_DEMO_FINAL_PROFILE,
+    )
+    return to_json_safe(
+        {
+            "status": "ok",
+            "feedback_context": context,
+            "summary": _feedback_context_summary(context),
+        }
+    )
+
+
+def submit_feedback_event_from_request(request: dict[str, Any]) -> dict[str, Any]:
+    event = feedback_event_to_dict(
+        event_id=request.get("event_id"),
+        created_at=request.get("created_at"),
+        household_id=request.get("household_id"),
+        member_profile_id=request.get("member_profile_id"),
+        dataset_profile=request.get("dataset_profile") or V1_2_DEMO_FINAL_PROFILE,
+        recipe_id=request.get("recipe_id"),
+        recipe_family_name=request.get("recipe_family_name"),
+        display_name=request.get("display_name"),
+        slot=request.get("slot"),
+        feedback_type=request.get("feedback_type"),
+        source=request.get("source") or "test",
+        run_id=request.get("run_id"),
+        plan_id=request.get("plan_id"),
+        notes=request.get("notes"),
+    )
+    existing_events = _feedback_events_from_request(request)
+    context = build_feedback_preference_context(
+        events=[*existing_events, event],
+        household_id=event.get("household_id"),
+        member_profile_id=event.get("member_profile_id"),
+        dataset_profile=event.get("dataset_profile"),
+    )
+    return to_json_safe(
+        {
+            "status": "ok",
+            "stored": False,
+            "storage_owner": "backend_sqlite",
+            "event": event,
+            "context_summary": _feedback_context_summary(context),
+        }
+    )
+
+
+def to_json_safe(obj: Any) -> Any:
+    if obj is None or isinstance(obj, (str, bool, int)):
+        return obj
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, pd.DataFrame):
+        return to_json_safe(obj.to_dict(orient="records"))
+    if isinstance(obj, pd.Series):
+        return to_json_safe(obj.to_dict())
+    if isinstance(obj, Mapping):
+        return {str(key): to_json_safe(value) for key, value in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [to_json_safe(item) for item in obj]
+    if hasattr(obj, "item"):
+        try:
+            return to_json_safe(obj.item())
+        except Exception:
+            pass
+    if hasattr(obj, "tolist") and not isinstance(obj, (str, bytes, bytearray)):
+        try:
+            return to_json_safe(obj.tolist())
+        except Exception:
+            pass
+    try:
+        if pd.isna(obj):
+            return None
+    except Exception:
+        pass
+    try:
+        json.dumps(obj)
+        return obj
+    except TypeError:
+        return str(obj)
+
+
+def build_default_generation_options(request: Mapping[str, Any]) -> dict[str, Any]:
+    days = normalize_days(dict(request))
+    options = dict(DEFAULT_GENERATION_OPTIONS)
+    options["multi_day_mode"] = MULTI_DAY_MODE_GLOBAL if days > 1 else "off"
+    request_options = request.get("generation_options") or {}
+    if request_options and not isinstance(request_options, Mapping):
+        raise ValueError("generation_options trebuie sa fie obiect JSON.")
+    options.update(dict(request_options))
+    for key in (
+        "selection_mode",
+        "portion_policy",
+        "meal_realism_mode",
+        "quality_gate",
+        "profile_guard",
+        "feedback_events_path",
+    ):
+        if request.get(key) is not None:
+            options[key] = request[key]
+    return options
+
+
+def normalize_dataset_profile(request: Mapping[str, Any]) -> str:
+    value = _clean_text(request.get("dataset_profile"))
+    return value or V1_2_DEMO_FINAL_PROFILE
+
+
+def normalize_days(request: Mapping[str, Any]) -> int:
+    try:
+        days = int(request.get("days") or 1)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("days trebuie sa fie intreg intre 1 si 5.") from exc
+    if days < 1 or days > 5:
+        raise ValueError("days trebuie sa fie intre 1 si 5.")
+    return days
+
+
+def normalize_profile_guard(request: Mapping[str, Any]) -> str:
+    options = build_default_generation_options(request)
+    value = _clean_text(options.get("profile_guard"))
+    return value or "demo"
+
+
+def normalize_grocery_options(request: Mapping[str, Any]) -> dict[str, Any]:
+    options = build_default_generation_options(request)
+    include_purchase = _as_bool(options.get("include_purchase_suggestions"), False)
+    cooked_to_raw = options.get("include_cooked_to_raw_conversion")
+    if cooked_to_raw is None:
+        cooked_to_raw = options.get("grocery_cooked_to_raw")
+    enable_cooked_to_raw = include_purchase if cooked_to_raw is None else _as_bool(cooked_to_raw)
+    return {
+        "include_pantry_basics": _as_bool(options.get("include_pantry_basics"), False),
+        "include_purchase_suggestions": include_purchase,
+        "purchase_rules_path": _path_or_none(options.get("purchase_rules_path")),
+        "enable_cooked_to_raw_conversion": enable_cooked_to_raw,
+        "cooked_to_raw_rules_path": _path_or_none(options.get("cooked_to_raw_rules_path")),
+        "include_price_estimates": _as_bool(options.get("include_price_estimates"), False),
+        "product_catalog_path": _path_or_none(options.get("product_catalog_path")),
+        "exclude_water": True,
+    }
+
+
+def _args_from_request(
+    request: Mapping[str, Any],
+    *,
+    household: bool = False,
+) -> SimpleNamespace:
+    options = build_default_generation_options(request)
+    args = SimpleNamespace(
+        profile=Path(str(request.get("profile_path") or "profiles/member_profile_demo_v1.json")),
+        dataset_profile=normalize_dataset_profile(request),
+        test_preset="none",
+        recipes=_path_or_none(options.get("recipes_path") or request.get("recipes_path")),
+        ingredients=_path_or_none(
+            options.get("ingredients_path") or request.get("ingredients_path")
+        ),
+        nutrition=_path_or_none(options.get("nutrition_path") or request.get("nutrition_path")),
+        selection_mode=str(options.get("selection_mode") or "balanced_day"),
+        alternative_count=int(options.get("alternative_count") or 3),
+        diversity_mode=str(options.get("diversity_mode") or "none"),
+        recent_recipe_ids=str(options.get("recent_recipe_ids") or ""),
+        portion_policy=str(options.get("portion_policy") or "target_aware"),
+        meal_realism_mode=str(options.get("meal_realism_mode") or "practical"),
+        quality_gate=str(options.get("quality_gate") or "demo_safe"),
+        days=normalize_days(request),
+        multi_day_mode=str(options.get("multi_day_mode") or "off"),
+        multi_day_no_repeat_policy=str(options.get("multi_day_no_repeat_policy") or "hard"),
+        day_candidate_pool_size=int(options.get("day_candidate_pool_size") or 75),
+        multi_day_speed_mode=str(options.get("multi_day_speed_mode") or "fast"),
+        day_candidate_builder=options.get("day_candidate_builder") or None,
+        direct_slot_shortlist_size=int(options.get("direct_slot_shortlist_size") or 12),
+        profile_guard=str(options.get("profile_guard") or "demo"),
+        allow_unsupported_profile=_as_bool(options.get("allow_unsupported_profile"), False),
+        feedback_events_path=_path_or_none(
+            options.get("feedback_events_path") or request.get("feedback_events_path")
+        ),
+        feedback_disabled=not _as_bool(options.get("feedback_enabled"), True),
+        grocery_purchase_suggestions=_as_bool(
+            options.get("include_purchase_suggestions"),
+            False,
+        ),
+        grocery_purchase_rules_path=_path_or_none(options.get("purchase_rules_path")),
+        grocery_price_estimates=_as_bool(options.get("include_price_estimates"), False),
+        grocery_product_catalog_path=_path_or_none(options.get("product_catalog_path")),
+        grocery_cooked_to_raw=options.get("include_cooked_to_raw_conversion"),
+        grocery_cooked_to_raw_rules_path=_path_or_none(
+            options.get("cooked_to_raw_rules_path")
+        ),
+        include_pantry_basics=_as_bool(options.get("include_pantry_basics"), False),
+        household_profile=_path_or_none(
+            request.get("household_profile_path") or options.get("household_profile_path")
+        ),
+        household_mode=str(
+            request.get("household_mode")
+            or options.get("household_mode")
+            or (
+                HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN
+                if household
+                else HOUSEHOLD_MODE_OFF
+            )
+        ),
+        household_allocation_mode=str(
+            request.get("household_allocation_mode")
+            or options.get("household_allocation_mode")
+            or "macro_aware_simple"
+        ),
+        no_write_outputs=True,
+    )
+    args._service_generation_options = options
+    _apply_multi_day_defaults(args)
+    _resolve_dataset_paths(args)
+    return args
+
+
+def _generate_one_day_plan(
+    *,
+    args: SimpleNamespace,
+    target: Any,
+    slot_candidates: pd.DataFrame,
+    candidate_diagnostics: dict[str, Any],
+    feedback_context: dict[str, Any],
+    profile_guard_result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    selector_config = _balanced_selector_config(args)
+    if _should_use_quality_gated_reroll(args):
+        ordered_slots = _slot_order(target)
+        plan = select_quality_gated_reroll(
+            slot_candidates_by_slot=_slot_candidates_by_slot(slot_candidates, ordered_slots),
+            target=target,
+            slot_order=ordered_slots,
+            recent_recipe_ids=_clean_list(args.recent_recipe_ids),
+            base_config=selector_config,
+        )
+    else:
+        plan = _select_one_day_plan(
+            selection_mode=args.selection_mode,
+            slot_candidates=slot_candidates,
+            target=target,
+            selector_config=selector_config,
+        )
+    plan["target"] = _target_to_dict(target)
+    plan["candidate_diagnostics"] = candidate_diagnostics
+    plan["feedback_context"] = feedback_context
+    if profile_guard_result is not None:
+        plan["profile_guard"] = profile_guard_result
+    plan["validation"] = validate_one_day_plan(plan, target)
+    if args.quality_gate == "demo_safe" and "quality_gate" not in plan:
+        plan["quality_gate"] = evaluate_plan_quality(
+            plan,
+            target,
+            config={"quality_gate": "demo_safe"},
+        )
+        plan["quality_gate_status"] = plan["quality_gate"]["quality_gate_status"]
+        plan["quality_gate_reasons"] = plan["quality_gate"]["quality_gate_reasons"]
+        plan["quality_gate_score"] = plan["quality_gate"]["quality_gate_score"]
+        plan["quality_gate_fallback_used"] = False
+        plan["quality_gate_selected_mode"] = args.diversity_mode
+    return plan
+
+
+def _build_grocery_list_with_loaded_data(
+    *,
+    plan: dict[str, Any],
+    args: SimpleNamespace,
+    recipe_ingredients_df: pd.DataFrame,
+    fooddb_df: pd.DataFrame,
+    generation_type: str,
+    plan_id: str,
+) -> dict[str, Any]:
+    grocery_options = normalize_grocery_options(
+        {
+            "dataset_profile": args.dataset_profile,
+            "days": args.days,
+            "generation_options": getattr(args, "_service_generation_options", {}),
+        }
+    )
+    grocery = build_grocery_list(
+        plan,
+        recipe_ingredients_df,
+        fooddb_df=fooddb_df,
+        config=grocery_options,
+    )
+    summary = grocery.get("summary", {}) if isinstance(grocery, dict) else {}
+    return to_json_safe(
+        {
+            "status": "ok",
+            "grocery_list_id": _new_id("grocery"),
+            "plan_id": plan_id,
+            "generation_type": generation_type,
+            "currency": summary.get("estimated_total_currency") or "RON",
+            "total_estimated_cost": summary.get("estimated_total_cost"),
+            "items": grocery.get("display_items", []) or grocery.get("items", []),
+            "raw_grocery_list": grocery,
+            "summary": summary,
+            "warnings": grocery.get("warnings", []),
+        }
+    )
+
+
+def _household_profile_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
+    profile = request.get("household_profile")
+    if isinstance(profile, Mapping):
+        return _plain_dict(profile)
+    profile_path = request.get("household_profile_path") or DEFAULT_DEMO_HOUSEHOLD_PROFILE_PATH
+    return load_household_profile(Path(str(profile_path)))
+
+
+def _member_profile_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
+    profile = request.get("member_profile")
+    if isinstance(profile, Mapping):
+        return _plain_dict(profile)
+    profile_path = request.get("profile_path") or request.get("profile") or "profiles/member_profile_demo_v1.json"
+    return load_member_profile(Path(str(profile_path)))
+
+
+def _feedback_context_for_profile(
+    args: SimpleNamespace,
+    profile: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> dict[str, Any]:
+    if args.feedback_disabled:
+        events: list[dict[str, Any]] = []
+    else:
+        injected_context = request.get("feedback_context")
+        if isinstance(injected_context, Mapping):
+            return _plain_dict(injected_context)
+        events = load_feedback_events(args.feedback_events_path)
+    return build_feedback_preference_context(
+        events=events,
+        household_id=str(profile.get("household_id", "")),
+        member_profile_id=str(profile.get("member_profile_id", "")),
+        dataset_profile=args.dataset_profile,
+    )
+
+
+def _feedback_context_for_household(
+    args: SimpleNamespace,
+    household_profile: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> dict[str, Any]:
+    household_id = str(
+        request.get("household_id") or household_profile.get("household_id") or ""
+    )
+    if args.feedback_disabled:
+        events: list[dict[str, Any]] = []
+    else:
+        injected_context = request.get("feedback_context")
+        if isinstance(injected_context, Mapping):
+            return _plain_dict(injected_context)
+        events = load_feedback_events(args.feedback_events_path)
+    return build_feedback_preference_context(
+        events=events,
+        household_id=household_id,
+        member_profile_id="",
+        dataset_profile=args.dataset_profile,
+    )
+
+
+def _feedback_events_from_request(request: Mapping[str, Any]) -> list[dict[str, Any]]:
+    events = request.get("feedback_events")
+    if isinstance(events, list):
+        return [dict(event) for event in events if isinstance(event, Mapping)]
+    path = request.get("feedback_events_path")
+    if path is None:
+        path = DEFAULT_FEEDBACK_EVENTS_PATH
+    return load_feedback_events(path)
+
+
+def _daily_plan_view(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
+    days = plan.get("days")
+    if isinstance(days, list) and days:
+        rows = []
+        for fallback_day, day in enumerate(days, start=1):
+            if not isinstance(day, Mapping):
+                continue
+            rows.append(
+                {
+                    "day_index": int(day.get("day_index") or fallback_day),
+                    "validation_status": day.get("validation_status")
+                    or _nested_get(day, ("validation", "validation_status")),
+                    "quality_status": day.get("quality_gate_status")
+                    or day.get("household_quality_status"),
+                    "totals": _totals_view(day.get("day_totals", {})),
+                    "selected_meals": _meal_rows_view(day.get("selected_meals", [])),
+                }
+            )
+        return rows
+    return [
+        {
+            "day_index": 1,
+            "validation_status": _nested_get(plan, ("validation", "validation_status")),
+            "quality_status": plan.get("quality_gate_status")
+            or _nested_get(plan, ("quality_gate", "quality_gate_status")),
+            "totals": _totals_view(plan.get("day_totals", {})),
+            "selected_meals": _meal_rows_view(plan.get("selected_meals", [])),
+        }
+    ]
+
+
+def _meal_rows_view(meals: Any) -> list[dict[str, Any]]:
+    if not isinstance(meals, list):
+        return []
+    rows = []
+    for meal in meals:
+        if not isinstance(meal, Mapping):
+            continue
+        rows.append(
+            {
+                "slot": meal.get("slot"),
+                "recipe_id": meal.get("recipe_id"),
+                "display_name": meal.get("display_name"),
+                "portion_multiplier": meal.get("portion_multiplier"),
+                "meal_scope": "shared"
+                if bool(meal.get("household_generation_shared_slot", False))
+                else meal.get("allocation_scope", "individual"),
+                "kcal": meal.get("kcal"),
+                "protein_g": meal.get("protein_g"),
+                "carbs_g": meal.get("carbs_g"),
+                "fat_g": meal.get("fat_g"),
+                "effective_time_min_for_scoring": meal.get(
+                    "effective_time_min_for_scoring"
+                ),
+                "feedback_fit": meal.get("feedback_fit"),
+                "warnings": meal.get("warnings", []),
+            }
+        )
+    return rows
+
+
+def _totals_view(totals: Any) -> dict[str, Any]:
+    if not isinstance(totals, Mapping):
+        return {}
+    return {
+        "kcal": totals.get("total_kcal", totals.get("kcal")),
+        "protein_g": totals.get("total_protein_g", totals.get("protein_g")),
+        "carbs_g": totals.get("total_carbs_g", totals.get("carbs_g")),
+        "fat_g": totals.get("total_fat_g", totals.get("fat_g")),
+    }
+
+
+def _individual_diagnostics_summary(
+    *,
+    args: SimpleNamespace,
+    plan: Mapping[str, Any],
+    profile_guard_result: Mapping[str, Any] | None,
+    grocery_list: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    summary = {
+        "dataset_profile": args.dataset_profile,
+        "days": int(args.days or 1),
+        "selection_mode": args.selection_mode,
+        "portion_policy": args.portion_policy,
+        "quality_gate": args.quality_gate,
+        "profile_guard_status": _clean_text(
+            (profile_guard_result or {}).get("profile_guard_status")
+        ),
+    }
+    multi_day_summary = plan.get("multi_day_summary")
+    if isinstance(multi_day_summary, Mapping):
+        summary.update(
+            {
+                "actual_days_generated": multi_day_summary.get("actual_days_generated"),
+                "valid_days": multi_day_summary.get("valid_day_count"),
+                "accept_days": multi_day_summary.get("accept_day_count"),
+                "repeated_recipes": multi_day_summary.get("repeated_recipe_count"),
+            }
+        )
+    else:
+        summary.update(
+            {
+                "validation_status": _nested_get(plan, ("validation", "validation_status")),
+                "quality_status": plan.get("quality_gate_status")
+                or _nested_get(plan, ("quality_gate", "quality_gate_status")),
+            }
+        )
+    if grocery_list:
+        summary["grocery_shopping_item_count"] = _nested_get(
+            grocery_list,
+            ("summary", "shopping_item_count"),
+        )
+    return summary
+
+
+def _household_diagnostics_summary(
+    *,
+    args: SimpleNamespace,
+    plan: Mapping[str, Any],
+    grocery_list: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    household_summary = plan.get("household_summary", {})
+    summary = {
+        "dataset_profile": args.dataset_profile,
+        "household_mode": args.household_mode,
+        "household_allocation_mode": args.household_allocation_mode,
+        "household_quality_status": household_summary.get("household_quality_status"),
+        "accept_day_count": household_summary.get("accept_day_count"),
+        "max_grocery_scaling_factor": household_summary.get("max_grocery_scaling_factor"),
+    }
+    if grocery_list:
+        summary["grocery_shopping_item_count"] = _nested_get(
+            grocery_list,
+            ("summary", "shopping_item_count"),
+        )
+        summary["estimated_total_cost"] = _nested_get(
+            grocery_list,
+            ("summary", "estimated_total_cost"),
+        )
+    return summary
+
+
+def _feedback_context_summary(context: Mapping[str, Any]) -> dict[str, Any]:
+    score_preferences = context.get("score_preferences", {})
+    time_preferences = context.get("time_preferences", {})
+    hard_filters = context.get("hard_filters", {})
+    liked = score_preferences.get("liked_recipe_ids", {}) if isinstance(score_preferences, Mapping) else {}
+    disliked = (
+        score_preferences.get("disliked_recipe_ids", {})
+        if isinstance(score_preferences, Mapping)
+        else {}
+    )
+    too_long = (
+        time_preferences.get("too_long_recipe_ids", {})
+        if isinstance(time_preferences, Mapping)
+        else {}
+    )
+    banned = (
+        hard_filters.get("banned_recipe_ids", [])
+        if isinstance(hard_filters, Mapping)
+        else []
+    )
+    meta = context.get("meta", {}) if isinstance(context.get("meta"), Mapping) else {}
+    return {
+        "event_count": meta.get("event_count", 0),
+        "liked_count": _sum_mapping_values(liked),
+        "disliked_count": _sum_mapping_values(disliked),
+        "too_long_count": _sum_mapping_values(too_long),
+        "explicit_avoid_count": len(banned) if isinstance(banned, list) else 0,
+    }
+
+
+def _selected_members(household_profile: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "member_id": member.get("member_id"),
+            "display_name": member.get("display_name") or member.get("profile_name"),
+        }
+        for member in household_profile.get("members", [])
+        if isinstance(member, Mapping)
+    ]
+
+
+def _member_target_rows(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
+    member_targets = plan.get("member_targets", {})
+    target_rows = member_targets.get("target_rows", []) if isinstance(member_targets, Mapping) else []
+    return list(target_rows) if isinstance(target_rows, list) else []
+
+
+def _per_member_menus(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
+    buckets: dict[tuple[str, int], dict[str, Any]] = {}
+    for row in plan.get("allocations", []):
+        if not isinstance(row, Mapping):
+            continue
+        member_id = _clean_text(row.get("member_id"))
+        day_index = int(_to_float(row.get("day_index")) or 1)
+        key = (member_id, day_index)
+        bucket = buckets.setdefault(
+            key,
+            {
+                "member_id": member_id,
+                "day_index": day_index,
+                "meals": [],
+            },
+        )
+        bucket["meals"].append(
+            {
+                "slot": row.get("slot"),
+                "recipe_id": row.get("recipe_id"),
+                "display_name": row.get("display_name") or row.get("recipe"),
+                "portion_multiplier": row.get("portion_multiplier_member")
+                or row.get("portion_multiplier"),
+                "meal_scope": row.get("allocation_scope"),
+                "kcal": row.get("kcal"),
+                "protein_g": row.get("protein_g"),
+                "carbs_g": row.get("carbs_g"),
+                "fat_g": row.get("fat_g"),
+            }
+        )
+    return [
+        buckets[key]
+        for key in sorted(buckets, key=lambda item: (item[1], item[0]))
+    ]
+
+
+def _shared_meals(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
+    rows = []
+    for day in plan.get("days", []):
+        if not isinstance(day, Mapping):
+            continue
+        day_index = int(day.get("day_index") or 1)
+        for meal in day.get("selected_meals", []):
+            if not isinstance(meal, Mapping):
+                continue
+            if not bool(meal.get("household_generation_shared_slot", True)):
+                continue
+            rows.append(
+                {
+                    "day_index": day_index,
+                    "slot": meal.get("slot"),
+                    "recipe_id": meal.get("recipe_id"),
+                    "display_name": meal.get("display_name"),
+                    "household_portion_sum": meal.get("household_portion_sum"),
+                    "household_grocery_scaling_factor": meal.get(
+                        "household_grocery_scaling_factor"
+                    ),
+                }
+            )
+    return rows
+
+
+def _household_plan_for_grocery(plan: Mapping[str, Any]) -> dict[str, Any]:
+    if plan.get("household_generation_version") != "v1_lite":
+        return dict(plan)
+    individual_by_day: dict[int, list[dict[str, Any]]] = {}
+    for row in plan.get("individual_meals", []):
+        if isinstance(row, Mapping):
+            day_index = int(_to_float(row.get("day_index")) or 1)
+            individual_by_day.setdefault(day_index, []).append(dict(row))
+
+    grocery_days: list[dict[str, Any]] = []
+    for fallback_index, day in enumerate(plan.get("days", []), start=1):
+        if not isinstance(day, Mapping):
+            continue
+        day_index = int(_to_float(day.get("day_index")) or fallback_index)
+        selected_meals: list[dict[str, Any]] = []
+        for meal in day.get("selected_meals", []):
+            if not isinstance(meal, Mapping):
+                continue
+            if not bool(meal.get("household_generation_shared_slot", True)):
+                continue
+            shared_meal = dict(meal)
+            shared_meal["portion_multiplier"] = (
+                _to_float(meal.get("household_portion_sum"))
+                or _to_float(meal.get("portion_multiplier"))
+                or 1.0
+            )
+            selected_meals.append(shared_meal)
+        for row in individual_by_day.get(day_index, []):
+            selected_meals.append(
+                {
+                    "slot": row.get("slot"),
+                    "recipe_id": row.get("recipe_id"),
+                    "display_name": row.get("display_name") or row.get("recipe"),
+                    "portion_multiplier": (
+                        _to_float(row.get("portion_multiplier_member"))
+                        or _to_float(row.get("portion_multiplier"))
+                        or 1.0
+                    ),
+                    "allocation_scope": "individual",
+                    "member_id": row.get("member_id"),
+                    "member": row.get("member"),
+                }
+            )
+        grocery_day = dict(day)
+        grocery_day["selected_meals"] = selected_meals
+        grocery_days.append(grocery_day)
+
+    result = dict(plan)
+    result["days"] = grocery_days
+    result["generation_trigger"] = "aggregate_household_grocery"
+    return result
+
+
+def _response_warnings(plan: Mapping[str, Any]) -> list[Any]:
+    warnings = []
+    raw = plan.get("warnings", [])
+    if isinstance(raw, list):
+        warnings.extend(raw)
+    loader_warnings = _nested_get(plan, ("pool_summary", "loader_warnings"))
+    if isinstance(loader_warnings, list):
+        warnings.extend(loader_warnings)
+    return warnings
+
+
+def _strip_internal_paths(obj: Any) -> Any:
+    if isinstance(obj, Mapping):
+        return {
+            str(key): _strip_internal_paths(value)
+            for key, value in obj.items()
+            if str(key) not in INTERNAL_PATH_KEYS
+        }
+    if isinstance(obj, list):
+        return [_strip_internal_paths(item) for item in obj]
+    if isinstance(obj, tuple):
+        return [_strip_internal_paths(item) for item in obj]
+    return obj
+
+
+def _with_plan_id(grocery_list: Mapping[str, Any], plan_id: str) -> dict[str, Any]:
+    result = dict(grocery_list)
+    result["plan_id"] = plan_id
+    return result
+
+
+def _is_household_plan(plan: Mapping[str, Any]) -> bool:
+    return bool(plan.get("household_generation_version")) or bool(plan.get("allocations"))
+
+
+def _plan_day_count(plan: Mapping[str, Any]) -> int:
+    days = plan.get("days")
+    if isinstance(days, list) and days:
+        return len(days)
+    return 1
+
+
+def _plain_dict(data: Mapping[str, Any]) -> dict[str, Any]:
+    return json.loads(json.dumps(to_json_safe(dict(data)), ensure_ascii=True))
+
+
+def _nested_get(data: Any, keys: tuple[str, ...]) -> Any:
+    current = data
+    for key in keys:
+        if not isinstance(current, Mapping):
+            return None
+        current = current.get(key)
+    return current
+
+
+def _generation_option(args: SimpleNamespace, key: str, default: Any = None) -> Any:
+    options = getattr(args, "_service_generation_options", {})
+    if isinstance(options, Mapping):
+        return options.get(key, default)
+    return default
+
+
+def _path_or_none(value: Any) -> Path | None:
+    if value in (None, ""):
+        return None
+    return Path(str(value))
+
+
+def _clean_text(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if text.lower() in {"none", "nan", "nat"}:
+        return ""
+    return text
+
+
+def _clean_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def _as_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"1", "true", "yes", "on"}:
+            return True
+        if text in {"0", "false", "no", "off"}:
+            return False
+    return bool(value)
+
+
+def _to_float(value: Any) -> float | None:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(result) or math.isinf(result):
+        return None
+    return result
+
+
+def _sum_mapping_values(value: Any) -> int:
+    if not isinstance(value, Mapping):
+        return 0
+    total = 0
+    for item in value.values():
+        try:
+            total += int(item)
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _new_id(prefix: str) -> str:
+    return f"{prefix}_{uuid.uuid4().hex[:12]}"

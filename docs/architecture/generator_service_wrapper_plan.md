@@ -21,14 +21,32 @@ Rol:
 - intoarce dict-uri JSON-serializable;
 - izoleaza backend-ul de detaliile CLI/Streamlit.
 
+## Backend M2 implementation status
+
+Backend M2 a adaugat modulul `src/generator_v1/service.py`.
+
+Functii disponibile:
+
+```python
+generate_individual_plan_from_request(request: dict) -> dict
+generate_household_plan_from_request(request: dict) -> dict
+build_grocery_list_for_plan(plan: dict, options: dict) -> dict
+build_feedback_context_from_request(request: dict) -> dict
+submit_feedback_event_from_request(request: dict) -> dict
+```
+
+Wrapper-ul apeleaza functii Python existente si helperi de orchestrare folositi deja de CLI, dar nu executa CLI-ul si nu parseaza output text. Raspunsurile sunt trecute prin conversie JSON-safe.
+
+`submit_feedback_event_from_request(...)` normalizeaza event-ul pentru backend, dar nu il persista. Persistenta ramane responsabilitatea backend-ului SQLite.
+
 ## Planned functions
 
 ```python
 generate_individual_plan_from_request(request: dict) -> dict
 generate_household_plan_from_request(request: dict) -> dict
 build_grocery_list_for_plan(plan: dict, options: dict) -> dict
-apply_feedback_event_from_request(request: dict) -> dict
-build_feedback_context_for_household(household_id: str) -> dict
+build_feedback_context_from_request(request: dict) -> dict
+submit_feedback_event_from_request(request: dict) -> dict
 ```
 
 ## Function responsibilities
@@ -102,8 +120,18 @@ Wrapper-ul trebuie sa converteasca:
 ## Non-goals
 
 - Nu implementeaza FastAPI.
-- Nu implementeaza `src/generator_v1/service.py` in acest checkpoint.
+- Nu implementeaza endpoint-uri FastAPI de generare.
 - Nu modifica selectia de retete.
 - Nu modifica formulele de target.
 - Nu modifica grocery/pricing behavior.
 - Nu introduce dependinte noi.
+
+## Backend M2 smoke
+
+Smoke script:
+
+```powershell
+python tools/extra/check_generator_service_m2.py
+```
+
+Validarea M2 foloseste request-urile din `docs/api_examples/`, ruleaza generare individuala, generare household, grocery list si feedback context, apoi verifica serializarea JSON.
