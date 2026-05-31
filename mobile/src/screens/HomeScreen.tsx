@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 
+import { GroceryListSection } from "../components/GroceryListSection";
 import { MemberCard } from "../components/MemberCard";
 import { PlanDayCard } from "../components/PlanDayCard";
 import { StatusCard } from "../components/StatusCard";
@@ -20,6 +21,7 @@ import {
 import type {
   DemoHouseholdResponse,
   DemoMemberProfile,
+  GroceryListResponse,
   HealthResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
@@ -36,6 +38,10 @@ const GENERATION_OPTIONS = {
   multi_day_mode: "global_alternatives_3_day",
   multi_day_no_repeat_policy: "hard",
   day_candidate_builder: "direct_from_slots",
+  include_grocery_list: true,
+  include_purchase_suggestions: true,
+  include_price_estimates: true,
+  feedback_enabled: false,
 };
 
 export function HomeScreen() {
@@ -57,6 +63,7 @@ export function HomeScreen() {
       ) ?? null,
     [demoHousehold, selectedMemberId],
   );
+  const groceryList = generatedPlan ? getGroceryListFromPlanResponse(generatedPlan) : null;
 
   async function checkBackendHealth() {
     setHealthStatus("loading");
@@ -184,7 +191,7 @@ export function HomeScreen() {
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Individual plan</Text>
-          <Text style={styles.panelMeta}>3 days · no grocery</Text>
+          <Text style={styles.panelMeta}>3 days / grocery</Text>
         </View>
         <ActionButton
           disabled={!selectedMember || isGeneratingPlan}
@@ -219,6 +226,8 @@ export function HomeScreen() {
           </View>
         </View>
       ) : null}
+
+      {generatedPlan ? <GroceryListSection groceryList={groceryList} /> : null}
     </ScrollView>
   );
 }
@@ -284,15 +293,29 @@ function buildGenerateRequest(member: DemoMemberProfile): IndividualPlanGenerate
       profile_name: member.profile_name ?? member.display_name ?? profileId,
     },
     generation_options: GENERATION_OPTIONS,
-    include_grocery_list: false,
-    include_purchase_suggestions: false,
-    include_price_estimates: false,
+    include_grocery_list: true,
+    include_purchase_suggestions: true,
+    include_price_estimates: true,
     feedback_enabled: false,
   };
 }
 
+function getGroceryListFromPlanResponse(
+  response: IndividualPlanGenerateResponse,
+): GroceryListResponse | null {
+  const candidate = response.grocery_list ?? response.household_grocery_list;
+  if (isRecord(candidate)) {
+    return candidate as GroceryListResponse;
+  }
+  return null;
+}
+
 function memberKey(member: DemoMemberProfile): string {
   return String(member.member_profile_id ?? member.member_id ?? member.display_name ?? "member");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function renderWarnings(warnings: unknown[] | undefined) {

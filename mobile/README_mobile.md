@@ -35,6 +35,20 @@ Pentru emulator Android:
 npx expo start --android
 ```
 
+## Troubleshooting
+
+Pe setup-ul testat local, `npx expo start --android` a functionat cu URL LAN pentru Expo.
+
+`npx expo start --android --localhost` a esuat in Expo Go deoarece Metro a expus un URL localhost/IPv6, iar aplicatia a primit `exp://127.0.0.1:8081`.
+
+Pastreaza `API_BASE_URL` pentru emulator Android ca:
+
+```text
+http://10.0.2.2:8000
+```
+
+Pentru telefon fizic, foloseste IP-ul LAN al PC-ului pentru backend, nu `localhost`.
+
 ## Backend URL
 
 Valoarea implicita pentru emulator Android este:
@@ -65,6 +79,7 @@ http://127.0.0.1:8000
 - Afiseaza membrii demo ca selectii simple.
 - Genereaza un plan individual de 3 zile prin `POST /plans/generate`.
 - Afiseaza zilele generate si mesele cu kcal/protein cand sunt disponibile.
+- Cere si afiseaza grocery list pentru planul generat cand backend-ul o returneaza.
 
 ## Mobile M2 Flow
 
@@ -78,6 +93,20 @@ Mobile M2 trimite profilul demo inline din `/households/demo`. Nu foloseste inca
 
 Grocery screen, feedback buttons, household generation screen, auth/login si cloud sync raman pentru checkpointuri ulterioare.
 
+## Mobile M3 Flow
+
+Mobile M3 pastreaza acelasi flow pe un singur ecran, dar requestul de generare cere si grocery list:
+
+- `include_grocery_list=true`
+- `include_purchase_suggestions=true`
+- `include_price_estimates=true`
+
+Dupa generarea planului, aplicatia afiseaza sectiunea `Grocery list` sub plan. Lista foloseste payload-ul returnat de backend si poate afisa categorii, cantitati necesare, purchase suggestions / sugestii de cumparare, costuri estimate si avertizari.
+
+Preturile sunt estimari demo, nu preturi live. Unele itemuri pot ramane fara estimare de pret si vor fi marcate ca missing/no price estimate.
+
+Nu exista inca feedback screen, household mobile generation, auth/login sau cloud sync. Aplicatia mobila continua sa consume doar FastAPI prin HTTP/JSON si nu citeste CSV-uri.
+
 ## Next Step
 
-Urmatorul pas este Mobile M3: profil persistent sau flow demo cu salvare profil, apoi ecran pentru grocery list sau feedback.
+Urmatorul pas este validarea runtime repetata pentru Mobile M3, apoi profil persistent sau feedback screen intr-un checkpoint separat.

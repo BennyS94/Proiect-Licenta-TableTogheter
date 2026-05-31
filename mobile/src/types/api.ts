@@ -43,6 +43,57 @@ export type IndividualPlanGenerateRequest = {
   feedback_enabled: boolean;
 };
 
+export type GroceryListItem = {
+  display_name?: string;
+  display_name_clean?: string;
+  category?: string;
+  category_label?: string;
+  grocery_category?: string;
+  needed_grams?: number;
+  needed_grams_display?: string;
+  needed_grams_exact?: number;
+  display_grams?: string;
+  total_grams?: number;
+  purchase_display?: string;
+  estimated_cost?: number | null;
+  estimated_cost_display?: string;
+  currency?: string;
+  price_confidence?: string;
+  price_warning?: string;
+  warnings?: unknown[] | string;
+  purchase_warnings?: unknown[] | string;
+  source_recipes?: unknown[] | string;
+  [key: string]: unknown;
+};
+
+export type GroceryListSummary = {
+  estimated_total_cost?: number;
+  total_estimated_cost?: number;
+  priced_item_count?: number;
+  missing_price_count?: number;
+  unpriced_item_count?: number;
+  warnings?: unknown[] | string;
+  pricing_summary?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type GroceryListResponse = {
+  status?: string;
+  grocery_list_id?: string;
+  plan_id?: string;
+  generation_type?: string;
+  currency?: string;
+  estimated_total_cost?: number;
+  total_estimated_cost?: number;
+  priced_item_count?: number;
+  missing_price_count?: number;
+  items?: GroceryListItem[];
+  display_items?: GroceryListItem[];
+  summary?: GroceryListSummary;
+  warnings?: unknown[] | string;
+  [key: string]: unknown;
+};
+
 export type GeneratedMeal = {
   slot?: string;
   recipe_id?: string;
@@ -73,6 +124,7 @@ export type IndividualPlanGenerateResponse = {
   member_profile_id?: string;
   days?: number;
   daily_plan?: GeneratedDay[];
+  grocery_list?: GroceryListResponse | null;
   warnings?: unknown[];
   diagnostics_summary?: Record<string, unknown>;
   feedback_context_summary?: Record<string, unknown>;
