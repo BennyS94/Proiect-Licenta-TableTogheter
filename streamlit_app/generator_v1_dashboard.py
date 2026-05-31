@@ -522,14 +522,17 @@ def _render_recommended_v1_2_preset_button() -> None:
     if st.session_state.get(SESSION_RECOMMENDED_PRESET_APPLIED_KEY):
         st.success("Recommended v1.2 preset applied. Generation was not started.")
         st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = False
-    if st.button(
+    st.button(
         "Apply recommended v1.2 demo settings",
         type="primary",
+        on_click=_apply_recommended_v1_2_test_preset_and_mark,
         use_container_width=True,
-    ):
-        _apply_recommended_v1_2_test_preset()
-        st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = True
-        st.rerun()
+    )
+
+
+def _apply_recommended_v1_2_test_preset_and_mark() -> None:
+    _apply_recommended_v1_2_test_preset()
+    st.session_state[SESSION_RECOMMENDED_PRESET_APPLIED_KEY] = True
 
 
 def _render_recommended_v1_2_preset_details() -> None:

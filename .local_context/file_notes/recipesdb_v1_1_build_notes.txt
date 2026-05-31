@@ -2692,6 +2692,134 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Known limitation:
   - This is still Household Generation Lite. `shared_main_meals` and `individual_breakfast_shared_main` share the same individual breakfast/snack implementation for now, there is no global household optimizer, and grocery scaling remains quantity-only.
 
+## 74. Round70 / Streamlit household member selection and menu navigation - 2026-05-17
+- Scope:
+  - Improved Streamlit Household Generation v1 Lite UX for selected household members and per-member menu reading.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, nutrition target formulas, backend/API/mobile, optimizer logic, or individual generator behavior were changed.
+- Implementation:
+  - Added pure helper `filter_household_profile_members(...)` in `src/generator_v1/household_generator.py`.
+  - Streamlit Household generation panel now supports checkbox member selection from `profiles/household_profile_demo_v1.json`.
+  - Added `Select all members` and `Clear selection`.
+  - Generation is disabled when no member is selected.
+  - One selected member is allowed and shown as similar to individual generation.
+  - Selected members are filtered in memory only; the source JSON profile is not mutated.
+- Streamlit UX:
+  - Main household output now shows compact summary plus `Member menu view`.
+  - Per-member navigation uses left/right arrow buttons and wraps through selected members.
+  - Current member view shows target summary, per-day breakfast/lunch/dinner/snack rows, portion multiplier, kcal/protein/carbs/fat, meal scope, warnings, and daily totals.
+  - Large all-member allocation/macros/debug tables were moved under `Household generation diagnostics`.
+  - Copy-ready household plan and copy-ready current-member menu remain collapsed by default.
+  - Household grocery output remains aggregate household scaling for selected members, not separate grocery lists per member.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_round70_household_member_selection.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round70_household_member_selection_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round70_household_member_selection_members.csv`
+    - `data/recipesdb/audit/generator_v1_round70_household_member_selection_allocations.csv`
+    - `data/recipesdb/audit/generator_v1_round70_household_member_selection_grocery_scaling.csv`
+- Result:
+  - All members selected: `member_count=3`, `days=3`, `household_quality_status=accept`, `max_grocery_scaling_factor=3.45`.
+  - Alex+Mara selected: `member_count=2`, `days=3`, `household_quality_status=accept`, `max_grocery_scaling_factor=2.5`.
+  - Mara only: `member_count=1`, `days=3`, `household_quality_status=accept`, `max_grocery_scaling_factor=1.15`.
+  - Filtering works: allocation rows match selected members in all three scenarios.
+- Known limitation:
+  - This is still Streamlit debug UX. It does not add backend household accounts, mobile navigation, grocery optimization, or a new optimizer.
+
+## 75. Round71 / Streamlit unified member-aware generation flow - 2026-05-17
+- Scope:
+  - Reworked the Streamlit debug dashboard around one visible member-aware generation flow.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, nutrition formulas, backend/API/mobile, optimizer dependencies, or individual generator functions were changed.
+- Streamlit UX:
+  - Main page now shows household member checkboxes before generation.
+  - Fresh sessions default to Alex selected.
+  - The main flow uses one `Number of days` selector (`1..5`) and one full-width `Generate` button.
+  - One selected member is stored/rendered as `single_member`; two or more members are stored/rendered as `household`.
+  - Generated output is stored in the unified `latest_generation_result` session object with generation type, selected members, days, run id, and timestamp.
+  - Member menu view shows one member at a time with left/right arrow navigation.
+  - A day selector shows only one generated day at a time for the current member.
+  - Copy-ready current-member and all-member outputs remain collapsed.
+  - Aggregate grocery list remains one household-level list for selected members; shared meals use household portion sums and individual breakfast/snack meals are included.
+  - Raw/debug tables remain collapsed.
+- Debug controls:
+  - Existing one-day/multi-day debug buttons remain in `Advanced debug controls`.
+  - Household mode/allocation mode are also available in advanced controls.
+- Evaluator:
+  - Added `tools/extra/evaluate_generator_v1_round71_streamlit_generation_flow.py`.
+  - Validates Alex-only, Alex+Mara, all members, and no-member scenarios.
+- Known limitation:
+  - This is Streamlit orchestration/UX cleanup. Household generation remains Lite, grocery aggregation is deterministic quantity scaling, and there is still no backend/mobile household account flow.
+
+## 76. Round72 / Household grocery realism audit and missing price handoff - 2026-05-17
+- Scope:
+  - Added an audit/handoff script for household grocery realism and missing price coverage.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, grocery pricing logic, purchase rules, recipes, scraping, or invented prices were changed.
+- Script:
+  - Added `tools/extra/evaluate_generator_v1_round72_household_grocery_realism_and_prices.py`.
+  - Reproduces the 3-day household plan with `v1_2_demo_final`, `individual_breakfast_shared_main`, `macro_aware_simple`.
+  - Builds aggregate household grocery with purchase suggestions, cooked-to-raw helpers, price estimates, and pantry basics included for coverage audit.
+- Outputs:
+  - `data/recipesdb/audit/generator_v1_round72_household_grocery_summary.txt`
+  - `data/recipesdb/audit/generator_v1_round72_household_grocery_meals.csv`
+  - `data/recipesdb/audit/generator_v1_round72_household_grocery_items.csv`
+  - `data/recipesdb/audit/generator_v1_round72_household_ingredient_load.csv`
+  - `data/recipesdb/audit/generator_v1_round72_household_egg_load_audit.csv`
+  - `data/recipesdb/audit/generator_v1_round72_household_purchase_rule_issues.csv`
+  - `data/grocery/audit/grocery_price_round72_missing_prices.csv`
+  - `data/grocery/draft/grocery_product_catalog_v1_price_research_round72_missing_template.csv`
+  - `data/grocery/audit/grocery_price_round72_missing_prices_chat_list.txt`
+  - `data/recipesdb/audit/generator_v1_round72_recommendations.txt`
+- Results:
+  - Grocery: `shopping_item_count=28`, `priced_item_count=16`, `unpriced_item_count=12`, `estimated_total_cost=303.77 RON`.
+  - Egg load: `2514g` eggs, about `50.3` eggs total.
+  - Direct eggs: about `42.5` eggs, `4.72` direct eggs/person/day, `severe_warning`.
+  - Embedded eggs: about `7.8` eggs.
+  - Ingredient load concerns: only `Eggs` flagged severe; normal reuse was not treated as bad.
+  - Purchase-rule issue rows: `6`, including yogurt carton wording, tomato puree shown like fresh tomatoes, cooked/raw warning rows, and lentil generic wording.
+  - Missing price handoff: `12` items, chat-ready list written for manual research.
+- Recommendation:
+  - Next logic round should add egg-load warning/soft penalty without globally banning eggs, then apply missing prices only through a source-backed validation batch.
+
+## 77. Round73 / Household egg-load guard and grocery rule fixes - 2026-05-17
+- Scope:
+  - Added a targeted egg-load realism guard for household generation and fixed clear grocery purchase display rules.
+  - No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, recipes, price values, scraping, pantry inventory, store/brand logic, or grocery price optimization were changed.
+- Household egg guard:
+  - Added `src/generator_v1/household_ingredient_guard.py`.
+  - Integrated soft egg-load penalties in `src/generator_v1/household_generator.py`.
+  - Direct egg-heavy candidates are penalized, but eggs are not globally banned.
+  - Streamlit household output now shows egg-load warnings and diagnostics.
+- Result:
+  - Baseline direct eggs/person/day: `4.72`, `severe_warning`.
+  - With guard direct eggs/person/day: `0.0`.
+  - Total eggs changed from `50.28` to `30.3`; remaining warning is mostly embedded egg load.
+  - Household quality stayed `accept`.
+- Grocery rule fixes:
+  - Plain yogurt now uses `500g tub`, not `1L carton`.
+  - Canned tomato puree now uses a canned tomato product rule, not fresh tomato pieces.
+  - Cooked lentils now display dry lentils instead of generic dry beans.
+  - `Pressed` remains a review item; identity is not guessed.
+  - Missing prices remain handoff items; no prices were invented or applied.
+- Evaluators:
+  - Added `tools/extra/evaluate_generator_v1_round73_household_egg_guard.py`.
+  - Added `tools/extra/evaluate_generator_v1_round73_grocery_rule_fixes.py`.
+  - Wrote:
+    - `data/recipesdb/audit/generator_v1_round73_household_egg_guard_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round73_household_egg_guard_meals.csv`
+    - `data/recipesdb/audit/generator_v1_round73_household_egg_load.csv`
+    - `data/recipesdb/audit/generator_v1_round73_household_egg_sources.csv`
+    - `data/recipesdb/audit/generator_v1_round73_grocery_rule_fix_summary.txt`
+    - `data/recipesdb/audit/generator_v1_round73_grocery_rule_fix_items.csv`
+    - `data/recipesdb/audit/generator_v1_round73_grocery_rule_fix_sample.txt`
+- Known limitation:
+  - The guard reduces direct egg overload, but does not yet solve repeated embedded egg-heavy breakfast patterns or full family-level variety.
+
+## 78. Android mobile and backend/API-first direction - 2026-05-30
+- Android-first direction selected for the next product phase.
+- Backend/API-first approach selected: FastAPI backend before mobile UI screens.
+- Mobile will consume HTTP/JSON API responses and must not read generator files, Food_DB/Recipes_DB CSVs, or run Generator v1 directly.
+- Generator remains Python behind the backend; SQLite is the planned local backend persistence layer for households, profiles, feedback, generated plans, and grocery lists.
+- Next implementation checkpoint should be the backend skeleton, not mobile UI on mock data.
+
 ## 79. Backend Prep 1 API contract and SQLite planning - 2026-05-30
 - API contract prepared in `docs/architecture/api_contract_v1.md`.
 - SQLite MVP schema prepared in `docs/architecture/sqlite_schema_v1.md`.
@@ -2699,3 +2827,86 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Backend readiness checklist prepared in `docs/architecture/backend_readiness_checklist.md`.
 - Sample request/response JSON files prepared in `docs/api_examples/`.
 - Next implementation checkpoint should be backend skeleton, not mobile UI and not generator logic changes.
+
+## 80. Backend M1 FastAPI skeleton and SQLite init - 2026-05-30
+- Backend folder created under `backend/`.
+- FastAPI skeleton created with root endpoint and planned `/health` route.
+- SQLite config/init layer created with default DB path `data/runtime/tabletogether_demo.db`.
+- SQLite schema created for households, member profiles, feedback events, generated plans, generated plan days/meals, grocery lists, and grocery list items.
+- Smoke script added at `tools/extra/check_backend_m1.py`.
+- Smoke result: DB created, connection OK, required tables found `8/8`.
+- Current Python environment is missing `fastapi`, so FastAPI app import/TestClient health check was skipped by smoke script.
+- Next step should be installing/declaring backend dependencies or creating the generator service wrapper checkpoint, not mobile UI.
+
+## 81. Backend M1b dependency declaration and health smoke - 2026-05-30
+- Backend M1 skeleton exists under `backend/`.
+- SQLite init still works with `data/runtime/tabletogether_demo.db`.
+- FastAPI dependencies declared in `backend/requirements_backend.txt`.
+- Smoke script now validates `/health` response payload when FastAPI/TestClient is available.
+- Installed `backend/requirements_backend.txt` in the current environment.
+- Full smoke result: app import OK, `/health` status code `200`, response `status=ok`, `service=tabletogether-api`, `version=v1`, `database=ok`, SQLite tables `8/8`.
+- `httpx` was not added because FastAPI TestClient worked with the declared minimal dependencies.
+- Next implementation step remains the Generator v1 service wrapper, not generation endpoints and not mobile UI.
+
+## 82. Backend M2 Generator v1 service wrapper - 2026-05-30
+- Added `src/generator_v1/service.py` as the API-facing wrapper over Generator v1.
+- Service functions now cover individual generation, household generation, grocery list building, feedback context building, and feedback event normalization.
+- The service calls Python functions/helpers directly; it does not execute CLI commands and does not parse CLI text output.
+- Feedback submit normalization does not persist events; persistence remains for backend SQLite.
+- Added `tools/extra/check_generator_service_m2.py`.
+- Smoke result: individual generation OK, household generation OK, grocery list OK, feedback context OK, JSON-safe validation OK.
+- No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, target logic, grocery logic, or backend endpoints were changed.
+- Next implementation step should be Backend M3 FastAPI generation endpoints, not mobile UI.
+
+## 83. Backend M3 FastAPI generation endpoints - 2026-05-30
+- Added FastAPI MVP generation endpoints for individual plans and household plans.
+- Implemented `POST /plans/generate`, `POST /household-plans/generate`, `GET /plans/{plan_id}`, `GET /household-plans/{plan_id}`, and `GET /plans/{plan_id}/grocery-list`.
+- Endpoints call `src/generator_v1/service.py`; they do not execute CLI commands and do not parse CLI output.
+- Added SQLite repository helpers for generated plan JSON, grocery JSON, and best-effort normalized day/meal/item indexes.
+- Added flexible Pydantic request/response schemas under `backend/app/schemas/`.
+- Added `tools/extra/check_backend_m3_generation_endpoints.py`.
+- M3 smoke result: individual POST OK, individual retrieve OK, individual grocery retrieve OK, household POST OK, household retrieve OK, household grocery retrieve OK.
+- M3 smoke created `2` generated plan rows, `2` grocery list rows, `6` day rows, `24` meal rows, and `70` grocery item rows in local SQLite.
+- No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, target formulas, grocery/pricing behavior, auth, cloud, or mobile app code were changed.
+- Next recommended step: feedback endpoints and profile/household CRUD, then mobile skeleton.
+
+## 84. Backend M4 profiles, demo household and feedback endpoints - 2026-05-30
+- Added `GET /households/demo`.
+- Added profile endpoints: `GET /profiles`, `POST /profiles`, `GET /profiles/{member_profile_id}`.
+- Added feedback endpoints: `POST /feedback`, `GET /feedback/context`, `DELETE /feedback`.
+- Feedback API persists to SQLite and builds context from SQLite events using the same context shape as `generator_v1.feedback_adapter`.
+- `GET /profiles` returns SQLite profiles only; demo household members are available through `GET /households/demo`.
+- Generation endpoints do not yet consume SQLite feedback context; Backend M5 should connect it or the mobile skeleton can start against the current API.
+- Added `tools/extra/check_backend_m4_profiles_feedback.py`.
+- M4 smoke result: demo household OK with `3` members, profile create/list/get OK, four feedback events create OK, context event count `4`, explicit avoid/liked/disliked/too_long aggregation OK, delete OK, post-delete context count `0`, generation endpoint still OK.
+- No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, generator selection logic, target formulas, grocery/pricing behavior, auth, cloud, or mobile app code were changed.
+- Next recommended step: integrate SQLite feedback context into generation endpoints, or start the mobile skeleton against the current API.
+
+## 85. Backend M5 persistence-aware generation endpoints - 2026-05-30
+- `POST /plans/generate` can now resolve a saved SQLite profile through `member_profile_id`.
+- `POST /household-plans/generate` can build a household profile from active SQLite member profiles and filter by `selected_member_ids`.
+- Inline JSON profiles and demo household fallback remain supported for compatibility and smoke tests.
+- SQLite feedback context is injected into generation when `feedback_enabled=true`; `feedback_enabled=false` produces a neutral context.
+- The service wrapper now accepts injected feedback context without changing selection, target, grocery, or pricing rules.
+- Added `tools/extra/check_backend_m5_persistence_aware_generation.py`.
+- M5 smoke result: profile-id generation OK, SQLite feedback context event count `4`, explicit avoid count `1`, avoided recipe not selected, feedback-disabled event count `0`, selected-member household generation OK, generated plans and grocery lists persisted.
+- No `data/recipesdb/current`, `data/fooddb/current`, `src/legacy`, nutrition target formulas, grocery/pricing behavior, auth, cloud, or mobile app code were changed.
+- Next recommended step: mobile skeleton against the current API, or a short backend contract polish pass before mobile work.
+
+## 86. Mobile M1 Expo Android skeleton and health connectivity - 2026-05-30
+- Created `mobile/` as a minimal React Native + Expo Android skeleton.
+- Mobile M1 targets backend `/health` only; no profile, generation, grocery, feedback, auth, cloud, Firebase/Supabase, CSV reads, or local generator execution were added.
+- Default backend URL for Android emulator is `http://10.0.2.2:8000`.
+- Physical phone testing should use the PC LAN IP in `mobile/src/config/api.ts`, for example `http://192.168.x.x:8000`.
+- Added a Home screen that shows backend URL, a health-check button, service/version, database status, and connection errors.
+- Added `tools/extra/check_mobile_m1_structure.py`.
+- Next recommended step: call profile/generation endpoints from mobile after the backend is running.
+
+## 87. Mobile M2 demo household and individual plan generation - 2026-05-30
+- Extended the mobile API client with `GET /households/demo` and `POST /plans/generate`.
+- Added minimal TypeScript API types for health, demo household, members, individual generation response, days and meals.
+- Home screen now supports: health check, demo household fetch, member selection, individual 3-day plan generation, and basic plan summary display.
+- Mobile M2 uses the selected demo member as an inline `member_profile`; it does not use persistent SQLite `member_profile_id` yet.
+- Grocery, feedback buttons, household generation screen, auth, cloud, Firebase/Supabase, CSV reads, and local generator execution remain out of scope.
+- Added `tools/extra/check_mobile_m2_structure.py`.
+- Next recommended step: Mobile M3 should add persistent profile flow or connect grocery/feedback views after generation.
