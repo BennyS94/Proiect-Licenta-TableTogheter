@@ -211,12 +211,15 @@ Backend M1-M5 sunt implementate:
 - M4: demo household, profile endpoints si feedback endpoints.
 - M5: generatie persistence-aware cu profile SQLite si injectare de feedback context cand `feedback_enabled=true`.
 
-Mobile M1-M4 sunt implementate si testate runtime pe Android emulator:
+Mobile M1-M7 sunt implementate:
 
 - M1: Expo Android skeleton si `GET /health`.
 - M2: `GET /households/demo`, selectie membru demo, `POST /plans/generate` si afisare plan individual pe 3 zile.
 - M3: request de generare cu grocery list, purchase suggestions si price estimates; afisare grocery list pe categorii.
 - M4: butoane feedback per masa, `POST /feedback`, panel `GET /feedback/context`, regenerare cu `feedback_enabled=true`.
+- M5: modul `Household plan` pentru membrii demo, cu selectie multipla, `POST /household-plans/generate`, per-member view, day selector si grocery list household agregata.
+- M6: creare si listare profiluri salvate prin SQLite backend, plus generare individuala prin `member_profile_id`.
+- M7: generatie household cu profiluri salvate; mobile selecteaza profiluri salvate multiple si apeleaza `POST /household-plans/generate` cu `selected_member_ids`.
 
 Flow mobil validat:
 
@@ -226,26 +229,22 @@ health -> load demo household -> select member -> generate plan -> grocery list 
 
 Runtime M4 a confirmat ca feedback-ul `Avoid` salvat din mobile a fost aplicat la urmatoarea regenerare si reteta evitata nu a mai aparut cand au existat alternative.
 
+Flow-ul M7 reutilizeaza afisarea household din M5: selector de membru, selector de zi, meniu per membru si grocery list agregata la nivel de household. Aplicatia mobila continua sa consume doar FastAPI prin HTTP/JSON si nu citeste CSV-uri sau ruleaza generatorul local.
+
 ## Remaining mobile milestones
 
-M5 - Household generation mobile screen:
-
-- selectie mai multi membri
-- apel `POST /household-plans/generate`
-- afisare plan household si grocery list household
-
-M6 - Profile persistence / create profile UI:
-
-- creare profil prin `POST /profiles`
-- listare profiluri persistente
-- generare pe baza de `member_profile_id`
-
-M7 - UI polish:
+Later - UI polish and screen separation:
 
 - structurare mai clara a ecranelor
 - detalii masa mai bune
 - stari loading/error mai polishate
 - pregatire demo MVP mai apropiata de produs
+
+Later - Product/account work:
+
+- auth/login daca devine necesar
+- cloud sync doar dupa ce fluxul local/demo este stabil
+- ecrane household dedicate si feedback household imbunatatit
 
 ## Non-goals for now
 

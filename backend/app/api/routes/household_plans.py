@@ -126,17 +126,21 @@ def _resolve_household_profile(conn: Any, request_dict: dict[str, Any]) -> None:
         return
 
     household_id = _clean_text(request_dict.get("household_id"))
-    if household_id and household_id not in DEMO_HOUSEHOLD_IDS:
-        selected_member_ids = _clean_list(request_dict.get("selected_member_ids"))
+    selected_member_ids = _clean_list(request_dict.get("selected_member_ids"))
+    should_try_sqlite = bool(household_id) and (
+        household_id not in DEMO_HOUSEHOLD_IDS or bool(selected_member_ids)
+    )
+    if should_try_sqlite:
         stored_profile = build_household_profile_from_db(
             conn,
             household_id=household_id,
             selected_member_ids=selected_member_ids,
         )
-        if stored_profile is None:
+        if stored_profile is None and household_id not in DEMO_HOUSEHOLD_IDS:
             raise HTTPException(status_code=404, detail="household_profiles_not_found")
-        request_dict["household_profile"] = stored_profile
-        request_dict["household_id"] = household_id
+        if stored_profile is not None:
+            request_dict["household_profile"] = stored_profile
+            request_dict["household_id"] = household_id
 
 
 def _inject_sqlite_feedback_context(conn: Any, request_dict: dict[str, Any]) -> None:

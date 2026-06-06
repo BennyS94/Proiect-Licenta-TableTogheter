@@ -45,6 +45,7 @@ import type {
 
 type HealthState = "idle" | "loading" | "connected" | "error";
 type GenerationMode = "individual" | "household";
+type HouseholdSource = "demo" | "saved";
 
 const GENERATION_OPTIONS = {
   selection_mode: "balanced_day",
@@ -78,7 +79,11 @@ export function HomeScreen() {
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedSavedProfileId, setSelectedSavedProfileId] = useState("");
   const [generationMode, setGenerationMode] = useState<GenerationMode>("individual");
+  const [householdSource, setHouseholdSource] = useState<HouseholdSource>("demo");
   const [selectedHouseholdMemberIds, setSelectedHouseholdMemberIds] = useState<string[]>([]);
+  const [selectedSavedHouseholdProfileIds, setSelectedSavedHouseholdProfileIds] = useState<
+    string[]
+  >([]);
   const [currentHouseholdMemberIndex, setCurrentHouseholdMemberIndex] = useState(0);
   const [selectedHouseholdDayIndex, setSelectedHouseholdDayIndex] = useState(1);
   const [isLoadingHousehold, setIsLoadingHousehold] = useState(false);
@@ -122,19 +127,62 @@ export function HomeScreen() {
       ),
     [demoHousehold, selectedHouseholdMemberIds],
   );
+  const selectedSavedHouseholdProfiles = useMemo(
+    () =>
+      savedProfiles.filter((profile) =>
+        selectedSavedHouseholdProfileIds.includes(profile.member_profile_id),
+      ),
+    [savedProfiles, selectedSavedHouseholdProfileIds],
+  );
+  const selectedHouseholdDisplayMembers = useMemo(
+    () =>
+      getHouseholdDisplayMembers(
+        householdSource,
+        selectedHouseholdMembers,
+        selectedSavedHouseholdProfiles,
+        generatedHouseholdPlan,
+      ),
+    [
+      generatedHouseholdPlan,
+      householdSource,
+      selectedHouseholdMembers,
+      selectedSavedHouseholdProfiles,
+    ],
+  );
   const currentHouseholdMember =
-    selectedHouseholdMembers[currentHouseholdMemberIndex] ??
-    selectedHouseholdMembers[0] ??
+    selectedHouseholdDisplayMembers[currentHouseholdMemberIndex] ??
+    selectedHouseholdDisplayMembers[0] ??
     null;
   const groceryList = generatedPlan ? getGroceryListFromPlanResponse(generatedPlan) : null;
   const householdGroceryList = generatedHouseholdPlan
     ? getHouseholdGroceryListFromResponse(generatedHouseholdPlan)
     : null;
   const savedProfileHouseholdId = demoHousehold?.household_id ?? DEFAULT_HOUSEHOLD_ID;
+  const selectedHouseholdCount =
+    householdSource === "saved"
+      ? selectedSavedHouseholdProfiles.length
+      : selectedHouseholdMemberIds.length;
+  const selectedSavedHouseholdId = getSelectedSavedProfilesHouseholdId(
+    selectedSavedHouseholdProfiles,
+  );
+  const savedProfileHouseholdMismatch = hasMixedHouseholdIds(selectedSavedHouseholdProfiles);
+  const householdSourceLabel =
+    householdSource === "saved" ? "Saved profiles" : "Demo household";
+  const selectedSavedHouseholdNames = selectedSavedHouseholdProfiles
+    .map((profile) => profile.display_name)
+    .filter(Boolean)
+    .join(", ");
+  const householdGenerateDisabled =
+    isGeneratingHouseholdPlan ||
+    selectedHouseholdCount < 1 ||
+    (householdSource === "saved" && savedProfileHouseholdMismatch);
   const activeHouseholdId = getActiveHouseholdId(
     demoHousehold,
     selectedMember,
     selectedSavedProfile,
+    generationMode === "household" && householdSource === "saved"
+      ? selectedSavedHouseholdId || savedProfileHouseholdId
+      : "",
   );
   const activeMemberProfileId = selectedSavedProfile
     ? selectedSavedProfile.member_profile_id
@@ -210,6 +258,11 @@ export function HomeScreen() {
       ) {
         setSelectedSavedProfileId("");
       }
+      setSelectedSavedHouseholdProfileIds((current) =>
+        current.filter((profileId) =>
+          profiles.some((profile) => profile.member_profile_id === profileId),
+        ),
+      );
     } catch (error) {
       setProfileErrorMessage(error instanceof Error ? error.message : "Profiles fetch failed");
     } finally {
@@ -267,12 +320,16 @@ export function HomeScreen() {
   }
 
   async function generateHouseholdPlanForSelectedMembers() {
-    if (!demoHousehold) {
+    if (householdSource === "demo" && !demoHousehold) {
       setHouseholdErrorMessage("Load a demo household before generating a household plan.");
       return;
     }
-    if (!selectedHouseholdMemberIds.length) {
+    if (selectedHouseholdCount < 1) {
       setHouseholdErrorMessage("Select at least one member for household generation.");
+      return;
+    }
+    if (householdSource === "saved" && savedProfileHouseholdMismatch) {
+      setHouseholdErrorMessage("Select saved profiles from one household.");
       return;
     }
 
@@ -283,7 +340,13 @@ export function HomeScreen() {
     setFeedbackError("");
 
     try {
-      const request = buildHouseholdGenerateRequest(demoHousehold, selectedHouseholdMemberIds);
+      const request =
+        householdSource === "saved"
+          ? buildSavedProfilesHouseholdGenerateRequest(selectedSavedHouseholdProfiles)
+          : buildHouseholdGenerateRequest(
+              demoHousehold as DemoHouseholdResponse,
+              selectedHouseholdMemberIds,
+            );
       const response = await generateHouseholdPlan(request);
       setGeneratedHouseholdPlan(response);
       setCurrentHouseholdMemberIndex(0);
@@ -314,6 +377,14 @@ export function HomeScreen() {
     setGeneratedPlan(null);
   }
 
+  function selectHouseholdSource(source: HouseholdSource) {
+    setHouseholdSource(source);
+    setHouseholdErrorMessage("");
+    setGeneratedHouseholdPlan(null);
+    setCurrentHouseholdMemberIndex(0);
+    setSelectedHouseholdDayIndex(1);
+  }
+
   function toggleHouseholdMember(memberId: string) {
     setHouseholdErrorMessage("");
     setCurrentHouseholdMemberIndex(0);
@@ -325,21 +396,56 @@ export function HomeScreen() {
     });
   }
 
+  function toggleSavedHouseholdProfile(memberProfileId: string) {
+    setHouseholdErrorMessage("");
+    setCurrentHouseholdMemberIndex(0);
+    setSelectedHouseholdDayIndex(1);
+    setSelectedSavedHouseholdProfileIds((current) =>
+      current.includes(memberProfileId)
+        ? current.filter((selectedId) => selectedId !== memberProfileId)
+        : [...current, memberProfileId],
+    );
+  }
+
+  function handleSavedProfilePress(memberProfileId: string) {
+    if (generationMode === "household") {
+      if (householdSource !== "saved") {
+        setHouseholdSource("saved");
+        setGeneratedHouseholdPlan(null);
+      }
+      toggleSavedHouseholdProfile(memberProfileId);
+      return;
+    }
+    selectSavedProfile(memberProfileId);
+  }
+
+  function handleDemoMemberPress(memberId: string) {
+    if (generationMode === "individual") {
+      selectDemoMember(memberId);
+      return;
+    }
+    if (householdSource !== "demo") {
+      setHouseholdSource("demo");
+      setGeneratedHouseholdPlan(null);
+    }
+    toggleHouseholdMember(memberId);
+  }
+
   function showPreviousHouseholdMember() {
-    if (!selectedHouseholdMembers.length) {
+    if (!selectedHouseholdDisplayMembers.length) {
       return;
     }
     setCurrentHouseholdMemberIndex((current) =>
-      current <= 0 ? selectedHouseholdMembers.length - 1 : current - 1,
+      current <= 0 ? selectedHouseholdDisplayMembers.length - 1 : current - 1,
     );
   }
 
   function showNextHouseholdMember() {
-    if (!selectedHouseholdMembers.length) {
+    if (!selectedHouseholdDisplayMembers.length) {
       return;
     }
     setCurrentHouseholdMemberIndex((current) =>
-      current >= selectedHouseholdMembers.length - 1 ? 0 : current + 1,
+      current >= selectedHouseholdDisplayMembers.length - 1 ? 0 : current + 1,
     );
   }
 
@@ -494,17 +600,13 @@ export function HomeScreen() {
                   selected={
                     generationMode === "individual"
                       ? key === selectedMemberId
-                      : selectedHouseholdMemberIds.includes(key)
+                      : householdSource === "demo" && selectedHouseholdMemberIds.includes(key)
                   }
-                  onPress={() =>
-                    generationMode === "individual"
-                      ? selectDemoMember(key)
-                      : toggleHouseholdMember(key)
-                  }
+                  onPress={() => handleDemoMemberPress(key)}
                 />
               );
             })}
-            {generationMode === "household" ? (
+            {generationMode === "household" && householdSource === "demo" ? (
               <Text style={styles.mutedText}>
                 Household members selected: {selectedHouseholdMemberIds.length}
               </Text>
@@ -532,18 +634,33 @@ export function HomeScreen() {
         </Text>
         <View style={styles.memberList}>
           {savedProfiles.length ? (
-            savedProfiles.map((profile) => (
-              <ProfileCard
-                key={profile.member_profile_id}
-                onPress={() => selectSavedProfile(profile.member_profile_id)}
-                profile={profile}
-                selected={profile.member_profile_id === selectedSavedProfileId}
-              />
-            ))
+            savedProfiles.map((profile) => {
+              const selected =
+                generationMode === "household" && householdSource === "saved"
+                  ? selectedSavedHouseholdProfileIds.includes(profile.member_profile_id)
+                  : profile.member_profile_id === selectedSavedProfileId;
+              return (
+                <ProfileCard
+                  key={profile.member_profile_id}
+                  onPress={() => handleSavedProfilePress(profile.member_profile_id)}
+                  profile={profile}
+                  selected={selected}
+                />
+              );
+            })
           ) : (
-            <Text style={styles.mutedText}>No saved profiles loaded.</Text>
+            <Text style={styles.mutedText}>
+              {generationMode === "household" && householdSource === "saved"
+                ? "No saved profiles yet. Create profiles first in the Saved profiles section."
+                : "No saved profiles loaded."}
+            </Text>
           )}
         </View>
+        {generationMode === "household" && householdSource === "saved" ? (
+          <Text style={styles.mutedText}>
+            Household saved profiles selected: {selectedSavedHouseholdProfileIds.length}
+          </Text>
+        ) : null}
         <ProfileForm
           defaultHouseholdId={savedProfileHouseholdId}
           disabled={isCreatingProfile}
@@ -587,22 +704,45 @@ export function HomeScreen() {
             <Text style={styles.panelTitle}>Household plan</Text>
             <Text style={styles.panelMeta}>3 days / shared meals</Text>
           </View>
+          <Text style={styles.mutedText}>Household source: {householdSourceLabel}</Text>
+          <View style={styles.modeSelector}>
+            <ModeButton
+              label="Demo household"
+              selected={householdSource === "demo"}
+              onPress={() => selectHouseholdSource("demo")}
+            />
+            <ModeButton
+              label="Saved profiles"
+              selected={householdSource === "saved"}
+              onPress={() => selectHouseholdSource("saved")}
+            />
+          </View>
           <ActionButton
-            disabled={!selectedHouseholdMemberIds.length || isGeneratingHouseholdPlan}
+            disabled={householdGenerateDisabled}
             loading={isGeneratingHouseholdPlan}
             label="Generate household plan"
             onPress={generateHouseholdPlanForSelectedMembers}
           />
-          {selectedHouseholdMemberIds.length === 1 ? (
+          <Text style={styles.mutedText}>Selected members: {selectedHouseholdCount}</Text>
+          {householdSource === "saved" && selectedSavedHouseholdNames ? (
+            <Text style={styles.mutedText}>
+              Selected saved profiles: {selectedSavedHouseholdNames}
+            </Text>
+          ) : null}
+          {householdSource === "saved" && selectedSavedHouseholdProfiles.length === 1 ? (
             <Text style={styles.mutedText}>
               One member selected. Household endpoint will still be used.
             </Text>
-          ) : (
+          ) : null}
+          {householdSource === "saved" && !savedProfiles.length ? (
             <Text style={styles.mutedText}>
-              Selected members: {selectedHouseholdMemberIds.length}
+              No saved profiles yet. Create profiles first in the Saved profiles section.
             </Text>
-          )}
-          {!selectedHouseholdMemberIds.length ? (
+          ) : null}
+          {savedProfileHouseholdMismatch ? (
+            <Text style={styles.errorText}>Select saved profiles from one household.</Text>
+          ) : null}
+          {!selectedHouseholdCount ? (
             <Text style={styles.errorText}>Select at least one member.</Text>
           ) : null}
         </View>
@@ -676,7 +816,7 @@ export function HomeScreen() {
             <Text style={styles.panelMeta}>Status: {generatedHouseholdPlan.status}</Text>
           </View>
           <InfoRow label="Plan ID" value={getHouseholdPlanId(generatedHouseholdPlan) ?? "missing"} />
-          <InfoRow label="Selected members" value={String(selectedHouseholdMembers.length)} />
+          <InfoRow label="Selected members" value={String(selectedHouseholdDisplayMembers.length)} />
           <InfoRow label="Days" value={String(generatedHouseholdPlan.days ?? "-")} />
           <InfoRow label="Quality" value={getHouseholdQualitySummary(generatedHouseholdPlan).quality} />
           <InfoRow
@@ -687,7 +827,7 @@ export function HomeScreen() {
 
           <HouseholdMemberSwitcher
             currentIndex={currentHouseholdMemberIndex}
-            members={selectedHouseholdMembers}
+            members={selectedHouseholdDisplayMembers}
             onNext={showNextHouseholdMember}
             onPrevious={showPreviousHouseholdMember}
           />
@@ -695,7 +835,7 @@ export function HomeScreen() {
           {currentHouseholdMember ? (
             <HouseholdMemberPlanView
               memberId={memberKey(currentHouseholdMember)}
-              members={selectedHouseholdMembers}
+              members={selectedHouseholdDisplayMembers}
               onSelectDay={setSelectedHouseholdDayIndex}
               plan={generatedHouseholdPlan}
               selectedDayIndex={selectedHouseholdDayIndex}
@@ -870,13 +1010,77 @@ function buildHouseholdGenerateRequest(
   };
 }
 
+function buildSavedProfilesHouseholdGenerateRequest(
+  profiles: MemberProfileResponse[],
+): HouseholdPlanGenerateRequest {
+  const householdId = getSelectedSavedProfilesHouseholdId(profiles) || DEFAULT_HOUSEHOLD_ID;
+  return {
+    dataset_profile: "v1_2_demo_final",
+    days: 3,
+    household_id: householdId,
+    selected_member_ids: profiles.map((profile) => profile.member_profile_id),
+    generation_options: GENERATION_OPTIONS,
+    include_grocery_list: true,
+    include_purchase_suggestions: true,
+    include_price_estimates: true,
+    feedback_enabled: true,
+    household_mode: "individual_breakfast_shared_main",
+    household_allocation_mode: "macro_aware_simple",
+  };
+}
+
+function getHouseholdDisplayMembers(
+  source: HouseholdSource,
+  demoMembers: DemoMemberProfile[],
+  savedProfiles: MemberProfileResponse[],
+  response: HouseholdPlanGenerateResponse | null,
+): DemoMemberProfile[] {
+  const responseMembers = (response?.selected_members ?? []).filter(isRecord) as DemoMemberProfile[];
+  if (responseMembers.length) {
+    return responseMembers;
+  }
+  if (source === "saved") {
+    return savedProfiles.map(profileToHouseholdMember);
+  }
+  return demoMembers;
+}
+
+function profileToHouseholdMember(profile: MemberProfileResponse): DemoMemberProfile {
+  return {
+    ...profile,
+    member_id: profile.member_profile_id,
+    member_profile_id: profile.member_profile_id,
+    profile_name: profile.display_name,
+  };
+}
+
+function getSelectedSavedProfilesHouseholdId(profiles: MemberProfileResponse[]): string {
+  const householdIds = profiles
+    .map((profile) => String(profile.household_id ?? "").trim())
+    .filter(Boolean);
+  const uniqueIds = [...new Set(householdIds)];
+  return uniqueIds.length === 1 ? uniqueIds[0] : "";
+}
+
+function hasMixedHouseholdIds(profiles: MemberProfileResponse[]): boolean {
+  const householdIds = profiles
+    .map((profile) => String(profile.household_id ?? "").trim())
+    .filter(Boolean);
+  return new Set(householdIds).size > 1;
+}
+
 function getActiveHouseholdId(
   household: DemoHouseholdResponse | null,
   member: DemoMemberProfile | null,
   savedProfile?: MemberProfileResponse | null,
+  householdOverride?: string,
 ): string {
   return String(
-    savedProfile?.household_id ?? household?.household_id ?? member?.household_id ?? "",
+    householdOverride ||
+      savedProfile?.household_id ||
+      household?.household_id ||
+      member?.household_id ||
+      "",
   ).trim();
 }
 

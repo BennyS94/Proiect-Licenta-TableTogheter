@@ -85,6 +85,7 @@ http://127.0.0.1:8000
 - Afiseaza cate un membru household pe rand, cu selector de zi, mese, totaluri si grocery list agregata cand backend-ul o returneaza.
 - Listeaza si creeaza profiluri salvate prin backend SQLite.
 - Poate genera plan individual folosind `member_profile_id` pentru un profil salvat.
+- Poate selecta profiluri salvate multiple si genera plan household prin `selected_member_ids`.
 
 ## Mobile M2 Flow
 
@@ -160,6 +161,22 @@ Profilurile sunt create prin `POST /profiles`, listate prin `GET /profiles` si s
 
 Membrii demo raman disponibili prin `GET /households/demo`, iar household generation ramane pe flow-ul M5. Nu exista login/auth, cloud sync sau conturi reale. Daca baza locala `data/runtime/tabletogether_demo.db` este stearsa, profilurile salvate dispar.
 
+## Mobile M7 Flow
+
+Mobile M7 adauga generatie household pe baza profilurilor salvate:
+
+1. Porneste backend-ul FastAPI.
+2. Apasa `Load saved profiles`.
+3. Creeaza sau selecteaza cel putin un profil salvat.
+4. Alege `Household plan`.
+5. Seteaza `Household source` la `Saved profiles`.
+6. Selecteaza 2 sau mai multe profiluri salvate pentru scenariul household normal.
+7. Apasa `Generate household plan`.
+
+Aplicatia trimite `POST /household-plans/generate` cu `selected_member_ids` si `household_id`, astfel incat backend-ul poate construi household-ul din profilurile SQLite. Afisarea planului reutilizeaza selectorul de membru si selectorul de zi din flow-ul M5, iar grocery list ramane agregata la nivel de household prin sectiunea `Household grocery list`.
+
+Sursa `Demo household` ramane disponibila pentru flow-ul M5. Nu exista inca auth/login, cloud sync, Firebase/Supabase, ecran household final, feedback household dedicat sau polish UI final.
+
 ## Next Step
 
-Urmatorul pas este Mobile M7: polish UI pentru flow-ul demo si separare mai clara a ecranelor.
+Urmatorul pas este validarea runtime M7 pe emulator Android si apoi separarea mai clara a ecranelor pentru demo MVP.

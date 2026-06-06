@@ -2910,3 +2910,55 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Grocery, feedback buttons, household generation screen, auth, cloud, Firebase/Supabase, CSV reads, and local generator execution remain out of scope.
 - Added `tools/extra/check_mobile_m2_structure.py`.
 - Next recommended step: Mobile M3 should add persistent profile flow or connect grocery/feedback views after generation.
+
+## 88. Mobile M3 grocery list after generated plan - 2026-05-31
+- Added a simple grocery list display after individual plan generation in the mobile app.
+- The mobile generation request now sets `include_grocery_list=true`, `include_purchase_suggestions=true`, and `include_price_estimates=true`.
+- Grocery list rendering is flexible and reads the backend JSON response; mobile still does not read CSV files or run Generator v1 locally.
+- Added grocery item/category display for needed amounts, purchase suggestions, estimated costs, missing prices, and compact warnings.
+- Feedback buttons and household mobile generation remain out of scope for this checkpoint.
+- Added `tools/extra/check_mobile_m3_structure.py`.
+- Runtime validation should confirm health -> demo household -> member selection -> plan generation -> grocery list display on Android emulator.
+
+## 89. Mobile M4 feedback buttons for generated meals - 2026-05-31
+- Added compact mobile feedback buttons for generated meals: liked, disliked, too_long, explicit_avoid.
+- Feedback is submitted through FastAPI `POST /feedback` with `source=mobile`; mobile still does not read CSV files or run Generator v1 locally.
+- Individual generation now sends `feedback_enabled=true`, plus household/profile IDs when available, so backend SQLite feedback context can be applied on regenerate.
+- Added a compact feedback context panel using `GET /feedback/context`.
+- Avoid should be applied by the backend/generator on the next generation when alternatives exist.
+- Limitations: no auth/account sync, no cloud feedback store, no separate feedback screen, and no household generation mobile screen yet.
+
+## 90. Mobile M5 household generation screen - 2026-05-31
+- Added a mobile `Household plan` mode that calls FastAPI `POST /household-plans/generate`.
+- Mobile M5 supports demo household multi-select, selected-member switching, day selection, per-member meals, portion multipliers, macro fields when returned, and household grocery list display.
+- The individual generation flow remains separate and still uses `POST /plans/generate`.
+- Mobile still consumes only FastAPI HTTP/JSON; it does not read CSV files and does not run Generator v1 locally.
+- No backend generation logic, generator logic, grocery/pricing logic, `data/recipesdb/current`, `data/fooddb/current`, or `src/legacy` changes were made for this checkpoint.
+- Next recommended step: runtime validation on Android emulator for health -> load household -> household mode -> generate -> member/day view -> household grocery list.
+
+## 91. Mobile M6 profile persistence and create profile UI - 2026-05-31
+- Added mobile API calls for `GET /profiles`, `POST /profiles`, and `GET /profiles/{member_profile_id}`.
+- Added a simple create profile form and saved profile cards in the mobile Home screen.
+- Saved profiles are stored in backend SQLite demo DB and can be selected for individual generation through `member_profile_id`.
+- Demo household members remain available for inline profile generation, and household generation remains available through the M5 flow.
+- Limitations: no auth/login, no cloud sync, no account ownership model, no final UI polish, and profiles disappear if `data/runtime/tabletogether_demo.db` is deleted.
+- Mobile still consumes only FastAPI HTTP/JSON; it does not read CSV files and does not run Generator v1 locally.
+
+## 92. Mobile M7 saved-profile household generation - 2026-06-06
+- Added mobile household generation using saved SQLite profiles.
+- Household mode now has a source selector: `Demo household` or `Saved profiles`.
+- Demo household flow remains available and continues to use demo member multi-select.
+- Saved profiles source uses multi-select over loaded saved profiles and sends `selected_member_ids` to `POST /household-plans/generate`.
+- Backend household request resolution now tries SQLite selected profiles before demo fallback when `selected_member_ids` are present.
+- Household display reuses the existing member switcher, day selector, per-member menu view, daily totals and aggregate `Household grocery list`.
+- Grocery behavior remains aggregate household-level, not per-member.
+- Limitations: no auth/login, no cloud sync, no final UI polish, no household-specific feedback UI changes, and selected saved profiles should belong to one household.
+
+## 93. Mobile M7b Expo dependency alignment and status docs - 2026-06-06
+- Aligned the mobile Expo dependency with the SDK expectation using `npx expo install expo@~56.0.9`.
+- Updated `mobile/package.json` and `mobile/package-lock.json`; no unrelated direct dependency was changed.
+- `npx expo install --check` now reports dependencies up to date.
+- Updated M7 status wording in `docs/architecture/mobile_backend_roadmap.md` and `.local_context/00_session_state.md`.
+- M7 is now recorded as household generation with saved profiles, not UI polish.
+- Current mobile milestone chain is M1 health, M2 individual plan, M3 grocery list, M4 feedback, M5 demo household generation, M6 saved profile creation, M7 saved-profile household generation.
+- UI polish and clearer screen separation are later milestones.
