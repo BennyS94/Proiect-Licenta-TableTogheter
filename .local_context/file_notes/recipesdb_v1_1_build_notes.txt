@@ -3042,3 +3042,41 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - household compatibility is not fully audited yet
 - Next recommendation:
   - KNN-2 should expose an internal/backend alternatives endpoint that returns only approved/review candidates, still without automatic replacement.
+
+## 96. KNN-2 backend recipe alternatives endpoint - 2026-06-06
+- Added backend alternatives endpoint:
+  - `POST /recipes/similar`
+- Added service wrapper:
+  - `src.generator_v1.service.get_recipe_alternatives_from_request(request)`
+- Added backend schema/route:
+  - `backend/app/schemas/recipe_alternatives.py`
+  - `backend/app/api/routes/recipes.py`
+- Added smoke script and audit outputs:
+  - `tools/extra/check_backend_knn_recipe_alternatives.py`
+  - `data/recipesdb/audit/backend_knn_recipe_alternatives_summary.txt`
+  - `data/recipesdb/audit/backend_knn_recipe_alternatives_response_sample.json`
+  - `data/recipesdb/audit/backend_knn_recipe_alternatives_candidates.csv`
+- Smoke result:
+  - `status=ok`
+  - `source_recipe_id=recipes_v1_2_round41_manual_012`
+  - `source_slot=breakfast`
+  - `candidate_count=20`
+  - `returned_count=20`
+  - `approved_count=16`
+  - `review_count=2`
+  - `rejected_count=2`
+  - `feedback_avoid_behavior=rejected`
+  - existing `POST /plans/generate` still returned `status=ok`
+- Behavior:
+  - KNN-lite proposes candidate recipes.
+  - Generator approval gate validates active/nutrition/slot/profile restrictions/feedback/macro/time/realism.
+  - `explicit_avoid` from SQLite feedback rejects matching alternatives when `feedback_enabled=true`.
+- Limitations:
+  - no automatic meal replacement
+  - no plan mutation
+  - no ingredient substitution
+  - no grocery recalculation for alternatives
+  - no mobile integration yet
+  - no persistence for alternative decisions yet
+- Next recommendation:
+  - KNN-3 should add a mobile/API consumption path for displaying alternatives only, with explicit user confirmation before any future replacement flow.

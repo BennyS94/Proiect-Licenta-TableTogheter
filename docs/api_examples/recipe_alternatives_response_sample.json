@@ -1,0 +1,56 @@
+{
+  "status": "ok",
+  "recipe_id": "recipes_v1_2_round41_manual_012",
+  "source_recipe": {
+    "recipe_id": "recipes_v1_2_round41_manual_012",
+    "display_name": "Smoked Salmon Toast Plate",
+    "allowed_slots": [
+      "breakfast"
+    ],
+    "kcal_per_serving": 476.7,
+    "protein_g_per_serving": 29.2,
+    "effective_time_min": 5.0
+  },
+  "slot": "breakfast",
+  "dataset_profile": "v1_2_demo_final",
+  "approval_mode": "include_review",
+  "alternatives": [
+    {
+      "recipe_id": "recipes_v1_2_round41_manual_007",
+      "display_name": "Tuna Tomato Toast Breakfast",
+      "similarity_score": 0.926,
+      "approval_status": "approved",
+      "approval_reasons": [
+        "macro_fit_ok",
+        "nutrition_quality_ok",
+        "time_fit_ok",
+        "slot_fit_ok",
+        "meal_realism_ok"
+      ],
+      "rejection_reasons": [],
+      "macro_delta": {
+        "kcal": -60.4,
+        "protein_g": 4.5,
+        "carbs_g": -1.2,
+        "fat_g": -8.1
+      },
+      "time_delta_min": 0.0,
+      "why_similar": [
+        "slot_overlap:breakfast",
+        "same_recipe_kind",
+        "kcal_close",
+        "protein_close",
+        "time_close"
+      ],
+      "warnings": []
+    }
+  ],
+  "summary": {
+    "candidate_count": 20,
+    "returned_count": 5,
+    "approved_count": 12,
+    "review_count": 7,
+    "rejected_count": 1
+  },
+  "warnings": []
+}

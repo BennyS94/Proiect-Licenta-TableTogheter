@@ -22,7 +22,7 @@ KNN v1 nu este:
 - substitutie de ingrediente;
 - training ML sau model supervizat;
 - recalculare automata de grocery list dupa substitutii;
-- endpoint backend sau integrare mobile;
+- integrare mobile;
 - mecanism care ignora hard filters, feedback bans sau profilul utilizatorului.
 
 ## Architecture
@@ -34,8 +34,8 @@ recipe_similarity.py
   -> propune retete similare
 generator approval audit
   -> valideaza slot, profil, macro, timp, realism si feedback
-future backend endpoint
-  -> expune doar alternative aprobate sau marcate review
+backend POST /recipes/similar
+  -> expune alternative aprobate sau marcate review
 future mobile UI
   -> afiseaza alternative pentru utilizator
 ```
@@ -138,9 +138,10 @@ Interpretare:
 ## Future Roadmap
 
 KNN-2:
-- endpoint backend intern pentru alternative aprobate;
+- implementat ca endpoint backend `POST /recipes/similar`;
 - input: `recipe_id`, profil/member optional, slot optional;
-- output: alternative aprobate/review cu explicatii.
+- output: alternative aprobate/review cu explicatii;
+- nu persista alternative si nu modifica planuri.
 
 KNN-3:
 - buton mobile `Alternatives`;
@@ -164,4 +165,5 @@ KNN-5:
 - Nu exista inca feedback propagation pe familie/ingredient.
 - Nu exista household approval complet.
 - Nu exista recalculare grocery pentru alternative.
-- Nu exista API/mobile integration in KNN Prep 1.
+- API integration exista doar pentru backend KNN-2.
+- Nu exista mobile integration inca.

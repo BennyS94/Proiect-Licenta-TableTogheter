@@ -59,6 +59,12 @@ Implementat in M8:
 - `GET /profiles` continua sa returneze doar profiluri active implicit
 - `DELETE /feedback?confirm=true` ramane cleanup local/demo pentru feedback events
 
+Implementat in KNN-2:
+
+- `POST /recipes/similar` returneaza alternative de retete prin KNN-lite + generator approval gate
+- KNN propune candidati, dar Generator v1 valideaza slot/profil/feedback/macro/timp/realism
+- endpointul nu persista alternative, nu modifica planuri si nu inlocuieste mese automat
+
 ## Run
 
 Instaleaza dependintele backend minime:
@@ -120,6 +126,14 @@ DELETE http://127.0.0.1:8000/feedback?confirm=true
 Feedback API foloseste SQLite ca sursa backend. Din M5, endpointurile de generatie pot primi context feedback agregat din SQLite. CLI/Streamlit isi pastreaza comportamentul JSONL/local existent.
 
 Profile delete din M8 este soft delete: seteaza `is_active=0` si actualizeaza `updated_at`; nu sterge randul fizic din SQLite. Endpointul cere `confirm=true`.
+
+Recipe alternatives endpoint KNN-2:
+
+```text
+POST http://127.0.0.1:8000/recipes/similar
+```
+
+Endpointul accepta `recipe_id`, `slot`, `top_k`, `candidate_pool_k`, `dataset_profile`, profil inline sau `member_profile_id`, si `approval_mode`. Daca `feedback_enabled=true`, contextul SQLite poate respinge candidati prin `explicit_avoid`.
 
 ## SQLite
 
@@ -233,6 +247,20 @@ Output sumar M8:
 data/recipesdb/audit/backend_m8_profile_feedback_cleanup_summary.txt
 ```
 
+Smoke pentru alternative retete KNN-2:
+
+```powershell
+python tools/extra/check_backend_knn_recipe_alternatives.py
+```
+
+Output KNN-2:
+
+```text
+data/recipesdb/audit/backend_knn_recipe_alternatives_summary.txt
+data/recipesdb/audit/backend_knn_recipe_alternatives_response_sample.json
+data/recipesdb/audit/backend_knn_recipe_alternatives_candidates.csv
+```
+
 ## Not implemented yet
 
 - mobile app
@@ -241,6 +269,9 @@ data/recipesdb/audit/backend_m8_profile_feedback_cleanup_summary.txt
 - production DB
 - live price scraping
 - advanced household optimizer
+- mobile alternatives UI
+- automatic meal replacement
+- ingredient substitution
 
 ## Current limitations
 

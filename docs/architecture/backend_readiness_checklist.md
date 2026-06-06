@@ -78,6 +78,8 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 - [x] Mobile M7 saved-profile household generation implemented.
 - [x] Backend M8 profile soft-deactivate endpoint implemented: `DELETE /profiles/{member_profile_id}?confirm=true`.
 - [x] Backend M8 profile deactivation endpoint documented in `docs/architecture/api_contract_v1.md`.
+- [x] Backend KNN-2 recipe alternatives endpoint implemented: `POST /recipes/similar`.
+- [x] KNN-2 keeps KNN-lite as candidate provider and Generator v1 as approval gate.
 - [x] Mobile M8 saved profile remove UI implemented for saved profiles only.
 - [x] Mobile M8 clear feedback UI implemented through `DELETE /feedback?confirm=true`.
 
@@ -95,8 +97,9 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 - [x] Mobile M6: profile persistence / create profile UI.
 - [x] Mobile M7: saved-profile household generation.
 - [x] Mobile M8: saved profile remove and clear feedback cleanup.
+- [x] Backend KNN-2: approved/review recipe alternatives endpoint.
 - [ ] Later: UI polish for MVP demo.
-- [ ] Later: KNN/substitutions checkpoint.
+- [ ] Later: mobile alternatives UI and explicit replacement flow.
 
 ## Non-goals for backend skeleton
 

@@ -5,6 +5,7 @@
 Acest document defineste contractul API pregatit pentru primul backend TableTogether. Scopul este sa existe o limita clara intre aplicatia Android si generatorul Python inainte de implementarea FastAPI.
 
 Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite.
+Backend KNN-2 adauga `POST /recipes/similar` pentru alternative de retete aprobate/review prin KNN-lite + generator approval gate.
 
 Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu schimba fisierele din `data/recipesdb/current` sau `data/fooddb/current`.
 
@@ -488,6 +489,99 @@ Non-goals:
 - Nu face live price scraping.
 - Nu alege magazin, brand sau pachet optim.
 - Nu scade pantry inventory.
+
+## POST /recipes/similar
+
+Purpose:
+- Returneaza alternative pentru o reteta existenta folosind KNN-lite ca provider de candidati si Generator v1 ca validator/approver.
+
+Request schema example:
+
+```json
+{
+  "recipe_id": "recipes_v1_2_round41_manual_012",
+  "slot": "breakfast",
+  "top_k": 5,
+  "candidate_pool_k": 20,
+  "dataset_profile": "v1_2_demo_final",
+  "household_id": "household_demo_family_001",
+  "member_profile_id": "member_demo_adult_male_001",
+  "feedback_enabled": true,
+  "approval_mode": "include_review"
+}
+```
+
+Response schema example:
+
+```json
+{
+  "status": "ok",
+  "recipe_id": "recipes_v1_2_round41_manual_012",
+  "source_recipe": {
+    "recipe_id": "recipes_v1_2_round41_manual_012",
+    "display_name": "Smoked Salmon Toast Plate"
+  },
+  "slot": "breakfast",
+  "dataset_profile": "v1_2_demo_final",
+  "alternatives": [
+    {
+      "recipe_id": "recipes_v1_2_round41_manual_007",
+      "display_name": "Tuna Tomato Toast Breakfast",
+      "similarity_score": 0.926,
+      "approval_status": "approved",
+      "approval_reasons": [
+        "macro_fit_ok",
+        "nutrition_quality_ok",
+        "time_fit_ok",
+        "slot_fit_ok",
+        "meal_realism_ok"
+      ],
+      "rejection_reasons": [],
+      "macro_delta": {
+        "kcal": -60.4,
+        "protein_g": 4.5,
+        "carbs_g": -1.2,
+        "fat_g": -8.1
+      },
+      "time_delta_min": 0.0,
+      "why_similar": [
+        "slot_overlap:breakfast",
+        "same_recipe_kind",
+        "kcal_close",
+        "protein_close",
+        "time_close"
+      ],
+      "warnings": []
+    }
+  ],
+  "summary": {
+    "candidate_count": 20,
+    "approved_count": 12,
+    "review_count": 7,
+    "rejected_count": 1
+  },
+  "warnings": []
+}
+```
+
+MVP notes:
+- `recipe_id` este obligatoriu.
+- `slot` este optional, dar recomandat pentru approval mai precis.
+- `approval_mode` accepta `approved_only`, `include_review` si `include_rejected_debug`.
+- Daca `member_profile_id` este prezent, backend-ul rezolva profilul din SQLite.
+- Daca `feedback_enabled=true`, backend-ul injecteaza context feedback SQLite; `explicit_avoid` respinge candidatul.
+- Endpointul nu persista alternative si nu modifica planuri generate.
+
+Error cases:
+- `400` daca lipseste `recipe_id`.
+- `404` daca reteta sursa nu exista in dataset sau profilul cerut nu exista.
+
+Non-goals:
+- Nu inlocuieste mese automat.
+- Nu face substitutii de ingrediente.
+- Nu recalculaza grocery list.
+- Nu introduce KNN ca motor principal al generatorului.
+- Nu are integrare mobile inca.
 
 ## POST /feedback
 

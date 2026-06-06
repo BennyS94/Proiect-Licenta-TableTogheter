@@ -1,0 +1,18 @@
+{
+  "recipe_id": "recipes_v1_2_round41_manual_012",
+  "slot": "breakfast",
+  "top_k": 5,
+  "candidate_pool_k": 20,
+  "dataset_profile": "v1_2_demo_final",
+  "household_id": "household_demo_family_001",
+  "member_profile_id": "member_demo_adult_male_001",
+  "feedback_enabled": true,
+  "approval_mode": "include_review",
+  "generation_options": {
+    "selection_mode": "balanced_day",
+    "portion_policy": "target_aware",
+    "meal_realism_mode": "practical",
+    "quality_gate": "demo_safe",
+    "profile_guard": "demo"
+  }
+}

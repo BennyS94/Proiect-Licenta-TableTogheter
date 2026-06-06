@@ -49,6 +49,10 @@ from src.generator_v1.nutrition_cache_diagnostics import (
 from src.generator_v1.plan_quality_gate import evaluate_plan_quality
 from src.generator_v1.plan_validator import validate_one_day_plan
 from src.generator_v1.profile_loader import load_member_profile
+from src.generator_v1.recipe_similarity import (
+    build_recipe_similarity_features,
+    find_similar_recipes,
+)
 from src.generator_v1.reroll_policy import select_quality_gated_reroll
 from src.generator_v1.slot_candidates import build_slot_candidates
 from src.generator_v1.target_builder import build_nutrition_target
@@ -101,6 +105,11 @@ INTERNAL_PATH_KEYS = {
     "household_profile_path",
 }
 DEFAULT_DEMO_HOUSEHOLD_PROFILE_PATH = Path("profiles/household_profile_demo_v1.json")
+RECIPE_ALTERNATIVES_APPROVAL_MODES = {
+    "approved_only",
+    "include_review",
+    "include_rejected_debug",
+}
 
 
 def generate_individual_plan_from_request(request: dict[str, Any]) -> dict[str, Any]:
@@ -412,6 +421,522 @@ def submit_feedback_event_from_request(request: dict[str, Any]) -> dict[str, Any
             "context_summary": _feedback_context_summary(context),
         }
     )
+
+
+def get_recipe_alternatives_from_request(request: dict[str, Any]) -> dict[str, Any]:
+    recipe_id = _clean_text(request.get("recipe_id"))
+    if not recipe_id:
+        return to_json_safe(
+            {
+                "status": "error",
+                "error_code": "recipe_id_required",
+                "message": "recipe_id este obligatoriu.",
+            }
+        )
+
+    service_request = _alternatives_service_request(request)
+    args = _args_from_request(service_request)
+    top_k = _bounded_int(request.get("top_k"), default=5, minimum=1, maximum=25)
+    candidate_pool_k = _bounded_int(
+        request.get("candidate_pool_k"),
+        default=20,
+        minimum=1,
+        maximum=75,
+    )
+    approval_mode = _approval_mode(request.get("approval_mode"))
+    warnings: list[str] = []
+
+    profile = _member_profile_from_request(service_request)
+    target = build_nutrition_target(profile)
+    preference_context = build_profile_preference_context(profile)
+    feedback_context = _feedback_context_for_profile(args, profile, service_request)
+    pool = load_recipe_candidate_pool(
+        recipes_path=args.recipes,
+        ingredients_path=args.ingredients,
+        nutrition_path=args.nutrition,
+        dataset_profile=args.dataset_profile,
+    )
+    fooddb = load_fooddb_current()
+    filtered_candidates = filter_recipe_candidates(
+        eligible_candidates=pool.eligible_candidates,
+        ingredients=pool.ingredients,
+        context=preference_context,
+        feedback_preference_context=feedback_context,
+    )
+    slot_candidates = build_slot_candidates(
+        target=target,
+        filtered_candidates=filtered_candidates,
+        time_sensitivity=preference_context.time_sensitivity,
+        ingredients=pool.ingredients,
+        fooddb=fooddb,
+        portion_policy_mode=args.portion_policy,
+        feedback_preference_context=feedback_context,
+    )
+    features = build_recipe_similarity_features(
+        pool.recipes,
+        pool.nutrition,
+        pool.ingredients,
+    )
+    source_rows = features.loc[features["recipe_id"].astype(str).eq(recipe_id)]
+    if source_rows.empty:
+        return to_json_safe(
+            {
+                "status": "error",
+                "error_code": "recipe_not_found",
+                "recipe_id": recipe_id,
+                "dataset_profile": args.dataset_profile,
+                "message": "Reteta sursa nu exista in datasetul cerut.",
+            }
+        )
+
+    source_recipe = source_rows.iloc[0]
+    slot = _normalize_slot(request.get("slot")) or _infer_slot(source_recipe)
+    if not _normalize_slot(request.get("slot")) and slot:
+        warnings.append(f"slot_inferred:{slot}")
+    if not slot:
+        warnings.append("slot_missing_approval_uses_best_candidate_slot")
+
+    neighbors = find_similar_recipes(
+        recipe_id,
+        features,
+        top_k=candidate_pool_k,
+        filters={
+            "slot": slot,
+            "same_slot": False if slot else True,
+            "active_only": True,
+        },
+    )
+
+    all_alternatives = []
+    returned_alternatives = []
+    for neighbor in neighbors:
+        candidate_recipe_id = _clean_text(neighbor.get("candidate_recipe_id"))
+        approval = _approve_recipe_alternative(
+            slot_candidates=slot_candidates,
+            pool=pool,
+            filtered_candidates=filtered_candidates,
+            feedback_context=feedback_context,
+            slot=slot,
+            candidate_recipe_id=candidate_recipe_id,
+        )
+        item = _recipe_alternative_item(neighbor, approval)
+        all_alternatives.append(item)
+        if _include_alternative_status(item["approval_status"], approval_mode):
+            returned_alternatives.append(item)
+        if len(returned_alternatives) >= top_k:
+            continue
+
+    response = {
+        "status": "ok",
+        "recipe_id": recipe_id,
+        "source_recipe": _source_recipe_view(source_recipe),
+        "slot": slot,
+        "dataset_profile": args.dataset_profile,
+        "approval_mode": approval_mode,
+        "alternatives": returned_alternatives[:top_k],
+        "summary": _recipe_alternatives_summary(
+            all_alternatives,
+            returned_alternatives[:top_k],
+        ),
+        "feedback_context_summary": _feedback_context_summary(feedback_context),
+        "warnings": warnings,
+    }
+    return to_json_safe(response)
+
+
+def _alternatives_service_request(request: Mapping[str, Any]) -> dict[str, Any]:
+    service_request = dict(request)
+    service_request["days"] = 1
+    options = dict(service_request.get("generation_options") or {})
+    for key in (
+        "feedback_enabled",
+        "selection_mode",
+        "portion_policy",
+        "meal_realism_mode",
+        "quality_gate",
+        "profile_guard",
+    ):
+        if service_request.get(key) is not None:
+            options[key] = service_request[key]
+    options.setdefault("selection_mode", "balanced_day")
+    options.setdefault("portion_policy", "target_aware")
+    options.setdefault("meal_realism_mode", "practical")
+    options.setdefault("quality_gate", "demo_safe")
+    options.setdefault("profile_guard", "demo")
+    options.setdefault("feedback_enabled", True)
+    service_request["generation_options"] = options
+    return service_request
+
+
+def _approve_recipe_alternative(
+    *,
+    slot_candidates: pd.DataFrame,
+    pool: Any,
+    filtered_candidates: pd.DataFrame,
+    feedback_context: Mapping[str, Any],
+    slot: str,
+    candidate_recipe_id: str,
+) -> dict[str, Any]:
+    hard_reasons = _hard_rejection_reasons(
+        pool=pool,
+        filtered_candidates=filtered_candidates,
+        feedback_context=feedback_context,
+        slot=slot,
+        candidate_recipe_id=candidate_recipe_id,
+    )
+    rows = _slot_candidate_rows(slot_candidates, slot, candidate_recipe_id)
+    if rows.empty:
+        hard_reasons = hard_reasons or ["not_in_generator_candidate_pool_for_slot"]
+        return {
+            "approval_status": "rejected",
+            "approval_reasons": [],
+            "rejection_reasons": _dedupe_texts(hard_reasons),
+            "warnings": ["generator_candidate_missing_for_requested_slot"],
+            "diagnostics": {},
+        }
+
+    row = _best_slot_candidate_row(rows)
+    hard_reasons.extend(_row_hard_reasons(row))
+    review_reasons = _row_review_reasons(row)
+    approval_reasons = _row_approval_reasons(row)
+
+    if hard_reasons:
+        status = "rejected"
+    elif review_reasons:
+        status = "review"
+    else:
+        status = "approved"
+
+    return {
+        "approval_status": status,
+        "approval_reasons": approval_reasons,
+        "rejection_reasons": _dedupe_texts(hard_reasons),
+        "warnings": _dedupe_texts([*review_reasons, *_warnings_from_candidate_row(row)]),
+        "diagnostics": {
+            "slot_used_for_approval": row.get("slot"),
+            "portion_multiplier": _to_float(row.get("portion_multiplier")),
+            "macro_fit": _to_float(row.get("macro_fit")),
+            "kcal_fit": _to_float(row.get("kcal_fit")),
+            "protein_fit": _to_float(row.get("protein_fit")),
+            "time_fit": _to_float(row.get("time_fit")),
+            "slot_fit": _to_float(row.get("slot_fit")),
+            "meal_realism_score": _to_float(row.get("meal_realism_practical_score")),
+            "nutrition_quality": _to_float(row.get("nutrition_quality")),
+            "score_preview": _to_float(row.get("score_preview")),
+        },
+    }
+
+
+def _hard_rejection_reasons(
+    *,
+    pool: Any,
+    filtered_candidates: pd.DataFrame,
+    feedback_context: Mapping[str, Any],
+    slot: str,
+    candidate_recipe_id: str,
+) -> list[str]:
+    reasons: list[str] = []
+    candidate_rows = pool.candidates.loc[
+        pool.candidates["recipe_id"].astype(str).eq(candidate_recipe_id)
+    ]
+    if candidate_rows.empty:
+        return ["candidate_not_found"]
+
+    candidate = candidate_rows.iloc[0]
+    if _to_float(candidate.get("is_active")) != 1.0:
+        reasons.append("inactive_recipe")
+    if _missing_required_nutrition(candidate):
+        reasons.append("missing_nutrition")
+    if slot and not _recipe_allows_slot(candidate, slot):
+        reasons.append("slot_incompatible")
+    explicit_avoid = candidate_recipe_id in _feedback_banned_recipe_ids(feedback_context)
+    if explicit_avoid:
+        reasons.append("explicit_avoid")
+
+    eligible_ids = set(pool.eligible_candidates["recipe_id"].astype(str))
+    filtered_ids = set(filtered_candidates["recipe_id"].astype(str))
+    if (
+        candidate_recipe_id in eligible_ids
+        and candidate_recipe_id not in filtered_ids
+        and not explicit_avoid
+    ):
+        reasons.append("restricted_ingredient")
+    return _dedupe_texts(reasons)
+
+
+def _slot_candidate_rows(
+    slot_candidates: pd.DataFrame,
+    slot: str,
+    candidate_recipe_id: str,
+) -> pd.DataFrame:
+    if slot_candidates.empty or not candidate_recipe_id:
+        return pd.DataFrame()
+    mask = slot_candidates["recipe_id"].astype(str).eq(candidate_recipe_id)
+    if slot:
+        mask &= slot_candidates["slot"].astype(str).str.lower().eq(slot)
+    return slot_candidates.loc[mask].copy()
+
+
+def _best_slot_candidate_row(rows: pd.DataFrame) -> pd.Series:
+    sort_columns = [
+        column
+        for column in ("score_preview", "macro_fit", "time_fit", "slot_fit")
+        if column in rows.columns
+    ]
+    if not sort_columns:
+        return rows.iloc[0]
+    return rows.sort_values(
+        by=sort_columns,
+        ascending=[False] * len(sort_columns),
+        na_position="last",
+    ).iloc[0]
+
+
+def _row_hard_reasons(row: Mapping[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    macro_fit = _to_float(row.get("macro_fit"))
+    time_fit = _to_float(row.get("time_fit"))
+    nutrition_quality = _to_float(row.get("nutrition_quality"))
+    if bool(row.get("realism_hard_reject")):
+        reasons.append("realism_warning_severe")
+    if macro_fit is None or macro_fit < 0.35:
+        reasons.append("macro_too_far")
+    if time_fit is None or time_fit < 0.15:
+        reasons.append("time_too_long")
+    if nutrition_quality is None or nutrition_quality < 0.50:
+        reasons.append("missing_nutrition")
+    return _dedupe_texts(reasons)
+
+
+def _row_review_reasons(row: Mapping[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    macro_fit = _to_float(row.get("macro_fit"))
+    time_fit = _to_float(row.get("time_fit"))
+    slot_fit = _to_float(row.get("slot_fit"))
+    realism_score = _to_float(row.get("meal_realism_practical_score"))
+    nutrition_quality = _to_float(row.get("nutrition_quality"))
+    if macro_fit is not None and 0.35 <= macro_fit < 0.65:
+        reasons.append("macro_review")
+    if time_fit is not None and 0.15 <= time_fit < 0.25:
+        reasons.append("time_review")
+    if slot_fit is not None and slot_fit < 0.40:
+        reasons.append("slot_review")
+    if realism_score is not None and realism_score < 0.65:
+        reasons.append("realism_review")
+    if nutrition_quality is not None and 0.50 <= nutrition_quality < 0.65:
+        reasons.append("nutrition_review")
+    if bool(row.get("is_slot_suspicious")):
+        reasons.append("slot_suspicious")
+    return _dedupe_texts(reasons)
+
+
+def _row_approval_reasons(row: Mapping[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    checks = (
+        ("macro_fit", 0.65, "macro_fit_ok"),
+        ("nutrition_quality", 0.65, "nutrition_quality_ok"),
+        ("time_fit", 0.25, "time_fit_ok"),
+        ("slot_fit", 0.40, "slot_fit_ok"),
+        ("meal_realism_practical_score", 0.65, "meal_realism_ok"),
+    )
+    for column, threshold, reason in checks:
+        value = _to_float(row.get(column))
+        if value is not None and value >= threshold:
+            reasons.append(reason)
+    return reasons
+
+
+def _recipe_alternative_item(
+    neighbor: Mapping[str, Any],
+    approval: Mapping[str, Any],
+) -> dict[str, Any]:
+    warnings = [
+        *_split_reason_text(neighbor.get("warnings")),
+        *list(approval.get("warnings", [])),
+    ]
+    return {
+        "recipe_id": _clean_text(neighbor.get("candidate_recipe_id")),
+        "display_name": _clean_text(neighbor.get("candidate_display_name")),
+        "similarity_score": _to_float(neighbor.get("similarity_score")),
+        "approval_status": approval.get("approval_status"),
+        "approval_reasons": list(approval.get("approval_reasons", [])),
+        "rejection_reasons": list(approval.get("rejection_reasons", [])),
+        "macro_delta": {
+            "kcal": _to_float(neighbor.get("macro_delta_kcal")),
+            "protein_g": _to_float(neighbor.get("macro_delta_protein")),
+            "carbs_g": _to_float(neighbor.get("macro_delta_carbs")),
+            "fat_g": _to_float(neighbor.get("macro_delta_fat")),
+        },
+        "time_delta_min": _to_float(neighbor.get("time_delta_min")),
+        "why_similar": _split_reason_text(neighbor.get("why_similar")),
+        "warnings": _dedupe_texts(warnings),
+        "diagnostics": dict(approval.get("diagnostics", {})),
+    }
+
+
+def _source_recipe_view(source_recipe: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "recipe_id": _clean_text(source_recipe.get("recipe_id")),
+        "display_name": _clean_text(source_recipe.get("display_name")),
+        "allowed_slots": sorted(_as_slot_set(source_recipe.get("allowed_slots"))),
+        "recipe_kind": _clean_text(source_recipe.get("recipe_kind")),
+        "recipe_category": _clean_text(source_recipe.get("recipe_category")),
+        "recipe_family_name": _clean_text(source_recipe.get("recipe_family_name")),
+        "kcal_per_serving": _to_float(source_recipe.get("kcal_per_serving")),
+        "protein_g_per_serving": _to_float(source_recipe.get("protein_g_per_serving")),
+        "carbs_g_per_serving": _to_float(source_recipe.get("carbs_g_per_serving")),
+        "fat_g_per_serving": _to_float(source_recipe.get("fat_g_per_serving")),
+        "effective_time_min": _to_float(source_recipe.get("effective_time_min")),
+    }
+
+
+def _recipe_alternatives_summary(
+    all_alternatives: list[dict[str, Any]],
+    returned_alternatives: list[dict[str, Any]],
+) -> dict[str, Any]:
+    status_counts = {
+        "approved": 0,
+        "review": 0,
+        "rejected": 0,
+    }
+    for item in all_alternatives:
+        status = _clean_text(item.get("approval_status"))
+        if status in status_counts:
+            status_counts[status] += 1
+    return {
+        "candidate_count": len(all_alternatives),
+        "returned_count": len(returned_alternatives),
+        "approved_count": status_counts["approved"],
+        "review_count": status_counts["review"],
+        "rejected_count": status_counts["rejected"],
+    }
+
+
+def _approval_mode(value: Any) -> str:
+    mode = _clean_text(value) or "include_review"
+    if mode not in RECIPE_ALTERNATIVES_APPROVAL_MODES:
+        return "include_review"
+    return mode
+
+
+def _include_alternative_status(status: Any, approval_mode: str) -> bool:
+    status_text = _clean_text(status)
+    if approval_mode == "include_rejected_debug":
+        return status_text in {"approved", "review", "rejected"}
+    if approval_mode == "include_review":
+        return status_text in {"approved", "review"}
+    return status_text == "approved"
+
+
+def _bounded_int(value: Any, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        result = int(value)
+    except (TypeError, ValueError):
+        result = default
+    return max(minimum, min(maximum, result))
+
+
+def _normalize_slot(value: Any) -> str:
+    text = _clean_text(value).lower()
+    return text if text in {"breakfast", "lunch", "dinner", "snack"} else ""
+
+
+def _infer_slot(source_recipe: Mapping[str, Any]) -> str:
+    slots = _as_slot_set(source_recipe.get("allowed_slots"))
+    for slot in ("breakfast", "lunch", "dinner", "snack"):
+        if slot in slots:
+            return slot
+    return ""
+
+
+def _recipe_allows_slot(recipe: Mapping[str, Any], slot: str) -> bool:
+    if not slot:
+        return True
+    if "allowed_slots_json" not in recipe:
+        return True
+    return slot in _as_slot_set(recipe.get("allowed_slots_json"))
+
+
+def _missing_required_nutrition(recipe: Mapping[str, Any]) -> bool:
+    return any(
+        _to_float(recipe.get(column)) is None
+        for column in (
+            "energy_kcal_per_serving",
+            "protein_g_per_serving",
+            "carbs_g_per_serving",
+            "fat_g_per_serving",
+        )
+    )
+
+
+def _feedback_banned_recipe_ids(feedback_context: Mapping[str, Any]) -> set[str]:
+    hard_filters = feedback_context.get("hard_filters", {})
+    if not isinstance(hard_filters, Mapping):
+        return set()
+    return {
+        _clean_text(item)
+        for item in hard_filters.get("banned_recipe_ids", [])
+        if _clean_text(item)
+    }
+
+
+def _warnings_from_candidate_row(row: Mapping[str, Any]) -> list[str]:
+    warnings: list[str] = []
+    for column in (
+        "time_warnings",
+        "portion_policy_warnings",
+        "meal_realism_practical_flags",
+        "nutrition_quality_reasons",
+        "slot_suspicion_reasons",
+        "realism_reject_reason",
+    ):
+        value = row.get(column)
+        if isinstance(value, list):
+            warnings.extend(_clean_text(item) for item in value if _clean_text(item))
+        else:
+            warnings.extend(_split_reason_text(value))
+    return _dedupe_texts(warnings)
+
+
+def _split_reason_text(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [_clean_text(item) for item in value if _clean_text(item)]
+    text = _clean_text(value)
+    if not text:
+        return []
+    normalized = text.replace(";", ",")
+    return [part.strip() for part in normalized.split(",") if part.strip()]
+
+
+def _as_slot_set(value: Any) -> set[str]:
+    if isinstance(value, set):
+        return {_clean_text(item).lower() for item in value if _clean_text(item)}
+    if isinstance(value, (list, tuple)):
+        return {_clean_text(item).lower() for item in value if _clean_text(item)}
+    text = _clean_text(value)
+    if not text:
+        return set()
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        parsed = [part.strip() for part in text.split(",") if part.strip()]
+    if isinstance(parsed, list):
+        return {_clean_text(item).lower() for item in parsed if _clean_text(item)}
+    return set()
+
+
+def _dedupe_texts(values: list[Any]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _clean_text(value)
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
 
 
 def to_json_safe(obj: Any) -> Any:
