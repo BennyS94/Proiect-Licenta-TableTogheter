@@ -371,6 +371,18 @@ def build_grocery_list_for_plan(
     )
 
 
+def preview_meal_replacement_from_request(request: dict[str, Any]) -> dict[str, Any]:
+    from src.generator_v1.plan_replacement import preview_meal_replacement
+
+    return preview_meal_replacement(request)
+
+
+def apply_meal_replacement_from_request(request: dict[str, Any]) -> dict[str, Any]:
+    from src.generator_v1.plan_replacement import apply_meal_replacement
+
+    return apply_meal_replacement(request)
+
+
 def build_feedback_context_from_request(request: dict[str, Any]) -> dict[str, Any]:
     events = _feedback_events_from_request(request)
     context = build_feedback_preference_context(

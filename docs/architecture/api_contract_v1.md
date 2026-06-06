@@ -579,9 +579,98 @@ Error cases:
 Non-goals:
 - Nu inlocuieste mese automat.
 - Nu face substitutii de ingrediente.
-- Nu recalculaza grocery list.
+- Nu modifica planuri direct; replacement-ul explicit este separat in `POST /plans/{plan_id}/replace-meal`.
 - Nu introduce KNN ca motor principal al generatorului.
-- Nu are integrare mobile inca.
+
+## POST /plans/{plan_id}/replace-meal
+
+Purpose:
+- Preview sau aplica inlocuirea explicita a unei mese dintr-un plan generat cu o alternativa validata prin KNN-lite + generator approval gate.
+
+Query params:
+- `dry_run=true` pentru preview fara persistenta.
+- `dry_run=false` pentru aplicare cu plan nou derivat si grocery list recalculata.
+
+Request schema example:
+
+```json
+{
+  "day_index": 1,
+  "slot": "breakfast",
+  "current_recipe_id": "recipes_v1_2_round41_manual_003",
+  "alternative_recipe_id": "recipes_v1_2_round41_manual_005",
+  "generation_type": "individual",
+  "replace_scope": "individual_meal",
+  "member_profile_id": "member_demo_adult_male_001",
+  "dataset_profile": "v1_2_demo_final",
+  "feedback_enabled": true
+}
+```
+
+Household scopes:
+- `household_member_meal` inlocuieste masa unui membru.
+- `household_shared_meal` inlocuieste masa shared pentru membrii afectati.
+
+Response schema example:
+
+```json
+{
+  "status": "ok",
+  "dry_run": false,
+  "replacement_allowed": true,
+  "approval_status": "approved",
+  "plan_id": "plan_individual_replaced_abc123",
+  "source_plan_id": "plan_individual_original_001",
+  "new_plan_id": "plan_individual_replaced_abc123",
+  "generation_type": "individual",
+  "replacement": {
+    "day_index": 1,
+    "slot": "breakfast",
+    "replace_scope": "individual_meal",
+    "current_meal": {
+      "recipe_id": "recipes_v1_2_round41_manual_003",
+      "display_name": "Egg Toast Spinach Plate"
+    },
+    "alternative_meal": {
+      "recipe_id": "recipes_v1_2_round41_manual_005",
+      "display_name": "Turkey Egg Toast Plate"
+    }
+  },
+  "impact": {
+    "meal_macro_delta": {
+      "kcal": 149.3,
+      "protein_g": 14.9,
+      "carbs_g": 12.7,
+      "fat_g": 3.9
+    },
+    "grocery_rebuilt": true,
+    "affected_members": []
+  },
+  "updated_plan": {},
+  "grocery_list": {}
+}
+```
+
+MVP notes:
+- `dry_run=true` nu persista nimic.
+- `dry_run=false` creeaza un rand nou in `generated_plans`, nu suprascrie planul original.
+- Planul nou include metadata `replacement_parent_plan_id` / `replacement_source_plan_id`.
+- Grocery list este reconstruita din planul actualizat si salvata pentru noul plan.
+- KNN ramane candidate provider; generator approval gate ramane obligatoriu.
+- Doar alternativele `approved` pot fi aplicate. Alternativele `review` pot fi previzualizate, dar nu aplicate in MVP.
+- Comportamentul este demo/local SQLite.
+- Nu exista auth/user ownership enforcement inca.
+
+Error cases:
+- `400` daca lipsesc `slot`, `current_recipe_id` sau `alternative_recipe_id`.
+- `400` daca alternativa nu este returnata de KNN + approval gate.
+- `400` daca se incearca aplicarea unei alternative care nu este `approved`.
+- `404` daca `plan_id`, ziua sau masa curenta nu exista.
+
+Non-goals:
+- Nu inlocuieste mese automat la deschiderea panoului Alternatives.
+- Nu face substitutii de ingrediente.
+- Nu schimba motorul principal al generatorului.
 
 ## POST /feedback
 

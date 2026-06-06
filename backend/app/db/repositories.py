@@ -240,6 +240,42 @@ def get_generated_plan(
     return json.loads(row[0])
 
 
+def get_generated_plan_record(
+    conn: sqlite3.Connection,
+    plan_id: str,
+) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+        SELECT
+            plan_id,
+            household_id,
+            member_profile_id,
+            generation_type,
+            dataset_profile,
+            days,
+            request_json,
+            response_json,
+            created_at
+        FROM generated_plans
+        WHERE plan_id = ?
+        """,
+        (plan_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "plan_id": row[0],
+        "household_id": row[1],
+        "member_profile_id": row[2],
+        "generation_type": row[3],
+        "dataset_profile": row[4],
+        "days": row[5],
+        "request_json": json.loads(row[6]),
+        "response_json": json.loads(row[7]),
+        "created_at": row[8],
+    }
+
+
 def get_grocery_list_by_plan_id(
     conn: sqlite3.Connection,
     plan_id: str,

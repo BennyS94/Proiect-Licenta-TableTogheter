@@ -1,19 +1,31 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { HouseholdMeal } from "../types/api";
+import type {
+  HouseholdMeal,
+  MealReplacementResponse,
+  MealReplacementScope,
+} from "../types/api";
 import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 
 type HouseholdMealRowProps = {
   meal: HouseholdMeal;
+  dayIndex?: number;
   datasetProfile?: string;
   householdId?: string;
+  memberId?: string;
+  planId?: string;
+  onReplacementApplied?: (response: MealReplacementResponse) => void;
 };
 
 export function HouseholdMealRow({
   meal,
+  dayIndex = 1,
   datasetProfile,
   householdId,
+  memberId,
+  planId,
+  onReplacementApplied,
 }: HouseholdMealRowProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const name = stringValue(meal.display_name) ?? stringValue(meal.recipe_id) ?? "Meal";
@@ -21,6 +33,7 @@ export function HouseholdMealRow({
   const scope = stringValue(meal.meal_scope);
   const portionMultiplier = numberValue(meal.portion_multiplier);
   const recipeId = stringValue(meal.recipe_id);
+  const replaceScope = replacementScopeFromMeal(scope);
 
   return (
     <View style={styles.container}>
@@ -59,15 +72,26 @@ export function HouseholdMealRow({
 
       {recipeId ? (
         <RecipeAlternativesPanel
+          dayIndex={dayIndex}
           datasetProfile={datasetProfile}
+          generationType="household"
           householdId={householdId}
           isVisible={showAlternatives}
+          memberId={memberId}
+          memberProfileId={memberId}
+          onReplacementApplied={onReplacementApplied}
+          planId={planId}
+          replaceScope={replaceScope}
           slot={slot}
           sourceRecipeId={recipeId}
         />
       ) : null}
     </View>
   );
+}
+
+function replacementScopeFromMeal(scope: string | null): MealReplacementScope {
+  return scope === "shared" ? "household_shared_meal" : "household_member_meal";
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

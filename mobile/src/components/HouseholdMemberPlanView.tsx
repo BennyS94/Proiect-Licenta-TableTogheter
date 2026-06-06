@@ -8,6 +8,7 @@ import type {
   HouseholdMemberMenu,
   HouseholdMemberTarget,
   HouseholdPlanGenerateResponse,
+  MealReplacementResponse,
 } from "../types/api";
 import { HouseholdMealRow } from "./HouseholdMealRow";
 
@@ -17,7 +18,9 @@ type HouseholdMemberPlanViewProps = {
   householdId?: string;
   members: DemoMemberProfile[];
   onSelectDay: (dayIndex: number) => void;
+  onReplacementApplied?: (response: MealReplacementResponse) => void;
   plan: HouseholdPlanGenerateResponse;
+  planId?: string;
   selectedDayIndex: number;
 };
 
@@ -27,7 +30,9 @@ export function HouseholdMemberPlanView({
   householdId,
   members,
   onSelectDay,
+  onReplacementApplied,
   plan,
+  planId,
   selectedDayIndex,
 }: HouseholdMemberPlanViewProps) {
   const dayIndexes = getAvailableDayIndexes(plan);
@@ -91,10 +96,14 @@ export function HouseholdMemberPlanView({
         {meals.length ? (
           meals.map((meal, index) => (
             <HouseholdMealRow
+              dayIndex={selectedDayIndex}
               datasetProfile={datasetProfile}
               householdId={householdId}
               key={`${meal.slot ?? "meal"}-${meal.recipe_id ?? index}`}
               meal={meal}
+              memberId={memberId}
+              onReplacementApplied={onReplacementApplied}
+              planId={planId}
             />
           ))
         ) : (

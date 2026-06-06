@@ -396,3 +396,57 @@ export type RecipeAlternativesResponse = {
   warnings?: string[] | string;
   [key: string]: unknown;
 };
+
+export type MealReplacementScope =
+  | "individual_meal"
+  | "household_member_meal"
+  | "household_shared_meal";
+
+export type MealReplacementRequest = {
+  day_index: number;
+  slot: string;
+  current_recipe_id: string;
+  alternative_recipe_id: string;
+  generation_type?: "individual" | "household" | string;
+  replace_scope?: MealReplacementScope;
+  member_id?: string;
+  member_profile_id?: string;
+  dataset_profile?: string;
+  feedback_enabled?: boolean;
+  generation_options?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type MealReplacementImpact = {
+  meal_macro_delta?: Record<string, unknown>;
+  day_totals_before?: Record<string, unknown>;
+  day_totals_after?: Record<string, unknown>;
+  day_totals_delta?: Record<string, unknown>;
+  affected_members?: string[];
+  grocery_rebuilt?: boolean;
+  grocery_item_count?: number | null;
+  warnings?: unknown[] | string;
+  [key: string]: unknown;
+};
+
+export type MealReplacementResponse = {
+  status: string;
+  dry_run: boolean;
+  replacement_allowed?: boolean;
+  approval_status?: string | null;
+  plan_id?: string | null;
+  source_plan_id?: string | null;
+  new_plan_id?: string | null;
+  generation_type?: "individual" | "household" | string;
+  replacement?: {
+    current_meal?: GeneratedMeal;
+    alternative_meal?: GeneratedMeal;
+    replace_scope?: MealReplacementScope | string;
+    [key: string]: unknown;
+  };
+  impact?: MealReplacementImpact;
+  updated_plan?: IndividualPlanGenerateResponse | HouseholdPlanGenerateResponse | Record<string, unknown>;
+  grocery_list?: GroceryListResponse | null;
+  warnings?: unknown[] | string;
+  [key: string]: unknown;
+};

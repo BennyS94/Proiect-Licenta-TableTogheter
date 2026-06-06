@@ -29,16 +29,6 @@ FORBIDDEN_MOBILE_MARKERS = [
     "fs/promises",
 ]
 
-FORBIDDEN_REPLACEMENT_MARKERS = [
-    "replaceMeal",
-    "onReplace",
-    "applyAlternative",
-    "mutatePlan",
-    "recalculateGrocery",
-    "/replace",
-]
-
-
 def _read(path: Path) -> str:
     if not path.exists():
         return ""
@@ -91,11 +81,13 @@ def main() -> int:
             household_meal_row,
             ["Alternatives", "RecipeAlternativesPanel"],
         ),
-        "panel_exists_and_is_read_only": _has_all(
+        "panel_exists_and_is_explicit_replacement_only": _has_all(
             panel,
             [
                 "RecipeAlternativesPanel",
-                "Read-only alternatives. Replacement is not implemented yet.",
+                "Alternatives are read-only until you preview and confirm a replacement.",
+                "Preview replacement",
+                "Replace meal",
                 "approval_mode: \"include_review\"",
             ],
         ),
@@ -106,9 +98,11 @@ def main() -> int:
     }
 
     forbidden_mobile_hits = _scan_mobile_forbidden(FORBIDDEN_MOBILE_MARKERS)
-    forbidden_replacement_hits = _scan_mobile_forbidden(FORBIDDEN_REPLACEMENT_MARKERS)
     checks["no_forbidden_mobile_csv_or_generator_imports"] = not forbidden_mobile_hits
-    checks["no_replacement_action_implemented"] = not forbidden_replacement_hits
+    checks["replacement_requires_explicit_confirm"] = _has_all(
+        panel,
+        ["previewMealReplacement", "applyMealReplacement", "onReplacementApplied"],
+    )
 
     failed = [name for name, ok in checks.items() if not ok]
     status_ok = not failed
@@ -118,8 +112,6 @@ def main() -> int:
         "status=ok" if status_ok else "status=failed",
         *[f"{name}={str(ok).lower()}" for name, ok in checks.items()],
         "forbidden_mobile_hits=" + (";".join(forbidden_mobile_hits) if forbidden_mobile_hits else "none"),
-        "forbidden_replacement_hits="
-        + (";".join(forbidden_replacement_hits) if forbidden_replacement_hits else "none"),
         "errors=" + (";".join(failed) if failed else "none"),
     ]
     SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)

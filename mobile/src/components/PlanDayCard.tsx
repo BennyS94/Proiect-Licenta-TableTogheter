@@ -1,6 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import type { FeedbackType, GeneratedDay, GeneratedMeal } from "../types/api";
+import type {
+  FeedbackType,
+  GeneratedDay,
+  GeneratedMeal,
+  MealReplacementResponse,
+} from "../types/api";
 import { MealRow } from "./MealRow";
 
 type PlanDayCardProps = {
@@ -9,9 +14,11 @@ type PlanDayCardProps = {
   householdId?: string;
   memberProfileId?: string;
   memberProfile?: Record<string, unknown>;
+  planId?: string;
   feedbackDisabled?: boolean;
   getPendingFeedbackType?: (meal: GeneratedMeal) => FeedbackType | null;
   onSubmitFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => void;
+  onReplacementApplied?: (response: MealReplacementResponse) => void;
 };
 
 export function PlanDayCard({
@@ -20,11 +27,14 @@ export function PlanDayCard({
   householdId,
   memberProfileId,
   memberProfile,
+  planId,
   feedbackDisabled,
   getPendingFeedbackType,
   onSubmitFeedback,
+  onReplacementApplied,
 }: PlanDayCardProps) {
   const meals = getMealsFromGeneratedDay(day);
+  const dayIndex = normalizeDayIndex(day.day_index);
 
   return (
     <View style={styles.card}>
@@ -37,6 +47,7 @@ export function PlanDayCard({
       <View style={styles.meals}>
         {meals.map((meal, index) => (
           <MealRow
+            dayIndex={dayIndex}
             datasetProfile={datasetProfile}
             feedbackDisabled={feedbackDisabled}
             householdId={householdId}
@@ -45,12 +56,21 @@ export function PlanDayCard({
             memberProfile={memberProfile}
             memberProfileId={memberProfileId}
             onSubmitFeedback={onSubmitFeedback}
+            onReplacementApplied={onReplacementApplied}
             pendingFeedbackType={getPendingFeedbackType?.(meal) ?? null}
+            planId={planId}
           />
         ))}
       </View>
     </View>
   );
+}
+
+function normalizeDayIndex(value: unknown): number {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return 1;
+  }
+  return value <= 0 ? value + 1 : value;
 }
 
 function formatNumber(value: unknown): string {

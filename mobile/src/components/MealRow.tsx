@@ -1,30 +1,36 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { FeedbackType, GeneratedMeal } from "../types/api";
+import type { FeedbackType, GeneratedMeal, MealReplacementResponse } from "../types/api";
 import { MealFeedbackButtons } from "./MealFeedbackButtons";
 import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 
 type MealRowProps = {
   meal: GeneratedMeal;
+  dayIndex?: number;
   datasetProfile?: string;
   householdId?: string;
   memberProfileId?: string;
   memberProfile?: Record<string, unknown>;
+  planId?: string;
   feedbackDisabled?: boolean;
   pendingFeedbackType?: FeedbackType | null;
   onSubmitFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => void;
+  onReplacementApplied?: (response: MealReplacementResponse) => void;
 };
 
 export function MealRow({
   meal,
+  dayIndex = 1,
   datasetProfile,
   householdId,
   memberProfileId,
   memberProfile,
+  planId,
   feedbackDisabled,
   pendingFeedbackType,
   onSubmitFeedback,
+  onReplacementApplied,
 }: MealRowProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const recipeId = stringValue(meal.recipe_id);
@@ -66,11 +72,16 @@ export function MealRow({
       ) : null}
       {recipeId ? (
         <RecipeAlternativesPanel
+          dayIndex={dayIndex}
           datasetProfile={datasetProfile}
+          generationType="individual"
           householdId={householdId}
           isVisible={showAlternatives}
           memberProfile={memberProfile}
           memberProfileId={memberProfileId}
+          onReplacementApplied={onReplacementApplied}
+          planId={planId}
+          replaceScope="individual_meal"
           slot={slot ?? undefined}
           sourceRecipeId={recipeId}
         />

@@ -42,6 +42,7 @@ import type {
   HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
+  MealReplacementResponse,
   MemberProfileCreateRequest,
   MemberProfileResponse,
 } from "../types/api";
@@ -615,6 +616,22 @@ export function HomeScreen() {
     }
   }
 
+  function handleMealReplacementApplied(response: MealReplacementResponse) {
+    const updatedPlan = response.updated_plan;
+    if (!isRecord(updatedPlan)) {
+      setFeedbackError("Meal replacement response did not include an updated plan.");
+      return;
+    }
+
+    if (response.generation_type === "household" || updatedPlan.generation_type === "household") {
+      setGeneratedHouseholdPlan(updatedPlan as HouseholdPlanGenerateResponse);
+    } else {
+      setGeneratedPlan(updatedPlan as IndividualPlanGenerateResponse);
+    }
+    setFeedbackMessage("Meal replaced. Plan and grocery list updated.");
+    setFeedbackError("");
+  }
+
   function getPendingFeedbackType(meal: GeneratedMeal): FeedbackType | null {
     if (!pendingFeedbackKey) {
       return null;
@@ -919,7 +936,9 @@ export function HomeScreen() {
                 day={day}
                 memberProfile={selectedSavedProfile ? undefined : selectedMember ?? undefined}
                 memberProfileId={activeMemberProfileId || undefined}
+                onReplacementApplied={handleMealReplacementApplied}
                 onSubmitFeedback={submitMealFeedback}
+                planId={getPlanIdFromResponse(generatedPlan)}
               />
             ))}
           </View>
@@ -959,8 +978,10 @@ export function HomeScreen() {
               householdId={generatedHouseholdPlan.household_id || activeHouseholdId || undefined}
               memberId={memberKey(currentHouseholdMember)}
               members={selectedHouseholdDisplayMembers}
+              onReplacementApplied={handleMealReplacementApplied}
               onSelectDay={setSelectedHouseholdDayIndex}
               plan={generatedHouseholdPlan}
+              planId={getHouseholdPlanId(generatedHouseholdPlan)}
               selectedDayIndex={selectedHouseholdDayIndex}
             />
           ) : (

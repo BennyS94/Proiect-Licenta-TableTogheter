@@ -38,6 +38,8 @@ backend POST /recipes/similar
   -> expune alternative aprobate sau marcate review
 mobile KNN-3 UI
   -> afiseaza alternative read-only pentru utilizator
+backend/mobile KNN-4 replacement
+  -> preview + confirm explicit, apoi plan nou derivat si grocery recalculat
 ```
 
 Modulul `src/generator_v1/recipe_similarity.py` citeste datasetul demo si construieste feature-uri de reteta. Scripturile de audit din `tools/extra/` masoara coverage-ul, vecinii si rata de aprobare prin generator.
@@ -150,21 +152,24 @@ KNN-3:
 - nu face inlocuire automata, nu modifica planuri si nu recalculeaza grocery list.
 
 KNN-4:
+- implementat ca functional meal replacement explicit prin `POST /plans/{plan_id}/replace-meal`;
+- `dry_run=true` face preview fara persistenta;
+- `dry_run=false` creeaza plan nou derivat, nu suprascrie planul original;
+- aplica doar alternative `approved`; alternativele `review` raman preview-only;
+- recalculeaza totals si grocery list pentru planul actualizat;
+- mobile actualizeaza planul/grocery list doar dupa `Replace meal`.
+
+KNN-5:
 - ingredient substitution candidates;
 - foloseste Food_DB si recipe ingredient rows;
 - ramane separat de schimbarea meniului.
-
-KNN-5:
-- replacement flow validat;
-- generator recalculeaza macro/timp/grocery pentru inlocuire;
-- planul se modifica doar dupa aprobare explicita.
 
 ## Limitations
 
 - Similaritatea foloseste doar feature-uri disponibile in datasetul demo.
 - `main_protein_family` este euristic si trebuie tratat ca semnal auxiliar.
 - Nu exista inca feedback propagation pe familie/ingredient.
-- Nu exista household approval complet.
-- Nu exista recalculare grocery pentru alternative.
+- Household replacement este suportat pentru randurile expuse in planul curent, dar ramane MVP demo/local.
+- Recalcularea grocery exista doar dupa replacement explicit, nu la simpla afisare de alternative.
 - API integration exista prin backend KNN-2.
-- Mobile integration exista doar ca display read-only KNN-3, fara replacement flow.
+- Mobile integration exista pentru KNN-3 display si KNN-4 replacement explicit.

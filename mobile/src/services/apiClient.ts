@@ -11,6 +11,8 @@ import type {
   HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
   IndividualPlanGenerateResponse,
+  MealReplacementRequest,
+  MealReplacementResponse,
   MemberProfileCreateRequest,
   MemberProfileResponse,
   ProfilesListResponse,
@@ -117,6 +119,40 @@ export async function getRecipeAlternatives(
     },
     body: JSON.stringify(request),
   });
+}
+
+export async function previewMealReplacement(
+  planId: string,
+  request: MealReplacementRequest,
+): Promise<MealReplacementResponse> {
+  const encodedPlanId = encodeURIComponent(planId);
+  return requestJson<MealReplacementResponse>(
+    `/plans/${encodedPlanId}/replace-meal?dry_run=true`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+}
+
+export async function applyMealReplacement(
+  planId: string,
+  request: MealReplacementRequest,
+): Promise<MealReplacementResponse> {
+  const encodedPlanId = encodeURIComponent(planId);
+  return requestJson<MealReplacementResponse>(
+    `/plans/${encodedPlanId}/replace-meal?dry_run=false`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
 }
 
 export async function submitFeedback(

@@ -89,6 +89,7 @@ http://127.0.0.1:8000
 - Poate elimina profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true`; backend-ul le soft-dezactiveaza.
 - Poate curata feedback-ul local/demo prin `DELETE /feedback?confirm=true`.
 - Poate afisa KNN alternatives read-only pentru mese cu `recipe_id`, prin `POST /recipes/similar`.
+- Poate face meal replacement explicit dintr-o alternativa `approved`, prin `POST /plans/{plan_id}/replace-meal`.
 
 ## Mobile M2 Flow
 
@@ -207,6 +208,21 @@ Mobile KNN-3 adauga butonul `Alternatives` pentru mesele generate care au `recip
 
 KNN propune candidati, dar backend-ul pastreaza generator approval gate pentru slot, profil, feedback, macro, timp si realism. Afisarea este read-only: nu exista inlocuire automata de masa, nu exista substitutie de ingrediente si nu se recalculeaza grocery list din alternative.
 
+## Mobile KNN-4 Flow
+
+Mobile KNN-4 adauga replacement explicit peste panoul `Alternatives`:
+
+1. Genereaza un plan individual sau household.
+2. Apasa `Alternatives` pe un rand de masa.
+3. Apasa `Preview replacement` pe o alternativa.
+4. Aplicatia apeleaza `POST /plans/{plan_id}/replace-meal?dry_run=true`.
+5. Preview-ul afiseaza masa curenta, alternativa, delta macro si avertizari.
+6. Apasa `Replace meal` pentru aplicare explicita.
+7. Aplicatia apeleaza `POST /plans/{plan_id}/replace-meal?dry_run=false`.
+8. Backend-ul returneaza plan nou derivat si grocery list recalculata, iar mobile actualizeaza state-ul local.
+
+Alternativele `review` pot fi previzualizate, dar nu pot fi aplicate in MVP. Replacement-ul nu porneste automat cand se deschide panoul si nu face substitutii de ingrediente. Aplicatia consuma doar FastAPI prin HTTP/JSON; nu citeste CSV-uri si nu importa generatorul.
+
 ## Next Step
 
-Urmatorul pas este validarea runtime KNN-3 pe emulator Android, apoi fie replacement flow explicit, fie design separat pentru ingredient substitution.
+Urmatorul pas este validarea runtime KNN-4 pe emulator Android, apoi design separat pentru ingredient substitution daca ramane necesar.
