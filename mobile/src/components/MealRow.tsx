@@ -1,10 +1,16 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { FeedbackType, GeneratedMeal } from "../types/api";
 import { MealFeedbackButtons } from "./MealFeedbackButtons";
+import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 
 type MealRowProps = {
   meal: GeneratedMeal;
+  datasetProfile?: string;
+  householdId?: string;
+  memberProfileId?: string;
+  memberProfile?: Record<string, unknown>;
   feedbackDisabled?: boolean;
   pendingFeedbackType?: FeedbackType | null;
   onSubmitFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => void;
@@ -12,10 +18,18 @@ type MealRowProps = {
 
 export function MealRow({
   meal,
+  datasetProfile,
+  householdId,
+  memberProfileId,
+  memberProfile,
   feedbackDisabled,
   pendingFeedbackType,
   onSubmitFeedback,
 }: MealRowProps) {
+  const [showAlternatives, setShowAlternatives] = useState(false);
+  const recipeId = stringValue(meal.recipe_id);
+  const slot = stringValue(meal.slot);
+
   return (
     <View style={styles.container}>
       <View style={styles.row}>
@@ -28,12 +42,37 @@ export function MealRow({
           <Text style={styles.macro}>{formatNumber(meal.protein_g)}g protein</Text>
         </View>
       </View>
+      {recipeId ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowAlternatives((current) => !current)}
+          style={({ pressed }) => [
+            styles.alternativesButton,
+            pressed ? styles.alternativesButtonPressed : null,
+          ]}
+        >
+          <Text style={styles.alternativesButtonText}>
+            {showAlternatives ? "Hide alternatives" : "Alternatives"}
+          </Text>
+        </Pressable>
+      ) : null}
       {onSubmitFeedback ? (
         <MealFeedbackButtons
           disabled={feedbackDisabled}
           meal={meal}
           onSubmit={onSubmitFeedback}
           pendingFeedbackType={pendingFeedbackType}
+        />
+      ) : null}
+      {recipeId ? (
+        <RecipeAlternativesPanel
+          datasetProfile={datasetProfile}
+          householdId={householdId}
+          isVisible={showAlternatives}
+          memberProfile={memberProfile}
+          memberProfileId={memberProfileId}
+          slot={slot ?? undefined}
+          sourceRecipeId={recipeId}
         />
       ) : null}
     </View>
@@ -47,11 +86,35 @@ function formatNumber(value: unknown): string {
   return String(Math.round(value));
 }
 
+function stringValue(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 const styles = StyleSheet.create({
+  alternativesButton: {
+    alignSelf: "flex-start",
+    borderColor: "#165D77",
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  alternativesButtonPressed: {
+    opacity: 0.82,
+  },
+  alternativesButtonText: {
+    color: "#165D77",
+    fontSize: 13,
+    fontWeight: "800",
+  },
   container: {
     borderTopWidth: 1,
     borderTopColor: "#E5E0D5",
-    gap: 2,
+    gap: 8,
     paddingTop: 10,
   },
   row: {

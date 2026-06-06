@@ -14,6 +14,8 @@ import type {
   MemberProfileCreateRequest,
   MemberProfileResponse,
   ProfilesListResponse,
+  RecipeAlternativesRequest,
+  RecipeAlternativesResponse,
 } from "../types/api";
 
 export type { HealthResponse } from "../types/api";
@@ -97,6 +99,18 @@ export async function generateHouseholdPlan(
   request: HouseholdPlanGenerateRequest,
 ): Promise<HouseholdPlanGenerateResponse> {
   return requestJson<HouseholdPlanGenerateResponse>("/household-plans/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getRecipeAlternatives(
+  request: RecipeAlternativesRequest,
+): Promise<RecipeAlternativesResponse> {
+  return requestJson<RecipeAlternativesResponse>("/recipes/similar", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -88,6 +88,7 @@ http://127.0.0.1:8000
 - Poate selecta profiluri salvate multiple si genera plan household prin `selected_member_ids`.
 - Poate elimina profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true`; backend-ul le soft-dezactiveaza.
 - Poate curata feedback-ul local/demo prin `DELETE /feedback?confirm=true`.
+- Poate afisa KNN alternatives read-only pentru mese cu `recipe_id`, prin `POST /recipes/similar`.
 
 ## Mobile M2 Flow
 
@@ -195,6 +196,17 @@ Profilurile salvate sunt soft-deactivated in SQLite local/demo, nu hard-deleted.
 
 Nu exista auth/login, cloud sync, Firebase/Supabase, reset generat de planuri din mobile, UI polish final sau KNN/substitutions in Mobile M8.
 
+## Mobile KNN-3 Flow
+
+Mobile KNN-3 adauga butonul `Alternatives` pentru mesele generate care au `recipe_id`:
+
+1. Genereaza un plan individual sau household.
+2. Apasa `Alternatives` pe un rand de masa.
+3. Aplicatia apeleaza backend-ul prin `POST /recipes/similar`.
+4. Sunt afisate doar alternativele `approved` si `review`.
+
+KNN propune candidati, dar backend-ul pastreaza generator approval gate pentru slot, profil, feedback, macro, timp si realism. Afisarea este read-only: nu exista inlocuire automata de masa, nu exista substitutie de ingrediente si nu se recalculeaza grocery list din alternative.
+
 ## Next Step
 
-Urmatorul pas este validarea runtime M8 pe emulator Android, apoi fie UI polish / separare ecrane, fie integrare KNN/substitutions intr-un checkpoint separat.
+Urmatorul pas este validarea runtime KNN-3 pe emulator Android, apoi fie replacement flow explicit, fie design separat pentru ingredient substitution.

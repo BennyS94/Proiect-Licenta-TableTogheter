@@ -22,7 +22,7 @@ KNN v1 nu este:
 - substitutie de ingrediente;
 - training ML sau model supervizat;
 - recalculare automata de grocery list dupa substitutii;
-- integrare mobile;
+- integrare mobile cu inlocuire automata;
 - mecanism care ignora hard filters, feedback bans sau profilul utilizatorului.
 
 ## Architecture
@@ -36,8 +36,8 @@ generator approval audit
   -> valideaza slot, profil, macro, timp, realism si feedback
 backend POST /recipes/similar
   -> expune alternative aprobate sau marcate review
-future mobile UI
-  -> afiseaza alternative pentru utilizator
+mobile KNN-3 UI
+  -> afiseaza alternative read-only pentru utilizator
 ```
 
 Modulul `src/generator_v1/recipe_similarity.py` citeste datasetul demo si construieste feature-uri de reteta. Scripturile de audit din `tools/extra/` masoara coverage-ul, vecinii si rata de aprobare prin generator.
@@ -144,9 +144,10 @@ KNN-2:
 - nu persista alternative si nu modifica planuri.
 
 KNN-3:
-- buton mobile `Alternatives`;
-- afisare alternativa fara inlocuire automata;
-- utilizatorul confirma explicit.
+- implementat ca buton mobile `Alternatives` pe meal rows cu `recipe_id`;
+- apeleaza backend `POST /recipes/similar`;
+- afiseaza alternative `approved` si `review` in mod read-only;
+- nu face inlocuire automata, nu modifica planuri si nu recalculeaza grocery list.
 
 KNN-4:
 - ingredient substitution candidates;
@@ -165,5 +166,5 @@ KNN-5:
 - Nu exista inca feedback propagation pe familie/ingredient.
 - Nu exista household approval complet.
 - Nu exista recalculare grocery pentru alternative.
-- API integration exista doar pentru backend KNN-2.
-- Nu exista mobile integration inca.
+- API integration exista prin backend KNN-2.
+- Mobile integration exista doar ca display read-only KNN-3, fara replacement flow.

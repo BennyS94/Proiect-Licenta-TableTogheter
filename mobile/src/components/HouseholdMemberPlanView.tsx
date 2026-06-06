@@ -13,6 +13,8 @@ import { HouseholdMealRow } from "./HouseholdMealRow";
 
 type HouseholdMemberPlanViewProps = {
   memberId: string;
+  datasetProfile?: string;
+  householdId?: string;
   members: DemoMemberProfile[];
   onSelectDay: (dayIndex: number) => void;
   plan: HouseholdPlanGenerateResponse;
@@ -21,6 +23,8 @@ type HouseholdMemberPlanViewProps = {
 
 export function HouseholdMemberPlanView({
   memberId,
+  datasetProfile,
+  householdId,
   members,
   onSelectDay,
   plan,
@@ -87,6 +91,8 @@ export function HouseholdMemberPlanView({
         {meals.length ? (
           meals.map((meal, index) => (
             <HouseholdMealRow
+              datasetProfile={datasetProfile}
+              householdId={householdId}
               key={`${meal.slot ?? "meal"}-${meal.recipe_id ?? index}`}
               meal={meal}
             />

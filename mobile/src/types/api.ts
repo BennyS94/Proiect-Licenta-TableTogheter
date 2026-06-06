@@ -343,3 +343,56 @@ export type FeedbackDeleteResponse = {
   household_id?: string;
   member_profile_id?: string;
 };
+
+export type RecipeAlternativesApprovalMode =
+  | "approved_only"
+  | "include_review"
+  | "include_rejected_debug";
+
+export type RecipeAlternativesRequest = {
+  recipe_id: string;
+  slot?: string;
+  top_k?: number;
+  candidate_pool_k?: number;
+  dataset_profile?: string;
+  member_profile_id?: string;
+  member_profile?: Record<string, unknown>;
+  household_id?: string;
+  feedback_enabled?: boolean;
+  approval_mode?: RecipeAlternativesApprovalMode;
+  generation_options?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type RecipeAlternativeItem = {
+  recipe_id: string;
+  display_name?: string;
+  similarity_score?: number | null;
+  approval_status?: "approved" | "review" | "rejected" | string;
+  approval_reasons?: string[];
+  rejection_reasons?: string[];
+  macro_delta?: Record<string, unknown>;
+  time_delta_min?: number | null;
+  why_similar?: string[] | string;
+  warnings?: string[] | string;
+  diagnostics?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type RecipeAlternativesResponse = {
+  status: string;
+  recipe_id: string;
+  source_recipe?: {
+    recipe_id?: string;
+    display_name?: string;
+    [key: string]: unknown;
+  };
+  slot?: string | null;
+  dataset_profile?: string;
+  approval_mode?: RecipeAlternativesApprovalMode | string;
+  alternatives?: RecipeAlternativeItem[];
+  summary?: Record<string, unknown>;
+  feedback_context_summary?: Record<string, unknown>;
+  warnings?: string[] | string;
+  [key: string]: unknown;
+};

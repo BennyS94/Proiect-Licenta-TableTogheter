@@ -1,16 +1,26 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { HouseholdMeal } from "../types/api";
+import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 
 type HouseholdMealRowProps = {
   meal: HouseholdMeal;
+  datasetProfile?: string;
+  householdId?: string;
 };
 
-export function HouseholdMealRow({ meal }: HouseholdMealRowProps) {
+export function HouseholdMealRow({
+  meal,
+  datasetProfile,
+  householdId,
+}: HouseholdMealRowProps) {
+  const [showAlternatives, setShowAlternatives] = useState(false);
   const name = stringValue(meal.display_name) ?? stringValue(meal.recipe_id) ?? "Meal";
   const slot = stringValue(meal.slot) ?? "meal";
   const scope = stringValue(meal.meal_scope);
   const portionMultiplier = numberValue(meal.portion_multiplier);
+  const recipeId = stringValue(meal.recipe_id);
 
   return (
     <View style={styles.container}>
@@ -31,6 +41,31 @@ export function HouseholdMealRow({ meal }: HouseholdMealRowProps) {
         <Metric label="Carbs" value={formatOptionalNumber(meal.carbs_g, 1)} />
         <Metric label="Fat" value={formatOptionalNumber(meal.fat_g, 1)} />
       </View>
+
+      {recipeId ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowAlternatives((current) => !current)}
+          style={({ pressed }) => [
+            styles.alternativesButton,
+            pressed ? styles.alternativesButtonPressed : null,
+          ]}
+        >
+          <Text style={styles.alternativesButtonText}>
+            {showAlternatives ? "Hide alternatives" : "Alternatives"}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {recipeId ? (
+        <RecipeAlternativesPanel
+          datasetProfile={datasetProfile}
+          householdId={householdId}
+          isVisible={showAlternatives}
+          slot={slot}
+          sourceRecipeId={recipeId}
+        />
+      ) : null}
     </View>
   );
 }
@@ -80,6 +115,22 @@ function titleize(value: string): string {
 }
 
 const styles = StyleSheet.create({
+  alternativesButton: {
+    alignSelf: "flex-start",
+    borderColor: "#165D77",
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  alternativesButtonPressed: {
+    opacity: 0.82,
+  },
+  alternativesButtonText: {
+    color: "#165D77",
+    fontSize: 13,
+    fontWeight: "800",
+  },
   container: {
     backgroundColor: "#FFFFFF",
     borderColor: "#D9D6CC",

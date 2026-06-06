@@ -3080,3 +3080,19 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - no persistence for alternative decisions yet
 - Next recommendation:
   - KNN-3 should add a mobile/API consumption path for displaying alternatives only, with explicit user confirmation before any future replacement flow.
+
+## 97. KNN-3 mobile read-only alternatives - 2026-06-06
+- Added mobile alternatives display for generated meal rows with `recipe_id`.
+- Mobile now calls backend `POST /recipes/similar` through the API client.
+- Added a read-only alternatives panel that displays approved/review recipes, similarity, approval status, macro deltas, reasons and warnings.
+- Individual meal rows pass available household/profile context:
+  - saved profile via `member_profile_id`
+  - demo member via inline `member_profile`
+- Household meal rows also expose alternatives at recipe level and pass `household_id` when available.
+- Limitations:
+  - no automatic meal replacement
+  - no generated plan mutation
+  - no ingredient substitution
+  - no grocery list recalculation from alternatives
+- Next recommendation:
+  - decide separately whether KNN-4 is an explicit replacement flow or an ingredient substitution design.

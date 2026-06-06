@@ -5,6 +5,10 @@ import { MealRow } from "./MealRow";
 
 type PlanDayCardProps = {
   day: GeneratedDay;
+  datasetProfile?: string;
+  householdId?: string;
+  memberProfileId?: string;
+  memberProfile?: Record<string, unknown>;
   feedbackDisabled?: boolean;
   getPendingFeedbackType?: (meal: GeneratedMeal) => FeedbackType | null;
   onSubmitFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => void;
@@ -12,6 +16,10 @@ type PlanDayCardProps = {
 
 export function PlanDayCard({
   day,
+  datasetProfile,
+  householdId,
+  memberProfileId,
+  memberProfile,
   feedbackDisabled,
   getPendingFeedbackType,
   onSubmitFeedback,
@@ -29,9 +37,13 @@ export function PlanDayCard({
       <View style={styles.meals}>
         {meals.map((meal, index) => (
           <MealRow
+            datasetProfile={datasetProfile}
             feedbackDisabled={feedbackDisabled}
+            householdId={householdId}
             key={`${meal.slot ?? "meal"}-${meal.recipe_id ?? index}`}
             meal={meal}
+            memberProfile={memberProfile}
+            memberProfileId={memberProfileId}
             onSubmitFeedback={onSubmitFeedback}
             pendingFeedbackType={getPendingFeedbackType?.(meal) ?? null}
           />

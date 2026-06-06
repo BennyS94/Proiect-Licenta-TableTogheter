@@ -911,10 +911,14 @@ export function HomeScreen() {
           <View style={styles.dayList}>
             {(generatedPlan.daily_plan ?? []).map((day, index) => (
               <PlanDayCard
+                datasetProfile="v1_2_demo_final"
                 feedbackDisabled={Boolean(pendingFeedbackKey)}
                 getPendingFeedbackType={getPendingFeedbackType}
+                householdId={activeHouseholdId || undefined}
                 key={`${day.day_index ?? index}`}
                 day={day}
+                memberProfile={selectedSavedProfile ? undefined : selectedMember ?? undefined}
+                memberProfileId={activeMemberProfileId || undefined}
                 onSubmitFeedback={submitMealFeedback}
               />
             ))}
@@ -951,6 +955,8 @@ export function HomeScreen() {
 
           {currentHouseholdMember ? (
             <HouseholdMemberPlanView
+              datasetProfile={generatedHouseholdPlan.dataset_profile ?? "v1_2_demo_final"}
+              householdId={generatedHouseholdPlan.household_id || activeHouseholdId || undefined}
               memberId={memberKey(currentHouseholdMember)}
               members={selectedHouseholdDisplayMembers}
               onSelectDay={setSelectedHouseholdDayIndex}
