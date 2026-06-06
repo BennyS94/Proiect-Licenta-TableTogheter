@@ -411,6 +411,33 @@ def get_member_profile(
     return _profile_row_to_dict(row)
 
 
+def deactivate_member_profile(
+    conn: sqlite3.Connection,
+    member_profile_id: str,
+) -> dict[str, Any] | None:
+    profile_id = _clean_text(member_profile_id)
+    if not profile_id:
+        return None
+
+    existing = get_member_profile(conn, profile_id)
+    if existing is None:
+        return None
+
+    conn.execute(
+        """
+        UPDATE member_profiles
+        SET is_active = 0,
+            updated_at = ?
+        WHERE member_profile_id = ?
+        """,
+        (
+            _utc_now_iso(),
+            profile_id,
+        ),
+    )
+    return get_member_profile(conn, profile_id)
+
+
 def get_member_profile_for_generation(
     conn: sqlite3.Connection,
     member_profile_id: str,

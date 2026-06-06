@@ -73,6 +73,13 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 - [x] Mobile M3 grocery list display with purchase suggestions and price estimates implemented.
 - [x] Mobile M4 meal feedback buttons, feedback context panel and regenerate-with-feedback flow implemented.
 - [x] Mobile M4 runtime validation confirmed `Avoid` feedback can remove the avoided recipe from the next plan when alternatives exist.
+- [x] Mobile M5 household generation mobile screen implemented.
+- [x] Mobile M6 saved profile creation/list/select implemented.
+- [x] Mobile M7 saved-profile household generation implemented.
+- [x] Backend M8 profile soft-deactivate endpoint implemented: `DELETE /profiles/{member_profile_id}?confirm=true`.
+- [x] Backend M8 profile deactivation endpoint documented in `docs/architecture/api_contract_v1.md`.
+- [x] Mobile M8 saved profile remove UI implemented for saved profiles only.
+- [x] Mobile M8 clear feedback UI implemented through `DELETE /feedback?confirm=true`.
 
 ## Next checkpoint
 
@@ -84,9 +91,12 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 - [x] Mobile M2: call demo household and generation endpoints from mobile.
 - [x] Mobile M3: display grocery list from generated plan response.
 - [x] Mobile M4: submit feedback and regenerate with SQLite feedback context.
-- [ ] Mobile M5: household generation mobile screen.
-- [ ] Mobile M6: profile persistence / create profile UI.
-- [ ] Mobile M7: UI polish for MVP demo.
+- [x] Mobile M5: household generation mobile screen.
+- [x] Mobile M6: profile persistence / create profile UI.
+- [x] Mobile M7: saved-profile household generation.
+- [x] Mobile M8: saved profile remove and clear feedback cleanup.
+- [ ] Later: UI polish for MVP demo.
+- [ ] Later: KNN/substitutions checkpoint.
 
 ## Non-goals for backend skeleton
 

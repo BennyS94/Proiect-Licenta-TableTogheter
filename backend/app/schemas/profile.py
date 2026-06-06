@@ -53,3 +53,11 @@ class ProfilesListResponse(BaseModel):
     household_id: str | None = None
     source: str = "sqlite"
     profiles: list[MemberProfileResponse] = Field(default_factory=list)
+
+
+class ProfileDeleteResponse(BaseModel):
+    status: str
+    member_profile_id: str
+    deactivated: bool
+    deleted: bool = False
+    message: str | None = None

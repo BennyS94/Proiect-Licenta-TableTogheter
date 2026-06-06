@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,7 +19,9 @@ import { ProfileForm } from "../components/ProfileForm";
 import { StatusCard } from "../components/StatusCard";
 import { API_BASE_URL } from "../config/api";
 import {
+  clearFeedback,
   createProfile,
+  deleteProfile,
   generateHouseholdPlan,
   generateIndividualPlan,
   getDemoHousehold,
@@ -89,6 +92,7 @@ export function HomeScreen() {
   const [isLoadingHousehold, setIsLoadingHousehold] = useState(false);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const [deletingProfileId, setDeletingProfileId] = useState("");
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isGeneratingHouseholdPlan, setIsGeneratingHouseholdPlan] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<IndividualPlanGenerateResponse | null>(
@@ -98,6 +102,7 @@ export function HomeScreen() {
     useState<HouseholdPlanGenerateResponse | null>(null);
   const [feedbackContext, setFeedbackContext] = useState<FeedbackContextResponse | null>(null);
   const [isLoadingFeedbackContext, setIsLoadingFeedbackContext] = useState(false);
+  const [isClearingFeedback, setIsClearingFeedback] = useState(false);
   const [pendingFeedbackKey, setPendingFeedbackKey] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackError, setFeedbackError] = useState("");
@@ -291,6 +296,63 @@ export function HomeScreen() {
     }
   }
 
+  function confirmDeleteSavedProfile(profile: MemberProfileResponse) {
+    Alert.alert(
+      "Remove this saved profile?",
+      `${profile.display_name} will be deactivated in local SQLite.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            void deleteSavedProfile(profile);
+          },
+        },
+      ],
+    );
+  }
+
+  async function deleteSavedProfile(profile: MemberProfileResponse) {
+    const memberProfileId = profile.member_profile_id;
+    const wasSelectedProfile = selectedSavedProfileId === memberProfileId;
+    const wasSelectedForHousehold =
+      selectedSavedHouseholdProfileIds.includes(memberProfileId);
+
+    setDeletingProfileId(memberProfileId);
+    setProfileMessage("");
+    setProfileErrorMessage("");
+
+    try {
+      await deleteProfile(memberProfileId);
+      const profiles = await getProfiles(profile.household_id || savedProfileHouseholdId);
+      setSavedProfiles(profiles);
+      setSelectedSavedProfileId((current) =>
+        current === memberProfileId ? "" : current,
+      );
+      setSelectedSavedHouseholdProfileIds((current) =>
+        current.filter((profileId) => profileId !== memberProfileId),
+      );
+      if (wasSelectedProfile) {
+        setGeneratedPlan(null);
+        setFeedbackContext(null);
+      }
+      if (wasSelectedForHousehold) {
+        setGeneratedHouseholdPlan(null);
+        setCurrentHouseholdMemberIndex(0);
+        setSelectedHouseholdDayIndex(1);
+      }
+      setProfileMessage(`Profile removed: ${profile.display_name}`);
+    } catch (error) {
+      setProfileErrorMessage(error instanceof Error ? error.message : "Profile remove failed");
+    } finally {
+      setDeletingProfileId("");
+    }
+  }
+
   async function generatePlanForSelectedMember() {
     if (!selectedMember && !selectedSavedProfile) {
       setErrorMessage("Select a demo member or a saved profile before generating a plan.");
@@ -471,6 +533,52 @@ export function HomeScreen() {
     }
   }
 
+  function confirmClearFeedback() {
+    if (!activeHouseholdId) {
+      setFeedbackError("Load a household before clearing feedback.");
+      return;
+    }
+
+    Alert.alert(
+      "Clear feedback?",
+      "This removes local demo feedback events for the active household.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: () => {
+            void clearFeedbackForActiveHousehold();
+          },
+        },
+      ],
+    );
+  }
+
+  async function clearFeedbackForActiveHousehold() {
+    if (!activeHouseholdId) {
+      setFeedbackError("Load a household before clearing feedback.");
+      return;
+    }
+
+    setIsClearingFeedback(true);
+    setFeedbackMessage("");
+    setFeedbackError("");
+
+    try {
+      const response = await clearFeedback(activeHouseholdId, undefined, true);
+      await refreshFeedbackContext(true);
+      setFeedbackMessage(`Feedback cleared (${response.deleted_event_count} events).`);
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : "Feedback clear failed");
+    } finally {
+      setIsClearingFeedback(false);
+    }
+  }
+
   async function submitMealFeedback(meal: GeneratedMeal, feedbackType: FeedbackType) {
     const recipeId = getMealRecipeId(meal);
     if (!recipeId) {
@@ -642,6 +750,8 @@ export function HomeScreen() {
               return (
                 <ProfileCard
                   key={profile.member_profile_id}
+                  deleteDisabled={deletingProfileId === profile.member_profile_id}
+                  onDelete={() => confirmDeleteSavedProfile(profile)}
                   onPress={() => handleSavedProfilePress(profile.member_profile_id)}
                   profile={profile}
                   selected={selected}
@@ -758,6 +868,13 @@ export function HomeScreen() {
           loading={isLoadingFeedbackContext}
           label="Refresh feedback context"
           onPress={() => refreshFeedbackContext(false)}
+          variant="secondary"
+        />
+        <ActionButton
+          disabled={!activeHouseholdId || isClearingFeedback}
+          loading={isClearingFeedback}
+          label="Clear feedback"
+          onPress={confirmClearFeedback}
           variant="secondary"
         />
         <View style={styles.statsGrid}>

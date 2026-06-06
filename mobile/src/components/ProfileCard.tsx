@@ -3,36 +3,58 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MemberProfileResponse } from "../types/api";
 
 type ProfileCardProps = {
+  deleteDisabled?: boolean;
   onPress: () => void;
+  onDelete?: () => void;
   profile: MemberProfileResponse;
   selected: boolean;
 };
 
-export function ProfileCard({ onPress, profile, selected }: ProfileCardProps) {
+export function ProfileCard({
+  deleteDisabled,
+  onDelete,
+  onPress,
+  profile,
+  selected,
+}: ProfileCardProps) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        selected ? styles.cardSelected : null,
-        pressed ? styles.cardPressed : null,
-      ]}
-    >
-      <View style={styles.headerRow}>
-        <Text style={styles.name}>{profile.display_name}</Text>
-        <Text style={[styles.badge, selected ? styles.badgeSelected : null]}>
-          {selected ? "Selected" : "Tap"}
+    <View style={[styles.card, selected ? styles.cardSelected : null]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        onPress={onPress}
+        style={({ pressed }) => [styles.tapArea, pressed ? styles.cardPressed : null]}
+      >
+        <View style={styles.headerRow}>
+          <Text style={styles.name}>{profile.display_name}</Text>
+          <Text style={[styles.badge, selected ? styles.badgeSelected : null]}>
+            {selected ? "Selected" : "Tap"}
+          </Text>
+        </View>
+        <Text style={styles.meta}>
+          {profile.age} years / {formatWeight(profile.weight_kg)} kg / {profile.activity_level}
         </Text>
-      </View>
-      <Text style={styles.meta}>
-        {profile.age} years / {formatWeight(profile.weight_kg)} kg / {profile.activity_level}
-      </Text>
-      <Text style={styles.meta}>
-        Goal: {profile.goal} / {profile.goal_speed}
-      </Text>
-    </Pressable>
+        <Text style={styles.meta}>
+          Goal: {profile.goal} / {profile.goal_speed}
+        </Text>
+      </Pressable>
+      {onDelete ? (
+        <Pressable
+          accessibilityRole="button"
+          disabled={deleteDisabled}
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.deleteButton,
+            pressed && !deleteDisabled ? styles.cardPressed : null,
+            deleteDisabled ? styles.deleteButtonDisabled : null,
+          ]}
+        >
+          <Text style={styles.deleteButtonText}>
+            {deleteDisabled ? "Removing" : "Remove"}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -86,5 +108,26 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 16,
     fontWeight: "800",
+  },
+  deleteButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderColor: "#B42318",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  deleteButtonDisabled: {
+    opacity: 0.55,
+  },
+  deleteButtonText: {
+    color: "#B42318",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  tapArea: {
+    gap: 6,
   },
 });

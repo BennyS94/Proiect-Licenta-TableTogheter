@@ -2962,3 +2962,25 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - M7 is now recorded as household generation with saved profiles, not UI polish.
 - Current mobile milestone chain is M1 health, M2 individual plan, M3 grocery list, M4 feedback, M5 demo household generation, M6 saved profile creation, M7 saved-profile household generation.
 - UI polish and clearer screen separation are later milestones.
+
+## 94. Mobile M8 saved profile delete and feedback cleanup - 2026-06-06
+- Added backend profile cleanup endpoint: `DELETE /profiles/{member_profile_id}?confirm=true`.
+- Profile cleanup is soft-deactivate only: `member_profiles.is_active=0` plus `updated_at`; no hard delete by default.
+- `GET /profiles` still returns active profiles by default, while `active_only=false` can inspect inactive rows.
+- Added mobile API client support through `deleteProfile(memberProfileId)`.
+- Saved profile cards now expose a `Remove` action for saved SQLite profiles only; demo household members are unchanged.
+- Removing a saved profile shows `Remove this saved profile?`, calls the backend endpoint, refreshes saved profiles, and clears invalid individual/household selections.
+- Feedback context panel now exposes `Clear feedback`, confirms with the user, calls `DELETE /feedback?confirm=true` for the active household, and refreshes the feedback context.
+- Added M8 validation helpers:
+  - `tools/extra/check_backend_m8_profile_feedback_cleanup.py`
+  - `tools/extra/check_mobile_m8_structure.py`
+- Documented M8 in `mobile/README_mobile.md`, `backend/README_backend.md`, `docs/architecture/mobile_backend_roadmap.md`, and `docs/architecture/backend_readiness_checklist.md`.
+- Limitations:
+  - no auth/login
+  - no cloud/Firebase/Supabase
+  - no generated-plan reset endpoint in M8
+  - no KNN/substitutions
+  - no final UI polish
+  - no mobile CSV reads and no generator execution inside mobile
+- Next recommended step:
+  - choose either KNN/substitutions as a separate backend/generator checkpoint, or UI polish / clearer screen separation as a mobile checkpoint.

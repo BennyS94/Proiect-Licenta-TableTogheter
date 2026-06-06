@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from backend.app.db.database import get_connection, init_db
 from backend.app.db.repositories import (
+    deactivate_member_profile,
     get_member_profile,
     list_member_profiles,
     save_member_profile,
@@ -13,6 +14,7 @@ from backend.app.db.repositories import (
 from backend.app.schemas.profile import (
     MemberProfileCreateRequest,
     MemberProfileResponse,
+    ProfileDeleteResponse,
     ProfilesListResponse,
 )
 
@@ -55,6 +57,29 @@ def get_profile(member_profile_id: str) -> dict[str, Any]:
     if profile is None:
         raise HTTPException(status_code=404, detail="profile_not_found")
     return profile
+
+
+@router.delete("/profiles/{member_profile_id}", response_model=ProfileDeleteResponse)
+def delete_profile(
+    member_profile_id: str,
+    confirm: bool = Query(default=False),
+) -> dict[str, Any]:
+    if not confirm:
+        raise HTTPException(status_code=400, detail="confirm=true_required")
+
+    init_db()
+    with get_connection() as conn:
+        profile = deactivate_member_profile(conn, member_profile_id)
+
+    if profile is None:
+        raise HTTPException(status_code=404, detail="profile_not_found")
+
+    return {
+        "status": "ok",
+        "member_profile_id": profile["member_profile_id"],
+        "deleted": False,
+        "deactivated": True,
+    }
 
 
 def _model_to_dict(model: Any) -> dict[str, Any]:

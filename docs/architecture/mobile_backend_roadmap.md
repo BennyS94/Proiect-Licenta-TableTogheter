@@ -123,6 +123,7 @@ Minimum MVP:
 - `GET /households/demo`
 - `GET /profiles`
 - `POST /profiles`
+- `DELETE /profiles/{member_profile_id}`
 - `POST /plans/generate`
 - `GET /plans/{plan_id}`
 - `GET /plans/{plan_id}/grocery-list`
@@ -211,7 +212,7 @@ Backend M1-M5 sunt implementate:
 - M4: demo household, profile endpoints si feedback endpoints.
 - M5: generatie persistence-aware cu profile SQLite si injectare de feedback context cand `feedback_enabled=true`.
 
-Mobile M1-M7 sunt implementate:
+Mobile M1-M8 sunt implementate:
 
 - M1: Expo Android skeleton si `GET /health`.
 - M2: `GET /households/demo`, selectie membru demo, `POST /plans/generate` si afisare plan individual pe 3 zile.
@@ -220,6 +221,7 @@ Mobile M1-M7 sunt implementate:
 - M5: modul `Household plan` pentru membrii demo, cu selectie multipla, `POST /household-plans/generate`, per-member view, day selector si grocery list household agregata.
 - M6: creare si listare profiluri salvate prin SQLite backend, plus generare individuala prin `member_profile_id`.
 - M7: generatie household cu profiluri salvate; mobile selecteaza profiluri salvate multiple si apeleaza `POST /household-plans/generate` cu `selected_member_ids`.
+- M8: cleanup local/demo pentru profiluri si feedback; mobile poate soft-dezactiva profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true` si poate sterge feedback events prin `DELETE /feedback?confirm=true`.
 
 Flow mobil validat:
 
@@ -230,6 +232,8 @@ health -> load demo household -> select member -> generate plan -> grocery list 
 Runtime M4 a confirmat ca feedback-ul `Avoid` salvat din mobile a fost aplicat la urmatoarea regenerare si reteta evitata nu a mai aparut cand au existat alternative.
 
 Flow-ul M7 reutilizeaza afisarea household din M5: selector de membru, selector de zi, meniu per membru si grocery list agregata la nivel de household. Aplicatia mobila continua sa consume doar FastAPI prin HTTP/JSON si nu citeste CSV-uri sau ruleaza generatorul local.
+
+Flow-ul M8 nu adauga auth/login sau cloud sync. Profilurile salvate sunt soft-dezactivate in SQLite local/demo, nu hard-deleted. Cleanup pentru planuri generate ramane neimplementat in M8 si poate fi adaugat doar ca endpoint dev/demo separat daca devine necesar.
 
 ## Remaining mobile milestones
 

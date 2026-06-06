@@ -53,6 +53,12 @@ Implementat in M5:
 - contextul feedback SQLite este injectat in generatie cand `feedback_enabled=true`
 - profilurile inline raman suportate pentru testare si compatibilitate
 
+Implementat in M8:
+
+- `DELETE /profiles/{member_profile_id}?confirm=true` soft-dezactiveaza profiluri salvate
+- `GET /profiles` continua sa returneze doar profiluri active implicit
+- `DELETE /feedback?confirm=true` ramane cleanup local/demo pentru feedback events
+
 ## Run
 
 Instaleaza dependintele backend minime:
@@ -105,12 +111,15 @@ GET    http://127.0.0.1:8000/households/demo
 GET    http://127.0.0.1:8000/profiles
 POST   http://127.0.0.1:8000/profiles
 GET    http://127.0.0.1:8000/profiles/{member_profile_id}
+DELETE http://127.0.0.1:8000/profiles/{member_profile_id}?confirm=true
 POST   http://127.0.0.1:8000/feedback
 GET    http://127.0.0.1:8000/feedback/context
 DELETE http://127.0.0.1:8000/feedback?confirm=true
 ```
 
 Feedback API foloseste SQLite ca sursa backend. Din M5, endpointurile de generatie pot primi context feedback agregat din SQLite. CLI/Streamlit isi pastreaza comportamentul JSONL/local existent.
+
+Profile delete din M8 este soft delete: seteaza `is_active=0` si actualizeaza `updated_at`; nu sterge randul fizic din SQLite. Endpointul cere `confirm=true`.
 
 ## SQLite
 
@@ -210,6 +219,18 @@ Mostre M5:
 data/recipesdb/audit/backend_m5_individual_response_sample.json
 data/recipesdb/audit/backend_m5_household_response_sample.json
 data/recipesdb/audit/backend_m5_feedback_context_used_sample.json
+```
+
+Smoke pentru cleanup profile/feedback M8:
+
+```powershell
+python tools/extra/check_backend_m8_profile_feedback_cleanup.py
+```
+
+Output sumar M8:
+
+```text
+data/recipesdb/audit/backend_m8_profile_feedback_cleanup_summary.txt
 ```
 
 ## Not implemented yet

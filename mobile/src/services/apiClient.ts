@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../config/api";
 import type {
+  DeleteProfileResponse,
   DemoHouseholdResponse,
   FeedbackContextResponse,
   FeedbackDeleteResponse,
@@ -66,6 +67,18 @@ export async function createProfile(
 
 export async function getProfile(memberProfileId: string): Promise<MemberProfileResponse> {
   return requestJson<MemberProfileResponse>(`/profiles/${encodeURIComponent(memberProfileId)}`);
+}
+
+export async function deleteProfile(
+  memberProfileId: string,
+): Promise<DeleteProfileResponse> {
+  const encodedProfileId = encodeURIComponent(memberProfileId);
+  return requestJson<DeleteProfileResponse>(
+    `/profiles/${encodedProfileId}?confirm=true`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 export async function generateIndividualPlan(

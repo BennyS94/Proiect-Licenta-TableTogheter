@@ -86,6 +86,8 @@ http://127.0.0.1:8000
 - Listeaza si creeaza profiluri salvate prin backend SQLite.
 - Poate genera plan individual folosind `member_profile_id` pentru un profil salvat.
 - Poate selecta profiluri salvate multiple si genera plan household prin `selected_member_ids`.
+- Poate elimina profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true`; backend-ul le soft-dezactiveaza.
+- Poate curata feedback-ul local/demo prin `DELETE /feedback?confirm=true`.
 
 ## Mobile M2 Flow
 
@@ -177,6 +179,22 @@ Aplicatia trimite `POST /household-plans/generate` cu `selected_member_ids` si `
 
 Sursa `Demo household` ramane disponibila pentru flow-ul M5. Nu exista inca auth/login, cloud sync, Firebase/Supabase, ecran household final, feedback household dedicat sau polish UI final.
 
+## Mobile M8 Flow
+
+Mobile M8 adauga cleanup minim pentru testare locala/demo:
+
+1. Apasa `Load saved profiles`.
+2. Creeaza sau selecteaza un profil salvat.
+3. Apasa `Remove` pe cardul profilului salvat.
+4. Confirma `Remove this saved profile?`.
+5. Profilul este dezactivat prin `DELETE /profiles/{member_profile_id}?confirm=true` si dispare din lista implicita `GET /profiles`.
+6. In panelul `Feedback context`, apasa `Clear feedback`.
+7. Confirma stergerea feedback-ului pentru household-ul activ.
+
+Profilurile salvate sunt soft-deactivated in SQLite local/demo, nu hard-deleted. Membrii demo din `GET /households/demo` nu au buton de stergere. Clear feedback foloseste endpointul existent `DELETE /feedback?confirm=true` si ramane comportament local/demo.
+
+Nu exista auth/login, cloud sync, Firebase/Supabase, reset generat de planuri din mobile, UI polish final sau KNN/substitutions in Mobile M8.
+
 ## Next Step
 
-Urmatorul pas este validarea runtime M7 pe emulator Android si apoi separarea mai clara a ecranelor pentru demo MVP.
+Urmatorul pas este validarea runtime M8 pe emulator Android, apoi fie UI polish / separare ecrane, fie integrare KNN/substitutions intr-un checkpoint separat.

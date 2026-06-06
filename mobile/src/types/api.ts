@@ -78,6 +78,14 @@ export type ProfilesListResponse = {
   [key: string]: unknown;
 };
 
+export type DeleteProfileResponse = {
+  status: string;
+  member_profile_id: string;
+  deactivated: boolean;
+  deleted?: boolean;
+  message?: string;
+};
+
 export type IndividualPlanGenerateRequest = {
   dataset_profile: string;
   days: number;

@@ -659,6 +659,8 @@ Response schema example:
 
 MVP notes:
 - Backend M4 returneaza profiluri din SQLite.
+- Backend M8 returneaza profiluri active implicit; profilurile soft-dezactivate nu apar in lista standard.
+- `active_only=false` poate fi folosit pentru inspectie demo/dev a profilurilor inactive, daca este necesar.
 - Daca nu exista profiluri SQLite, raspunsul este lista goala; mobile poate folosi `GET /households/demo` pentru membrii demo.
 
 Non-goals:
@@ -769,6 +771,51 @@ MVP notes:
 
 Non-goals:
 - Nu face profile ownership/auth.
+
+## DELETE /profiles/{member_profile_id}
+
+Purpose:
+- Dezactiveaza un profil membru salvat in SQLite.
+
+Request schema example:
+
+```json
+{
+  "path_params": {
+    "member_profile_id": "member_demo_adult_male_001"
+  },
+  "query_params": {
+    "confirm": true
+  }
+}
+```
+
+Response schema example:
+
+```json
+{
+  "status": "ok",
+  "member_profile_id": "member_demo_adult_male_001",
+  "deactivated": true,
+  "deleted": false
+}
+```
+
+MVP notes:
+- Backend M8 cere `confirm=true`.
+- Endpoint-ul face soft delete: seteaza `is_active=0` si actualizeaza `updated_at`.
+- Profilul nu este sters fizic din SQLite.
+- Dupa dezactivare, `GET /profiles` nu mai returneaza profilul in lista implicita active-only.
+- Endpoint-ul este comportament demo/local SQLite.
+- Mobile foloseste endpoint-ul pentru actiunea `Remove` pe profiluri salvate.
+
+Error cases:
+- `400` daca lipseste `confirm=true`.
+- `404` daca profilul nu exista.
+
+Non-goals:
+- Nu face hard delete by default.
+- Nu implementeaza auth sau user ownership enforcement inca.
 
 ## GET /households/demo
 
