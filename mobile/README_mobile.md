@@ -89,7 +89,7 @@ http://127.0.0.1:8000
 - Poate elimina profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true`; backend-ul le soft-dezactiveaza.
 - Poate curata feedback-ul local/demo prin `DELETE /feedback?confirm=true`.
 - Poate afisa KNN alternatives read-only pentru mese cu `recipe_id`, prin `POST /recipes/similar`.
-- Poate face meal replacement explicit dintr-o alternativa `approved`, prin `POST /plans/{plan_id}/replace-meal`.
+- Poate face meal-level replacement explicit dintr-o alternativa `approved`, prin `POST /plans/{plan_id}/replace-meal`.
 
 ## Mobile M2 Flow
 
@@ -220,6 +220,8 @@ Mobile KNN-4 adauga replacement explicit peste panoul `Alternatives`:
 6. Apasa `Replace meal` pentru aplicare explicita.
 7. Aplicatia apeleaza `POST /plans/{plan_id}/replace-meal?dry_run=false`.
 8. Backend-ul returneaza plan nou derivat si grocery list recalculata, iar mobile actualizeaza state-ul local.
+
+`Replace meal` schimba reteta/masa intreaga. Ingredient substitutions, precum schimbarea unui ingredient in interiorul retetei, nu fac parte din MVP-ul curent.
 
 Alternativele `review` pot fi previzualizate, dar nu pot fi aplicate in MVP. Replacement-ul nu porneste automat cand se deschide panoul si nu face substitutii de ingrediente. Aplicatia consuma doar FastAPI prin HTTP/JSON; nu citeste CSV-uri si nu importa generatorul.
 

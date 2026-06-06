@@ -5,7 +5,7 @@
 Acest document defineste contractul API pregatit pentru primul backend TableTogether. Scopul este sa existe o limita clara intre aplicatia Android si generatorul Python inainte de implementarea FastAPI.
 
 Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite.
-Backend KNN-2 adauga `POST /recipes/similar` pentru alternative de retete aprobate/review prin KNN-lite + generator approval gate.
+Backend KNN-2 adauga `POST /recipes/similar` pentru alternative de retete aprobate/review prin KNN-lite + generator approval gate. Backend KNN-4 adauga meal-level replacement explicit prin `POST /plans/{plan_id}/replace-meal`; acesta schimba o reteta/masa intreaga, nu ingrediente individuale.
 
 Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu schimba fisierele din `data/recipesdb/current` sau `data/fooddb/current`.
 
@@ -585,7 +585,7 @@ Non-goals:
 ## POST /plans/{plan_id}/replace-meal
 
 Purpose:
-- Preview sau aplica inlocuirea explicita a unei mese dintr-un plan generat cu o alternativa validata prin KNN-lite + generator approval gate.
+- Preview sau aplica inlocuirea explicita a unei mese/retete complete dintr-un plan generat cu o alta reteta validata prin KNN-lite + generator approval gate.
 
 Query params:
 - `dry_run=true` pentru preview fara persistenta.
@@ -658,6 +658,8 @@ MVP notes:
 - Grocery list este reconstruita din planul actualizat si salvata pentru noul plan.
 - KNN ramane candidate provider; generator approval gate ramane obligatoriu.
 - Doar alternativele `approved` pot fi aplicate. Alternativele `review` pot fi previzualizate, dar nu aplicate in MVP.
+- Replacement-ul este meal-level / recipe-level: inlocuieste masa intreaga cu alta reteta aprobata.
+- Ingredient-level substitution nu este implementat in MVP si nu este expus prin acest endpoint.
 - Comportamentul este demo/local SQLite.
 - Nu exista auth/user ownership enforcement inca.
 

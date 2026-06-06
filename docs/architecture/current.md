@@ -66,7 +66,7 @@ Limitari explicite ale demo-ului curent:
 - `data/recipesdb/current` ramane neatins
 - `data/fooddb/current` ramane neatins
 
-Nota KNN-lite: exista un modul auxiliar `src/generator_v1/recipe_similarity.py` pentru retete similare, documentat in `docs/architecture/knn_substitution_v1_design.md`. Statusul este audit-only / side-module pentru moment: KNN poate propune candidati, dar generatorul principal ramane deterministic, scoring/constraint-based si validator/approver; nu exista substitutii automate si nu exista integrare API/mobile inca.
+Nota KNN-lite: exista un modul auxiliar `src/generator_v1/recipe_similarity.py` pentru retete similare, documentat in `docs/architecture/knn_substitution_v1_design.md`. KNN-backed alternatives suporta acum meal-level replacement cu preview si confirmare explicita prin backend/mobile MVP. KNN poate propune candidati, dar generatorul principal ramane deterministic, scoring/constraint-based si validator/approver; nu exista substitutii automate sau substitutii de ingrediente in MVP.
 
 ## 2.2. Feedback v1 local/demo
 

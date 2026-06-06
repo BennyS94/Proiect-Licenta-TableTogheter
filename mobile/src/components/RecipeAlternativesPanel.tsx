@@ -223,7 +223,7 @@ export function RecipeAlternativesPanel({
   return (
     <View style={styles.container}>
       <Text style={styles.notice}>
-        Alternatives are read-only until you preview and confirm a replacement.
+        Alternatives are read-only until you preview and confirm a meal replacement.
       </Text>
       {!canRequestReplacement ? (
         <Text style={styles.mutedText}>Replacement preview needs a persisted plan id.</Text>

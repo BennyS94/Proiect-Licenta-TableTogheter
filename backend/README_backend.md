@@ -67,11 +67,12 @@ Implementat in KNN-2:
 
 Implementat in KNN-4:
 
-- `POST /plans/{plan_id}/replace-meal` face preview/apply pentru inlocuire explicita de masa
+- `POST /plans/{plan_id}/replace-meal` face preview/apply pentru inlocuire explicita de masa/reteta intreaga
 - `dry_run=true` returneaza impact preview fara persistenta
 - `dry_run=false` creeaza un plan nou derivat, recalculeaza grocery list si salveaza rezultatul in SQLite
 - aplica doar alternative `approved`; alternativele `review` raman preview-only
 - KNN ramane candidate provider, iar Generator v1 ramane approval gate
+- ingredient-level substitution nu este implementat in KNN-4
 
 ## Run
 
@@ -150,7 +151,7 @@ POST http://127.0.0.1:8000/plans/{plan_id}/replace-meal?dry_run=true
 POST http://127.0.0.1:8000/plans/{plan_id}/replace-meal?dry_run=false
 ```
 
-Endpointul accepta `day_index`, `slot`, `current_recipe_id`, `alternative_recipe_id`, `generation_type`, optional `replace_scope` si optional `member_id` / `member_profile_id`. Preview-ul nu persista nimic. Apply-ul creeaza plan nou derivat si grocery list nou; planul original ramane in SQLite nemodificat.
+Endpointul accepta `day_index`, `slot`, `current_recipe_id`, `alternative_recipe_id`, `generation_type`, optional `replace_scope` si optional `member_id` / `member_profile_id`. Preview-ul nu persista nimic. Apply-ul creeaza plan nou derivat si grocery list nou; planul original ramane in SQLite nemodificat. Replacement-ul este doar meal-level / recipe-level, nu inlocuire de ingrediente in interiorul retetei.
 
 ## SQLite
 

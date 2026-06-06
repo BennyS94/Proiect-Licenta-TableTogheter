@@ -13,15 +13,36 @@ Scopul initial este KNN-lite, determinist:
 
 KNN este candidate provider. Generatorul ramane validator si approver.
 
+## MVP scope: meal-level replacement only
+
+Pentru MVP/licenta, termenul substitution/swap inseamna inlocuirea unei mese/retete complete cu alta reteta aprobata. Implementarea curenta nu modifica ingrediente individuale in interiorul unei retete.
+
+Fluxul MVP este:
+
+```text
+Meal card
+  -> Alternatives
+  -> Preview replacement
+  -> Confirm replace
+  -> update meal
+  -> recompute day totals
+  -> recompute plan summary
+  -> update grocery list
+```
+
+Ingredient-level substitution ramane future work. Nu exista in MVP schimbari ingredient-la-ingredient in interiorul aceleiasi retete, deoarece ar necesita recalculare nutritionala pe cantitati echivalente, validare culinara, reguli de compatibilitate ingredient-reteta si reconstruire grocery/pricing cu alta granularitate.
+
+KNN ramane doar provider de candidati de retete alternative. Generatorul/backend approval gate ramane validator/approver, iar replacement-ul se aplica numai dupa confirmare explicita.
+
 ## Non-Goals
 
 KNN v1 nu este:
 
 - motorul principal al generatorului;
 - inlocuire automata de mese in planuri generate;
-- substitutie de ingrediente;
+- substitutie de ingrediente in interiorul retetelor;
 - training ML sau model supervizat;
-- recalculare automata de grocery list dupa substitutii;
+- recalculare automata de grocery list la simpla afisare a alternativelor;
 - integrare mobile cu inlocuire automata;
 - mecanism care ignora hard filters, feedback bans sau profilul utilizatorului.
 
@@ -152,7 +173,7 @@ KNN-3:
 - nu face inlocuire automata, nu modifica planuri si nu recalculeaza grocery list.
 
 KNN-4:
-- implementat ca functional meal replacement explicit prin `POST /plans/{plan_id}/replace-meal`;
+- implementat ca functional meal-level replacement explicit prin `POST /plans/{plan_id}/replace-meal`;
 - `dry_run=true` face preview fara persistenta;
 - `dry_run=false` creeaza plan nou derivat, nu suprascrie planul original;
 - aplica doar alternative `approved`; alternativele `review` raman preview-only;
@@ -160,9 +181,9 @@ KNN-4:
 - mobile actualizeaza planul/grocery list doar dupa `Replace meal`.
 
 KNN-5:
-- ingredient substitution candidates;
+- ingredient-level substitution candidates, future work;
 - foloseste Food_DB si recipe ingredient rows;
-- ramane separat de schimbarea meniului.
+- ramane separat de schimbarea meniului si nu este implementat in MVP.
 
 ## Limitations
 
@@ -171,5 +192,6 @@ KNN-5:
 - Nu exista inca feedback propagation pe familie/ingredient.
 - Household replacement este suportat pentru randurile expuse in planul curent, dar ramane MVP demo/local.
 - Recalcularea grocery exista doar dupa replacement explicit, nu la simpla afisare de alternative.
+- Ingredient-level substitution nu este implementat; orice swap curent inlocuieste reteta/masa intreaga.
 - API integration exista prin backend KNN-2.
 - Mobile integration exista pentru KNN-3 display si KNN-4 replacement explicit.
