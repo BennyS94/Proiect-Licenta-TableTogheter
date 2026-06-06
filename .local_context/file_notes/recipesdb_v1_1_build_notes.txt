@@ -2984,3 +2984,61 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - no mobile CSV reads and no generator execution inside mobile
 - Next recommended step:
   - choose either KNN/substitutions as a separate backend/generator checkpoint, or UI polish / clearer screen separation as a mobile checkpoint.
+
+## 95. KNN Prep 1 recipe similarity and generator approval audit - 2026-06-06
+- Added isolated KNN-lite module:
+  - `src/generator_v1/recipe_similarity.py`
+- Added design doc:
+  - `docs/architecture/knn_substitution_v1_design.md`
+- Added audit/helper scripts:
+  - `tools/extra/evaluate_knn_recipe_similarity_feature_coverage.py`
+  - `tools/extra/evaluate_knn_recipe_similarity_neighbors.py`
+  - `tools/extra/evaluate_knn_recipe_similarity_generator_approval.py`
+  - `tools/extra/show_knn_recipe_alternatives.py`
+- Audit outputs:
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_feature_coverage_summary.txt`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_feature_table.csv`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_missing_features.csv`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_neighbors.csv`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_neighbor_examples.txt`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_neighbor_summary.txt`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_approval_summary.txt`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_approval_candidates.csv`
+  - `data/recipesdb/audit/knn_recipe_similarity_v1_approval_examples.txt`
+- Feature coverage on `v1_2_demo_final`:
+  - `recipe_count=266`
+  - `active_recipe_count=261`
+  - `complete_nutrition_count=266`
+  - `usable_time_count=266`
+  - `slot_feature_count=266`
+  - `category_feature_count=266`
+  - `family_feature_count=266`
+  - `main_protein_feature_count=265`
+  - `dominant_ingredient_feature_count=266`
+- Neighbor audit:
+  - `seed_count=8`
+  - `neighbor_rows=80`
+  - `median_similarity_score=0.8535`
+  - `good_match_count_score_ge_0_70=77`
+  - `questionable_match_count_with_warnings=2`
+  - main warning pattern: `macro_gap_large`
+- Generator approval audit:
+  - `selected_meals_tested=12`
+  - `candidates_tested=120`
+  - `approved_count=92`
+  - `review_count=22`
+  - `rejected_count=6`
+  - `approval_rate=0.7667`
+  - common rejection/review reasons: `macro_fit_low`, `realism_hard_reject`, `nutrition_quality_low`, `slot_suspicious_for_snack`
+- Conclusion:
+  - KNN-lite is useful enough as candidate provider for the next API/mobile alternatives stage.
+  - Generator approval remains mandatory; KNN must not directly replace meals.
+- Limitations:
+  - no automatic substitution
+  - no meal replacement in generated plans
+  - no KNN main engine
+  - no backend/mobile integration
+  - no grocery recalculation from alternatives
+  - household compatibility is not fully audited yet
+- Next recommendation:
+  - KNN-2 should expose an internal/backend alternatives endpoint that returns only approved/review candidates, still without automatic replacement.

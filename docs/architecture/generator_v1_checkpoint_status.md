@@ -16,6 +16,8 @@ Date neatinse:
 - `data/recipesdb/current`
 - `data/fooddb/current`
 
+KNN-lite similarity audit implemented, not active in main generation.
+
 Nota backend/API:
 - Generator v1 are acum o fundatie demo suficient de clara pentru a fi expusa printr-un backend API intr-un checkpoint viitor.
 - Urmatorul pas de produs trebuie sa fie un wrapper backend/API peste generator, nu mutarea logicii in aplicatia mobila.

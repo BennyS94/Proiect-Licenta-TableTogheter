@@ -26,6 +26,7 @@ Checkpoint-uri:
 Rolul KNN:
 - nu este motor principal in v1
 - ramane strat auxiliar pentru substitutii, retete similare, candidate expansion si propagare feedback
+- KNN Prep 1 este complet ca pregatire/audit: recipe similarity + generator approval audit exista; substitutiile, API endpoint-ul si alternativele mobile raman pasi viitori
 
 Rolul Streamlit:
 - unealta de testare rapida
