@@ -6,6 +6,7 @@ import type {
   MealReplacementResponse,
   MealReplacementScope,
 } from "../types/api";
+import { colors } from "../theme/colors";
 import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 
 type HouseholdMealRowProps = {
@@ -70,16 +71,19 @@ export function HouseholdMealRow({
 
       <View style={styles.actionRow}>
         <SmallActionButton
-          label={showDetails ? "Hide details" : "Details"}
+          active={showDetails}
+          label="Details"
           onPress={() => setShowDetails((current) => !current)}
         />
         <SmallActionButton
-          label={showCook ? "Hide steps" : "Cook / Steps"}
+          active={showCook}
+          label="Cook / Steps"
           onPress={() => setShowCook((current) => !current)}
         />
         {recipeId ? (
           <SmallActionButton
-            label={showAlternatives ? "Hide alternatives" : "Alternatives"}
+            active={showAlternatives}
+            label="Alternatives"
             onPress={() => setShowAlternatives((current) => !current)}
           />
         ) : null}
@@ -167,17 +171,33 @@ function replacementScopeFromMeal(scope: string | null): MealReplacementScope {
   return scope === "shared" ? "household_shared_meal" : "household_member_meal";
 }
 
-function SmallActionButton({ label, onPress }: { label: string; onPress: () => void }) {
+function SmallActionButton({
+  active,
+  label,
+  onPress,
+}: {
+  active?: boolean;
+  label: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         styles.alternativesButton,
+        active ? styles.alternativesButtonActive : null,
         pressed ? styles.alternativesButtonPressed : null,
       ]}
     >
-      <Text style={styles.alternativesButtonText}>{label}</Text>
+      <Text
+        style={[
+          styles.alternativesButtonText,
+          active ? styles.alternativesButtonTextActive : null,
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -270,19 +290,25 @@ function titleize(value: string): string {
 const styles = StyleSheet.create({
   alternativesButton: {
     alignSelf: "flex-start",
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
+  alternativesButtonActive: {
+    backgroundColor: colors.accent,
+  },
   alternativesButtonPressed: {
     opacity: 0.82,
   },
   alternativesButtonText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "800",
+  },
+  alternativesButtonTextActive: {
+    color: "#FFFFFF",
   },
   actionRow: {
     flexDirection: "row",
@@ -290,28 +316,28 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   container: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 10,
     padding: 12,
   },
   detailBox: {
-    backgroundColor: "#F7F7F4",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 8,
     padding: 12,
   },
   detailText: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
   },
   detailTitle: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 14,
     fontWeight: "800",
   },
@@ -329,12 +355,12 @@ const styles = StyleSheet.create({
     minWidth: 72,
   },
   metricLabel: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 12,
     fontWeight: "700",
   },
   metricValue: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 14,
     fontWeight: "800",
   },
@@ -344,7 +370,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   metricValueCompact: {
-    color: "#111827",
+    color: colors.text,
     flexShrink: 1,
     fontSize: 13,
     fontWeight: "800",
@@ -354,7 +380,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   name: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 15,
     fontWeight: "800",
   },
@@ -363,14 +389,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   scope: {
-    color: "#165D77",
+    color: colors.accent,
     flexShrink: 0,
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
   },
   slot: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",

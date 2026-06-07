@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { colors } from "../../theme/colors";
+
 export type ProfileSelectorItem = {
   id: string;
   label: string;
@@ -60,7 +62,7 @@ export function ProfileSelector({ items, onSelect, selectedId }: ProfileSelector
 const styles = StyleSheet.create({
   arrow: {
     alignItems: "center",
-    borderColor: "#D9D6CC",
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     height: 42,
@@ -68,7 +70,7 @@ const styles = StyleSheet.create({
     width: 42,
   },
   arrowText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 20,
     fontWeight: "900",
   },

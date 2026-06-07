@@ -3207,3 +3207,43 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - no change email/change password implementation,
   - no real iOS-style wheel picker dependency,
   - data/content pass still needed for missing prices and missing cooking steps in top recipes.
+
+## 102. Mobile UI-2B productization and family-first Meal Plan - 2026-06-07
+- UI-2B makes Meal Plan family-first from the user's perspective:
+  - one primary `Generate meal plan` action,
+  - one-profile households call the existing individual endpoint internally,
+  - two-or-more-profile households call the existing household endpoint internally.
+- Main flow no longer exposes Sample/Demo household, Load Demo, generated-plan status, plan ids, quality summaries or accept/review/reject diagnostics.
+- Meal display order is normalized in UI only: Breakfast, Lunch, Snack, Dinner.
+- Day selectors show Day 1-5 conceptually and disable/grey unavailable generated days.
+- Target summary fallback mapping now reads target macro fields such as `target_protein_g`, `target_carbs_g` and `target_fat_g`.
+- Add Profile stays in Household Management after save, selects the new profile and exposes a CTA to Meal Plan.
+- Profile validation now covers:
+  - required name without digits,
+  - age 4-120,
+  - weight 15-300 kg,
+  - height 80-230 cm,
+  - training sessions/week 0-7,
+  - meals/day 1-5,
+  - Goal Speed disabled for Maintain.
+- Login 401 now maps to `Invalid email or password`.
+- Account/App settings mark non-implemented actions as Coming soon or read-only.
+- Theme token pass uses white/off-white plus pear green `#74B72E`.
+- Alternatives UI hides pool/debug/warnings/status internals and keeps preview + replace inside one card with a shuffle action.
+- Keep-awake investigation found no explicit app code using keep-awake APIs; `expo-keep-awake` is only transitive in Expo package lock, so physical-phone screen idle behavior is likely Expo Go/dev mode or OS/device behavior.
+- DATA-QA-1 remains needed later for complete prices and cooking steps.
+- No changes were intended for current data folders, generator selection, nutrition formulas, grocery/pricing logic, KNN backend behavior or `src/legacy`.
+
+## 103. Mobile UI-2C Meal Plan product-facing cleanup - 2026-06-07
+- UI-2C continues the family-first Meal Plan direction from UI-2B.
+- Meal Plan header now shows only centered `Meal Plan`; active profile/member is not duplicated in the header.
+- Generation card is shorter and product-facing:
+  - `Plan balanced meals for your household.`
+  - custom slider-like day control from 1 to 5,
+  - visible selected value as `1 day` / `N days`,
+  - one `Generate meal plan` action.
+- Viewing selector is rendered once under the internal tabs and before day/result content.
+- Generated day selector keeps Day 1-Day 5 on one row with unavailable days disabled/grey.
+- AppScreen bottom padding was increased to keep bottom content above floating navigation.
+- Backlog/status is consolidated in `.local_context/file_notes/mobile_phone_review_backlog.txt` because the exact phone-review files were not present in repo.
+- UI-2C did not add dependencies and did not change generator/backend generation behavior, current data, nutrition formulas, grocery/pricing, KNN backend behavior or `src/legacy`.

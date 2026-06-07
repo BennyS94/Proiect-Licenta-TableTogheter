@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import { colors } from "../../theme/colors";
 import { PrimaryButton } from "./AppButton";
 import { AppCard } from "./AppCard";
 
@@ -28,17 +29,20 @@ export function EmptyState({ actionLabel, onAction, text, title }: EmptyStatePro
 
 const styles = StyleSheet.create({
   content: {
+    alignItems: "center",
     gap: 6,
   },
   text: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 21,
+    textAlign: "center",
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 20,
     fontWeight: "800",
+    textAlign: "center",
   },
   wrapper: {
     flex: 1,

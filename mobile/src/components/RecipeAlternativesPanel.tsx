@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
@@ -13,6 +13,7 @@ import type {
   RecipeAlternativeItem,
   RecipeAlternativesResponse,
 } from "../types/api";
+import { colors } from "../theme/colors";
 
 type RecipeAlternativesPanelProps = {
   sourceRecipeId: string;
@@ -55,6 +56,7 @@ export function RecipeAlternativesPanel({
   const [previewedRecipeId, setPreviewedRecipeId] = useState("");
   const [previewingRecipeId, setPreviewingRecipeId] = useState("");
   const [applyingRecipeId, setApplyingRecipeId] = useState("");
+  const [selectedAlternativeIndex, setSelectedAlternativeIndex] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
@@ -65,6 +67,7 @@ export function RecipeAlternativesPanel({
     setPreviewedRecipeId("");
     setPreviewingRecipeId("");
     setApplyingRecipeId("");
+    setSelectedAlternativeIndex(0);
     setSuccessMessage("");
   }, [
     datasetProfile,
@@ -104,6 +107,7 @@ export function RecipeAlternativesPanel({
         });
         if (isCurrent) {
           setResponse(payload);
+          setSelectedAlternativeIndex(0);
           setHasLoaded(true);
         }
       } catch (error) {
@@ -144,8 +148,14 @@ export function RecipeAlternativesPanel({
       }),
     [response],
   );
-  const responseWarnings = normalizeTextList(response?.warnings);
+  const currentAlternative = alternatives[selectedAlternativeIndex] ?? alternatives[0] ?? null;
   const canRequestReplacement = Boolean(planId && slot && sourceRecipeId);
+
+  useEffect(() => {
+    if (alternatives.length && selectedAlternativeIndex >= alternatives.length) {
+      setSelectedAlternativeIndex(0);
+    }
+  }, [alternatives.length, selectedAlternativeIndex]);
 
   async function previewReplacement(alternative: RecipeAlternativeItem) {
     if (!planId || !slot) {
@@ -216,22 +226,30 @@ export function RecipeAlternativesPanel({
     };
   }
 
+  function showNextAlternative() {
+    if (alternatives.length <= 1) {
+      return;
+    }
+    setSelectedAlternativeIndex((current) => (current + 1) % alternatives.length);
+    setPreviewResponse(null);
+    setPreviewedRecipeId("");
+    setSuccessMessage("");
+    setErrorMessage("");
+  }
+
   if (!isVisible) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.notice}>
-        Alternatives are read-only until you preview and confirm a meal replacement.
-      </Text>
       {!canRequestReplacement ? (
-        <Text style={styles.mutedText}>Replacement preview needs a persisted plan id.</Text>
+        <Text style={styles.mutedText}>Generate a plan before replacing meals.</Text>
       ) : null}
 
       {isLoading ? (
         <View style={styles.loadingRow}>
-          <ActivityIndicator color="#165D77" />
+          <ActivityIndicator color={colors.accent} />
           <Text style={styles.mutedText}>Loading alternatives...</Text>
         </View>
       ) : null}
@@ -242,55 +260,29 @@ export function RecipeAlternativesPanel({
         </View>
       ) : null}
 
-      {!isLoading && !errorMessage && response ? (
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryText}>
-            Approved {formatSummaryNumber(response.summary, "approved_count")} | Review{" "}
-            {formatSummaryNumber(response.summary, "review_count")}
-          </Text>
-          <Text style={styles.summaryText}>
-            Pool {formatSummaryNumber(response.summary, "candidate_count")}
-          </Text>
-        </View>
-      ) : null}
-
       {!isLoading && !errorMessage && response && alternatives.length === 0 ? (
-        <Text style={styles.mutedText}>No approved or review alternatives returned.</Text>
+        <Text style={styles.mutedText}>No alternatives found for this meal.</Text>
       ) : null}
 
-      {alternatives.map((alternative) => (
-        <Fragment key={alternative.recipe_id}>
-          <AlternativeCard
-            alternative={alternative}
-            canRequestReplacement={canRequestReplacement}
-            isPreviewing={previewingRecipeId === alternative.recipe_id}
-            onPreview={() => previewReplacement(alternative)}
-          />
-          {previewResponse && previewedRecipeId === alternative.recipe_id ? (
-            <ReplacementPreview
-              isApplying={Boolean(applyingRecipeId)}
-              onApply={applyReplacement}
-              onCancel={() => {
-                setPreviewResponse(null);
-                setPreviewedRecipeId("");
-              }}
-              response={previewResponse}
-            />
-          ) : null}
-        </Fragment>
-      ))}
+      {currentAlternative ? (
+        <AlternativeCard
+          alternative={currentAlternative}
+          canRequestReplacement={canRequestReplacement}
+          hasMultipleAlternatives={alternatives.length > 1}
+          isApplying={applyingRecipeId === currentAlternative.recipe_id}
+          isPreviewing={previewingRecipeId === currentAlternative.recipe_id}
+          onApply={applyReplacement}
+          onPreview={() => previewReplacement(currentAlternative)}
+          onShuffle={showNextAlternative}
+          previewResponse={
+            previewResponse && previewedRecipeId === currentAlternative.recipe_id
+              ? previewResponse
+              : null
+          }
+        />
+      ) : null}
 
       {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
-
-      {responseWarnings.length ? (
-        <View style={styles.warningBox}>
-          {responseWarnings.slice(0, 3).map((warning, index) => (
-            <Text key={`${warning}-${index}`} style={styles.warningText}>
-              {warning}
-            </Text>
-          ))}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -298,19 +290,35 @@ export function RecipeAlternativesPanel({
 function AlternativeCard({
   alternative,
   canRequestReplacement,
+  hasMultipleAlternatives,
+  isApplying,
   isPreviewing,
+  onApply,
   onPreview,
+  onShuffle,
+  previewResponse,
 }: {
   alternative: RecipeAlternativeItem;
   canRequestReplacement: boolean;
+  hasMultipleAlternatives: boolean;
+  isApplying: boolean;
   isPreviewing: boolean;
+  onApply: () => void;
   onPreview: () => void;
+  onShuffle: () => void;
+  previewResponse: MealReplacementResponse | null;
 }) {
   const name = stringValue(alternative.display_name) ?? alternative.recipe_id;
-  const status = stringValue(alternative.approval_status) ?? "unknown";
-  const whySimilar = normalizeTextList(alternative.why_similar);
-  const warnings = normalizeTextList(alternative.warnings);
-  const isReview = status === "review";
+  const replacement = previewResponse?.replacement ?? {};
+  const currentMeal = replacement.current_meal ?? {};
+  const alternativeMeal = replacement.alternative_meal ?? {};
+  const impact = previewResponse?.impact ?? {};
+  const hasPreview = Boolean(previewResponse);
+  const replaceDisabled =
+    isApplying ||
+    isPreviewing ||
+    !canRequestReplacement ||
+    (hasPreview && !previewResponse?.replacement_allowed);
 
   return (
     <View style={styles.alternativeCard}>
@@ -318,12 +326,21 @@ function AlternativeCard({
         <View style={styles.alternativeNameBlock}>
           <Text style={styles.alternativeName}>{name}</Text>
           <Text style={styles.alternativeMeta}>
-            Similarity {formatScore(alternative.similarity_score)} | {status}
+            Similarity {formatScore(alternative.similarity_score)}
           </Text>
         </View>
-        <Text style={[styles.statusBadge, status === "approved" ? styles.statusApproved : null]}>
-          {status}
-        </Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={!hasMultipleAlternatives}
+          onPress={onShuffle}
+          style={({ pressed }) => [
+            styles.shuffleButton,
+            pressed && hasMultipleAlternatives ? styles.buttonPressed : null,
+            !hasMultipleAlternatives ? styles.buttonDisabled : null,
+          ]}
+        >
+          <Text style={styles.shuffleButtonText}>Shuffle</Text>
+        </Pressable>
       </View>
 
       <Text style={styles.deltaText}>{formatMacroDelta(alternative.macro_delta)}</Text>
@@ -331,120 +348,41 @@ function AlternativeCard({
         Time delta {formatSignedNumber(alternative.time_delta_min)} min
       </Text>
 
-      {whySimilar.length ? (
-        <View style={styles.reasonList}>
-          {whySimilar.slice(0, 4).map((reason, index) => (
-            <Text key={`${reason}-${index}`} style={styles.reasonText}>
-              {reason}
-            </Text>
-          ))}
+      {hasPreview ? (
+        <View style={styles.previewBox}>
+          <MealSummary title="Current meal" meal={currentMeal} />
+          <MealSummary title="Alternative meal" meal={alternativeMeal} />
+          <Text style={styles.deltaText}>
+            Meal delta {formatMacroDelta(impact.meal_macro_delta)}
+          </Text>
+          <Text style={styles.deltaText}>
+            Day delta {formatMacroDelta(impact.day_totals_delta)}
+          </Text>
         </View>
       ) : null}
 
-      {warnings.length ? (
-        <View style={styles.warningBox}>
-          {warnings.slice(0, 3).map((warning, index) => (
-            <Text key={`${warning}-${index}`} style={styles.warningText}>
-              {warning}
-            </Text>
-          ))}
-        </View>
+      {hasPreview && !previewResponse?.replacement_allowed ? (
+        <Text style={styles.mutedText}>This alternative cannot replace the meal yet.</Text>
       ) : null}
 
-      {isReview ? (
-        <Text style={styles.mutedText}>Review alternatives cannot be applied yet.</Text>
-      ) : null}
       <Pressable
         accessibilityRole="button"
-        disabled={!canRequestReplacement || isPreviewing}
-        onPress={onPreview}
+        disabled={replaceDisabled}
+        onPress={hasPreview ? onApply : onPreview}
         style={({ pressed }) => [
-          styles.previewButton,
-          pressed && canRequestReplacement ? styles.buttonPressed : null,
-          !canRequestReplacement || isPreviewing ? styles.buttonDisabled : null,
+          hasPreview ? styles.replaceButton : styles.previewButton,
+          pressed && !replaceDisabled ? styles.buttonPressed : null,
+          replaceDisabled ? styles.buttonDisabled : null,
         ]}
       >
-        {isPreviewing ? (
-          <ActivityIndicator color="#165D77" />
+        {isPreviewing || isApplying ? (
+          <ActivityIndicator color={hasPreview ? "#FFFFFF" : colors.accent} />
         ) : (
-          <Text style={styles.previewButtonText}>Preview replacement</Text>
+          <Text style={hasPreview ? styles.replaceButtonText : styles.previewButtonText}>
+            {hasPreview ? "Replace meal" : "Preview changes"}
+          </Text>
         )}
       </Pressable>
-    </View>
-  );
-}
-
-function ReplacementPreview({
-  response,
-  isApplying,
-  onApply,
-  onCancel,
-}: {
-  response: MealReplacementResponse;
-  isApplying: boolean;
-  onApply: () => void;
-  onCancel: () => void;
-}) {
-  const replacement = response.replacement ?? {};
-  const currentMeal = replacement.current_meal ?? {};
-  const alternativeMeal = replacement.alternative_meal ?? {};
-  const impact = response.impact ?? {};
-  const warnings = normalizeTextList(impact.warnings ?? response.warnings);
-  const replaceDisabled = !response.replacement_allowed || isApplying;
-
-  return (
-    <View style={styles.previewBox}>
-      <Text style={styles.previewTitle}>Replacement preview</Text>
-      <MealSummary title="Current meal" meal={currentMeal} />
-      <MealSummary title="Alternative meal" meal={alternativeMeal} />
-      <Text style={styles.deltaText}>
-        Meal delta {formatMacroDelta(impact.meal_macro_delta)}
-      </Text>
-      <Text style={styles.deltaText}>
-        Day delta {formatMacroDelta(impact.day_totals_delta)}
-      </Text>
-      {warnings.length ? (
-        <View style={styles.warningBox}>
-          {warnings.slice(0, 3).map((warning, index) => (
-            <Text key={`${warning}-${index}`} style={styles.warningText}>
-              {warning}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-      {!response.replacement_allowed ? (
-        <Text style={styles.mutedText}>Only approved alternatives can be applied.</Text>
-      ) : null}
-      <View style={styles.actionRow}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={isApplying}
-          onPress={onCancel}
-          style={({ pressed }) => [
-            styles.cancelButton,
-            pressed && !isApplying ? styles.buttonPressed : null,
-            isApplying ? styles.buttonDisabled : null,
-          ]}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={replaceDisabled}
-          onPress={onApply}
-          style={({ pressed }) => [
-            styles.replaceButton,
-            pressed && !replaceDisabled ? styles.buttonPressed : null,
-            replaceDisabled ? styles.buttonDisabled : null,
-          ]}
-        >
-          {isApplying ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.replaceButtonText}>Replace meal</Text>
-          )}
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -542,8 +480,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   alternativeCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 8,
@@ -555,12 +493,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   alternativeMeta: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 12,
     fontWeight: "700",
   },
   alternativeName: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 14,
     fontWeight: "800",
   },
@@ -576,7 +514,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     alignItems: "center",
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -585,20 +523,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   cancelButtonText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "800",
   },
   container: {
-    backgroundColor: "#F8FAFC",
-    borderColor: "#CBD5E1",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 10,
     padding: 10,
   },
   deltaText: {
-    color: "#374151",
+    color: colors.muted,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -610,7 +548,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   errorText: {
-    color: "#B42318",
+    color: colors.danger,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -620,32 +558,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mutedText: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 13,
     fontWeight: "600",
-  },
-  notice: {
-    color: "#165D77",
-    fontSize: 13,
-    fontWeight: "800",
   },
   mealSummary: {
     gap: 3,
   },
   mealSummaryName: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 13,
     fontWeight: "800",
   },
   mealSummaryTitle: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
   },
   previewBox: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#BFD9E2",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 8,
@@ -653,7 +586,7 @@ const styles = StyleSheet.create({
   },
   previewButton: {
     alignItems: "center",
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: "center",
@@ -661,18 +594,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   previewButtonText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "800",
   },
   previewTitle: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 14,
     fontWeight: "800",
   },
   replaceButton: {
     alignItems: "center",
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
     borderRadius: 8,
     flex: 1,
     justifyContent: "center",
@@ -684,17 +617,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
-  reasonList: {
-    gap: 3,
+  shuffleButton: {
+    alignItems: "center",
+    borderColor: colors.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 36,
+    paddingHorizontal: 10,
   },
-  reasonText: {
-    color: "#4B5563",
+  shuffleButtonText: {
+    color: colors.accent,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "800",
   },
   statusApproved: {
     backgroundColor: "#E8F5EE",
-    color: "#1E7A4C",
+    color: colors.success,
   },
   statusBadge: {
     alignSelf: "flex-start",
@@ -719,7 +658,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   successText: {
-    color: "#1E7A4C",
+    color: colors.success,
     fontSize: 13,
     fontWeight: "800",
   },

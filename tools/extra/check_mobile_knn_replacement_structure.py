@@ -94,12 +94,11 @@ def main() -> int:
         "panel_has_preview_confirm_flow": _has_all(
             panel,
             [
-                "Preview replacement",
+                "Preview changes",
                 "Replace meal",
-                "Cancel",
+                "Shuffle",
                 "Meal replaced. Plan and grocery list updated.",
-                "Review alternatives cannot be applied yet.",
-                "Only approved alternatives can be applied.",
+                "This alternative cannot replace the meal yet.",
             ],
         ),
         "meal_row_passes_replacement_context": _has_all(

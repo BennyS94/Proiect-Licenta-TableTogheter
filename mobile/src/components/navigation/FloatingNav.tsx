@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { colors } from "../../theme/colors";
+
 export type AppPageKey = "home" | "mealPlan" | "insights" | "household";
 
 type FloatingNavProps = {
@@ -48,8 +50,8 @@ export function FloatingNav({ activePage, onSelectPage }: FloatingNavProps) {
 const styles = StyleSheet.create({
   bar: {
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderRadius: 26,
     borderWidth: 1,
     flexDirection: "row",
@@ -77,7 +79,7 @@ const styles = StyleSheet.create({
     width: 54,
   },
   itemActive: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
   },
   pressed: {
     opacity: 0.82,

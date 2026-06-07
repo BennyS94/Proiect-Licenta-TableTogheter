@@ -142,7 +142,7 @@ def main() -> int:
         "app_shell_references_all_pages": _has_all(shell, SHELL_MARKERS),
         "meal_plan_page_has_tabs_and_guards": _has_all(
             meal_plan_page,
-            ["Meal Plan", "Grocery List", "Generate your meal plan", "No meal plan yet"],
+            ["Meal Plan", "Grocery List", "Generate meal plan", "No meal plan yet"],
         ),
         "real_flows_preserved_in_shell": _has_all(shell, REAL_FLOW_MARKERS),
         "meal_rows_have_details_cook_alternatives": _has_all(
@@ -160,7 +160,8 @@ def main() -> int:
                 "Household Management",
                 "Default Viewer",
                 "App Settings",
-                "Try Sample Household",
+                "Change Email",
+                "Change Password",
             ],
         ),
         "readme_mentions_ui1": _has_all(readme, README_MARKERS),

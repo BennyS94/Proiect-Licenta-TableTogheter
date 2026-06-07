@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  PanResponder,
   Pressable,
   StyleSheet,
   Text,
@@ -11,8 +12,6 @@ import {
 import { FloatingNav, type AppPageKey } from "../components/navigation/FloatingNav";
 import { GroceryListSection } from "../components/GroceryListSection";
 import { HouseholdMemberPlanView } from "../components/HouseholdMemberPlanView";
-import { HouseholdMemberSwitcher } from "../components/HouseholdMemberSwitcher";
-import { MemberCard } from "../components/MemberCard";
 import { PlanDayCard } from "../components/PlanDayCard";
 import { ProfileCard } from "../components/ProfileCard";
 import { ProfileForm } from "../components/ProfileForm";
@@ -44,6 +43,7 @@ import {
   registerAccount,
   submitFeedback,
 } from "../services/apiClient";
+import { colors } from "../theme/colors";
 import type {
   AuthAccount,
   DemoHouseholdResponse,
@@ -53,6 +53,7 @@ import type {
   GeneratedMeal,
   GroceryListResponse,
   HealthResponse,
+  HouseholdMeal,
   HouseholdPlanGenerateRequest,
   HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
@@ -89,6 +90,7 @@ const FEEDBACK_TYPES: FeedbackType[] = [
 ];
 
 const DEFAULT_HOUSEHOLD_ID = "household_demo_family_001";
+const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 
 export function HomeScreen() {
   const [healthStatus, setHealthStatus] = useState<HealthState>("idle");
@@ -226,7 +228,7 @@ export function HomeScreen() {
   const selectedIndividualSource = selectedSavedProfile
     ? "Saved profile"
     : selectedMember
-      ? "Sample member"
+      ? "Profile"
       : "None";
   const feedbackStats = getFeedbackStats(feedbackContext);
 
@@ -327,9 +329,6 @@ export function HomeScreen() {
       setProfileMessage(`Profile saved: ${createdProfile.display_name}`);
       setGeneratedPlan(null);
       setFeedbackContext(null);
-      if (!savedProfiles.length) {
-        setActivePage("mealPlan");
-      }
     } catch (error) {
       setProfileErrorMessage(error instanceof Error ? error.message : "Profile save failed");
     } finally {
@@ -430,7 +429,7 @@ export function HomeScreen() {
 
   async function generateHouseholdPlanForSelectedMembers() {
     if (householdSource === "demo" && !demoHousehold) {
-      setHouseholdErrorMessage("Open a sample household before generating this plan.");
+      setHouseholdErrorMessage("Open a household before generating this plan.");
       return;
     }
     if (selectedHouseholdCount < 1) {
@@ -465,6 +464,82 @@ export function HomeScreen() {
       setMealPlanTab("mealPlan");
       if (response.status === "blocked") {
         setHouseholdErrorMessage("Household generation was blocked by the backend.");
+      }
+    } catch (error) {
+      setHouseholdErrorMessage(
+        error instanceof Error ? error.message : "Household generate failed",
+      );
+    } finally {
+      setIsGeneratingHouseholdPlan(false);
+    }
+  }
+
+  async function generateMealPlan() {
+    if (!savedProfiles.length) {
+      setErrorMessage("Add a member profile before generating a meal plan.");
+      return;
+    }
+
+    const orderedProfiles = orderSavedProfilesForViewing(savedProfiles, defaultViewerId);
+    const selectedProfile = orderedProfiles[0];
+    setFeedbackMessage("");
+    setFeedbackError("");
+    setErrorMessage("");
+    setHouseholdErrorMessage("");
+
+    if (orderedProfiles.length === 1) {
+      setGenerationMode("individual");
+      setHouseholdSource("saved");
+      setSelectedSavedProfileId(selectedProfile.member_profile_id);
+      setSelectedSavedHouseholdProfileIds([selectedProfile.member_profile_id]);
+      setSelectedMemberId("");
+      setIsGeneratingPlan(true);
+      setGeneratedPlan(null);
+      setGeneratedHouseholdPlan(null);
+
+      try {
+        const response = await generateIndividualPlan(
+          buildSavedProfileGenerateRequest(selectedProfile, planDays),
+        );
+        setGeneratedPlan(response);
+        setSelectedIndividualDayIndex(1);
+        setSelectedInsightsDay(1);
+        setMealPlanTab("mealPlan");
+        if (response.status === "blocked") {
+          setErrorMessage("This profile needs a review before a meal plan can be generated.");
+        }
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Generate failed");
+      } finally {
+        setIsGeneratingPlan(false);
+      }
+      return;
+    }
+
+    setGenerationMode("household");
+    setHouseholdSource("saved");
+    setSelectedMemberId("");
+    setSelectedSavedProfileId(selectedProfile.member_profile_id);
+    setSelectedSavedHouseholdProfileIds(
+      orderedProfiles.map((profile) => profile.member_profile_id),
+    );
+    setCurrentHouseholdMemberIndex(0);
+    setSelectedHouseholdDayIndex(1);
+    setIsGeneratingHouseholdPlan(true);
+    setGeneratedPlan(null);
+    setGeneratedHouseholdPlan(null);
+
+    try {
+      const response = await generateHouseholdPlan(
+        buildSavedProfilesHouseholdGenerateRequest(orderedProfiles, planDays),
+      );
+      setGeneratedHouseholdPlan(response);
+      setCurrentHouseholdMemberIndex(0);
+      setSelectedHouseholdDayIndex(1);
+      setSelectedInsightsDay(1);
+      setMealPlanTab("mealPlan");
+      if (response.status === "blocked") {
+        setHouseholdErrorMessage("The household plan needs a review before it can be generated.");
       }
     } catch (error) {
       setHouseholdErrorMessage(
@@ -522,14 +597,6 @@ export function HomeScreen() {
   }
 
   function handleSavedProfilePress(memberProfileId: string) {
-    if (generationMode === "household") {
-      if (householdSource !== "saved") {
-        setHouseholdSource("saved");
-        setGeneratedHouseholdPlan(null);
-      }
-      toggleSavedHouseholdProfile(memberProfileId);
-      return;
-    }
     selectSavedProfile(memberProfileId);
   }
 
@@ -675,7 +742,12 @@ export function HomeScreen() {
     }
 
     if (response.generation_type === "household" || updatedPlan.generation_type === "household") {
-      setGeneratedHouseholdPlan(updatedPlan as HouseholdPlanGenerateResponse);
+      setGeneratedHouseholdPlan(
+        markAppliedHouseholdReplacementAsIndividual(
+          updatedPlan as HouseholdPlanGenerateResponse,
+          response,
+        ),
+      );
     } else {
       setGeneratedPlan(updatedPlan as IndividualPlanGenerateResponse);
     }
@@ -836,7 +908,14 @@ export function HomeScreen() {
   function selectProfileFromSelector(profileId: string) {
     setDefaultViewerId(profileId);
     if (profileId.startsWith("saved:")) {
-      selectSavedProfile(profileId.replace("saved:", ""));
+      const memberProfileId = profileId.replace("saved:", "");
+      selectSavedProfile(memberProfileId);
+      const householdIndex = selectedHouseholdDisplayMembers.findIndex(
+        (member) => memberKey(member) === memberProfileId,
+      );
+      if (householdIndex >= 0) {
+        setCurrentHouseholdMemberIndex(householdIndex);
+      }
       return;
     }
     if (profileId.startsWith("demo:")) {
@@ -848,21 +927,20 @@ export function HomeScreen() {
     setSelectedInsightsDay(value);
   }
 
-  const isSetupComplete =
-    Boolean(authAccount) || isDemoModeEnabled || Boolean(demoHousehold) || savedProfiles.length > 0;
-  const configuredProfileCount =
-    (isDemoModeEnabled || demoHousehold ? demoHousehold?.members.length ?? 0 : 0) +
-    savedProfiles.length;
+  const isSetupComplete = Boolean(authAccount);
+  const configuredProfileCount = savedProfiles.length;
   const hasMembers = configuredProfileCount > 0;
-  const hasCurrentPlan =
-    generationMode === "individual" ? Boolean(generatedPlan) : Boolean(generatedHouseholdPlan);
-  const profileSelectorItems = buildProfileSelectorItems(demoHousehold, savedProfiles);
+  const hasCurrentPlan = Boolean(generatedPlan || generatedHouseholdPlan);
+  const profileSelectorItems = buildProfileSelectorItems(savedProfiles);
+  const currentHouseholdMemberProfileId = currentHouseholdMember
+    ? memberKey(currentHouseholdMember)
+    : "";
   const selectedProfileSelectorId =
-    selectedSavedProfile
+    generationMode === "household" && currentHouseholdMemberProfileId
+      ? `saved:${currentHouseholdMemberProfileId}`
+      : selectedSavedProfile
       ? `saved:${selectedSavedProfile.member_profile_id}`
-      : selectedMember
-        ? `demo:${memberKey(selectedMember)}`
-        : defaultViewerId || profileSelectorItems[0]?.id || "";
+      : defaultViewerId || profileSelectorItems[0]?.id || "";
   const selectedProfileItem =
     profileSelectorItems.find((item) => item.id === selectedProfileSelectorId) ??
     profileSelectorItems[0] ??
@@ -870,8 +948,7 @@ export function HomeScreen() {
   const activeProfileName = selectedProfileItem?.label ?? "Your household";
   const activeProfileMeta =
     selectedProfileItem?.meta ?? "Goal: Muscle gain - 3 meals + snack";
-  const householdName =
-    authAccount?.household_display_name ?? (demoHousehold ? "Sample Household" : "My Household");
+  const householdName = authAccount?.household_display_name ?? "My Household";
   const backendStatusText =
     healthStatus === "connected" ? "Connected" : healthStatus === "loading" ? "Checking" : "Unknown";
   const individualDayIndexes = getIndividualDayIndexes(generatedPlan);
@@ -919,8 +996,6 @@ export function HomeScreen() {
     householdErrorMessage ||
     profileMessage ||
     profileErrorMessage ||
-    (isSetupComplete && authMessage) ||
-    (isSetupComplete && authError) ||
     feedbackMessage ||
     feedbackError ? (
       <View style={styles.messageStack}>
@@ -932,10 +1007,6 @@ export function HomeScreen() {
         {profileErrorMessage ? (
           <Text style={styles.errorText}>{profileErrorMessage}</Text>
         ) : null}
-        {isSetupComplete && authMessage ? (
-          <Text style={styles.successText}>{authMessage}</Text>
-        ) : null}
-        {isSetupComplete && authError ? <Text style={styles.errorText}>{authError}</Text> : null}
         {feedbackMessage ? <Text style={styles.successText}>{feedbackMessage}</Text> : null}
         {feedbackError ? <Text style={styles.errorText}>{feedbackError}</Text> : null}
       </View>
@@ -943,52 +1014,13 @@ export function HomeScreen() {
 
   const generationControls = (
     <View style={styles.stack}>
-      <View style={styles.modeSelector}>
-        <ModeButton
-          label="Individual plan"
-          selected={generationMode === "individual"}
-          onPress={() => setGenerationMode("individual")}
-        />
-        <ModeButton
-          label="Household plan"
-          selected={generationMode === "household"}
-          onPress={() => setGenerationMode("household")}
-        />
-      </View>
       <DayCountSelector days={planDays} onChange={setPlanDays} />
-      {generationMode === "individual" ? (
-        <>
-          <ActionButton
-            disabled={(!selectedMember && !selectedSavedProfile) || isGeneratingPlan}
-            loading={isGeneratingPlan}
-            label={generatedPlan ? "Generate Again" : "Generate Menu"}
-            onPress={generatePlanForSelectedMember}
-          />
-          <Text style={styles.mutedText}>Selected source: {selectedIndividualSource}</Text>
-          <Text style={styles.mutedText}>
-            Selected:{" "}
-            {selectedSavedProfile
-              ? selectedSavedProfile.display_name
-              : selectedMember?.display_name ?? selectedMember?.profile_name ?? "None"}
-          </Text>
-        </>
-      ) : (
-        <>
-          <ActionButton
-            disabled={householdGenerateDisabled}
-            loading={isGeneratingHouseholdPlan}
-            label={generatedHouseholdPlan ? "Generate Again" : "Generate Menu"}
-            onPress={generateHouseholdPlanForSelectedMembers}
-          />
-          <Text style={styles.mutedText}>Selected members: {selectedHouseholdCount}</Text>
-          {householdSource === "saved" && selectedSavedHouseholdNames ? (
-            <Text style={styles.mutedText}>Selected saved profiles: {selectedSavedHouseholdNames}</Text>
-          ) : null}
-          {savedProfileHouseholdMismatch ? (
-            <Text style={styles.errorText}>Select saved profiles from one household.</Text>
-          ) : null}
-        </>
-      )}
+      <ActionButton
+        disabled={!savedProfiles.length || isGeneratingPlan || isGeneratingHouseholdPlan}
+        loading={isGeneratingPlan || isGeneratingHouseholdPlan}
+        label={hasCurrentPlan ? "Generate meal plan again" : "Generate meal plan"}
+        onPress={generateMealPlan}
+      />
     </View>
   );
 
@@ -1008,13 +1040,6 @@ export function HomeScreen() {
   const individualPlanContent =
     generationMode === "individual" && generatedPlan ? (
       <View style={styles.panel}>
-        <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>Generated plan</Text>
-          <Text style={styles.panelMeta}>Status: {generatedPlan.status}</Text>
-        </View>
-        <InfoRow label="Plan ID" value={generatedPlan.plan_id ?? "missing"} />
-        <InfoRow label="Days" value={String(generatedPlan.days ?? "-")} />
-        {renderWarnings(generatedPlan.warnings)}
         {selectedIndividualDay ? (
           <PlanDayCard
             datasetProfile="v1_2_demo_final"
@@ -1037,25 +1062,6 @@ export function HomeScreen() {
   const householdPlanContent =
     generationMode === "household" && generatedHouseholdPlan ? (
       <View style={styles.panel}>
-        <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>Generated household plan</Text>
-          <Text style={styles.panelMeta}>Status: {generatedHouseholdPlan.status}</Text>
-        </View>
-        <InfoRow label="Plan ID" value={getHouseholdPlanId(generatedHouseholdPlan) ?? "missing"} />
-        <InfoRow label="Selected members" value={String(selectedHouseholdDisplayMembers.length)} />
-        <InfoRow label="Days" value={String(generatedHouseholdPlan.days ?? "-")} />
-        <InfoRow label="Quality" value={getHouseholdQualitySummary(generatedHouseholdPlan).quality} />
-        <InfoRow
-          label="Accept/review/reject"
-          value={getHouseholdQualitySummary(generatedHouseholdPlan).counts}
-        />
-        {renderWarnings(generatedHouseholdPlan.warnings)}
-        <HouseholdMemberSwitcher
-          currentIndex={currentHouseholdMemberIndex}
-          members={selectedHouseholdDisplayMembers}
-          onNext={showNextHouseholdMember}
-          onPrevious={showPreviousHouseholdMember}
-        />
         {currentHouseholdMember ? (
           <HouseholdMemberPlanView
             datasetProfile={generatedHouseholdPlan.dataset_profile ?? "v1_2_demo_final"}
@@ -1117,37 +1123,6 @@ export function HomeScreen() {
 
   const householdManagementContent = (
     <View style={styles.stack}>
-      {isDemoModeEnabled && demoHousehold ? (
-        <View style={styles.panel}>
-          <View style={styles.panelHeader}>
-            <Text style={styles.panelTitle}>Sample household members</Text>
-            <Text style={styles.panelMeta}>{demoHousehold.members.length} members</Text>
-          </View>
-          <View style={styles.memberList}>
-            {demoHousehold.members.map((member) => {
-              const key = memberKey(member);
-              return (
-                <MemberCard
-                  key={key}
-                  member={member}
-                  selected={
-                    generationMode === "individual"
-                      ? key === selectedMemberId
-                      : householdSource === "demo" && selectedHouseholdMemberIds.includes(key)
-                  }
-                  onPress={() => handleDemoMemberPress(key)}
-                />
-              );
-            })}
-            {generationMode === "household" && householdSource === "demo" ? (
-              <Text style={styles.mutedText}>
-                Household members selected: {selectedHouseholdMemberIds.length}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-      ) : null}
-
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Member profiles</Text>
@@ -1169,9 +1144,8 @@ export function HomeScreen() {
           {savedProfiles.length ? (
             savedProfiles.map((profile) => {
               const selected =
-                generationMode === "household" && householdSource === "saved"
-                  ? selectedSavedHouseholdProfileIds.includes(profile.member_profile_id)
-                  : profile.member_profile_id === selectedSavedProfileId;
+                profile.member_profile_id === selectedSavedProfileId ||
+                selectedSavedHouseholdProfileIds.includes(profile.member_profile_id);
               return (
                 <ProfileCard
                   key={profile.member_profile_id}
@@ -1187,15 +1161,16 @@ export function HomeScreen() {
             <Text style={styles.mutedText}>No profiles yet.</Text>
           )}
         </View>
-        {generationMode === "household" && householdSource === "saved" ? (
-          <Text style={styles.mutedText}>
-            Household members selected: {selectedSavedHouseholdProfileIds.length}
-          </Text>
-        ) : null}
         <ProfileForm
           defaultHouseholdId={savedProfileHouseholdId}
           disabled={isCreatingProfile}
           onSubmit={createSavedProfile}
+        />
+        <ActionButton
+          disabled={!savedProfiles.length}
+          label="Go to Meal Plan"
+          onPress={() => setActivePage("mealPlan")}
+          variant="secondary"
         />
       </View>
     </View>
@@ -1252,8 +1227,6 @@ export function HomeScreen() {
   } else if (activePage === "mealPlan") {
     pageContent = (
       <MealPlanPage
-        activeProfileMeta={activeProfileMeta}
-        activeProfileName={activeProfileName}
         daySelector={daySelectorNode}
         generationControls={generationControls}
         groceryContent={groceryContent}
@@ -1300,14 +1273,11 @@ export function HomeScreen() {
         feedbackToolsContent={feedbackToolsContent}
         householdManagementContent={householdManagementContent}
         isAuthLoading={isAuthLoading}
-        isContinuingSample={isContinuingDemo}
         isSetupComplete={isSetupComplete}
         messagesContent={messagesContent}
-        onContinueAsSample={continueAsDemo}
         onLogin={loginLocalAccount}
         onLogout={logOutLocalSession}
         onRegister={registerLocalAccount}
-        onUnavailableAction={showUnavailableAction}
       />
     );
   }
@@ -1346,7 +1316,7 @@ function ActionButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "secondary" ? "#165D77" : "#FFFFFF"} />
+        <ActivityIndicator color={variant === "secondary" ? colors.accent : "#FFFFFF"} />
       ) : (
         <Text
           style={[
@@ -1394,40 +1364,98 @@ function DayCountSelector({
   days: number;
   onChange: (days: number) => void;
 }) {
-  const canDecrease = days > 1;
-  const canIncrease = days < 5;
+  const options = [1, 2, 3, 4, 5];
+  const fillPercent = ((days - 1) / 4) * 100;
+  const fillWidth = `${fillPercent}%` as `${number}%`;
+  const sliderWidthRef = useRef(1);
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => {
+          updateDaysFromSliderPosition(
+            event.nativeEvent.locationX,
+            sliderWidthRef.current,
+            days,
+            onChange,
+          );
+        },
+        onPanResponderMove: (event) => {
+          updateDaysFromSliderPosition(
+            event.nativeEvent.locationX,
+            sliderWidthRef.current,
+            days,
+            onChange,
+          );
+        },
+      }),
+    [days, onChange],
+  );
+
   return (
     <View style={styles.dayCountSelector}>
-      <Text style={styles.infoLabel}>Days</Text>
-      <View style={styles.dayCountControls}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!canDecrease}
-          onPress={() => onChange(Math.max(1, days - 1))}
-          style={({ pressed }) => [
-            styles.dayCountButton,
-            pressed && canDecrease ? styles.buttonPressed : null,
-            !canDecrease ? styles.buttonDisabled : null,
-          ]}
-        >
-          <Text style={styles.dayCountArrow}>{"<"}</Text>
-        </Pressable>
-        <Text style={styles.dayCountValue}>{days}</Text>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!canIncrease}
-          onPress={() => onChange(Math.min(5, days + 1))}
-          style={({ pressed }) => [
-            styles.dayCountButton,
-            pressed && canIncrease ? styles.buttonPressed : null,
-            !canIncrease ? styles.buttonDisabled : null,
-          ]}
-        >
-          <Text style={styles.dayCountArrow}>{">"}</Text>
-        </Pressable>
+      <View style={styles.dayCountHeader}>
+        <Text style={styles.infoLabel}>Days</Text>
+        <Text style={styles.dayCountValue}>{days} {days === 1 ? "day" : "days"}</Text>
+      </View>
+      <View
+        accessibilityRole="adjustable"
+        accessibilityValue={{ min: 1, max: 5, now: days, text: `${days} days` }}
+        onLayout={(event) => {
+          sliderWidthRef.current = Math.max(1, event.nativeEvent.layout.width);
+        }}
+        style={styles.sliderShell}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.sliderTrack}>
+          <View style={[styles.sliderTrackFill, { width: fillWidth }]} />
+        </View>
+        <View style={[styles.sliderThumb, { left: fillWidth }]} />
+        <View style={styles.sliderDotRow}>
+          {options.map((option) => (
+            <View
+              key={`dot-${option}`}
+              style={[
+                styles.sliderDot,
+                option <= days ? styles.sliderDotActive : null,
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+      <View style={styles.sliderTouchRow}>
+        {options.map((option) => (
+          <Pressable
+            accessibilityRole="button"
+            key={option}
+            onPress={() => onChange(option)}
+            style={({ pressed }) => [
+              styles.sliderTouchTarget,
+              pressed ? styles.buttonPressed : null,
+            ]}
+          >
+            <Text style={styles.sliderStepLabel}>{option}</Text>
+          </Pressable>
+        ))}
       </View>
     </View>
   );
+}
+
+function updateDaysFromSliderPosition(
+  rawX: number,
+  rawWidth: number,
+  currentDays: number,
+  onChange: (days: number) => void,
+) {
+  const width = Math.max(1, rawWidth);
+  const clampedX = Math.min(width, Math.max(0, rawX));
+  const nextDays = Math.min(5, Math.max(1, Math.round((clampedX / width) * 4) + 1));
+
+  if (nextDays !== currentDays) {
+    onChange(nextDays);
+  }
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -1439,24 +1467,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function buildProfileSelectorItems(
-  household: DemoHouseholdResponse | null,
-  profiles: MemberProfileResponse[],
-): ProfileSelectorItem[] {
-  const demoItems = (household?.members ?? []).map((member) => {
-    const id = memberKey(member);
-    return {
-      id: `demo:${id}`,
-      label: getProfileDisplayName(member),
-      meta: getProfileMeta(member),
-    };
-  });
-  const savedItems = profiles.map((profile) => ({
+function buildProfileSelectorItems(profiles: MemberProfileResponse[]): ProfileSelectorItem[] {
+  return profiles.map((profile) => ({
     id: `saved:${profile.member_profile_id}`,
     label: profile.display_name,
     meta: getProfileMeta(profile),
   }));
-  return [...demoItems, ...savedItems];
 }
 
 function getProfileDisplayName(profile: DemoMemberProfile | MemberProfileResponse): string {
@@ -1612,16 +1628,34 @@ function getHouseholdTargetTotals(
     ) ?? null;
   const summaryTargets = asRecord(summary?.targets);
   const totals = {
-    carbs_g: numberValue(target?.carbs_g) ?? numberValue(summaryTargets.carbs_g) ?? undefined,
-    fat_g: numberValue(target?.fat_g) ?? numberValue(summaryTargets.fat_g) ?? undefined,
+    carbs_g:
+      numberValue(target?.target_carbs_g) ??
+      numberValue(target?.carbs_g) ??
+      numberValue(summaryTargets.target_carbs_g) ??
+      numberValue(summaryTargets.carbs_g) ??
+      numberValue(summary?.target_carbs_g) ??
+      undefined,
+    fat_g:
+      numberValue(target?.target_fat_g) ??
+      numberValue(target?.fat_g) ??
+      numberValue(summaryTargets.target_fat_g) ??
+      numberValue(summaryTargets.fat_g) ??
+      numberValue(summary?.target_fat_g) ??
+      undefined,
     kcal:
       numberValue(target?.target_kcal) ??
       numberValue(target?.kcal) ??
+      numberValue(summaryTargets.target_kcal) ??
       numberValue(summaryTargets.kcal) ??
       numberValue(summary?.target_kcal) ??
       undefined,
     protein_g:
-      numberValue(target?.protein_g) ?? numberValue(summaryTargets.protein_g) ?? undefined,
+      numberValue(target?.target_protein_g) ??
+      numberValue(target?.protein_g) ??
+      numberValue(summaryTargets.target_protein_g) ??
+      numberValue(summaryTargets.protein_g) ??
+      numberValue(summary?.target_protein_g) ??
+      undefined,
   };
   return Object.values(totals).some((value) => value !== undefined) ? totals : undefined;
 }
@@ -1675,7 +1709,72 @@ function getHouseholdMealsForDay(
     return getRecordMemberId(item) === memberId && itemDayIndex === dayIndex;
   });
   const meals = Array.isArray(menu?.meals) ? menu?.meals : menu?.selected_meals;
-  return (meals ?? []).filter(isRecord) as GeneratedMeal[];
+  return sortMealsBySlot((meals ?? []).filter(isRecord) as GeneratedMeal[]);
+}
+
+function markAppliedHouseholdReplacementAsIndividual(
+  plan: HouseholdPlanGenerateResponse,
+  response: MealReplacementResponse,
+): HouseholdPlanGenerateResponse {
+  const replacement = asRecord(response.replacement);
+  const memberId = stringValue(replacement.member_id);
+  const slot = stringValue(replacement.slot);
+  const dayIndex = normalizeDayIndexForUi(replacement.day_index, 1);
+  const alternativeMeal = asRecord(replacement.alternative_meal);
+  const alternativeRecipeId = stringValue(alternativeMeal.recipe_id);
+
+  if (!memberId || !slot || dayIndex === null) {
+    return plan;
+  }
+
+  const perMemberMenus = plan.per_member_menus?.map((menu) => {
+    const menuDayIndex = normalizeDayIndexForUi(menu.day_index ?? menu.day, 1);
+    if (getRecordMemberId(menu) !== memberId || menuDayIndex !== dayIndex) {
+      return menu;
+    }
+
+    return {
+      ...menu,
+      meals: markMealListReplacementScopeAsIndividual(menu.meals, slot, alternativeRecipeId),
+      selected_meals: markMealListReplacementScopeAsIndividual(
+        menu.selected_meals,
+        slot,
+        alternativeRecipeId,
+      ),
+    };
+  });
+
+  return {
+    ...plan,
+    per_member_menus: perMemberMenus,
+  };
+}
+
+function markMealListReplacementScopeAsIndividual(
+  meals: HouseholdMeal[] | undefined,
+  slot: string,
+  alternativeRecipeId: string | null,
+) {
+  if (!Array.isArray(meals)) {
+    return meals;
+  }
+
+  return meals.map((meal) => {
+    const sameSlot = stringValue(meal.slot)?.toLowerCase() === slot.toLowerCase();
+    const sameRecipe =
+      !alternativeRecipeId || stringValue(meal.recipe_id) === alternativeRecipeId;
+
+    if (!sameSlot || !sameRecipe) {
+      return meal;
+    }
+
+    return {
+      ...meal,
+      allocation_scope: "individual",
+      meal_scope: "individual",
+      replacement_scope: "household_member_meal",
+    };
+  });
 }
 
 function getMealsFromGeneratedDay(day: unknown): GeneratedMeal[] {
@@ -1685,7 +1784,24 @@ function getMealsFromGeneratedDay(day: unknown): GeneratedMeal[] {
     : Array.isArray(record.meals)
       ? record.meals
       : [];
-  return meals.filter(isRecord) as GeneratedMeal[];
+  return sortMealsBySlot(meals.filter(isRecord) as GeneratedMeal[]);
+}
+
+function sortMealsBySlot<T extends { slot?: unknown }>(meals: T[]): T[] {
+  return [...meals].sort((left, right) => {
+    const leftIndex = getMealSlotOrderIndex(left.slot);
+    const rightIndex = getMealSlotOrderIndex(right.slot);
+    if (leftIndex !== rightIndex) {
+      return leftIndex - rightIndex;
+    }
+    return String(left.slot ?? "").localeCompare(String(right.slot ?? ""));
+  });
+}
+
+function getMealSlotOrderIndex(slot: unknown): number {
+  const normalized = String(slot ?? "").trim().toLowerCase();
+  const index = MEAL_SLOT_ORDER.indexOf(normalized);
+  return index >= 0 ? index : MEAL_SLOT_ORDER.length;
 }
 
 function mealToContribution(meal: GeneratedMeal): MealContribution {
@@ -1876,6 +1992,28 @@ function buildSavedProfilesHouseholdGenerateRequest(
     household_mode: "individual_breakfast_shared_main",
     household_allocation_mode: "macro_aware_simple",
   };
+}
+
+function orderSavedProfilesForViewing(
+  profiles: MemberProfileResponse[],
+  defaultViewerId: string,
+): MemberProfileResponse[] {
+  const defaultProfileId = defaultViewerId.startsWith("saved:")
+    ? defaultViewerId.replace("saved:", "")
+    : defaultViewerId;
+  if (!defaultProfileId) {
+    return profiles;
+  }
+  const defaultProfile = profiles.find(
+    (profile) => profile.member_profile_id === defaultProfileId,
+  );
+  if (!defaultProfile) {
+    return profiles;
+  }
+  return [
+    defaultProfile,
+    ...profiles.filter((profile) => profile.member_profile_id !== defaultProfileId),
+  ];
 }
 
 function getHouseholdDisplayMembers(
@@ -2098,16 +2236,7 @@ function renderWarnings(warnings: unknown[] | string | undefined) {
   if (!normalizedWarnings.length) {
     return null;
   }
-  return (
-    <View style={styles.warningBox}>
-      <Text style={styles.warningTitle}>Warnings</Text>
-      {normalizedWarnings.slice(0, 4).map((warning, index) => (
-        <Text key={`${index}`} style={styles.warningText}>
-          {warning}
-        </Text>
-      ))}
-    </View>
-  );
+  return null;
 }
 
 function normalizeWarnings(value: unknown): string[] {
@@ -2144,12 +2273,12 @@ const styles = StyleSheet.create({
     paddingTop: 18,
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 34,
     fontWeight: "800",
   },
   subtitle: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 17,
     fontWeight: "600",
   },
@@ -2163,13 +2292,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: "#525252",
+    color: colors.muted,
     fontSize: 13,
     fontWeight: "700",
     textTransform: "uppercase",
   },
   url: {
-    color: "#1F2933",
+    color: colors.text,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -2182,12 +2311,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   panelTitle: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 18,
     fontWeight: "800",
   },
   panelMeta: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 14,
     fontWeight: "700",
     textAlign: "right",
@@ -2196,13 +2325,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   householdName: {
-    color: "#1F2933",
+    color: colors.text,
     fontSize: 16,
     fontWeight: "800",
   },
   modeButton: {
     alignItems: "center",
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -2211,10 +2340,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   modeButtonSelected: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
   },
   modeButtonText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
@@ -2229,39 +2358,81 @@ const styles = StyleSheet.create({
   dayList: {
     gap: 12,
   },
-  dayCountArrow: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  dayCountButton: {
-    alignItems: "center",
-    backgroundColor: "#165D77",
-    borderRadius: 8,
-    height: 38,
-    justifyContent: "center",
-    width: 44,
-  },
-  dayCountControls: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-  },
   dayCountSelector: {
-    alignItems: "center",
-    borderColor: "#D9D6CC",
+    alignItems: "stretch",
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
+    gap: 12,
+    padding: 12,
+  },
+  dayCountHeader: {
+    alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 10,
   },
   dayCountValue: {
-    color: "#111827",
-    fontSize: 18,
+    color: colors.text,
+    fontSize: 15,
     fontWeight: "900",
-    minWidth: 28,
     textAlign: "center",
+  },
+  sliderDot: {
+    backgroundColor: "#D1D5DB",
+    borderRadius: 5,
+    height: 10,
+    width: 10,
+  },
+  sliderDotActive: {
+    backgroundColor: colors.accent,
+  },
+  sliderDotRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: -9,
+  },
+  sliderShell: {
+    minHeight: 28,
+    paddingHorizontal: 3,
+    paddingTop: 8,
+    position: "relative",
+  },
+  sliderStepLabel: {
+    color: colors.mutedSoft,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  sliderTouchRow: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  sliderTouchTarget: {
+    alignItems: "center",
+    flex: 1,
+    minHeight: 32,
+    justifyContent: "center",
+  },
+  sliderThumb: {
+    backgroundColor: colors.accent,
+    borderColor: colors.card,
+    borderRadius: 10,
+    borderWidth: 2,
+    height: 20,
+    position: "absolute",
+    top: 2,
+    transform: [{ translateX: -10 }],
+    width: 20,
+  },
+  sliderTrack: {
+    backgroundColor: "#DDE7D5",
+    borderRadius: 4,
+    height: 8,
+    overflow: "hidden",
+  },
+  sliderTrackFill: {
+    backgroundColor: colors.accent,
+    borderRadius: 4,
+    height: 8,
   },
   statsGrid: {
     gap: 8,
@@ -2271,13 +2442,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
     paddingHorizontal: 16,
   },
   buttonSecondary: {
     borderWidth: 1,
-    borderColor: "#165D77",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.accent,
+    backgroundColor: colors.card,
   },
   buttonPressed: {
     opacity: 0.82,
@@ -2291,7 +2462,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   buttonTextSecondary: {
-    color: "#165D77",
+    color: colors.accent,
   },
   infoRow: {
     flexDirection: "row",
@@ -2299,28 +2470,28 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   infoLabel: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 15,
     fontWeight: "600",
   },
   infoValue: {
-    color: "#111827",
+    color: colors.text,
     flexShrink: 1,
     fontSize: 15,
     fontWeight: "700",
     textAlign: "right",
   },
   mutedText: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 15,
   },
   errorText: {
-    color: "#B42318",
+    color: colors.danger,
     fontSize: 15,
     fontWeight: "700",
   },
   successText: {
-    color: "#1E7A4C",
+    color: colors.success,
     fontSize: 15,
     fontWeight: "800",
   },

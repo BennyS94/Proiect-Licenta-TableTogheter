@@ -257,6 +257,32 @@ Auth-M1 + UI-2A sunt implementate ca productization pass local:
 - Meal Plan are titlu centrat, selector de profil cu sageti, selector compact de zile si control 1-5 zile fara dependency noua.
 - Missing price si missing cooking steps raman probleme de continut/date, dar UI-ul afiseaza fallback-uri curate.
 
+UI-2B este implementat ca productization pass family-first:
+
+- Meal Plan expune un singur buton user-facing: `Generate meal plan`.
+- Mobile alege intern endpoint-ul individual cand exista un singur profil activ si endpoint-ul household cand exista doua sau mai multe profiluri active.
+- Sample/Demo household nu mai apare in flow-ul principal de utilizator.
+- Meal Plan nu mai afiseaza metadata tehnica dupa generare precum `plan_id`, status backend/generator, quality sau accept/review/reject summaries.
+- Mesele sunt afisate vizual in ordinea Breakfast, Lunch, Snack, Dinner fara a schimba semantica backend-ului.
+- Selectorul de zi afiseaza conceptual Day 1-5 si dezactiveaza/grieste zilele negenerate.
+- Target summary citeste fallback-uri pentru `target_protein_g`, `target_carbs_g` si `target_fat_g`, fara schimbari in formulele backend.
+- Add Profile ramane pe Household Management dupa salvare si afiseaza CTA catre Meal Plan.
+- Validarile profilului acopera nume fara cifre, age 4-120, weight 15-300 kg, height 80-230 cm, sessions/week 0-7, meals/day 1-5 si Goal Speed inactiv pentru Maintain.
+- Auth UI mapeaza login 401 la `Invalid email or password`.
+- Change Email, Change Password, Language si Appearance sunt read-only/Coming soon cand nu exista implementare reala.
+- Tema mobila foloseste white/off-white + accent pear green `#74B72E`.
+- Investigarea keep-awake nu a gasit cod de aplicatie care sa tina ecranul treaz; `expo-keep-awake` apare doar tranzitiv in Expo package lock. Comportamentul ramane cel mai probabil Expo Go/dev mode sau OS/device.
+- DATA-QA-1 ramane necesar pentru completarea preturilor si cooking steps.
+
+UI-2C este implementat ca polish product-facing peste Meal Plan:
+
+- Headerul Meal Plan este redus la titlul centrat `Meal Plan`; profilul activ nu mai este duplicat sus.
+- Generation card afiseaza copy scurt de produs, un control slider-like 1-5 zile si un singur buton `Generate meal plan`.
+- Selectorul de membru/profil de vizualizat apare o singura data, sub taburile interne `Meal Plan` / `Grocery List`.
+- Selectorul de zile generate pastreaza Day 1-Day 5 pe un singur rand, cu zilele negenerate disabled/gri.
+- Padding-ul global de jos din `AppScreen` a fost marit ca sa nu ascunda ultimul continut sub floating nav.
+- UI-2C nu adauga dependency noua, nu schimba endpointuri si nu modifica generator/backend generation logic.
+
 ## Remaining mobile milestones
 
 Later - UI polish after UI-1:

@@ -10,7 +10,11 @@ import type {
   HouseholdPlanGenerateResponse,
   MealReplacementResponse,
 } from "../types/api";
+import { colors } from "../theme/colors";
 import { HouseholdMealRow } from "./HouseholdMealRow";
+
+const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
+const DISPLAY_DAY_INDEXES = [1, 2, 3, 4, 5];
 
 type HouseholdMemberPlanViewProps = {
   memberId: string;
@@ -36,7 +40,7 @@ export function HouseholdMemberPlanView({
   selectedDayIndex,
 }: HouseholdMemberPlanViewProps) {
   const dayIndexes = getAvailableDayIndexes(plan);
-  const memberName = getMemberDisplayName(memberId, members, plan.selected_members ?? []);
+  const availableDayIndexes = new Set(dayIndexes);
   const menu = findMemberMenu(plan, memberId, selectedDayIndex);
   const meals = getMeals(menu);
   const target = findMemberTarget(plan, memberId);
@@ -46,41 +50,42 @@ export function HouseholdMemberPlanView({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{memberName}</Text>
-        <Text style={styles.meta}>Day {selectedDayIndex}</Text>
-      </View>
-
       <View style={styles.daySelector}>
-        {dayIndexes.map((dayIndex) => (
+        {DISPLAY_DAY_INDEXES.map((dayIndex) => {
+          const isAvailable = availableDayIndexes.has(dayIndex);
+          return (
           <Pressable
             accessibilityRole="button"
+            disabled={!isAvailable}
             key={`${dayIndex}`}
             onPress={() => onSelectDay(dayIndex)}
             style={({ pressed }) => [
               styles.dayButton,
               dayIndex === selectedDayIndex ? styles.dayButtonActive : null,
-              pressed ? styles.dayButtonPressed : null,
+              !isAvailable ? styles.dayButtonDisabled : null,
+              pressed && isAvailable ? styles.dayButtonPressed : null,
             ]}
           >
             <Text
               style={[
                 styles.dayButtonText,
                 dayIndex === selectedDayIndex ? styles.dayButtonTextActive : null,
+                !isAvailable ? styles.dayButtonTextDisabled : null,
               ]}
             >
               Day {dayIndex}
             </Text>
           </Pressable>
-        ))}
+          );
+        })}
       </View>
 
       <View style={styles.summaryBox}>
         <Text style={styles.summaryTitle}>Target summary</Text>
-        <MetricLine label="Target kcal" value={formatOptionalNumber(targetTotals.kcal, 0)} />
-        <MetricLine label="Protein" value={formatOptionalWithUnit(targetTotals.protein_g, 1, "g")} />
-        <MetricLine label="Carbs" value={formatOptionalWithUnit(targetTotals.carbs_g, 1, "g")} />
-        <MetricLine label="Fat" value={formatOptionalWithUnit(targetTotals.fat_g, 1, "g")} />
+        <MetricLine label="kcal" value={formatOptionalNumber(targetTotals.kcal, 0)} />
+        <MetricLine label="protein" value={formatOptionalWithUnit(targetTotals.protein_g, 1, "g")} />
+        <MetricLine label="carbs" value={formatOptionalWithUnit(targetTotals.carbs_g, 1, "g")} />
+        <MetricLine label="fats" value={formatOptionalWithUnit(targetTotals.fat_g, 1, "g")} />
       </View>
 
       <View style={styles.summaryBox}>
@@ -179,7 +184,7 @@ function findMacroSummary(
 
 function getMeals(menu: HouseholdMemberMenu | null): HouseholdMeal[] {
   const meals = Array.isArray(menu?.meals) ? menu?.meals : menu?.selected_meals;
-  return (meals ?? []).filter(isRecord) as HouseholdMeal[];
+  return sortMealsBySlot((meals ?? []).filter(isRecord) as HouseholdMeal[]);
 }
 
 function getTotals(
@@ -221,13 +226,31 @@ function getTargetTotals(
     kcal:
       numberValue(target?.target_kcal) ??
       numberValue(target?.kcal) ??
+      numberValue(summaryTargets.target_kcal) ??
       numberValue(summaryTargets.kcal) ??
       numberValue(summary?.target_kcal) ??
       undefined,
     protein_g:
-      numberValue(target?.protein_g) ?? numberValue(summaryTargets.protein_g) ?? undefined,
-    carbs_g: numberValue(target?.carbs_g) ?? numberValue(summaryTargets.carbs_g) ?? undefined,
-    fat_g: numberValue(target?.fat_g) ?? numberValue(summaryTargets.fat_g) ?? undefined,
+      numberValue(target?.target_protein_g) ??
+      numberValue(target?.protein_g) ??
+      numberValue(summaryTargets.target_protein_g) ??
+      numberValue(summaryTargets.protein_g) ??
+      numberValue(summary?.target_protein_g) ??
+      undefined,
+    carbs_g:
+      numberValue(target?.target_carbs_g) ??
+      numberValue(target?.carbs_g) ??
+      numberValue(summaryTargets.target_carbs_g) ??
+      numberValue(summaryTargets.carbs_g) ??
+      numberValue(summary?.target_carbs_g) ??
+      undefined,
+    fat_g:
+      numberValue(target?.target_fat_g) ??
+      numberValue(target?.fat_g) ??
+      numberValue(summaryTargets.target_fat_g) ??
+      numberValue(summaryTargets.fat_g) ??
+      numberValue(summary?.target_fat_g) ??
+      undefined,
   };
 }
 
@@ -285,7 +308,7 @@ function formatRatio(value: number | null): string {
 function formatOptionalNumber(value: unknown, digits: number): string {
   const parsed = numberValue(value);
   if (parsed === null) {
-    return "-";
+    return "Not available";
   }
   return parsed.toLocaleString("en-US", {
     maximumFractionDigits: digits,
@@ -296,7 +319,7 @@ function formatOptionalNumber(value: unknown, digits: number): string {
 function formatOptionalWithUnit(value: unknown, digits: number, unit: string): string {
   const parsed = numberValue(value);
   if (parsed === null) {
-    return "-";
+    return "Not available";
   }
   return `${formatOptionalNumber(parsed, digits)}${unit}`;
 }
@@ -325,35 +348,64 @@ function firstRecord(...values: unknown[]): Record<string, unknown> {
   return {};
 }
 
+function sortMealsBySlot<T extends { slot?: unknown }>(meals: T[]): T[] {
+  return [...meals].sort((left, right) => {
+    const leftIndex = getMealSlotOrderIndex(left.slot);
+    const rightIndex = getMealSlotOrderIndex(right.slot);
+    if (leftIndex !== rightIndex) {
+      return leftIndex - rightIndex;
+    }
+    return String(left.slot ?? "").localeCompare(String(right.slot ?? ""));
+  });
+}
+
+function getMealSlotOrderIndex(slot: unknown): number {
+  const normalized = String(slot ?? "").trim().toLowerCase();
+  const index = MEAL_SLOT_ORDER.indexOf(normalized);
+  return index >= 0 ? index : MEAL_SLOT_ORDER.length;
+}
+
 const styles = StyleSheet.create({
   container: {
     gap: 14,
   },
   dayButton: {
-    borderColor: "#165D77",
+    alignItems: "center",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    flex: 1,
+    justifyContent: "center",
+    minWidth: 0,
+    paddingHorizontal: 4,
     paddingVertical: 8,
   },
   dayButtonActive: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
+  },
+  dayButtonDisabled: {
+    backgroundColor: "#F3F4F6",
+    borderColor: "#D1D5DB",
   },
   dayButtonPressed: {
     opacity: 0.82,
   },
   dayButtonText: {
-    color: "#165D77",
-    fontSize: 14,
+    color: colors.accent,
+    fontSize: 12,
     fontWeight: "800",
+    textAlign: "center",
   },
   dayButtonTextActive: {
     color: "#FFFFFF",
   },
+  dayButtonTextDisabled: {
+    color: "#9CA3AF",
+  },
   daySelector: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
+    width: "100%",
   },
   header: {
     flexDirection: "row",
@@ -364,13 +416,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   meta: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 14,
     fontWeight: "800",
     textAlign: "right",
   },
   metricLabel: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -380,31 +432,31 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   metricValue: {
-    color: "#111827",
+    color: colors.text,
     flexShrink: 1,
     fontSize: 14,
     fontWeight: "800",
     textAlign: "right",
   },
   mutedText: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 15,
   },
   summaryBox: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 8,
     padding: 14,
   },
   summaryTitle: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 15,
     fontWeight: "800",
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     flex: 1,
     fontSize: 18,
     fontWeight: "800",

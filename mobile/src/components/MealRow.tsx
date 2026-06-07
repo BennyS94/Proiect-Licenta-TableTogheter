@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { FeedbackType, GeneratedMeal, MealReplacementResponse } from "../types/api";
+import { colors } from "../theme/colors";
 import { MealFeedbackButtons } from "./MealFeedbackButtons";
 import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 
@@ -55,16 +56,19 @@ export function MealRow({
       </View>
       <View style={styles.actionRow}>
         <SmallActionButton
-          label={showDetails ? "Hide details" : "Details"}
+          active={showDetails}
+          label="Details"
           onPress={() => setShowDetails((current) => !current)}
         />
         <SmallActionButton
-          label={showCook ? "Hide steps" : "Cook / Steps"}
+          active={showCook}
+          label="Cook / Steps"
           onPress={() => setShowCook((current) => !current)}
         />
         {recipeId ? (
           <SmallActionButton
-            label={showAlternatives ? "Hide alternatives" : "Alternatives"}
+            active={showAlternatives}
+            label="Alternatives"
             onPress={() => setShowAlternatives((current) => !current)}
           />
         ) : null}
@@ -147,17 +151,33 @@ export function MealRow({
   );
 }
 
-function SmallActionButton({ label, onPress }: { label: string; onPress: () => void }) {
+function SmallActionButton({
+  active,
+  label,
+  onPress,
+}: {
+  active?: boolean;
+  label: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         styles.alternativesButton,
+        active ? styles.alternativesButtonActive : null,
         pressed ? styles.alternativesButtonPressed : null,
       ]}
     >
-      <Text style={styles.alternativesButtonText}>{label}</Text>
+      <Text
+        style={[
+          styles.alternativesButtonText,
+          active ? styles.alternativesButtonTextActive : null,
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -242,19 +262,25 @@ function stringValue(value: unknown): string | null {
 const styles = StyleSheet.create({
   alternativesButton: {
     alignSelf: "flex-start",
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
+  alternativesButtonActive: {
+    backgroundColor: colors.accent,
+  },
   alternativesButtonPressed: {
     opacity: 0.82,
   },
   alternativesButtonText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "800",
+  },
+  alternativesButtonTextActive: {
+    color: "#FFFFFF",
   },
   actionRow: {
     flexDirection: "row",
@@ -263,25 +289,25 @@ const styles = StyleSheet.create({
   },
   container: {
     borderTopWidth: 1,
-    borderTopColor: "#E5E0D5",
+    borderTopColor: colors.border,
     gap: 8,
     paddingTop: 10,
   },
   detailBox: {
-    backgroundColor: "#F7F7F4",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 8,
     padding: 12,
   },
   detailText: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
   },
   detailTitle: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 14,
     fontWeight: "800",
   },
@@ -298,13 +324,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   slot: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "800",
     textTransform: "capitalize",
   },
   name: {
-    color: "#1F2933",
+    color: colors.text,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -313,12 +339,12 @@ const styles = StyleSheet.create({
     minWidth: 92,
   },
   macro: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 13,
     fontWeight: "700",
   },
   metricLabel: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -328,7 +354,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   metricValue: {
-    color: "#111827",
+    color: colors.text,
     flexShrink: 1,
     fontSize: 13,
     fontWeight: "800",

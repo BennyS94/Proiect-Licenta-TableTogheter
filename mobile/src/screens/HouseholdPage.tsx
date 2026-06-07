@@ -6,6 +6,7 @@ import { AppButton, SecondaryButton } from "../components/ui/AppButton";
 import { AppCard } from "../components/ui/AppCard";
 import { AppScreen } from "../components/ui/AppScreen";
 import { SectionHeader } from "../components/ui/SectionHeader";
+import { colors } from "../theme/colors";
 
 type HouseholdSection = "hub" | "account" | "household" | "app";
 type AuthMode = "register" | "login";
@@ -20,10 +21,8 @@ type HouseholdPageProps = {
   feedbackToolsContent?: ReactNode;
   householdManagementContent?: ReactNode;
   isAuthLoading?: boolean;
-  isContinuingSample?: boolean;
   isSetupComplete: boolean;
   messagesContent?: ReactNode;
-  onContinueAsSample: () => void;
   onLogin: (email: string, password: string) => Promise<void> | void;
   onLogout: () => Promise<void> | void;
   onRegister: (
@@ -31,7 +30,6 @@ type HouseholdPageProps = {
     password: string,
     confirmPassword: string,
   ) => Promise<void> | void;
-  onUnavailableAction: (label: string) => void;
 };
 
 export function HouseholdPage({
@@ -44,14 +42,11 @@ export function HouseholdPage({
   feedbackToolsContent,
   householdManagementContent,
   isAuthLoading,
-  isContinuingSample,
   isSetupComplete,
   messagesContent,
-  onContinueAsSample,
   onLogin,
   onLogout,
   onRegister,
-  onUnavailableAction,
 }: HouseholdPageProps) {
   const [section, setSection] = useState<HouseholdSection>("hub");
 
@@ -62,8 +57,6 @@ export function HouseholdPage({
           authError={authError}
           authMessage={authMessage}
           isAuthLoading={isAuthLoading}
-          isContinuingSample={isContinuingSample}
-          onContinueAsSample={onContinueAsSample}
           onLogin={onLogin}
           onRegister={onRegister}
         />
@@ -79,16 +72,10 @@ export function HouseholdPage({
         <AppCard>
           <SectionHeader title="Account Settings" />
           <InfoLine label="Email" value={accountEmail || "Guest session"} />
-          <InfoLine label="Account type" value={accountEmail ? "Local household account" : "Sample household"} />
-          <View style={styles.buttonStack}>
-            <SecondaryButton
-              label="Change Email"
-              onPress={() => onUnavailableAction("Change Email")}
-            />
-            <SecondaryButton
-              label="Change Password"
-              onPress={() => onUnavailableAction("Change Password")}
-            />
+          <InfoLine label="Account type" value={accountEmail ? "Local household account" : "Local session"} />
+          <View style={styles.settingsStack}>
+            <SettingStatusLine label="Change Email" value="Coming soon" />
+            <SettingStatusLine label="Change Password" value="Coming soon" />
             <SecondaryButton label="Log Out" onPress={onLogout} />
           </View>
         </AppCard>
@@ -120,7 +107,8 @@ export function HouseholdPage({
         <BackButton label="Household / Account" onPress={() => setSection("hub")} />
         <AppCard>
           <SectionHeader title="App Settings" />
-          <InfoLine label="Language" value="English" />
+          <SettingStatusLine label="Language" value="English" />
+          <SettingStatusLine label="Appearance" value="Light - Dark mode coming soon" />
           <InfoLine label="Backend status" value={backendStatusText} />
           <InfoLine label="Version" value="1.0 Preview" />
           {appSettingsContent}
@@ -165,16 +153,12 @@ function AuthSetupCard({
   authError,
   authMessage,
   isAuthLoading,
-  isContinuingSample,
-  onContinueAsSample,
   onLogin,
   onRegister,
 }: {
   authError?: string;
   authMessage?: string;
   isAuthLoading?: boolean;
-  isContinuingSample?: boolean;
-  onContinueAsSample: () => void;
   onLogin: (email: string, password: string) => Promise<void> | void;
   onRegister: (
     email: string,
@@ -266,16 +250,6 @@ function AuthSetupCard({
         onPress={submit}
       />
 
-      <View style={styles.sampleBox}>
-        <Text style={styles.mutedText}>
-          Want to inspect the app before creating an account?
-        </Text>
-        <SecondaryButton
-          label="Try Sample Household"
-          loading={isContinuingSample}
-          onPress={onContinueAsSample}
-        />
-      </View>
     </AppCard>
   );
 }
@@ -381,6 +355,15 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SettingStatusLine({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.settingLine}>
+      <Text style={styles.settingLabel}>{label}</Text>
+      <Text style={styles.settingValue}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   authModeRow: {
     flexDirection: "row",
@@ -391,7 +374,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   backText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 15,
     fontWeight: "900",
   },
@@ -404,7 +387,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   chevron: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 24,
     fontWeight: "900",
   },
@@ -442,8 +425,8 @@ const styles = StyleSheet.create({
   },
   hubRow: {
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -478,7 +461,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   input: {
-    borderColor: "#D9D6CC",
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     color: "#111827",
@@ -488,7 +471,7 @@ const styles = StyleSheet.create({
   },
   modeButton: {
     alignItems: "center",
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -497,10 +480,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   modeButtonSelected: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
   },
   modeButtonText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 14,
     fontWeight: "900",
     textAlign: "center",
@@ -521,17 +504,32 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.82,
   },
-  sampleBox: {
-    borderTopColor: "#E5E0D5",
-    borderTopWidth: 1,
-    gap: 10,
-    paddingTop: 12,
-  },
   section: {
     gap: 10,
   },
+  settingLabel: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  settingLine: {
+    backgroundColor: "#F7FAF2",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+    padding: 12,
+  },
+  settingsStack: {
+    gap: 10,
+  },
+  settingValue: {
+    color: colors.mutedSoft,
+    fontSize: 13,
+    fontWeight: "800",
+  },
   subtitle: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 17,
     fontWeight: "800",
   },

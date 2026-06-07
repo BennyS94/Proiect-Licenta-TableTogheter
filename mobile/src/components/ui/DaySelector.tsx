@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { colors } from "../../theme/colors";
+
 type DaySelectorProps = {
   dayIndexes: number[];
   includeAverage?: boolean;
@@ -13,72 +15,35 @@ export function DaySelector({
   onSelect,
   selected,
 }: DaySelectorProps) {
-  if (!includeAverage) {
-    const selectedIndex = Math.max(
-      0,
-      dayIndexes.findIndex((dayIndex) => dayIndex === selected),
-    );
-    const selectedDay = dayIndexes[selectedIndex] ?? dayIndexes[0] ?? 1;
-    const canCycle = dayIndexes.length > 1;
-
-    function selectOffset(offset: number) {
-      if (!dayIndexes.length) {
-        return;
-      }
-      const nextIndex = (selectedIndex + offset + dayIndexes.length) % dayIndexes.length;
-      onSelect(dayIndexes[nextIndex]);
-    }
-
-    return (
-      <View style={styles.compactRow}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!canCycle}
-          onPress={() => selectOffset(-1)}
-          style={({ pressed }) => [
-            styles.arrowButton,
-            pressed && canCycle ? styles.pressed : null,
-            !canCycle ? styles.disabled : null,
-          ]}
-        >
-          <Text style={styles.arrowText}>{"<"}</Text>
-        </Pressable>
-        <Text style={styles.compactLabel}>Day {selectedDay}</Text>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!canCycle}
-          onPress={() => selectOffset(1)}
-          style={({ pressed }) => [
-            styles.arrowButton,
-            pressed && canCycle ? styles.pressed : null,
-            !canCycle ? styles.disabled : null,
-          ]}
-        >
-          <Text style={styles.arrowText}>{">"}</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
+  const availableDays = new Set(dayIndexes);
   const values: Array<number | "average"> = includeAverage
-    ? [...dayIndexes, "average"]
-    : dayIndexes;
+    ? [1, 2, 3, 4, 5, "average"]
+    : [1, 2, 3, 4, 5];
   return (
     <View style={styles.row}>
       {values.map((value) => {
         const active = value === selected;
+        const disabled = typeof value === "number" && !availableDays.has(value);
         return (
           <Pressable
             accessibilityRole="button"
+            disabled={disabled}
             key={`${value}`}
             onPress={() => onSelect(value)}
             style={({ pressed }) => [
               styles.button,
               active ? styles.buttonActive : null,
-              pressed ? styles.pressed : null,
+              disabled ? styles.buttonDisabled : null,
+              pressed && !disabled ? styles.pressed : null,
             ]}
           >
-            <Text style={[styles.label, active ? styles.labelActive : null]}>
+            <Text
+              style={[
+                styles.label,
+                active ? styles.labelActive : null,
+                disabled ? styles.labelDisabled : null,
+              ]}
+            >
               {value === "average" ? "Average" : `Day ${value}`}
             </Text>
           </Pressable>
@@ -89,63 +54,43 @@ export function DaySelector({
 }
 
 const styles = StyleSheet.create({
-  arrowButton: {
-    alignItems: "center",
-    backgroundColor: "#165D77",
-    borderRadius: 8,
-    height: 38,
-    justifyContent: "center",
-    width: 42,
-  },
-  arrowText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "900",
-  },
   button: {
-    borderColor: "#165D77",
+    alignItems: "center",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
     minHeight: 38,
-    paddingHorizontal: 12,
+    minWidth: 0,
+    paddingHorizontal: 4,
     paddingVertical: 8,
   },
   buttonActive: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
   },
-  compactLabel: {
-    color: "#111827",
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  compactRow: {
-    alignItems: "center",
-    borderColor: "#D9D6CC",
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    padding: 10,
-  },
-  disabled: {
-    opacity: 0.45,
+  buttonDisabled: {
+    backgroundColor: "#F3F4F6",
+    borderColor: "#D1D5DB",
   },
   label: {
-    color: "#165D77",
-    fontSize: 13,
+    color: colors.accent,
+    fontSize: 12,
     fontWeight: "800",
+    textAlign: "center",
   },
   labelActive: {
     color: "#FFFFFF",
+  },
+  labelDisabled: {
+    color: "#9CA3AF",
   },
   pressed: {
     opacity: 0.82,
   },
   row: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
+    width: "100%",
   },
 });

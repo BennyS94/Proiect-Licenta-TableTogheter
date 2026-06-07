@@ -6,7 +6,9 @@ Acest folder contine scheletul Android MVP pentru aplicatia mobila TableTogether
 
 Scopul curent este conectivitatea cu backend-ul FastAPI si un flow demo minim: health check, incarcare household demo, selectie membru, generare plan individual si generare plan household. Aplicatia mobila nu citeste CSV-uri, nu ruleaza generatorul si nu contine logica nutritionala.
 
-Auth-M1 schimba flow-ul principal spre cont local SQLite: utilizatorul poate crea cont, se poate loga, poate crea profiluri salvate sub household-ul contului si poate iesi prin Log Out. Fallback-ul sample household ramane doar pentru inspectie rapida.
+Auth-M1 schimba flow-ul principal spre cont local SQLite: utilizatorul poate crea cont, se poate loga, poate crea profiluri salvate sub household-ul contului si poate iesi prin Log Out.
+
+UI-2B/UI-2C fac Meal Plan family-first: utilizatorul vede un singur buton `Generate meal plan`, iar aplicatia alege intern endpoint-ul individual cand exista un singur profil si endpoint-ul household cand exista doua sau mai multe profiluri active. Sample/Demo household nu mai este parte din flow-ul principal.
 
 ## Requirements
 
@@ -120,8 +122,43 @@ npx expo start --go --host lan
 - Add Profile nu mai expune `Household ID`; backend-ul il asigneaza automat din sesiunea contului cand exista token.
 - Page 4 este hub cu Account Settings, Household Management si App Settings.
 - Safe area/status bar spacing este reparat global in `AppScreen`, iar empty states sunt centrate.
-- Meal Plan are header mai curat, selector de profil cu sageti, selector compact de zi si control 1-5 zile fara dependency noua.
+- UI-2B: Meal Plan are un singur buton `Generate meal plan`, selector 1-5 zile, selector de zi cu zile negenerate gri/inactive si afisare mese in ordinea Breakfast, Lunch, Snack, Dinner.
+- UI-2C: Meal Plan are header curat doar cu titlul `Meal Plan`; selectorul de membru/profil apare o singura data in zona rezultatului, dupa taburile `Meal Plan` / `Grocery List`.
+- UI-2C: controlul de generare 1-5 zile este slider-like custom, fara dependency noua, si afiseaza valoarea selectata ca `1 day` / `N days`.
+- UI-2C: selectorul de zile generate arata Day 1-Day 5 pe un singur rand, cu zilele negenerate disabled/gri.
+- UI-2B: Sample/Demo wording este ascuns din flow-ul principal; metadata tehnica de generator precum `plan_id`, `status`, `quality` si accept/review/reject nu mai este afisata in Meal Plan.
+- UI-2B: Tema foloseste white/off-white plus accent pear green `#74B72E` prin componentele mobile comune.
+- UI-2B: Login 401 afiseaza `Invalid email or password`; Change Email, Change Password, Language si Appearance sunt read-only/Coming soon unde nu exista implementare reala.
+- UI-2B: Add Profile ramane in Household Management dupa salvare, selecteaza profilul nou si afiseaza CTA catre Meal Plan.
+- UI-2B: Validarile profilului acopera nume fara cifre, age 4-120, weight 15-300 kg, height 80-230 cm, sessions/week 0-7 si meals/day 1-5; Goal Speed este inactiv pentru Maintain.
 - Missing price afiseaza `Price unavailable`; missing cooking steps afiseaza mesaj dedicat.
+- DATA-QA-1 ramane necesar ulterior pentru completarea preturilor si cooking steps in datele sursa.
+
+## Screen idle / keep-awake investigation
+
+UI-2B a verificat `keep-awake`, `KeepAwake`, `activateKeepAwake` si configurile mobile. Nu exista cod de aplicatie care activeaza explicit keep-awake. `expo-keep-awake` apare doar tranzitiv in `package-lock.json`, prin Expo. Comportamentul observat pe telefon este cel mai probabil legat de Expo Go/dev mode sau de setarile OS/device, nu de codul TableTogether. Nu s-a adaugat workaround in aplicatie.
+
+## Mobile UI-2B Flow
+
+1. Porneste backend-ul FastAPI.
+2. Deschide aplicatia si foloseste `Create Account` sau `Log In`.
+3. Mergi in `Household Management`.
+4. Creeaza unul sau mai multe profiluri.
+5. Ramai pe pagina de profiluri dupa salvare si foloseste CTA-ul `Go to Meal Plan`.
+6. In Meal Plan apasa `Generate meal plan`.
+7. Daca exista un singur profil, aplicatia foloseste intern generarea individuala; daca exista doua sau mai multe profiluri, foloseste intern generarea household.
+8. Selecteaza membrul de vizualizat, schimba ziua, verifica mesele, grocery list, insights si alternatives.
+
+## Mobile UI-2C Flow
+
+UI-2C pastreaza flow-ul UI-2B, dar face Page 2 / Meal Plan mai product-facing:
+
+1. Headerul Meal Plan nu mai afiseaza profilul curent.
+2. Generation card afiseaza doar intentia produsului, slider-ul 1-5 zile si `Generate meal plan`.
+3. Dupa generare, selectorul `Viewing` apare o singura data sub taburi.
+4. Ziua generata se alege din Day 1-Day 5, toate pe un singur rand.
+5. Mesele raman ordonate Breakfast, Lunch, Snack, Dinner.
+6. Debug/status/generator metadata nu apar in main flow.
 
 ## Mobile M2 Flow
 

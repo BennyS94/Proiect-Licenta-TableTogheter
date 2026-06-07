@@ -287,6 +287,9 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const detail = await readErrorDetail(response);
+    if (path === "/auth/login" && response.status === 401) {
+      throw new Error("Invalid email or password");
+    }
     throw new Error(`Backend request failed with HTTP ${response.status}: ${detail}`);
   }
 

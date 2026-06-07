@@ -5,6 +5,7 @@ import { AppCard } from "../components/ui/AppCard";
 import { AppScreen } from "../components/ui/AppScreen";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SectionHeader } from "../components/ui/SectionHeader";
+import { colors } from "../theme/colors";
 
 type HomePageProps = {
   activeProfileName: string;
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   eyebrow: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 15,
     fontWeight: "800",
   },
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   meta: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -149,17 +150,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   smallTitle: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 15,
     fontWeight: "800",
   },
   text: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 21,
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 28,
     fontWeight: "900",
   },

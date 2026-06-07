@@ -1,5 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 
+import { colors } from "../../theme/colors";
+
 type AppButtonProps = {
   disabled?: boolean;
   label: string;
@@ -29,7 +31,7 @@ export function AppButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={secondary ? "#165D77" : "#FFFFFF"} />
+        <ActivityIndicator color={secondary ? colors.accent : "#FFFFFF"} />
       ) : (
         <Text style={[styles.label, secondary ? styles.secondaryLabel : null]}>{label}</Text>
       )}
@@ -48,7 +50,7 @@ export function SecondaryButton(props: Omit<AppButtonProps, "variant">) {
 const styles = StyleSheet.create({
   button: {
     alignItems: "center",
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
     borderRadius: 8,
     justifyContent: "center",
     minHeight: 46,
@@ -67,11 +69,11 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   secondary: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#165D77",
+    backgroundColor: colors.card,
+    borderColor: colors.accent,
     borderWidth: 1,
   },
   secondaryLabel: {
-    color: "#165D77",
+    color: colors.accent,
   },
 });

@@ -1,13 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import type { GroceryListItem } from "../types/api";
+import { colors } from "../theme/colors";
 
 type GroceryItemRowProps = {
   item: GroceryListItem;
 };
 
 export function GroceryItemRow({ item }: GroceryItemRowProps) {
-  const warnings = itemWarnings(item);
   const priceText = formatCost(item);
   const missingPrice = !priceText;
 
@@ -17,19 +17,11 @@ export function GroceryItemRow({ item }: GroceryItemRowProps) {
         <Text style={styles.name}>{displayName(item)}</Text>
         <Text style={styles.detail}>Need: {neededAmount(item)}</Text>
         <Text style={styles.detail}>Buy: {purchaseSuggestion(item)}</Text>
-        {warnings.slice(0, 2).map((warning, index) => (
-          <Text key={`${warning}-${index}`} style={styles.warningText}>
-            {warning}
-          </Text>
-        ))}
       </View>
       <View style={styles.side}>
         <Text style={missingPrice ? styles.missingPrice : styles.cost}>
           {priceText ?? "Price unavailable"}
         </Text>
-        {missingPrice || hasPriceMissingWarning(item) ? (
-          <Text style={styles.badge}>Price missing</Text>
-        ) : null}
       </View>
     </View>
   );
@@ -67,36 +59,6 @@ function formatCost(item: GroceryListItem): string | null {
   return `${cost.toFixed(2)} ${stringValue(item.currency) ?? "RON"}`;
 }
 
-function itemWarnings(item: GroceryListItem): string[] {
-  return [
-    ...normaliseWarnings(item.warnings),
-    ...normaliseWarnings(item.purchase_warnings),
-    ...normaliseWarnings(item.price_warning),
-  ].filter((value, index, values) => value.length > 0 && values.indexOf(value) === index);
-}
-
-function hasPriceMissingWarning(item: GroceryListItem): boolean {
-  return itemWarnings(item).some((warning) =>
-    warning.toLowerCase().includes("price_missing"),
-  );
-}
-
-function normaliseWarnings(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item)).filter(Boolean);
-  }
-  if (typeof value === "string") {
-    return value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-  if (value == null) {
-    return [];
-  }
-  return [String(value)];
-}
-
 function stringValue(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -115,7 +77,7 @@ function numberValue(value: unknown): number | null {
 const styles = StyleSheet.create({
   row: {
     borderTopWidth: 1,
-    borderTopColor: "#E5E0D5",
+    borderTopColor: colors.border,
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
@@ -126,12 +88,12 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   name: {
-    color: "#1F2933",
+    color: colors.text,
     fontSize: 15,
     fontWeight: "800",
   },
   detail: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -140,27 +102,15 @@ const styles = StyleSheet.create({
     minWidth: 104,
   },
   cost: {
-    color: "#147A4A",
+    color: colors.success,
     fontSize: 13,
     fontWeight: "800",
     textAlign: "right",
   },
   missingPrice: {
-    color: "#7A4B00",
+    color: colors.muted,
     fontSize: 12,
     fontWeight: "800",
     textAlign: "right",
-  },
-  badge: {
-    color: "#7A4B00",
-    fontSize: 11,
-    fontWeight: "800",
-    marginTop: 4,
-    textAlign: "right",
-  },
-  warningText: {
-    color: "#7A4B00",
-    fontSize: 12,
-    fontWeight: "700",
   },
 });

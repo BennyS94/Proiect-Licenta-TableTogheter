@@ -5,12 +5,11 @@ import { AppCard } from "../components/ui/AppCard";
 import { AppScreen } from "../components/ui/AppScreen";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SectionHeader } from "../components/ui/SectionHeader";
+import { colors } from "../theme/colors";
 
 export type MealPlanTab = "mealPlan" | "groceryList";
 
 type MealPlanPageProps = {
-  activeProfileMeta: string;
-  activeProfileName: string;
   daySelector?: ReactNode;
   feedbackContent?: ReactNode;
   generationControls: ReactNode;
@@ -27,8 +26,6 @@ type MealPlanPageProps = {
 };
 
 export function MealPlanPage({
-  activeProfileMeta,
-  activeProfileName,
   daySelector,
   feedbackContent,
   generationControls,
@@ -60,12 +57,6 @@ export function MealPlanPage({
     <AppScreen>
       <View style={styles.header}>
         <Text style={styles.title}>Meal Plan</Text>
-        {profileSelector ?? (
-          <View style={styles.profileFallback}>
-            <Text style={styles.meta}>{activeProfileName}</Text>
-            <Text style={styles.meta}>{activeProfileMeta}</Text>
-          </View>
-        )}
       </View>
 
       {!hasMembers ? (
@@ -78,11 +69,8 @@ export function MealPlanPage({
       ) : (
         <>
           <AppCard>
-            <SectionHeader title="Generate your meal plan" meta="1 / 3 / 5 days ready" />
-            <Text style={styles.bodyText}>
-              Create a balanced menu based on your household profile, preferences, cooking
-              time and nutrition targets.
-            </Text>
+            <SectionHeader title="Generate meal plan" />
+            <Text style={styles.bodyText}>Plan balanced meals for your household.</Text>
             {generationControls}
           </AppCard>
 
@@ -105,6 +93,12 @@ export function MealPlanPage({
 
               {selectedTab === "mealPlan" ? (
                 <View style={styles.section}>
+                  {profileSelector ? (
+                    <View style={styles.viewerBlock}>
+                      <Text style={styles.viewerLabel}>Viewing</Text>
+                      {profileSelector}
+                    </View>
+                  ) : null}
                   {daySelector}
                   {mealPlanContent}
                   {feedbackContent}
@@ -151,7 +145,7 @@ function TabButton({
 
 const styles = StyleSheet.create({
   bodyText: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 21,
   },
@@ -160,24 +154,15 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingTop: 4,
   },
-  meta: {
-    color: "#4B5563",
-    fontSize: 14,
-    fontWeight: "700",
-  },
   pressed: {
     opacity: 0.82,
   },
   section: {
     gap: 14,
   },
-  profileFallback: {
-    alignItems: "center",
-    gap: 2,
-  },
   tabButton: {
     alignItems: "center",
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -185,10 +170,10 @@ const styles = StyleSheet.create({
     minHeight: 42,
   },
   tabButtonActive: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
   },
   tabText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 14,
     fontWeight: "900",
   },
@@ -200,9 +185,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 30,
     fontWeight: "900",
     textAlign: "center",
+  },
+  viewerBlock: {
+    gap: 6,
+  },
+  viewerLabel: {
+    color: colors.mutedSoft,
+    fontSize: 12,
+    fontWeight: "900",
+    textAlign: "center",
+    textTransform: "uppercase",
   },
 });

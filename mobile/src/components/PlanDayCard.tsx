@@ -6,7 +6,10 @@ import type {
   GeneratedMeal,
   MealReplacementResponse,
 } from "../types/api";
+import { colors } from "../theme/colors";
 import { MealRow } from "./MealRow";
+
+const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 
 type PlanDayCardProps = {
   day: GeneratedDay;
@@ -82,12 +85,29 @@ function formatNumber(value: unknown): string {
 
 function getMealsFromGeneratedDay(day: GeneratedDay): GeneratedMeal[] {
   if (Array.isArray(day.selected_meals)) {
-    return day.selected_meals.filter(isGeneratedMeal);
+    return sortMealsBySlot(day.selected_meals.filter(isGeneratedMeal));
   }
   if (Array.isArray(day.meals)) {
-    return day.meals.filter(isGeneratedMeal);
+    return sortMealsBySlot(day.meals.filter(isGeneratedMeal));
   }
   return [];
+}
+
+function sortMealsBySlot<T extends { slot?: unknown }>(meals: T[]): T[] {
+  return [...meals].sort((left, right) => {
+    const leftIndex = getMealSlotOrderIndex(left.slot);
+    const rightIndex = getMealSlotOrderIndex(right.slot);
+    if (leftIndex !== rightIndex) {
+      return leftIndex - rightIndex;
+    }
+    return String(left.slot ?? "").localeCompare(String(right.slot ?? ""));
+  });
+}
+
+function getMealSlotOrderIndex(slot: unknown): number {
+  const normalized = String(slot ?? "").trim().toLowerCase();
+  const index = MEAL_SLOT_ORDER.indexOf(normalized);
+  return index >= 0 ? index : MEAL_SLOT_ORDER.length;
 }
 
 function isGeneratedMeal(value: unknown): value is GeneratedMeal {
@@ -97,9 +117,9 @@ function isGeneratedMeal(value: unknown): value is GeneratedMeal {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderColor: "#D9D6CC",
+    borderColor: colors.border,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.card,
     padding: 16,
     gap: 12,
   },
@@ -107,12 +127,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 17,
     fontWeight: "800",
   },
   totals: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 14,
     fontWeight: "700",
   },

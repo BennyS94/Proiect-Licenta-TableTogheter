@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import type { GroceryListItem, GroceryListResponse } from "../types/api";
+import { colors } from "../theme/colors";
 import { GroceryItemRow } from "./GroceryItemRow";
 
 type GroceryListSectionProps = {
@@ -49,7 +50,6 @@ export function GroceryListSection({
   const estimatedTotal = estimatedTotalCost(groceryList, summary);
   const missingPrices = missingPriceCount(groceryList, summary);
   const currency = summaryCurrency(groceryList, summary);
-  const warnings = groceryWarnings(groceryList, summary);
 
   return (
     <View style={styles.panel}>
@@ -69,17 +69,6 @@ export function GroceryListSection({
           <Text style={styles.mutedText}>No grocery summary returned.</Text>
         ) : null}
       </View>
-
-      {warnings.length ? (
-        <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>Warnings</Text>
-          {warnings.slice(0, 5).map((warning, index) => (
-            <Text key={`${warning}-${index}`} style={styles.warningText}>
-              {warning}
-            </Text>
-          ))}
-        </View>
-      ) : null}
 
       {groups.length ? (
         <View style={styles.groups}>
@@ -266,21 +255,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 18,
     fontWeight: "800",
   },
   meta: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 14,
     fontWeight: "700",
     textAlign: "right",
   },
   summaryBox: {
     borderWidth: 1,
-    borderColor: "#D9D6CC",
+    borderColor: colors.border,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.card,
     padding: 14,
     gap: 8,
   },
@@ -290,12 +279,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   infoLabel: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 14,
     fontWeight: "600",
   },
   infoValue: {
-    color: "#111827",
+    color: colors.text,
     flexShrink: 1,
     fontSize: 14,
     fontWeight: "800",
@@ -306,37 +295,19 @@ const styles = StyleSheet.create({
   },
   group: {
     borderWidth: 1,
-    borderColor: "#D9D6CC",
+    borderColor: colors.border,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.card,
     padding: 14,
     gap: 12,
   },
   category: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 15,
     fontWeight: "800",
   },
   mutedText: {
-    color: "#6B7280",
+    color: colors.mutedSoft,
     fontSize: 15,
-  },
-  warningBox: {
-    borderWidth: 1,
-    borderColor: "#F4C790",
-    borderRadius: 8,
-    backgroundColor: "#FFF8ED",
-    padding: 12,
-    gap: 6,
-  },
-  warningTitle: {
-    color: "#7A4B00",
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  warningText: {
-    color: "#7A4B00",
-    fontSize: 13,
-    fontWeight: "600",
   },
 });

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import type { MemberProfileCreateRequest } from "../types/api";
+import { colors } from "../theme/colors";
 
 type ProfileFormProps = {
   defaultHouseholdId: string;
@@ -50,16 +51,28 @@ export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileF
       setValidationError("Display name is required.");
       return;
     }
-    if (!isPositiveNumber(parsedAge)) {
-      setValidationError("Age must be greater than 0.");
+    if (/\d/.test(cleanName)) {
+      setValidationError("Name cannot contain numbers.");
       return;
     }
-    if (!isPositiveNumber(parsedWeight)) {
-      setValidationError("Weight must be greater than 0.");
+    if (!isNumberInRange(parsedAge, 4, 120)) {
+      setValidationError("Age must be between 4 and 120.");
       return;
     }
-    if (!isPositiveNumber(parsedHeight)) {
-      setValidationError("Height must be greater than 0.");
+    if (!isNumberInRange(parsedWeight, 15, 300)) {
+      setValidationError("Weight must be between 15 and 300 kg.");
+      return;
+    }
+    if (!isNumberInRange(parsedHeight, 80, 230)) {
+      setValidationError("Height must be between 80 and 230 cm.");
+      return;
+    }
+    if (!isNumberInRange(parsedTrainingSessions, 0, 7)) {
+      setValidationError("Sessions per week must be between 0 and 7.");
+      return;
+    }
+    if (!isNumberInRange(parsedMealsPerDay, 1, 5)) {
+      setValidationError("Meals per day must be between 1 and 5.");
       return;
     }
 
@@ -73,17 +86,13 @@ export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileF
       height_cm: parsedHeight,
       activity_level: activityLevel,
       goal,
-      goal_speed: goalSpeed,
+      goal_speed: goal === "maintain" ? "normal" : goalSpeed,
       training: {
-        sessions_per_week: Number.isFinite(parsedTrainingSessions)
-          ? Math.max(0, Math.round(parsedTrainingSessions))
-          : 0,
+        sessions_per_week: Math.round(parsedTrainingSessions),
         type: trainingType,
       },
       meal_config: {
-        meals_per_day: Number.isFinite(parsedMealsPerDay)
-          ? Math.max(1, Math.round(parsedMealsPerDay))
-          : 3,
+        meals_per_day: Math.round(parsedMealsPerDay),
         include_snacks: includeSnacks,
         day_structure: includeSnacks ? "3_meals_plus_snack" : "3_meals",
       },
@@ -140,6 +149,7 @@ export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileF
       />
       <StepperSelector label="Goal" options={GOAL_OPTIONS} selected={goal} onSelect={setGoal} />
       <StepperSelector
+        disabled={goal === "maintain"}
         label="Goal speed"
         options={GOAL_SPEED_OPTIONS}
         selected={goalSpeed}
@@ -231,11 +241,13 @@ function TextField({
 }
 
 function StepperSelector({
+  disabled,
   label,
   onSelect,
   options,
   selected,
 }: {
+  disabled?: boolean;
   label: string;
   onSelect: (value: string) => void;
   options: string[];
@@ -253,16 +265,28 @@ function StepperSelector({
       <View style={styles.stepper}>
         <Pressable
           accessibilityRole="button"
+          disabled={disabled}
           onPress={() => onSelect(previousValue)}
-          style={({ pressed }) => [styles.stepperButton, pressed ? styles.pressed : null]}
+          style={({ pressed }) => [
+            styles.stepperButton,
+            disabled ? styles.stepperButtonDisabled : null,
+            pressed && !disabled ? styles.pressed : null,
+          ]}
         >
           <Text style={styles.stepperArrow}>{"<"}</Text>
         </Pressable>
-        <Text style={styles.stepperValue}>{formatOption(selected)}</Text>
+        <Text style={[styles.stepperValue, disabled ? styles.stepperValueDisabled : null]}>
+          {disabled ? "Not needed" : formatOption(selected)}
+        </Text>
         <Pressable
           accessibilityRole="button"
+          disabled={disabled}
           onPress={() => onSelect(nextValue)}
-          style={({ pressed }) => [styles.stepperButton, pressed ? styles.pressed : null]}
+          style={({ pressed }) => [
+            styles.stepperButton,
+            disabled ? styles.stepperButtonDisabled : null,
+            pressed && !disabled ? styles.pressed : null,
+          ]}
         >
           <Text style={styles.stepperArrow}>{">"}</Text>
         </Pressable>
@@ -275,14 +299,14 @@ function formatOption(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function isPositiveNumber(value: number): boolean {
-  return Number.isFinite(value) && value > 0;
+function isNumberInRange(value: number, minimum: number, maximum: number): boolean {
+  return Number.isFinite(value) && value >= minimum && value <= maximum;
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D9D6CC",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 12,
@@ -292,7 +316,7 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   errorText: {
-    color: "#B42318",
+    color: colors.danger,
     fontSize: 14,
     fontWeight: "700",
   },
@@ -301,23 +325,24 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   input: {
-    borderColor: "#D9D6CC",
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
-    color: "#111827",
+    color: colors.text,
     fontSize: 15,
     minHeight: 44,
     paddingHorizontal: 12,
+    textAlign: "center",
   },
   label: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 13,
     fontWeight: "800",
     textTransform: "uppercase",
   },
   stepper: {
     alignItems: "center",
-    borderColor: "#D9D6CC",
+    borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -332,27 +357,33 @@ const styles = StyleSheet.create({
   },
   stepperButton: {
     alignItems: "center",
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
     height: 46,
     justifyContent: "center",
     width: 48,
   },
+  stepperButtonDisabled: {
+    backgroundColor: "#D1D5DB",
+  },
   stepperValue: {
-    color: "#111827",
+    color: colors.text,
     flex: 1,
     fontSize: 15,
     fontWeight: "800",
     textAlign: "center",
   },
+  stepperValueDisabled: {
+    color: colors.mutedSoft,
+  },
   optionButton: {
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   optionButtonSelected: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
   },
   optionRow: {
     flexDirection: "row",
@@ -360,7 +391,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "800",
   },
@@ -372,7 +403,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: "center",
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
     borderRadius: 8,
     justifyContent: "center",
     minHeight: 48,
@@ -384,22 +415,22 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 16,
     fontWeight: "800",
   },
   toggle: {
-    borderColor: "#165D77",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   toggleSelected: {
-    backgroundColor: "#165D77",
+    backgroundColor: colors.accent,
   },
   toggleText: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",

@@ -8,6 +8,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { MacroBar } from "../components/ui/MacroBar";
 import { MacroDonutPlaceholder } from "../components/ui/MacroDonutPlaceholder";
 import { SectionHeader } from "../components/ui/SectionHeader";
+import { colors } from "../theme/colors";
 
 export type InsightsDaySelection = number | "average";
 
@@ -144,7 +145,7 @@ export function InsightsPage({
         <View style={styles.barList}>
           <MacroBar
             actual={totals?.kcal}
-            color="#165D77"
+            color={colors.accent}
             label="Calories"
             target={targetTotals?.kcal}
           />
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   bodyText: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 21,
   },
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   kcal: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 24,
     fontWeight: "900",
   },
@@ -301,29 +302,29 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   mealSlot: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 15,
     fontWeight: "800",
   },
   mealValue: {
-    color: "#4B5563",
+    color: colors.muted,
     flexShrink: 1,
     fontSize: 14,
     fontWeight: "700",
     textAlign: "right",
   },
   meta: {
-    color: "#4B5563",
+    color: colors.muted,
     fontSize: 14,
     fontWeight: "700",
   },
   subtitle: {
-    color: "#165D77",
+    color: colors.accent,
     fontSize: 17,
     fontWeight: "800",
   },
   title: {
-    color: "#111827",
+    color: colors.text,
     fontSize: 30,
     fontWeight: "900",
   },
