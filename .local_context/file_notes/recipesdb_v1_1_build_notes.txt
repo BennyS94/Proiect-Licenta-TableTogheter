@@ -3247,3 +3247,39 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - AppScreen bottom padding was increased to keep bottom content above floating navigation.
 - Backlog/status is consolidated in `.local_context/file_notes/mobile_phone_review_backlog.txt` because the exact phone-review files were not present in repo.
 - UI-2C did not add dependencies and did not change generator/backend generation behavior, current data, nutrition formulas, grocery/pricing, KNN backend behavior or `src/legacy`.
+
+## 104. DATA-QA-1 price/time coverage completion - 2026-06-07
+- Attempted: app-facing price and cooking-time coverage completion for `v1_2_demo_final`, without mutating `data/fooddb/current` or `data/recipesdb/current`.
+- Changed implementation/data support:
+  - `src/generator_v1/grocery_pricing.py`
+  - `src/generator_v1/grocery_list.py`
+  - `src/generator_v1/service.py`
+  - `src/generator_v1/household_generator.py`
+  - `src/generator_v1/plan_replacement.py`
+  - `data/grocery/reference/grocery_product_catalog_v1.csv`
+  - `data/grocery/reference/grocery_product_aliases_v1.csv`
+  - `data/grocery/reference/grocery_price_fallbacks_v1.csv`
+  - `data/recipesdb/draft/recipes_v1_2_data_qa_time_layer_cache.csv`
+  - `tools/extra/audit_data_qa_price_time_coverage.py`
+  - `tools/extra/audit_data_qa_recipe_time_coverage.py`
+  - `tools/extra/check_data_qa_price_time_no_missing.py`
+- Key metrics:
+  - app-facing grocery rows checked: `434`
+  - missing prices before DATA-QA-1: `177`
+  - missing prices after DATA-QA-1: `0`
+  - pricing methods: `257 exact_catalog`, `5 alias_catalog`, `172 category_fallback`, `0 emergency_fallback`
+  - active/displayable recipes checked for time: `261`
+  - missing cooking-time estimates after DATA-QA-1: `0`
+  - time confidence: `116 high`, `145 medium`
+  - cooking steps missing in active checked dataset: `0`
+- Validation status:
+  - `python -m compileall backend tools/extra src/generator_v1 src/generator_v1_cli.py streamlit_app` passed.
+  - `python tools/extra/check_data_qa_price_time_no_missing.py` passed with `status=ok`, `errors=[]`, `warnings=[]`.
+- Limitations:
+  - Many prices are controlled demo estimates, not exact source-backed live prices.
+  - No live price fetching, runtime scraping, store optimization, brand optimization or cart optimization was added.
+  - Cooking steps were audited only, not generated.
+- Next recommended step:
+  - Run `python tools/extra/check_data_qa_price_time_no_missing.py` after changing recipes, grocery catalog, aliases or fallback data.
+  - Use `data/grocery/draft/data_qa_price_research_template.csv` later for exact source-backed price refinement if needed.
+  - Keep DATA-QA-2 separate for cooking steps quality/completion if a later dataset exposes missing/weak instructions.

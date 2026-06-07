@@ -1365,9 +1365,16 @@ def _display_item_row(item: dict[str, Any]) -> dict[str, Any]:
         "price_source_name": item.get("price_source_name"),
         "price_store_name": item.get("price_store_name"),
         "price_source_url": item.get("price_source_url"),
+        "price_source_checked_at": item.get("price_source_checked_at"),
         "price_confidence": item.get("price_confidence"),
         "price_warning": item.get("price_warning"),
         "price_catalog_item_id": item.get("price_catalog_item_id"),
+        "price_fallback_id": item.get("price_fallback_id"),
+        "price_estimation_method": item.get("price_estimation_method"),
+        "price_match_method": item.get("price_match_method"),
+        "price_alias_id": item.get("price_alias_id"),
+        "price_unit_basis": item.get("price_unit_basis"),
+        "price_reference_value": item.get("price_reference_value"),
     }
 
 

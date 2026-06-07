@@ -44,6 +44,16 @@ HOUSEHOLD_ALLOCATION_MODES = (
     "macro_aware_simple",
 )
 MACRO_FIELDS = ("kcal", "protein_g", "carbs_g", "fat_g")
+TIME_FIELDS = (
+    "total_time_min",
+    "total_elapsed_time_min",
+    "active_time_estimated_min",
+    "passive_time_estimated_min",
+    "effective_time_min_for_scoring",
+    "time_confidence",
+    "time_estimation_method",
+    "time_warnings",
+)
 PORTION_MIN_DEFAULT = 0.4
 PORTION_MAX_DEFAULT = 1.8
 
@@ -762,6 +772,7 @@ def _allocation_rows_from_days(days: list[dict[str, Any]]) -> list[dict[str, Any
                         ),
                         "allocation_scope": "shared",
                         "household_generation_shared_slot": True,
+                        **_time_fields_from_row(meal),
                     }
                 )
                 rows.append(enriched)
@@ -1006,8 +1017,13 @@ def _select_individual_candidate(
                 "allocation_scope": "individual",
                 "household_generation_shared_slot": False,
                 "household_portion_fit_warning": ";".join(warnings),
+                **_time_fields_from_row(row),
             }
     return best
+
+
+def _time_fields_from_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {field: row.get(field) for field in TIME_FIELDS if field in row}
 
 
 def _household_candidate_egg_guard(

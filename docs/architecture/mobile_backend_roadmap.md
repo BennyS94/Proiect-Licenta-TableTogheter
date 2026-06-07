@@ -255,7 +255,7 @@ Auth-M1 + UI-2A sunt implementate ca productization pass local:
 - Textele principale de demo/test/MVP au fost scoase din flow-ul user-facing; fallback-ul optional este denumit `Try Sample Household`.
 - Safe area/status bar spacing este reparat global in mobile shell, iar empty/guard states sunt centrate.
 - Meal Plan are titlu centrat, selector de profil cu sageti, selector compact de zile si control 1-5 zile fara dependency noua.
-- Missing price si missing cooking steps raman probleme de continut/date, dar UI-ul afiseaza fallback-uri curate.
+- DATA-QA-1 a rezolvat acoperirea app-facing pentru missing price si missing cooking time in fluxurile generate. UI-ul pastreaza fallback-uri curate pentru cazuri neasteptate sau date viitoare incomplete.
 
 UI-2B este implementat ca productization pass family-first:
 
@@ -272,7 +272,7 @@ UI-2B este implementat ca productization pass family-first:
 - Change Email, Change Password, Language si Appearance sunt read-only/Coming soon cand nu exista implementare reala.
 - Tema mobila foloseste white/off-white + accent pear green `#74B72E`.
 - Investigarea keep-awake nu a gasit cod de aplicatie care sa tina ecranul treaz; `expo-keep-awake` apare doar tranzitiv in Expo package lock. Comportamentul ramane cel mai probabil Expo Go/dev mode sau OS/device.
-- DATA-QA-1 ramane necesar pentru completarea preturilor si cooking steps.
+- DATA-QA-1 este completat pentru price/time coverage. DATA-QA-2 ramane viitor doar pentru calitatea/completarea cooking steps, daca devine necesar.
 
 UI-2C este implementat ca polish product-facing peste Meal Plan:
 

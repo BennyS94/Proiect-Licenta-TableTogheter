@@ -331,6 +331,16 @@ data/recipesdb/audit/backend_knn_meal_replacement_preview_sample.json
 data/recipesdb/audit/backend_knn_meal_replacement_apply_sample.json
 ```
 
+DATA-QA-1 price/time coverage:
+
+```powershell
+python tools/extra/audit_data_qa_price_time_coverage.py
+python tools/extra/audit_data_qa_recipe_time_coverage.py
+python tools/extra/check_data_qa_price_time_no_missing.py
+```
+
+DATA-QA-1 verifica faptul ca outputurile app-facing de grocery nu expun preturi lipsa si ca mesele generate expun estimari utilizabile de cooking time. Pricing-ul backend ramane static/demo/reference-based: catalog de produse, aliasuri si fallback-uri controlate. Nu exista live price fetching, scraping runtime, store optimization sau cart/brand optimization.
+
 ## Not implemented yet
 
 - cloud deployment

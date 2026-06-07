@@ -38,7 +38,7 @@ Generatorul construieste planul pe baza de `recipes` si metadate asociate. Fieca
 
 - household optimization complet multi-profile
 - household multi-member simultan
-- grocery/price estimation
+- live grocery price fetching sau store/brand/cart optimization
 - folosirea KNN ca motor principal
 - OR-Tools / MILP / CP-SAT
 - rescrierea automata a retetelor sau componentizare automata
@@ -254,6 +254,19 @@ Base time fit snack:
 - 11-20 min = 0.60
 - >20 min = 0.10
 
+---
+
+## 17.1. DATA-QA-1 output coverage
+
+DATA-QA-1 este completat pentru acoperirea preturilor si a timpilor de gatire in outputurile app-facing.
+
+Contract operational:
+- grocery output nu trebuie sa expuna preturi lipsa in fluxurile normale generate;
+- mesele individuale, household si replacement trebuie sa expuna estimari utilizabile de cooking time;
+- pricing-ul este static/demo/reference-based, nu live fetching;
+- preturile folosesc catalog exact, alias catalog si fallback-uri controlate;
+- checker-ul `python tools/extra/check_data_qa_price_time_no_missing.py` trebuie rulat dupa schimbari in retete, grocery catalog, aliasuri sau fallback-uri.
+
 household_time_sensitivity: `low`, `normal`, `high` (default `normal`)
 
 ---
@@ -420,7 +433,7 @@ Exemplu validat:
 ## 30. Decizie despre surse externe de date
 
 - cooktime estimate: poate folosi API/AI extern cu caching local (optional)
-- preturi / grocery external: nu in v1
+- preturi / grocery external: nu exista live fetching in runtime; DATA-QA-1 foloseste catalog static, aliasuri si fallback-uri demo controlate
 
 ---
 

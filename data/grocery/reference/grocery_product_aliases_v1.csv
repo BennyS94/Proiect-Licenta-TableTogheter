@@ -1,0 +1,11 @@
+alias_id,match_type,match_value,target_catalog_item_id,target_match_key,decision_status,notes
+alias_plain_yogurt,display_alias,plain yogurt,grocery_catalog_v1_097,,safe_to_use_demo,Plain yogurt display alias maps to existing plain yogurt catalog row.
+alias_yogurt_plain,display_alias,yogurt plain,grocery_catalog_v1_097,,safe_to_use_demo,Alternate word order for plain yogurt.
+alias_uht_milk,display_alias,uht milk,grocery_catalog_v1_099,,safe_to_use_demo,UHT milk display alias maps to existing UHT milk catalog row.
+alias_milk_uht,display_alias,milk uht,grocery_catalog_v1_099,,safe_to_use_demo,Alternate word order for UHT milk.
+alias_canned_tomato_puree,display_alias,canned tomato puree,grocery_catalog_v1_101,,safe_to_use_demo,Canned tomato puree alias maps to existing canned tomato puree row.
+alias_tomato_puree_canned,display_alias,tomato puree canned,grocery_catalog_v1_101,,safe_to_use_demo,Alternate word order for canned tomato puree.
+alias_cooked_pasta,display_alias,cooked pasta,grocery_catalog_v1_045,,safe_to_use_demo,Cooked pasta purchase estimate maps to dry pasta catalog when cooked-to-raw conversion did not already apply.
+alias_pasta_cooked,display_alias,pasta cooked,grocery_catalog_v1_045,,safe_to_use_demo,Alternate word order for cooked pasta.
+alias_cooked_rice,display_alias,cooked rice,grocery_catalog_v1_049,,safe_to_use_demo,Cooked rice purchase estimate maps to raw rice catalog when cooked-to-raw conversion did not already apply.
+alias_rice_cooked,display_alias,rice cooked,grocery_catalog_v1_049,,safe_to_use_demo,Alternate word order for cooked rice.

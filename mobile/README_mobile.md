@@ -131,8 +131,8 @@ npx expo start --go --host lan
 - UI-2B: Login 401 afiseaza `Invalid email or password`; Change Email, Change Password, Language si Appearance sunt read-only/Coming soon unde nu exista implementare reala.
 - UI-2B: Add Profile ramane in Household Management dupa salvare, selecteaza profilul nou si afiseaza CTA catre Meal Plan.
 - UI-2B: Validarile profilului acopera nume fara cifre, age 4-120, weight 15-300 kg, height 80-230 cm, sessions/week 0-7 si meals/day 1-5; Goal Speed este inactiv pentru Maintain.
-- Missing price afiseaza `Price unavailable`; missing cooking steps afiseaza mesaj dedicat.
-- DATA-QA-1 ramane necesar ulterior pentru completarea preturilor si cooking steps in datele sursa.
+- Backend-ul trimite estimari de pret si cooking time in outputurile generate. Dupa DATA-QA-1, `Price unavailable` sau missing time nu ar trebui sa apara in fluxurile normale generate; daca apar, ruleaza checker-ul DATA-QA.
+- Missing cooking steps afiseaza mesaj dedicat cand instructiunile nu sunt disponibile.
 
 ## Screen idle / keep-awake investigation
 
@@ -202,7 +202,11 @@ Mobile M3 pastreaza acelasi flow pe un singur ecran, dar requestul de generare c
 
 Dupa generarea planului, aplicatia afiseaza sectiunea `Grocery list` sub plan. Lista foloseste payload-ul returnat de backend si poate afisa categorii, cantitati necesare, purchase suggestions / sugestii de cumparare, costuri estimate si avertizari.
 
-Preturile sunt estimari demo, nu preturi live. Unele itemuri pot ramane fara estimare de pret si vor fi marcate ca missing/no price estimate.
+Preturile sunt estimari demo/reference-based, nu preturi live. Dupa DATA-QA-1, itemurile app-facing generate nu ar trebui sa ramana fara estimare de pret; daca UI-ul afiseaza `Price unavailable` sau timp lipsa, ruleaza:
+
+```powershell
+python tools/extra/check_data_qa_price_time_no_missing.py
+```
 
 Nu exista inca feedback screen, household mobile generation, auth/login sau cloud sync. Aplicatia mobila continua sa consume doar FastAPI prin HTTP/JSON si nu citeste CSV-uri.
 

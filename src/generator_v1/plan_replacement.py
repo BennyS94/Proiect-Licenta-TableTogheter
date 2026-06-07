@@ -22,6 +22,16 @@ from src.generator_v1.target_builder import build_nutrition_target
 
 
 MACRO_FIELDS = ("kcal", "protein_g", "carbs_g", "fat_g")
+TIME_FIELDS = (
+    "total_time_min",
+    "total_elapsed_time_min",
+    "active_time_estimated_min",
+    "passive_time_estimated_min",
+    "effective_time_min_for_scoring",
+    "time_confidence",
+    "time_estimation_method",
+    "time_warnings",
+)
 SUPPORTED_SLOTS = {"breakfast", "lunch", "dinner", "snack"}
 
 
@@ -569,6 +579,7 @@ def _apply_replacement_to_allocation_row(
     grams = per_portion.get("portion_grams_estimated")
     if grams is not None:
         row["grams_estimated"] = _round(grams * multiplier, 1)
+    row.update(_time_fields_from_row(replacement_meal))
     return row
 
 
@@ -607,6 +618,7 @@ def _apply_replacement_to_shared_meal(
     grams = per_portion.get("portion_grams_estimated")
     if grams is not None:
         meal["portion_grams_estimated"] = _round(grams * portion_sum, 1)
+    meal.update(_time_fields_from_row(replacement_meal))
 
 
 def _refresh_response_views(
@@ -1018,7 +1030,12 @@ def _meal_view(meal: Mapping[str, Any]) -> dict[str, Any]:
         "protein_g": meal.get("protein_g"),
         "carbs_g": meal.get("carbs_g"),
         "fat_g": meal.get("fat_g"),
+        **_time_fields_from_row(meal),
     }
+
+
+def _time_fields_from_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {field: row.get(field) for field in TIME_FIELDS if field in row}
 
 
 def _is_household_generator_plan(plan: Mapping[str, Any]) -> bool:

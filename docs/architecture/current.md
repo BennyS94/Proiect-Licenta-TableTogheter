@@ -58,13 +58,20 @@ Limitari explicite ale demo-ului curent:
 - fara OR-Tools / KNN ca motor principal / MILP
 - Grocery List v1 si Purchase Rules v1 exista ca feature determinist demo/helper
 - Household Preview v1 exista in Streamlit ca preview demo/audit peste ultimul plan generat
-- fara price, store, brand, pantry inventory real sau grocery optimization
+- fara preturi live, store/brand optimization, pantry inventory real sau grocery optimization
 - fara household-native multi-member selection
 - family-level variety este inca imperfecta
 - unele outlier risks raman cu warnings
 - Feedback v1 este local/demo, nu productie
 - `data/recipesdb/current` ramane neatins
 - `data/fooddb/current` ramane neatins
+
+Nota DATA-QA-1:
+- DATA-QA-1 este completat pentru price/time coverage in fluxurile app-facing generate.
+- Grocery prices folosesc un strat determinist: catalog exact, alias catalog, category fallback si emergency fallback.
+- Cooking time foloseste campurile directe/time-layer si fallback-uri controlate pentru estimari utilizabile.
+- Rezultatul verificat: `0` preturi lipsa in outputurile grocery app-facing si `0` cooking-time estimates lipsa pentru retetele active/displayable din `v1_2_demo_final`.
+- Limitarea ramasa: multe preturi sunt estimari demo controlate, nu preturi live sau source-backed exact pentru fiecare item.
 
 Nota KNN-lite: exista un modul auxiliar `src/generator_v1/recipe_similarity.py` pentru retete similare, documentat in `docs/architecture/knn_substitution_v1_design.md`. KNN-backed alternatives suporta acum meal-level replacement cu preview si confirmare explicita prin backend/mobile MVP. KNN poate propune candidati, dar generatorul principal ramane deterministic, scoring/constraint-based si validator/approver; nu exista substitutii automate sau substitutii de ingrediente in MVP.
 

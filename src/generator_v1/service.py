@@ -110,6 +110,16 @@ RECIPE_ALTERNATIVES_APPROVAL_MODES = {
     "include_review",
     "include_rejected_debug",
 }
+TIME_OUTPUT_FIELDS = (
+    "total_time_min",
+    "total_elapsed_time_min",
+    "active_time_estimated_min",
+    "passive_time_estimated_min",
+    "effective_time_min_for_scoring",
+    "time_confidence",
+    "time_estimation_method",
+    "time_warnings",
+)
 
 
 def generate_individual_plan_from_request(request: dict[str, Any]) -> dict[str, Any]:
@@ -1049,6 +1059,8 @@ def normalize_grocery_options(request: Mapping[str, Any]) -> dict[str, Any]:
         "cooked_to_raw_rules_path": _path_or_none(options.get("cooked_to_raw_rules_path")),
         "include_price_estimates": _as_bool(options.get("include_price_estimates"), False),
         "product_catalog_path": _path_or_none(options.get("product_catalog_path")),
+        "product_aliases_path": _path_or_none(options.get("product_aliases_path")),
+        "price_fallbacks_path": _path_or_none(options.get("price_fallbacks_path")),
         "exclude_water": True,
     }
 
@@ -1095,6 +1107,8 @@ def _args_from_request(
         grocery_purchase_rules_path=_path_or_none(options.get("purchase_rules_path")),
         grocery_price_estimates=_as_bool(options.get("include_price_estimates"), False),
         grocery_product_catalog_path=_path_or_none(options.get("product_catalog_path")),
+        grocery_product_aliases_path=_path_or_none(options.get("product_aliases_path")),
+        grocery_price_fallbacks_path=_path_or_none(options.get("price_fallbacks_path")),
         grocery_cooked_to_raw=options.get("include_cooked_to_raw_conversion"),
         grocery_cooked_to_raw_rules_path=_path_or_none(
             options.get("cooked_to_raw_rules_path")
@@ -1330,9 +1344,7 @@ def _meal_rows_view(meals: Any) -> list[dict[str, Any]]:
                 "protein_g": meal.get("protein_g"),
                 "carbs_g": meal.get("carbs_g"),
                 "fat_g": meal.get("fat_g"),
-                "effective_time_min_for_scoring": meal.get(
-                    "effective_time_min_for_scoring"
-                ),
+                **_meal_time_fields(meal),
                 "feedback_fit": meal.get("feedback_fit"),
                 "warnings": meal.get("warnings", []),
             }
@@ -1496,6 +1508,7 @@ def _per_member_menus(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "protein_g": row.get("protein_g"),
                 "carbs_g": row.get("carbs_g"),
                 "fat_g": row.get("fat_g"),
+                **_meal_time_fields(row),
             }
         )
     return [
@@ -1525,9 +1538,14 @@ def _shared_meals(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "household_grocery_scaling_factor": meal.get(
                         "household_grocery_scaling_factor"
                     ),
+                    **_meal_time_fields(meal),
                 }
             )
     return rows
+
+
+def _meal_time_fields(meal: Mapping[str, Any]) -> dict[str, Any]:
+    return {field: meal.get(field) for field in TIME_OUTPUT_FIELDS if field in meal}
 
 
 def _household_plan_for_grocery(plan: Mapping[str, Any]) -> dict[str, Any]:
