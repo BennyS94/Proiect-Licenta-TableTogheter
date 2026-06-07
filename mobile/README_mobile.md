@@ -120,6 +120,12 @@ npx expo start --go --host lan
 - Household / Account gazduieste setup demo, profiluri salvate, default viewer, status backend si tool-uri demo.
 - Auth-M1 adauga Create Account, Log In, Log Out si account-scoped profile calls.
 - Add Profile nu mai expune `Household ID`; backend-ul il asigneaza automat din sesiunea contului cand exista token.
+- PROFILE-WIZARD-1 inlocuieste formularul lung Add Profile cu Add Member wizard in 3 pasi: General Info, Food Preferences, Activity & Goal.
+- Food Preferences foloseste o matrice `food item -> Like / Dislike / Avoid`; lipsa selectiei inseamna Neutral.
+- `dietary_preferences.no_pork` si `food_preferences` sunt trimise la backend la Save Member.
+- `Avoid` este hard filter pentru cheile suportate si pentru custom avoided ingredients; `Dislike` este soft preference persistata, nu hard ban.
+- PROFILE-WIZARD-1 summary: Add Member este un 3-step wizard; Neutral = no selection; Avoid = hard filter; Dislike = soft preference only.
+- Soft scoring pentru `Like`/`Dislike` la nivel de aliment/familie este deferat; edit wizard ramane polish viitor.
 - Page 4 este hub cu Account Settings, Household Management si App Settings.
 - Safe area/status bar spacing este reparat global in `AppScreen`, iar empty states sunt centrate.
 - UI-2B: Meal Plan are un singur buton `Generate meal plan`, selector 1-5 zile, selector de zi cu zile negenerate gri/inactive si afisare mese in ordinea Breakfast, Lunch, Snack, Dinner.
@@ -143,7 +149,7 @@ UI-2B a verificat `keep-awake`, `KeepAwake`, `activateKeepAwake` si configurile 
 1. Porneste backend-ul FastAPI.
 2. Deschide aplicatia si foloseste `Create Account` sau `Log In`.
 3. Mergi in `Household Management`.
-4. Creeaza unul sau mai multe profiluri.
+4. Apasa `Add Member` si completeaza wizard-ul in 3 pasi.
 5. Ramai pe pagina de profiluri dupa salvare si foloseste CTA-ul `Go to Meal Plan`.
 6. In Meal Plan apasa `Generate meal plan`.
 7. Daca exista un singur profil, aplicatia foloseste intern generarea individuala; daca exista doua sau mai multe profiluri, foloseste intern generarea household.
@@ -191,6 +197,22 @@ Limitari Auth-M1:
 - nu exista password reset email;
 - nu exista change email / change password functional;
 - nu exista cloud sync, Firebase sau Supabase.
+
+## PROFILE-WIZARD-1 Flow
+
+1. In Household Management, apasa `Add Member`.
+2. Step 1 / General Info colecteaza nume, sex, varsta, inaltime si greutate.
+3. Step 2 / Food Preferences colecteaza restrictii dietetice si rating-uri `Like`, `Dislike`, `Avoid`.
+4. Step 3 / Activity & Goal colecteaza obiectivul, activitatea, antrenamentul, mesele pe zi, snack-ul si preferinta de timp.
+5. Backend-ul este apelat doar la `Save Member`.
+6. La succes, utilizatorul ramane in Household Management si vede mesajul `Member added`.
+
+Limitari PROFILE-WIZARD-1:
+
+- `Neutral` nu se stocheaza explicit; lipsa cheii din `food_preferences.ratings` inseamna neutral.
+- `Avoid` este integrat ca hard filter.
+- `Dislike` si `Like` sunt persistate, dar nu au inca scoring ingredient-level/family-level.
+- Editarea profilului cu acelasi wizard ramane viitoare.
 
 ## Mobile M3 Flow
 

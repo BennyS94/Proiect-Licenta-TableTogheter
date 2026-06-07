@@ -28,6 +28,7 @@ def init_db() -> Path:
     with get_connection() as connection:
         connection.executescript(schema_sql)
         _ensure_household_auth_columns(connection)
+        _ensure_member_profile_preference_columns(connection)
     return get_sqlite_path()
 
 
@@ -52,6 +53,22 @@ def _ensure_household_auth_columns(connection: sqlite3.Connection) -> None:
         "user_id": "ALTER TABLE households ADD COLUMN user_id TEXT",
         "display_name": "ALTER TABLE households ADD COLUMN display_name TEXT",
         "is_active": "ALTER TABLE households ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1",
+    }
+    for column_name, statement in column_sql.items():
+        if column_name not in existing_columns:
+            connection.execute(statement)
+
+
+def _ensure_member_profile_preference_columns(connection: sqlite3.Connection) -> None:
+    existing_columns = {
+        row[1]
+        for row in connection.execute("PRAGMA table_info(member_profiles)").fetchall()
+    }
+    column_sql = {
+        "food_preferences_json": (
+            "ALTER TABLE member_profiles "
+            "ADD COLUMN food_preferences_json TEXT NOT NULL DEFAULT '{}'"
+        ),
     }
     for column_name, statement in column_sql.items():
         if column_name not in existing_columns:

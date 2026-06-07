@@ -9,6 +9,20 @@ from typing import Any
 from src.generator_v1.feedback_adapter import build_household_preference_context
 
 
+DIETARY_PREFERENCE_DEFAULTS = {
+    "vegetarian": False,
+    "vegan": False,
+    "gluten_free": False,
+    "no_beef": False,
+    "no_pork": False,
+    "no_chicken": False,
+    "no_fish": False,
+    "no_dairy": False,
+}
+
+FOOD_PREFERENCE_RATINGS = {"like", "dislike", "avoid"}
+
+
 def save_generated_plan(
     conn: sqlite3.Connection,
     plan_id: str,
@@ -323,7 +337,12 @@ def save_member_profile(
         "goal_speed": _clean_text(profile_dict.get("goal_speed")),
         "training": dict(profile_dict.get("training") or {}),
         "meal_config": dict(profile_dict.get("meal_config") or {}),
-        "dietary_preferences": dict(profile_dict.get("dietary_preferences") or {}),
+        "dietary_preferences": _normalized_dietary_preferences(
+            profile_dict.get("dietary_preferences")
+        ),
+        "food_preferences": _normalized_food_preferences(
+            profile_dict.get("food_preferences")
+        ),
         "bf_profile": _clean_text(profile_dict.get("bf_profile")) or "normal",
         "is_active": bool(profile_dict.get("is_active", True)),
         "created_at": created_at,
@@ -345,11 +364,12 @@ def save_member_profile(
             training_json,
             meal_config_json,
             dietary_preferences_json,
+            food_preferences_json,
             is_active,
             created_at,
             updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             saved["member_profile_id"],
@@ -365,6 +385,7 @@ def save_member_profile(
             _json_dumps(saved["training"]),
             _json_dumps(saved["meal_config"]),
             _json_dumps(saved["dietary_preferences"]),
+            _json_dumps(saved["food_preferences"]),
             1 if saved["is_active"] else 0,
             saved["created_at"],
             saved["updated_at"],
@@ -402,6 +423,7 @@ def list_member_profiles(
             training_json,
             meal_config_json,
             dietary_preferences_json,
+            food_preferences_json,
             is_active,
             created_at,
             updated_at
@@ -434,6 +456,7 @@ def get_member_profile(
             training_json,
             meal_config_json,
             dietary_preferences_json,
+            food_preferences_json,
             is_active,
             created_at,
             updated_at
@@ -702,11 +725,12 @@ def _profile_row_to_dict(row: Any) -> dict[str, Any]:
         "goal_speed": row[9],
         "training": _json_loads(row[10]),
         "meal_config": _json_loads(row[11]),
-        "dietary_preferences": _json_loads(row[12]),
+        "dietary_preferences": _normalized_dietary_preferences(_json_loads(row[12])),
+        "food_preferences": _normalized_food_preferences(_json_loads(row[13])),
         "bf_profile": "normal",
-        "is_active": bool(row[13]),
-        "created_at": row[14],
-        "updated_at": row[15],
+        "is_active": bool(row[14]),
+        "created_at": row[15],
+        "updated_at": row[16],
     }
 
 
@@ -725,7 +749,10 @@ def _profile_for_generation(profile: dict[str, Any]) -> dict[str, Any]:
         "goal_speed": _clean_text(profile.get("goal_speed")),
         "training": dict(profile.get("training") or {}),
         "meal_config": dict(profile.get("meal_config") or {}),
-        "dietary_preferences": dict(profile.get("dietary_preferences") or {}),
+        "dietary_preferences": _normalized_dietary_preferences(
+            profile.get("dietary_preferences")
+        ),
+        "food_preferences": _normalized_food_preferences(profile.get("food_preferences")),
         "bf_profile": _clean_text(profile.get("bf_profile")) or "normal",
     }
 
@@ -753,6 +780,50 @@ def _feedback_row_to_dict(row: Any) -> dict[str, Any]:
 
 def _json_dumps(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+
+def _normalized_dietary_preferences(value: Any) -> dict[str, Any]:
+    source = value if isinstance(value, dict) else {}
+    result: dict[str, Any] = dict(DIETARY_PREFERENCE_DEFAULTS)
+    for key in DIETARY_PREFERENCE_DEFAULTS:
+        result[key] = bool(source.get(key, result[key]))
+    for key, item in source.items():
+        if key not in result:
+            result[str(key)] = item
+    return result
+
+
+def _normalized_food_preferences(value: Any) -> dict[str, Any]:
+    source = value if isinstance(value, dict) else {}
+    ratings_source = source.get("ratings") if isinstance(source.get("ratings"), dict) else {}
+    ratings: dict[str, str] = {}
+    for key, item in ratings_source.items():
+        food_key = _clean_text(key).lower()
+        rating = _clean_text(item).lower()
+        if food_key and rating in FOOD_PREFERENCE_RATINGS:
+            ratings[food_key] = rating
+
+    avoid_source = source.get("avoid_ingredients")
+    if isinstance(avoid_source, str):
+        avoid_source = [avoid_source]
+    try:
+        avoid_ingredients = [
+            _clean_text(item)
+            for item in avoid_source or []
+            if _clean_text(item)
+        ]
+    except TypeError:
+        avoid_ingredients = []
+
+    cooking_time = _clean_text(source.get("cooking_time_preference")).lower()
+    if cooking_time not in {"quick", "balanced", "no_rush"}:
+        cooking_time = "balanced"
+
+    return {
+        "ratings": ratings,
+        "avoid_ingredients": avoid_ingredients,
+        "cooking_time_preference": cooking_time,
+    }
 
 
 def _json_loads(payload: str | None) -> dict[str, Any]:

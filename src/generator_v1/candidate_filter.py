@@ -13,6 +13,7 @@ DIETARY_KEYS = (
     "vegan",
     "gluten_free",
     "no_beef",
+    "no_pork",
     "no_chicken",
     "no_fish",
     "no_dairy",
@@ -27,6 +28,22 @@ INGREDIENT_TEXT_COLUMNS = (
 
 DIETARY_KEYWORDS = {
     "no_beef": {"beef", "steak", "veal"},
+    "no_pork": {
+        "bacon",
+        "chorizo",
+        "ham",
+        "ham hock",
+        "pancetta",
+        "pepperoni",
+        "pork",
+        "pork chop",
+        "pork loin",
+        "pork shoulder",
+        "pork sausage",
+        "pork tenderloin",
+        "prosciutto",
+        "salami",
+    },
     "no_chicken": {"chicken", "poultry"},
     "no_fish": {
         "anchovy",
@@ -109,6 +126,44 @@ DIETARY_KEYWORDS = {
     },
 }
 
+FOOD_RATING_TO_DIETARY_KEY = {
+    "beef": "no_beef",
+    "pork": "no_pork",
+    "chicken": "no_chicken",
+    "fish": "no_fish",
+    "dairy": "no_dairy",
+}
+
+FOOD_PREFERENCE_AVOID_KEYWORDS = {
+    "beef": DIETARY_KEYWORDS["no_beef"],
+    "pork": DIETARY_KEYWORDS["no_pork"],
+    "chicken": DIETARY_KEYWORDS["no_chicken"],
+    "fish": DIETARY_KEYWORDS["no_fish"],
+    "dairy": DIETARY_KEYWORDS["no_dairy"],
+    "eggs": {"egg", "eggs"},
+    "beans": {
+        "bean",
+        "beans",
+        "black bean",
+        "chickpea",
+        "garbanzo",
+        "kidney bean",
+        "lentil",
+        "pinto bean",
+    },
+    "mushrooms": {"mushroom", "mushrooms"},
+    "onions": {"onion", "onions", "shallot", "shallots"},
+    "turkey": {"turkey"},
+    "rice": {"rice"},
+    "pasta": {"noodle", "noodles", "pasta"},
+    "potatoes": {"potato", "potatoes"},
+    "oats": {"oat", "oats", "oatmeal"},
+    "bread": {"bread", "breadcrumb", "breadcrumbs"},
+    "vegetables": {"vegetable", "vegetables"},
+    "soups": {"soup"},
+    "spicy_food": {"cayenne", "chili", "chilli", "hot sauce", "jalapeno", "spicy"},
+}
+
 
 @dataclass(frozen=True)
 class HouseholdPreferenceContext:
@@ -120,15 +175,27 @@ class HouseholdPreferenceContext:
 
 def build_household_preference_context(profile: dict[str, Any]) -> HouseholdPreferenceContext:
     dietary_preferences = profile.get("dietary_preferences") or {}
+    food_preferences = profile.get("food_preferences") or {}
     meal_config = profile.get("meal_config") or {}
+    resolved_dietary_preferences = {
+        key: bool(dietary_preferences.get(key, False))
+        for key in DIETARY_KEYS
+    }
+    resolved_banned_ingredients = _as_normalized_set(
+        profile.get("banned_ingredient_names", [])
+    )
+    resolved_banned_ingredients |= _food_preference_avoid_terms(
+        food_preferences=food_preferences,
+        dietary_preferences=resolved_dietary_preferences,
+    )
+    resolved_banned_ingredients |= _as_normalized_set(
+        _food_preferences_avoid_ingredients(food_preferences)
+    )
 
     return HouseholdPreferenceContext(
         banned_recipe_ids=_as_string_set(profile.get("banned_recipe_ids", [])),
-        banned_ingredient_names=_as_normalized_set(profile.get("banned_ingredient_names", [])),
-        dietary_preferences={
-            key: bool(dietary_preferences.get(key, False))
-            for key in DIETARY_KEYS
-        },
+        banned_ingredient_names=resolved_banned_ingredients,
+        dietary_preferences=resolved_dietary_preferences,
         time_sensitivity=str(
             meal_config.get("time_sensitivity", profile.get("time_sensitivity", "normal"))
         ).strip().lower(),
@@ -202,6 +269,47 @@ def _recipe_ids_with_banned_ingredients(
             mask |= text.str.contains(_keyword_pattern(keyword), regex=True, na=False)
 
     return set(ingredients.loc[mask, "recipe_id"].astype(str))
+
+
+def _food_preference_avoid_terms(
+    food_preferences: Any,
+    dietary_preferences: dict[str, bool],
+) -> set[str]:
+    if not isinstance(food_preferences, Mapping):
+        return set()
+    ratings = food_preferences.get("ratings")
+    if not isinstance(ratings, Mapping):
+        return set()
+
+    terms: set[str] = set()
+    for raw_key, raw_rating in ratings.items():
+        food_key = _normalize_preference_key(raw_key)
+        rating = _normalize_text(raw_rating)
+        if rating != "avoid":
+            continue
+        dietary_key = FOOD_RATING_TO_DIETARY_KEY.get(food_key)
+        if dietary_key:
+            dietary_preferences[dietary_key] = True
+        terms |= {
+            _normalize_text(keyword)
+            for keyword in FOOD_PREFERENCE_AVOID_KEYWORDS.get(food_key, set())
+            if _normalize_text(keyword)
+        }
+    return terms
+
+
+def _food_preferences_avoid_ingredients(food_preferences: Any) -> list[str]:
+    if not isinstance(food_preferences, Mapping):
+        return []
+    values = food_preferences.get("avoid_ingredients")
+    if values is None:
+        return []
+    if isinstance(values, str):
+        values = [values]
+    try:
+        return [str(value).strip() for value in values if str(value).strip()]
+    except TypeError:
+        return []
 
 
 def _ingredient_search_text(
@@ -284,6 +392,10 @@ def _normalize_text(value: Any) -> str:
     text = str(value).lower().replace("_", " ")
     text = re.sub(r"[^a-z0-9]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _normalize_preference_key(value: Any) -> str:
+    return _normalize_text(value).replace(" ", "_")
 
 
 def _keyword_pattern(keyword: str) -> str:

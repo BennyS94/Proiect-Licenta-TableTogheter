@@ -98,12 +98,18 @@ export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileF
       },
       dietary_preferences: {
         no_beef: false,
+        no_pork: false,
         no_chicken: false,
         no_fish: false,
         no_dairy: false,
         vegetarian: false,
         vegan: false,
         gluten_free: false,
+      },
+      food_preferences: {
+        ratings: {},
+        avoid_ingredients: [],
+        cooking_time_preference: "balanced",
       },
       bf_profile: "normal",
     });

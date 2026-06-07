@@ -22,6 +22,7 @@ class MemberProfileCreateRequest(BaseModel):
     training: dict[str, Any] = Field(default_factory=dict)
     meal_config: dict[str, Any] = Field(default_factory=dict)
     dietary_preferences: dict[str, Any] = Field(default_factory=dict)
+    food_preferences: dict[str, Any] = Field(default_factory=dict)
     bf_profile: str | None = None
     is_active: bool = True
 
@@ -43,6 +44,7 @@ class MemberProfileResponse(BaseModel):
     training: dict[str, Any] = Field(default_factory=dict)
     meal_config: dict[str, Any] = Field(default_factory=dict)
     dietary_preferences: dict[str, Any] = Field(default_factory=dict)
+    food_preferences: dict[str, Any] = Field(default_factory=dict)
     bf_profile: str | None = "normal"
     is_active: bool = True
     created_at: str

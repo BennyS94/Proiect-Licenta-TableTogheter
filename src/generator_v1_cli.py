@@ -1277,6 +1277,10 @@ def _household_context_profile(
         household_profile,
         primary_member,
     )
+    profile["food_preferences"] = _merged_household_food_preferences(
+        household_profile,
+        primary_member,
+    )
     return profile
 
 
@@ -1286,6 +1290,7 @@ def _merged_household_dietary_preferences(
 ) -> dict[str, bool]:
     keys = [
         "no_beef",
+        "no_pork",
         "no_chicken",
         "no_fish",
         "no_dairy",
@@ -1309,6 +1314,73 @@ def _merged_household_dietary_preferences(
         for key in keys:
             result[key] = bool(result[key] or dietary.get(key, False))
     return result
+
+
+def _merged_household_food_preferences(
+    household_profile: dict[str, object],
+    primary_member: dict[str, object],
+) -> dict[str, object]:
+    merged_ratings: dict[str, str] = {}
+    avoid_ingredients: set[str] = set()
+    cooking_time_preference = "balanced"
+
+    for member in _active_household_members(household_profile, primary_member):
+        food_preferences = member.get("food_preferences") or {}
+        if not isinstance(food_preferences, dict):
+            continue
+        ratings = food_preferences.get("ratings") or {}
+        if isinstance(ratings, dict):
+            for key, raw_rating in ratings.items():
+                food_key = str(key).strip()
+                rating = str(raw_rating).strip().lower()
+                if not food_key or rating not in {"like", "dislike", "avoid"}:
+                    continue
+                previous = merged_ratings.get(food_key)
+                if rating == "avoid" or previous is None:
+                    merged_ratings[food_key] = rating
+                elif rating == "dislike" and previous == "like":
+                    merged_ratings[food_key] = rating
+        values = food_preferences.get("avoid_ingredients") or []
+        if isinstance(values, str):
+            values = [values]
+        try:
+            avoid_ingredients.update(
+                str(value).strip()
+                for value in values
+                if str(value).strip()
+            )
+        except TypeError:
+            pass
+        time_preference = str(
+            food_preferences.get("cooking_time_preference") or ""
+        ).strip().lower()
+        if time_preference == "quick":
+            cooking_time_preference = "quick"
+        elif time_preference == "no_rush" and cooking_time_preference == "balanced":
+            cooking_time_preference = "no_rush"
+
+    return {
+        "ratings": dict(sorted(merged_ratings.items())),
+        "avoid_ingredients": sorted(avoid_ingredients),
+        "cooking_time_preference": cooking_time_preference,
+    }
+
+
+def _active_household_members(
+    household_profile: dict[str, object],
+    primary_member: dict[str, object],
+) -> list[dict[str, object]]:
+    active_ids = {
+        str(member_id).strip()
+        for member_id in household_profile.get("active_member_ids", [])
+        if str(member_id).strip()
+    }
+    members = [
+        dict(member)
+        for member in household_profile.get("members", [])
+        if str(member.get("member_id", "")).strip() in active_ids
+    ]
+    return members or [dict(primary_member)]
 
 
 def _parse_recent_recipe_ids(value: str | None) -> list[str]:

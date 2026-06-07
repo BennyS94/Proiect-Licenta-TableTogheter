@@ -86,6 +86,15 @@ Implementat in Auth-M1:
 - profile scoped pe household-ul contului cand requestul include `Authorization: Bearer <session_token>`
 - fara email verification, password reset, email sending, cloud auth sau production-grade auth claims
 
+Implementat in PROFILE-WIZARD-1:
+
+- `POST /profiles`, `GET /profiles` si `GET /profiles/{member_profile_id}` accepta/returneaza `dietary_preferences.no_pork`
+- profilurile accepta/returneaza `food_preferences.ratings`, `food_preferences.avoid_ingredients` si `food_preferences.cooking_time_preference`
+- profilurile vechi fara aceste campuri primesc defaults compatibile: `no_pork=false`, `ratings={}`, `avoid_ingredients=[]`, `cooking_time_preference=balanced`
+- SQLite foloseste `food_preferences_json` in `member_profiles`; migratia locala este aplicata in `init_db`
+- `Avoid` pentru cheile suportate si ingredientele custom intra in hard filter-ul generatorului; `Dislike` ramane soft/persistat, nu hard ban
+- soft scoring pentru `like`/`dislike` la nivel de aliment/familie este deferat pentru PROFILE-PREF-2
+
 ## Run
 
 Instaleaza dependintele backend minime:
@@ -160,6 +169,31 @@ GET  http://127.0.0.1:8000/auth/me
 `/auth/register` creeaza cont local, household implicit si sesiune. `/auth/login` creeaza o sesiune noua. `/auth/logout` revoca tokenul daca este furnizat. `/auth/me` cere header `Authorization: Bearer <session_token>`.
 
 Profilele create/listate cu acelasi header sunt limitate la household-ul contului. Fara header, endpointurile de profile pastreaza calea dev/smoke existenta pentru compatibilitate.
+
+Schema profilului suporta in plus:
+
+```json
+{
+  "dietary_preferences": {
+    "vegetarian": false,
+    "vegan": false,
+    "gluten_free": false,
+    "no_beef": false,
+    "no_pork": false,
+    "no_chicken": false,
+    "no_fish": false,
+    "no_dairy": false
+  },
+  "food_preferences": {
+    "ratings": {
+      "chicken": "like",
+      "pork": "avoid"
+    },
+    "avoid_ingredients": [],
+    "cooking_time_preference": "balanced"
+  }
+}
+```
 
 Recipe alternatives endpoint KNN-2:
 

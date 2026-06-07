@@ -20,8 +20,17 @@ export type DemoMemberProfile = {
   training?: Record<string, unknown>;
   meal_config?: Record<string, unknown>;
   dietary_preferences?: Record<string, unknown>;
+  food_preferences?: FoodPreferences;
   bf_profile?: string;
   [key: string]: unknown;
+};
+
+export type FoodPreferenceRating = "like" | "dislike" | "avoid";
+
+export type FoodPreferences = {
+  ratings: Record<string, FoodPreferenceRating>;
+  avoid_ingredients: string[];
+  cooking_time_preference: "quick" | "balanced" | "no_rush";
 };
 
 export type DemoHouseholdResponse = {
@@ -76,6 +85,7 @@ export type MemberProfileCreateRequest = {
   training: Record<string, unknown>;
   meal_config: Record<string, unknown>;
   dietary_preferences: Record<string, unknown>;
+  food_preferences?: FoodPreferences;
   bf_profile?: string;
   [key: string]: unknown;
 };
@@ -94,6 +104,7 @@ export type MemberProfileResponse = {
   training: Record<string, unknown>;
   meal_config: Record<string, unknown>;
   dietary_preferences: Record<string, unknown>;
+  food_preferences: FoodPreferences;
   bf_profile?: string;
   is_active: boolean;
   created_at: string;

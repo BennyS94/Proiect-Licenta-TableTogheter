@@ -56,7 +56,8 @@ Campuri obligatorii in `member_profile` (v1):
 - `age`, `sex`, `weight_kg`, `height_cm`, `activity_level`, `goal`, `goal_speed`
 - `training.sessions_per_week`, `training.type`
 - `meal_config.meals_per_day`, `meal_config.include_snacks`
-- `dietary_preferences` (chei booleene)
+- `dietary_preferences` (chei booleene, inclusiv `no_pork`)
+- `food_preferences` (PROFILE-WIZARD-1: ratings + avoid ingredients + cooking time preference)
 - `bf_profile` (pastrat, dar nefolosit in formula energetica v1)
 
 Exemplu minim:
@@ -72,7 +73,21 @@ Exemplu minim:
   "goal_speed": "normal",
   "training": {"sessions_per_week": 3, "type": "weights"},
   "meal_config": {"meals_per_day": 3, "include_snacks": true},
-  "dietary_preferences": {"no_beef": false, "no_chicken": false},
+  "dietary_preferences": {
+    "no_beef": false,
+    "no_pork": false,
+    "no_chicken": false,
+    "no_fish": false,
+    "no_dairy": false,
+    "vegetarian": false,
+    "vegan": false,
+    "gluten_free": false
+  },
+  "food_preferences": {
+    "ratings": {},
+    "avoid_ingredients": [],
+    "cooking_time_preference": "balanced"
+  },
   "bf_profile": "normal"
 }
 ```
@@ -185,6 +200,10 @@ Limitari:
 ## 12. Hard filters v1
 
 - restrictii alimentare din `member_profile.dietary_preferences`
+- `dietary_preferences.no_pork` exclude ingrediente pork-specific (`pork`, `bacon`, `ham`, `prosciutto`, `pancetta`, `salami`, `chorizo`, `pepperoni`, `pork sausage` etc.)
+- `food_preferences.ratings[*] = "avoid"` se mapeaza la hard filter pentru cheile suportate; `like` si `dislike` sunt persistate, dar nu modifica inca scoringul de ingrediente/familii.
+- `food_preferences.avoid_ingredients` intra in filtrul hard de ingrediente.
+- `Neutral` inseamna lipsa cheii in `food_preferences.ratings`.
 - `banned_recipe_ids`, `banned_ingredient_names`
 - `recipe.is_active` si `recipe.scope_status` acceptate
 - `recipe_nutrition_cache.cache_status` acceptat (configurabil)

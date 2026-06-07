@@ -70,7 +70,7 @@ Mobile app:
 
 - UI pentru Home / Dashboard.
 - Household setup.
-- Member profiles.
+- Member profiles prin Add Member wizard in 3 pasi.
 - Buton de generare plan.
 - Afisare plan pe zile.
 - Afisare detalii masa.
@@ -116,6 +116,19 @@ SQLite:
 - Nu implementeaza scoring de retete.
 - Nu construieste grocery list din ingrediente brute.
 - Nu calculeaza preturi sau sugestii de cumparare.
+
+## PROFILE-WIZARD-1
+
+Household Management foloseste un Add Member wizard in 3 pasi:
+- Step 1: General Info
+- Step 2: Food Preferences
+- Step 3: Activity & Goal
+
+Modelul de profil accepta `dietary_preferences.no_pork` si `food_preferences`.
+`food_preferences.ratings` foloseste `like`, `dislike`, `avoid`, iar lipsa unei chei inseamna `Neutral`.
+`Avoid` este hard filter; `Dislike` ramane preferinta soft si nu este tratat ca ban.
+Custom avoided ingredients sunt salvate in `food_preferences.avoid_ingredients` si sunt mapate pe filtrul hard existent.
+Soft scoring pentru `like`/`dislike` la nivel de aliment/familie este deferat pentru PROFILE-PREF-2.
 
 ## Planned backend/API endpoints
 

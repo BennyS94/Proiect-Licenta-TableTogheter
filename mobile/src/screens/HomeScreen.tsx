@@ -10,11 +10,11 @@ import {
 } from "react-native";
 
 import { FloatingNav, type AppPageKey } from "../components/navigation/FloatingNav";
+import { AddMemberWizard } from "../components/AddMemberWizard";
 import { GroceryListSection } from "../components/GroceryListSection";
 import { HouseholdMemberPlanView } from "../components/HouseholdMemberPlanView";
 import { PlanDayCard } from "../components/PlanDayCard";
 import { ProfileCard } from "../components/ProfileCard";
-import { ProfileForm } from "../components/ProfileForm";
 import { AppCard } from "../components/ui/AppCard";
 import { DaySelector } from "../components/ui/DaySelector";
 import { ProfileSelector, type ProfileSelectorItem } from "../components/ui/ProfileSelector";
@@ -326,11 +326,12 @@ export function HomeScreen() {
           ? current
           : [...current, createdProfile.member_profile_id],
       );
-      setProfileMessage(`Profile saved: ${createdProfile.display_name}`);
+      setProfileMessage("Member added");
       setGeneratedPlan(null);
       setFeedbackContext(null);
     } catch (error) {
       setProfileErrorMessage(error instanceof Error ? error.message : "Profile save failed");
+      throw error;
     } finally {
       setIsCreatingProfile(false);
     }
@@ -1161,7 +1162,7 @@ export function HomeScreen() {
             <Text style={styles.mutedText}>No profiles yet.</Text>
           )}
         </View>
-        <ProfileForm
+        <AddMemberWizard
           defaultHouseholdId={savedProfileHouseholdId}
           disabled={isCreatingProfile}
           onSubmit={createSavedProfile}

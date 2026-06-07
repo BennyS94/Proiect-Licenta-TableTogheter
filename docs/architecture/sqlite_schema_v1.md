@@ -97,6 +97,7 @@ Columns:
 | `training_json` | TEXT NOT NULL | Training serializat JSON |
 | `meal_config_json` | TEXT NOT NULL | Config mese serializat JSON |
 | `dietary_preferences_json` | TEXT NOT NULL | Preferinte/restrictii serializate JSON |
+| `food_preferences_json` | TEXT NOT NULL DEFAULT '{}' | Rating-uri alimentare, ingrediente evitate si preferinta de timp |
 | `is_active` | INTEGER NOT NULL | 0/1 |
 | `created_at` | TEXT NOT NULL | ISO timestamp |
 | `updated_at` | TEXT NOT NULL | ISO timestamp |

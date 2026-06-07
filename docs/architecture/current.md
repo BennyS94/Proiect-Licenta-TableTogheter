@@ -109,6 +109,27 @@ Directia urmatoare de produs este un MVP Android care consuma un backend FastAPI
 
 Roadmap-ul pentru aceasta directie este documentat in `docs/architecture/mobile_backend_roadmap.md`.
 
+## 2.4. PROFILE-WIZARD-1 status
+
+Household / Account foloseste un flow Add Member in 3 pasi:
+- General Info
+- Food Preferences
+- Activity & Goal
+
+Profilul membrului suporta acum:
+- `dietary_preferences.no_pork`
+- `food_preferences.ratings`
+- `food_preferences.avoid_ingredients`
+- `food_preferences.cooking_time_preference`
+
+Semantica preferintelor alimentare:
+- lipsa unei chei in `ratings` inseamna `Neutral`
+- `Like` este preferinta soft persistata
+- `Dislike` este preferinta soft persistata, nu hard ban
+- `Avoid` este hard filter pentru cheile suportate si pentru ingrediente custom
+
+Limitare curenta: soft scoring pentru `Like`/`Dislike` la nivel de aliment/familie este pastrat pentru PROFILE-PREF-2. In PROFILE-WIZARD-1 s-au integrat doar persistenta si hard filter-ele sigure.
+
 ## 3. Current data model reality
 
 Modelul actual este construit peste un dataset nutritional prelucrat, imbogatit cu clasificari suplimentare si semnale utile pentru generare. In aceasta forma, baza de date curenta este suficienta pentru rularea pipeline-ului existent, dar nu separa inca suficient de clar:

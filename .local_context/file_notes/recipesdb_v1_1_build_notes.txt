@@ -3283,3 +3283,52 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - Run `python tools/extra/check_data_qa_price_time_no_missing.py` after changing recipes, grocery catalog, aliases or fallback data.
   - Use `data/grocery/draft/data_qa_price_research_template.csv` later for exact source-backed price refinement if needed.
   - Keep DATA-QA-2 separate for cooking steps quality/completion if a later dataset exposes missing/weak instructions.
+
+## 105. PROFILE-WIZARD-1 Add Member wizard and initial food preferences - 2026-06-07
+- Replaced the primary mobile Add Profile flow with `AddMemberWizard`.
+- Add Member now uses 3 steps:
+  - General Info
+  - Food Preferences
+  - Activity & Goal
+- The visible wizard no longer exposes `Household ID`; backend/session assignment remains internal.
+- Extended member profile shape with:
+  - `dietary_preferences.no_pork`
+  - `food_preferences.ratings`
+  - `food_preferences.avoid_ingredients`
+  - `food_preferences.cooking_time_preference`
+- Food preference semantics:
+  - missing rating key = Neutral
+  - `like` = soft preference persisted
+  - `dislike` = soft preference persisted, not hard ban
+  - `avoid` = hard filter for supported food keys
+- Backend profile persistence now stores `food_preferences_json` in `member_profiles`.
+- Existing/legacy profile payloads default to:
+  - `no_pork=false`
+  - `ratings={}`
+  - `avoid_ingredients=[]`
+  - `cooking_time_preference=balanced`
+- Generator v1 hard filter now supports:
+  - `no_pork`
+  - `food_preferences.ratings[food_key] = avoid`
+  - custom `food_preferences.avoid_ingredients`
+- Conservative pork terms were used; generic `sausage` is not globally banned unless pork-specific text is present.
+- Soft scoring for `like`/`dislike` by ingredient/family remains deferred as PROFILE-PREF-2.
+- Edit profile via wizard remains future work.
+- Added checkers:
+  - `tools/extra/check_mobile_profile_wizard_structure.py`
+  - `tools/extra/check_backend_profile_preferences.py`
+- Data current folders were not modified:
+  - `data/recipesdb/current`
+  - `data/fooddb/current`
+- No intended changes to nutrition formulas, grocery/pricing logic, KNN/replacement behavior or `src/legacy`.
+
+## 106. PROFILE-WIZARD-1b runtime validation note - 2026-06-07
+- Manual validation:
+  - Add Member wizard is integrated in the account/household flow.
+  - `no_pork` / Pork Avoid / `avoid_ingredients` hard filters work.
+  - Generated macro results and nutrition target calculations were not affected.
+  - Meal plan generation, grocery and insights still work after creating a profile through the wizard.
+  - Like/Dislike remain persisted only; soft scoring is deferred.
+- Validation outputs:
+  - `data/recipesdb/audit/profile_wizard_1b_runtime_validation_summary.txt`
+  - `data/recipesdb/audit/profile_wizard_1b_no_pork_filter_summary.txt`
