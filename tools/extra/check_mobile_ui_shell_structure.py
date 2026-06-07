@@ -59,7 +59,7 @@ MEAL_ROW_MARKERS = [
 ]
 
 GUARD_MARKERS = [
-    "Set up your account first",
+    "Set up your household",
     "No household members yet",
     "No profile data available",
     "No insights yet",

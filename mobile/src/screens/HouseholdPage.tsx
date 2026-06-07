@@ -245,6 +245,7 @@ function AuthSetupCard({
       {authMessage ? <Text style={styles.successText}>{authMessage}</Text> : null}
 
       <AppButton
+        disabled={isAuthLoading}
         label={mode === "register" ? "Create Account" : "Log In"}
         loading={isAuthLoading}
         onPress={submit}

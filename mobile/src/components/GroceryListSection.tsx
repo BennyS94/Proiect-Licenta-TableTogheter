@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { GroceryListItem, GroceryListResponse } from "../types/api";
 import { colors } from "../theme/colors";
@@ -68,6 +68,31 @@ export function GroceryListSection({
         {estimatedTotal === null && missingPrices === null ? (
           <Text style={styles.mutedText}>No grocery summary returned.</Text>
         ) : null}
+      </View>
+
+      <View style={styles.actionRow}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => Alert.alert("Sharing coming soon")}
+          style={({ pressed }) => [
+            styles.actionButton,
+            styles.actionButtonPrimary,
+            pressed ? styles.pressed : null,
+          ]}
+        >
+          <Text style={styles.actionButtonPrimaryText}>Send to</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => Alert.alert("Copy coming soon")}
+          style={({ pressed }) => [
+            styles.actionButton,
+            styles.actionButtonSecondary,
+            pressed ? styles.pressed : null,
+          ]}
+        >
+          <Text style={styles.actionButtonSecondaryText}>Copy</Text>
+        </Pressable>
       </View>
 
       {groups.length ? (
@@ -249,10 +274,44 @@ const styles = StyleSheet.create({
   panel: {
     gap: 14,
   },
+  actionButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: 16,
+  },
+  actionButtonPrimary: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+    borderWidth: 1,
+  },
+  actionButtonPrimaryText: {
+    color: colors.card,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  actionButtonSecondary: {
+    backgroundColor: "#F8FBF3",
+    borderColor: "#CFE3BF",
+    borderWidth: 1,
+  },
+  actionButtonSecondaryText: {
+    color: colors.accentDark,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
+  },
+  pressed: {
+    opacity: 0.82,
   },
   title: {
     color: colors.text,

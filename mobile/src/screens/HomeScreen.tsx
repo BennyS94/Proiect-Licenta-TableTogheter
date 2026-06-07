@@ -133,7 +133,7 @@ export function HomeScreen() {
   const [authSessionToken, setAuthSessionToken] = useState("");
   const [authAccount, setAuthAccount] = useState<AuthAccount | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const [activePage, setActivePage] = useState<AppPageKey>("household");
+  const [activePage, setActivePage] = useState<AppPageKey>("home");
   const [isDemoModeEnabled, setIsDemoModeEnabled] = useState(false);
   const [isContinuingDemo, setIsContinuingDemo] = useState(false);
   const [defaultViewerId, setDefaultViewerId] = useState("");
@@ -844,19 +844,35 @@ export function HomeScreen() {
     setErrorMessage("");
     setHouseholdErrorMessage("");
     setProfileMessage("");
-    const profiles = await getProfiles(account.household_id, sessionToken);
-    setSavedProfiles(profiles);
-    const firstProfile = profiles[0];
-    if (firstProfile) {
-      setSelectedSavedProfileId(firstProfile.member_profile_id);
-      setDefaultViewerId(`saved:${firstProfile.member_profile_id}`);
-      setSelectedSavedHouseholdProfileIds([firstProfile.member_profile_id]);
-    } else {
-      setSelectedSavedProfileId("");
-      setDefaultViewerId("");
-      setSelectedSavedHouseholdProfileIds([]);
-    }
+    setSavedProfiles([]);
+    setSelectedSavedProfileId("");
+    setDefaultViewerId("");
+    setSelectedSavedHouseholdProfileIds([]);
     setActivePage("household");
+    void loadProfilesAfterAuth(account.household_id, sessionToken);
+  }
+
+  async function loadProfilesAfterAuth(householdId: string, sessionToken: string) {
+    setIsLoadingProfiles(true);
+
+    try {
+      const profiles = await getProfiles(householdId, sessionToken);
+      setSavedProfiles(profiles);
+      const firstProfile = profiles[0];
+      if (firstProfile) {
+        setSelectedSavedProfileId(firstProfile.member_profile_id);
+        setDefaultViewerId(`saved:${firstProfile.member_profile_id}`);
+        setSelectedSavedHouseholdProfileIds([firstProfile.member_profile_id]);
+      } else {
+        setSelectedSavedProfileId("");
+        setDefaultViewerId("");
+        setSelectedSavedHouseholdProfileIds([]);
+      }
+    } catch (error) {
+      setProfileErrorMessage(error instanceof Error ? error.message : "Profiles fetch failed");
+    } finally {
+      setIsLoadingProfiles(false);
+    }
   }
 
   async function logOutLocalSession() {
@@ -946,10 +962,10 @@ export function HomeScreen() {
     profileSelectorItems.find((item) => item.id === selectedProfileSelectorId) ??
     profileSelectorItems[0] ??
     null;
-  const activeProfileName = selectedProfileItem?.label ?? "Your household";
+  const activeProfileName = selectedProfileItem?.label ?? "there";
   const activeProfileMeta =
     selectedProfileItem?.meta ?? "Goal: Muscle gain - 3 meals + snack";
-  const householdName = authAccount?.household_display_name ?? "My Household";
+  const householdName = authAccount?.household_display_name ?? "Your Household";
   const backendStatusText =
     healthStatus === "connected" ? "Connected" : healthStatus === "loading" ? "Checking" : "Unknown";
   const individualDayIndexes = getIndividualDayIndexes(generatedPlan);
@@ -1397,32 +1413,43 @@ function DayCountSelector({
   return (
     <View style={styles.dayCountSelector}>
       <View style={styles.dayCountHeader}>
-        <Text style={styles.infoLabel}>Days</Text>
-        <Text style={styles.dayCountValue}>{days} {days === 1 ? "day" : "days"}</Text>
+        <Text style={styles.dayCountLabel}>Days</Text>
+        <Text style={styles.dayCountValue}>
+          {days} {days === 1 ? "day" : "days"}
+        </Text>
       </View>
       <View
         accessibilityRole="adjustable"
-        accessibilityValue={{ min: 1, max: 5, now: days, text: `${days} days` }}
+        accessibilityValue={{
+          min: 1,
+          max: 5,
+          now: days,
+          text: `${days} ${days === 1 ? "day" : "days"}`,
+        }}
         onLayout={(event) => {
           sliderWidthRef.current = Math.max(1, event.nativeEvent.layout.width);
         }}
         style={styles.sliderShell}
         {...panResponder.panHandlers}
       >
-        <View style={styles.sliderTrack}>
-          <View style={[styles.sliderTrackFill, { width: fillWidth }]} />
-        </View>
-        <View style={[styles.sliderThumb, { left: fillWidth }]} />
-        <View style={styles.sliderDotRow}>
-          {options.map((option) => (
-            <View
-              key={`dot-${option}`}
-              style={[
-                styles.sliderDot,
-                option <= days ? styles.sliderDotActive : null,
-              ]}
-            />
-          ))}
+        <View style={styles.sliderTrackLayer}>
+          <View style={styles.sliderTrack}>
+            <View style={[styles.sliderTrackFill, { width: fillWidth }]} />
+          </View>
+          <View style={styles.sliderDotRow}>
+            {options.map((option) => (
+              <View
+                key={`dot-${option}`}
+                style={[
+                  styles.sliderDot,
+                  option <= days ? styles.sliderDotActive : null,
+                ]}
+              />
+            ))}
+          </View>
+          <View style={[styles.sliderThumb, { left: fillWidth }]}>
+            <View style={styles.sliderThumbCore} />
+          </View>
         </View>
       </View>
       <View style={styles.sliderTouchRow}>
@@ -1436,7 +1463,14 @@ function DayCountSelector({
               pressed ? styles.buttonPressed : null,
             ]}
           >
-            <Text style={styles.sliderStepLabel}>{option}</Text>
+            <Text
+              style={[
+                styles.sliderStepLabel,
+                option === days ? styles.sliderStepLabelActive : null,
+              ]}
+            >
+              {option}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -2361,41 +2395,54 @@ const styles = StyleSheet.create({
   },
   dayCountSelector: {
     alignItems: "stretch",
-    borderColor: colors.border,
+    backgroundColor: "#F8FBF3",
+    borderColor: "#E2EDD9",
     borderRadius: 8,
     borderWidth: 1,
-    gap: 12,
-    padding: 12,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingTop: 13,
+    paddingBottom: 10,
   },
   dayCountHeader: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  dayCountLabel: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: "800",
+  },
   dayCountValue: {
-    color: colors.text,
-    fontSize: 15,
+    color: colors.accentDark,
+    fontSize: 14,
     fontWeight: "900",
-    textAlign: "center",
+    textAlign: "right",
   },
   sliderDot: {
-    backgroundColor: "#D1D5DB",
-    borderRadius: 5,
-    height: 10,
-    width: 10,
+    backgroundColor: "#F8FBF3",
+    borderColor: "#DCE9D1",
+    borderRadius: 4,
+    borderWidth: 1,
+    height: 8,
+    width: 8,
   },
   sliderDotActive: {
     backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   sliderDotRow: {
+    alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: -9,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 11,
   },
   sliderShell: {
-    minHeight: 28,
-    paddingHorizontal: 3,
-    paddingTop: 8,
+    minHeight: 34,
     position: "relative",
   },
   sliderStepLabel: {
@@ -2403,37 +2450,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
+  sliderStepLabelActive: {
+    color: colors.accentDark,
+    fontWeight: "900",
+  },
   sliderTouchRow: {
     flexDirection: "row",
-    gap: 4,
+    marginTop: -5,
   },
   sliderTouchTarget: {
     alignItems: "center",
     flex: 1,
-    minHeight: 32,
+    minHeight: 28,
     justifyContent: "center",
   },
   sliderThumb: {
-    backgroundColor: colors.accent,
-    borderColor: colors.card,
-    borderRadius: 10,
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderColor: colors.accent,
+    borderRadius: 12,
     borderWidth: 2,
-    height: 20,
+    elevation: 2,
+    height: 24,
+    justifyContent: "center",
     position: "absolute",
-    top: 2,
-    transform: [{ translateX: -10 }],
-    width: 20,
+    shadowColor: "#2F4A20",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 4,
+    top: 3,
+    transform: [{ translateX: -12 }],
+    width: 24,
   },
-  sliderTrack: {
-    backgroundColor: "#DDE7D5",
+  sliderThumbCore: {
+    backgroundColor: colors.accent,
     borderRadius: 4,
     height: 8,
+    width: 8,
+  },
+  sliderTrack: {
+    backgroundColor: "#E8F2E0",
+    borderRadius: 999,
+    height: 6,
     overflow: "hidden",
+  },
+  sliderTrackLayer: {
+    justifyContent: "center",
+    minHeight: 30,
+    position: "relative",
   },
   sliderTrackFill: {
     backgroundColor: colors.accent,
-    borderRadius: 4,
-    height: 8,
+    borderRadius: 999,
+    height: 6,
   },
   statsGrid: {
     gap: 8,

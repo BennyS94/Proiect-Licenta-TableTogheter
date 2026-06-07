@@ -1,11 +1,16 @@
 import { StatusBar, StyleSheet, View } from "react-native";
 
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { colors } from "./src/theme/colors";
 
 export default function App() {
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        backgroundColor={colors.background}
+        barStyle="dark-content"
+        translucent={false}
+      />
       <HomeScreen />
     </View>
   );
@@ -13,7 +18,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: {
+    backgroundColor: colors.background,
     flex: 1,
-    backgroundColor: "#F7F7F4",
   },
 });

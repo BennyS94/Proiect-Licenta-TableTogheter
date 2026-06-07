@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "expo": "~56.0.9",
+    "lottie-react-native": "~7.3.4",
     "react": "19.2.3",
-    "react-native": "latest"
+    "react-native": "latest",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
     "@types/react": "latest",

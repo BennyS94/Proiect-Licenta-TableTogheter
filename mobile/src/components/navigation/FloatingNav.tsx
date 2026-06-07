@@ -4,6 +4,12 @@ import { colors } from "../../theme/colors";
 
 export type AppPageKey = "home" | "mealPlan" | "insights" | "household";
 
+export const FLOATING_NAV_BOTTOM_OFFSET = 18;
+export const FLOATING_NAV_CONTENT_GAP = 22;
+export const FLOATING_NAV_HEIGHT = 60;
+export const FLOATING_NAV_SCREEN_BOTTOM_PADDING =
+  FLOATING_NAV_HEIGHT + FLOATING_NAV_BOTTOM_OFFSET + FLOATING_NAV_CONTENT_GAP;
+
 type FloatingNavProps = {
   activePage: AppPageKey;
   onSelectPage: (page: AppPageKey) => void;
@@ -56,6 +62,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: 8,
+    height: FLOATING_NAV_HEIGHT,
     justifyContent: "space-between",
     padding: 8,
     shadowColor: "#000000",
@@ -85,7 +92,7 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   shell: {
-    bottom: 18,
+    bottom: FLOATING_NAV_BOTTOM_OFFSET,
     left: 18,
     position: "absolute",
     right: 18,

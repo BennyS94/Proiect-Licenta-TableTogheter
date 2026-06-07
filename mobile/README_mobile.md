@@ -132,6 +132,13 @@ npx expo start --go --host lan
 - UI-2C: Meal Plan are header curat doar cu titlul `Meal Plan`; selectorul de membru/profil apare o singura data in zona rezultatului, dupa taburile `Meal Plan` / `Grocery List`.
 - UI-2C: controlul de generare 1-5 zile este slider-like custom, fara dependency noua, si afiseaza valoarea selectata ca `1 day` / `N days`.
 - UI-2C: selectorul de zile generate arata Day 1-Day 5 pe un singur rand, cu zilele negenerate disabled/gri.
+- HOME-1: Home este acum Page 1 warm/family discovery, cu hero, household CTA, Daily Food Tip rotativ, carusele de resurse si subpagini interne See all.
+- HOME-1: continutul Home este hardcoded in `mobile/src/data/homeContent.ts`; pagina nu apeleaza backend-ul si nu afecteaza planurile generate.
+- HOME-1: asset-urile vizuale sunt placeholder-uri React Native usoare; Lottie si imaginile finale raman pending.
+- HOME-1: linkurile externe sunt temporare si se deschid prin browser/YouTube cand utilizatorul apasa cardurile.
+- UI-ASSETS-1: `mobile/assets/` are structura pregatita pentru Home, brand, common, navigation, meal_plan, grocery, insights si household assets.
+- UI-ASSETS-1: regulile de naming si integrare sunt in `mobile/assets/README_assets.md`.
+- HOME-Lottie: hero-ul Home foloseste acum `mobile/assets/home/welcome/cooking_lottie.json` prin `lottie-react-native`.
 - UI-2B: Sample/Demo wording este ascuns din flow-ul principal; metadata tehnica de generator precum `plan_id`, `status`, `quality` si accept/review/reject nu mai este afisata in Meal Plan.
 - UI-2B: Tema foloseste white/off-white plus accent pear green `#74B72E` prin componentele mobile comune.
 - UI-2B: Login 401 afiseaza `Invalid email or password`; Change Email, Change Password, Language si Appearance sunt read-only/Coming soon unde nu exista implementare reala.
@@ -344,7 +351,7 @@ Alternativele `review` pot fi previzualizate, dar nu pot fi aplicate in MVP. Rep
 
 Mobile UI-1 adauga structura prefinala de produs, fara polish final:
 
-1. App-ul porneste in Household / Account daca nu exista setup demo activ.
+1. App-ul porneste in Home si poate ghida utilizatorul catre Account Setup cand nu exista profiluri.
 2. `Create Account` sau `Log In` activeaza flow-ul principal local.
 3. Navigatia flotanta comuta intre Home, Meal Plan, Insights si Household.
 4. Home afiseaza continut hardcoded scurt, family-friendly.
@@ -360,6 +367,60 @@ Structura UI-1 este verificata cu:
 python tools/extra/check_mobile_ui_shell_structure.py
 ```
 
+## Mobile HOME-1 Flow
+
+HOME-1 implementeaza Page 1 / Home ca ecran de descoperire, fara call-uri backend:
+
+1. Hero-ul foloseste profilul selectat/default daca exista; altfel afiseaza fallback generic.
+2. Household CTA trimite la `Go to Account Setup` cand nu exista profiluri si la `Go to Meal Plan` cand household-ul are profiluri.
+3. `Daily Food Tip` se schimba local prin butonul de refresh.
+4. `Highlights of the Week`, `Family & Kids Food Ideas` si `Healthy Habits` folosesc acelasi carusel reutilizabil.
+5. `See all` deschide subpagini interne Home, nu pagini noi in bottom nav.
+6. Cardurile de resurse deschid URL-uri externe temporare prin `Linking`.
+
+Structura HOME-1 este verificata cu:
+
+```powershell
+python tools/extra/check_mobile_home_page_structure.py
+```
+
+## Mobile UI-ASSETS-1
+
+UI-ASSETS-1 pregateste organizarea asset-urilor mobile fara sa schimbe designul curent si fara sa instaleze dependinte noi.
+
+Foldere principale:
+
+- `mobile/assets/brand/` pentru icon si splash assets viitoare de APK.
+- `mobile/assets/common/` pentru placeholders, backgrounds si patterns comune.
+- `mobile/assets/home/` pentru hero animation, tips, highlights, family/kids si healthy habits.
+- `mobile/assets/navigation/` pentru iconuri custom viitoare.
+- `mobile/assets/meal_plan/` pentru meal slots, actions, recipe details si cooking steps.
+- `mobile/assets/grocery/` pentru package icons si category visuals.
+- `mobile/assets/insights/` pentru macro si micronutrient visuals.
+- `mobile/assets/household/` pentru account, members si profile wizard visuals.
+
+Reguli importante:
+
+- Foloseste lowercase snake_case pentru fisiere.
+- Pentru Home hero, asset-ul activ este `mobile/assets/home/welcome/cooking_lottie.json`.
+- Fallback acceptat pentru Home hero: `cooking_loop.gif` sau `cooking_loop.webp`.
+- GIF/WebP/PNG pot fi adaugate fara dependency noua daca sunt folosite prin `Image`.
+- Lottie foloseste `lottie-react-native`, instalat pentru hero-ul Home.
+- Animated SVG nu este recomandat pana nu exista un renderer decis pentru React Native.
+- Nu importa asset-uri inexistente in cod, altfel Metro/TypeScript pot esua.
+
+Registry-ul sigur, fara importuri runtime, este:
+
+```text
+mobile/src/assets/assetRegistry.ts
+```
+
+Structura UI-ASSETS-1 este verificata cu:
+
+```powershell
+python tools/extra/check_mobile_assets_structure.py
+```
+
 ## Next Step
 
-Urmatorul pas este validarea runtime UI-1 pe emulator Android si apoi testarea pe telefon fizic pentru prezentare. Ingredient-level substitution ramane in afara MVP-ului curent.
+Urmatorul pas este sa pui asset-ul ales in folderul documentat si sa imi spui ce placeholder vrei sa inlocuiasca. Pentru hero-ul Home, pune Lottie/GIF/WebP in `mobile/assets/home/welcome/`. Ingredient-level substitution ramane in afara MVP-ului curent.

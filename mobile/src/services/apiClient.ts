@@ -24,6 +24,10 @@ import type {
 
 export type { HealthResponse } from "../types/api";
 
+const REQUEST_TIMEOUT_MS = 15000;
+const GENERATION_REQUEST_TIMEOUT_MS = 240000;
+const RECIPE_ACTION_REQUEST_TIMEOUT_MS = 60000;
+
 export async function getHealth(): Promise<HealthResponse> {
   const payload = await requestJson<Partial<HealthResponse>>("/health");
   if (payload.status !== "ok") {
@@ -162,37 +166,49 @@ export async function deleteProfile(
 export async function generateIndividualPlan(
   request: IndividualPlanGenerateRequest,
 ): Promise<IndividualPlanGenerateResponse> {
-  return requestJson<IndividualPlanGenerateResponse>("/plans/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  return requestJson<IndividualPlanGenerateResponse>(
+    "/plans/generate",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
     },
-    body: JSON.stringify(request),
-  });
+    GENERATION_REQUEST_TIMEOUT_MS,
+  );
 }
 
 export async function generateHouseholdPlan(
   request: HouseholdPlanGenerateRequest,
 ): Promise<HouseholdPlanGenerateResponse> {
-  return requestJson<HouseholdPlanGenerateResponse>("/household-plans/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  return requestJson<HouseholdPlanGenerateResponse>(
+    "/household-plans/generate",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
     },
-    body: JSON.stringify(request),
-  });
+    GENERATION_REQUEST_TIMEOUT_MS,
+  );
 }
 
 export async function getRecipeAlternatives(
   request: RecipeAlternativesRequest,
 ): Promise<RecipeAlternativesResponse> {
-  return requestJson<RecipeAlternativesResponse>("/recipes/similar", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  return requestJson<RecipeAlternativesResponse>(
+    "/recipes/similar",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
     },
-    body: JSON.stringify(request),
-  });
+    RECIPE_ACTION_REQUEST_TIMEOUT_MS,
+  );
 }
 
 export async function previewMealReplacement(
@@ -209,6 +225,7 @@ export async function previewMealReplacement(
       },
       body: JSON.stringify(request),
     },
+    RECIPE_ACTION_REQUEST_TIMEOUT_MS,
   );
 }
 
@@ -226,6 +243,7 @@ export async function applyMealReplacement(
       },
       body: JSON.stringify(request),
     },
+    RECIPE_ACTION_REQUEST_TIMEOUT_MS,
   );
 }
 
@@ -274,15 +292,39 @@ export async function clearFeedback(
   });
 }
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+async function requestJson<T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  const controller =
+    typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeoutError = new Error(
+    `Backend request timed out after ${Math.round(timeoutMs / 1000)}s at ${url}`,
+  );
 
   let response: Response;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    response = await fetch(url, init);
+    const request = fetch(url, controller ? { ...init, signal: controller.signal } : init);
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        controller?.abort();
+        reject(timeoutError);
+      }, timeoutMs);
+    });
+    response = await Promise.race([request, timeout]);
   } catch (error) {
+    if (error === timeoutError) {
+      throw timeoutError;
+    }
     const message = error instanceof Error ? error.message : "unknown_error";
     throw new Error(`Cannot reach backend at ${url}: ${message}`);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 
   if (!response.ok) {

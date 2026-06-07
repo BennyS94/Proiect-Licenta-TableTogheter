@@ -296,12 +296,22 @@ UI-2C este implementat ca polish product-facing peste Meal Plan:
 - Padding-ul global de jos din `AppScreen` a fost marit ca sa nu ascunda ultimul continut sub floating nav.
 - UI-2C nu adauga dependency noua, nu schimba endpointuri si nu modifica generator/backend generation logic.
 
+HOME-1 este implementat ca Page 1 / Home discovery:
+
+- Home porneste ca prima pagina a shell-ului mobil si ramane in acelasi bottom-nav existent.
+- Home foloseste layout warm/family-oriented: hero, household CTA, Daily Food Tip, carusele de resurse si subpagini interne See all.
+- Continutul este hardcoded si centralizat in `mobile/src/data/homeContent.ts`.
+- Home nu face call-uri backend, nu modifica planuri generate si nu afecteaza generator/grocery/pricing/KNN.
+- Lottie si imaginile finale nu sunt inca integrate; UI-ul foloseste placeholder-uri React Native usoare si URL-uri externe temporare.
+- Structura este verificata cu `tools/extra/check_mobile_home_page_structure.py`.
+
 ## Remaining mobile milestones
 
 Later - UI polish after UI-1:
 
 - polish vizual final
 - iconuri finale in locul placeholderelor ASCII din navigatia flotanta
+- asset-uri finale Home: Lottie cooking, thumbnail-uri si linkuri externe finale
 - stari loading/error mai polishate
 - pregatire demo MVP mai apropiata de produs
 
