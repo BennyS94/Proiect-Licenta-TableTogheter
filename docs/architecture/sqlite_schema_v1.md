@@ -10,6 +10,8 @@ Nu implementeaza baza de date si nu modifica generatorul. In MVP, JSON-ul comple
 
 SQLite este folosit pentru:
 
+- users
+- user sessions
 - households
 - member profiles
 - feedback events
@@ -31,10 +33,47 @@ Columns:
 | Column | Type | Notes |
 | --- | --- | --- |
 | `household_id` | TEXT PRIMARY KEY | ID stabil pentru household |
+| `user_id` | TEXT NULL | Owner local Auth-M1, nullable pentru compatibilitate demo/dev |
 | `household_name` | TEXT NOT NULL | Nume afisat |
+| `display_name` | TEXT NULL | Nume afisat Auth-M1; fallback la `household_name` |
 | `created_at` | TEXT NOT NULL | ISO timestamp |
 | `updated_at` | TEXT NOT NULL | ISO timestamp |
 | `settings_json` | TEXT NOT NULL | Setari household serializate JSON |
+| `is_active` | INTEGER NOT NULL DEFAULT 1 | Soft active flag pentru Auth-M1 |
+
+## Table: users
+
+Rol:
+- Pastreaza conturile locale MVP.
+
+Columns:
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `user_id` | TEXT PRIMARY KEY | ID stabil utilizator |
+| `email` | TEXT UNIQUE NOT NULL | Email normalizat lowercase/trim |
+| `password_hash` | TEXT NOT NULL | Hash PBKDF2-HMAC-SHA256 |
+| `password_salt` | TEXT NOT NULL | Salt generat cu `secrets.token_hex` |
+| `created_at` | TEXT NOT NULL | ISO timestamp |
+| `updated_at` | TEXT NOT NULL | ISO timestamp |
+| `is_active` | INTEGER NOT NULL DEFAULT 1 | Soft active flag |
+
+## Table: user_sessions
+
+Rol:
+- Pastreaza sesiunile locale MVP.
+
+Columns:
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `session_id` | TEXT PRIMARY KEY | ID stabil sesiune |
+| `user_id` | TEXT NOT NULL | FK logic spre `users.user_id` |
+| `session_token_hash` | TEXT NOT NULL | Hash SHA-256 al tokenului brut |
+| `created_at` | TEXT NOT NULL | ISO timestamp |
+| `expires_at` | TEXT NULL | Nullable in MVP; sesiune long-lived local |
+| `revoked_at` | TEXT NULL | Setat la logout |
+| `is_active` | INTEGER NOT NULL DEFAULT 1 | 0 dupa revocare |
 
 ## Table: member_profiles
 
@@ -183,11 +222,12 @@ Columns:
 - `response_json` si `grocery_json` pot stoca raspunsurile complete in MVP.
 - Tabelele normalizate sunt utile pentru query/display mai tarziu.
 - Normalizarea completa poate fi amanata pana cand contractul API si UI-ul mobil se stabilizeaza.
-- Schema este pentru SQLite local/demo, nu pentru cloud production DB.
+- Schema este pentru SQLite local MVP/preview, nu pentru cloud production DB.
+- Auth-M1 nu adauga email verification, password reset, email sending sau productie-grade auth claims.
 
 ## Non-goals
 
-- Nu defineste autentificare complexa.
+- Nu defineste autentificare complexa/cloud.
 - Nu defineste sincronizare cloud.
 - Nu defineste migratii production-grade.
 - Nu modifica Generator v1 sau fisierele de date curente.

@@ -32,8 +32,38 @@ export type DemoHouseholdResponse = {
   [key: string]: unknown;
 };
 
-export type MemberProfileCreateRequest = {
+export type RegisterRequest = {
+  email: string;
+  password: string;
+  confirm_password: string;
+};
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type AuthAccount = {
+  user_id: string;
+  email: string;
   household_id: string;
+  household_display_name: string;
+};
+
+export type AuthResponse = {
+  status: string;
+  message: string;
+  session_token: string;
+  account: AuthAccount;
+};
+
+export type MeResponse = {
+  status: string;
+  account: AuthAccount | null;
+};
+
+export type MemberProfileCreateRequest = {
+  household_id?: string;
   member_profile_id?: string;
   display_name: string;
   age: number;

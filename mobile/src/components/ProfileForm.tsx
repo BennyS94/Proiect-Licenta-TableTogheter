@@ -23,7 +23,6 @@ const GOAL_SPEED_OPTIONS = ["slow", "normal", "fast"];
 const TRAINING_TYPE_OPTIONS = ["mixed", "weights", "cardio"];
 
 export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileFormProps) {
-  const [householdId, setHouseholdId] = useState(defaultHouseholdId);
   const [displayName, setDisplayName] = useState("");
   const [age, setAge] = useState("30");
   const [sex, setSex] = useState("male");
@@ -45,7 +44,7 @@ export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileF
     const parsedTrainingSessions = Number(trainingSessions);
     const parsedMealsPerDay = Number(mealsPerDay);
     const cleanName = displayName.trim();
-    const cleanHouseholdId = householdId.trim() || defaultHouseholdId;
+    const cleanHouseholdId = defaultHouseholdId.trim();
 
     if (!cleanName) {
       setValidationError("Display name is required.");
@@ -106,12 +105,7 @@ export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileF
       <Text style={styles.title}>Create profile</Text>
 
       <TextField
-        label="Household ID"
-        onChangeText={setHouseholdId}
-        value={householdId}
-      />
-      <TextField
-        label="Display name"
+        label="Name"
         onChangeText={setDisplayName}
         placeholder="Alex"
         value={displayName}
@@ -137,21 +131,21 @@ export function ProfileForm({ defaultHouseholdId, disabled, onSubmit }: ProfileF
         value={heightCm}
       />
 
-      <OptionGroup label="Sex" options={SEX_OPTIONS} selected={sex} onSelect={setSex} />
-      <OptionGroup
+      <StepperSelector label="Sex" options={SEX_OPTIONS} selected={sex} onSelect={setSex} />
+      <StepperSelector
         label="Activity"
         options={ACTIVITY_OPTIONS}
         selected={activityLevel}
         onSelect={setActivityLevel}
       />
-      <OptionGroup label="Goal" options={GOAL_OPTIONS} selected={goal} onSelect={setGoal} />
-      <OptionGroup
+      <StepperSelector label="Goal" options={GOAL_OPTIONS} selected={goal} onSelect={setGoal} />
+      <StepperSelector
         label="Goal speed"
         options={GOAL_SPEED_OPTIONS}
         selected={goalSpeed}
         onSelect={setGoalSpeed}
       />
-      <OptionGroup
+      <StepperSelector
         label="Training type"
         options={TRAINING_TYPE_OPTIONS}
         selected={trainingType}
@@ -236,7 +230,7 @@ function TextField({
   );
 }
 
-function OptionGroup({
+function StepperSelector({
   label,
   onSelect,
   options,
@@ -247,34 +241,38 @@ function OptionGroup({
   options: string[];
   selected: string;
 }) {
+  const currentIndex = Math.max(0, options.indexOf(selected));
+  const previousValue =
+    options[currentIndex <= 0 ? options.length - 1 : currentIndex - 1] ?? selected;
+  const nextValue =
+    options[currentIndex >= options.length - 1 ? 0 : currentIndex + 1] ?? selected;
+
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.optionRow}>
-        {options.map((option) => (
-          <Pressable
-            accessibilityRole="button"
-            key={option}
-            onPress={() => onSelect(option)}
-            style={({ pressed }) => [
-              styles.optionButton,
-              option === selected ? styles.optionButtonSelected : null,
-              pressed ? styles.pressed : null,
-            ]}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                option === selected ? styles.optionTextSelected : null,
-              ]}
-            >
-              {option}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={styles.stepper}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onSelect(previousValue)}
+          style={({ pressed }) => [styles.stepperButton, pressed ? styles.pressed : null]}
+        >
+          <Text style={styles.stepperArrow}>{"<"}</Text>
+        </Pressable>
+        <Text style={styles.stepperValue}>{formatOption(selected)}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onSelect(nextValue)}
+          style={({ pressed }) => [styles.stepperButton, pressed ? styles.pressed : null]}
+        >
+          <Text style={styles.stepperArrow}>{">"}</Text>
+        </Pressable>
       </View>
     </View>
   );
+}
+
+function formatOption(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function isPositiveNumber(value: number): boolean {
@@ -316,6 +314,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     textTransform: "uppercase",
+  },
+  stepper: {
+    alignItems: "center",
+    borderColor: "#D9D6CC",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 46,
+    overflow: "hidden",
+  },
+  stepperArrow: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  stepperButton: {
+    alignItems: "center",
+    backgroundColor: "#165D77",
+    height: 46,
+    justifyContent: "center",
+    width: 48,
+  },
+  stepperValue: {
+    color: "#111827",
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "800",
+    textAlign: "center",
   },
   optionButton: {
     borderColor: "#165D77",

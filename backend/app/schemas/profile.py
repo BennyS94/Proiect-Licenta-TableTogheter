@@ -9,7 +9,7 @@ class MemberProfileCreateRequest(BaseModel):
     class Config:
         extra = "allow"
 
-    household_id: str
+    household_id: str = ""
     member_profile_id: str | None = None
     display_name: str
     age: int

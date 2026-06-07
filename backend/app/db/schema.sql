@@ -1,9 +1,32 @@
 CREATE TABLE IF NOT EXISTS households (
     household_id TEXT PRIMARY KEY,
+    user_id TEXT,
     household_name TEXT NOT NULL,
+    display_name TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    settings_json TEXT NOT NULL
+    settings_json TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+    session_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    session_token_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT,
+    revoked_at TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS member_profiles (

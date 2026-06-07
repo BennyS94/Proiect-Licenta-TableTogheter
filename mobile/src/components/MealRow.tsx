@@ -33,8 +33,13 @@ export function MealRow({
   onReplacementApplied,
 }: MealRowProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const [showCook, setShowCook] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const recipeId = stringValue(meal.recipe_id);
   const slot = stringValue(meal.slot);
+  const ingredients = getIngredients(meal);
+  const steps = getCookingSteps(meal);
+  const estimatedTime = getEstimatedTime(meal);
 
   return (
     <View style={styles.container}>
@@ -48,19 +53,71 @@ export function MealRow({
           <Text style={styles.macro}>{formatNumber(meal.protein_g)}g protein</Text>
         </View>
       </View>
-      {recipeId ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setShowAlternatives((current) => !current)}
-          style={({ pressed }) => [
-            styles.alternativesButton,
-            pressed ? styles.alternativesButtonPressed : null,
-          ]}
-        >
-          <Text style={styles.alternativesButtonText}>
-            {showAlternatives ? "Hide alternatives" : "Alternatives"}
-          </Text>
-        </Pressable>
+      <View style={styles.actionRow}>
+        <SmallActionButton
+          label={showDetails ? "Hide details" : "Details"}
+          onPress={() => setShowDetails((current) => !current)}
+        />
+        <SmallActionButton
+          label={showCook ? "Hide steps" : "Cook / Steps"}
+          onPress={() => setShowCook((current) => !current)}
+        />
+        {recipeId ? (
+          <SmallActionButton
+            label={showAlternatives ? "Hide alternatives" : "Alternatives"}
+            onPress={() => setShowAlternatives((current) => !current)}
+          />
+        ) : null}
+      </View>
+      {showDetails ? (
+        <View style={styles.detailBox}>
+          <Text style={styles.detailTitle}>{String(meal.display_name ?? meal.recipe_id ?? "Recipe")}</Text>
+          <MetricLine label="Calories" value={`${formatNumber(meal.kcal)} kcal`} />
+          <MetricLine label="Protein" value={`${formatNumber(meal.protein_g)}g`} />
+          <MetricLine label="Carbs" value={`${formatNumber(meal.carbs_g)}g`} />
+          <MetricLine label="Fats" value={`${formatNumber(meal.fat_g)}g`} />
+          <MetricLine label="Cooking time" value={estimatedTime ? `${estimatedTime} min` : "-"} />
+          {ingredients.length ? (
+            <View style={styles.inlineList}>
+              <Text style={styles.detailTitle}>Ingredients</Text>
+              {ingredients.slice(0, 8).map((ingredient, index) => (
+                <Text key={`${ingredient}-${index}`} style={styles.detailText}>
+                  {ingredient}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+      {showCook ? (
+        <View style={styles.detailBox}>
+          <Text style={styles.detailTitle}>{String(meal.display_name ?? meal.recipe_id ?? "Recipe")}</Text>
+          <MetricLine label="Estimated time" value={estimatedTime ? `${estimatedTime} min` : "-"} />
+          {ingredients.length ? (
+            <View style={styles.inlineList}>
+              <Text style={styles.detailTitle}>Ingredients</Text>
+              {ingredients.slice(0, 8).map((ingredient, index) => (
+                <Text key={`${ingredient}-${index}`} style={styles.detailText}>
+                  {ingredient}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+          <View style={styles.inlineList}>
+            <Text style={styles.detailTitle}>Cooking steps</Text>
+            {steps.length ? (
+              steps.map((step, index) => (
+                <Text key={`${step}-${index}`} style={styles.detailText}>
+                  {index + 1}. {step}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.detailText}>
+                Cooking steps are not available for this recipe yet.
+              </Text>
+            )}
+          </View>
+        </View>
       ) : null}
       {onSubmitFeedback ? (
         <MealFeedbackButtons
@@ -90,11 +147,88 @@ export function MealRow({
   );
 }
 
+function SmallActionButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.alternativesButton,
+        pressed ? styles.alternativesButtonPressed : null,
+      ]}
+    >
+      <Text style={styles.alternativesButtonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function MetricLine({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metricLine}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
+  );
+}
+
 function formatNumber(value: unknown): string {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return "-";
   }
   return String(Math.round(value));
+}
+
+function getEstimatedTime(meal: GeneratedMeal): number | null {
+  const candidates = [
+    meal.effective_time_min_for_scoring,
+    meal.effective_time_min,
+    meal.total_time_min,
+    meal.cooking_time_min,
+    meal.time_min,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      return Math.round(candidate);
+    }
+  }
+  return null;
+}
+
+function getIngredients(meal: GeneratedMeal): string[] {
+  const raw =
+    meal.ingredients ??
+    meal.ingredient_names ??
+    meal.ingredients_list ??
+    meal.recipe_ingredients;
+  return normalizeTextList(raw);
+}
+
+function getCookingSteps(meal: GeneratedMeal): string[] {
+  const raw = meal.cooking_steps ?? meal.directions ?? meal.steps ?? meal.instructions;
+  return normalizeTextList(raw);
+}
+
+function normalizeTextList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") {
+          return item.trim();
+        }
+        if (typeof item === "object" && item !== null && "text" in item) {
+          return String((item as { text?: unknown }).text ?? "").trim();
+        }
+        return String(item ?? "").trim();
+      })
+      .filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/\n|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
 }
 
 function stringValue(value: unknown): string | null {
@@ -122,11 +256,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
+  actionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   container: {
     borderTopWidth: 1,
     borderTopColor: "#E5E0D5",
     gap: 8,
     paddingTop: 10,
+  },
+  detailBox: {
+    backgroundColor: "#F7F7F4",
+    borderColor: "#D9D6CC",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+    padding: 12,
+  },
+  detailText: {
+    color: "#4B5563",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  detailTitle: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  inlineList: {
+    gap: 4,
   },
   row: {
     flexDirection: "row",
@@ -156,5 +316,22 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     fontSize: 13,
     fontWeight: "700",
+  },
+  metricLabel: {
+    color: "#4B5563",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  metricLine: {
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  metricValue: {
+    color: "#111827",
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "right",
   },
 });

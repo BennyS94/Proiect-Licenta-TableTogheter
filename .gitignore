@@ -22,7 +22,8 @@ AGENTS.md
 Thumbs.db
 *.log
 *.tmp
-zzzzzz_my_commands/
+/zzzzzz_mobile_testing_notes/
+.codex_runtime_logs/
 
 # Stare locala/demo, nu se comite.
 data/runtime/

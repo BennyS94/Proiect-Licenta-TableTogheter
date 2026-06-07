@@ -25,7 +25,7 @@ export function GroceryItemRow({ item }: GroceryItemRowProps) {
       </View>
       <View style={styles.side}>
         <Text style={missingPrice ? styles.missingPrice : styles.cost}>
-          {priceText ?? "No price estimate"}
+          {priceText ?? "Price unavailable"}
         </Text>
         {missingPrice || hasPriceMissingWarning(item) ? (
           <Text style={styles.badge}>Price missing</Text>

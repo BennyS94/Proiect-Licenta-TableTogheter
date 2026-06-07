@@ -74,6 +74,18 @@ Implementat in KNN-4:
 - KNN ramane candidate provider, iar Generator v1 ramane approval gate
 - ingredient-level substitution nu este implementat in KNN-4
 
+Implementat in Auth-M1:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /auth/me`
+- conturi locale SQLite cu `users`, `user_sessions` si household implicit per cont
+- parole stocate ca PBKDF2-HMAC-SHA256 hash + salt, niciodata plaintext
+- token brut returnat clientului si hash de token stocat in SQLite
+- profile scoped pe household-ul contului cand requestul include `Authorization: Bearer <session_token>`
+- fara email verification, password reset, email sending, cloud auth sau production-grade auth claims
+
 ## Run
 
 Instaleaza dependintele backend minime:
@@ -135,6 +147,19 @@ DELETE http://127.0.0.1:8000/feedback?confirm=true
 Feedback API foloseste SQLite ca sursa backend. Din M5, endpointurile de generatie pot primi context feedback agregat din SQLite. CLI/Streamlit isi pastreaza comportamentul JSONL/local existent.
 
 Profile delete din M8 este soft delete: seteaza `is_active=0` si actualizeaza `updated_at`; nu sterge randul fizic din SQLite. Endpointul cere `confirm=true`.
+
+Auth endpoints MVP:
+
+```text
+POST http://127.0.0.1:8000/auth/register
+POST http://127.0.0.1:8000/auth/login
+POST http://127.0.0.1:8000/auth/logout
+GET  http://127.0.0.1:8000/auth/me
+```
+
+`/auth/register` creeaza cont local, household implicit si sesiune. `/auth/login` creeaza o sesiune noua. `/auth/logout` revoca tokenul daca este furnizat. `/auth/me` cere header `Authorization: Bearer <session_token>`.
+
+Profilele create/listate cu acelasi header sunt limitate la household-ul contului. Fara header, endpointurile de profile pastreaza calea dev/smoke existenta pentru compatibilitate.
 
 Recipe alternatives endpoint KNN-2:
 
@@ -265,6 +290,19 @@ Output sumar M8:
 data/recipesdb/audit/backend_m8_profile_feedback_cleanup_summary.txt
 ```
 
+Smoke pentru Auth-M1:
+
+```powershell
+python tools/extra/check_backend_auth_m1.py
+```
+
+Output Auth-M1:
+
+```text
+data/recipesdb/audit/backend_auth_m1_summary.txt
+data/recipesdb/audit/backend_auth_m1_response_sample.json
+```
+
 Smoke pentru alternative retete KNN-2:
 
 ```powershell
@@ -295,21 +333,21 @@ data/recipesdb/audit/backend_knn_meal_replacement_apply_sample.json
 
 ## Not implemented yet
 
-- mobile app
-- auth/login
 - cloud deployment
 - production DB
 - live price scraping
 - advanced household optimizer
-- mobile alternatives UI
 - automatic meal replacement
 - ingredient substitution
+- email verification
+- password reset email
+- change email / change password endpoints
 
 ## Current limitations
 
 - Endpointurile M3 sunt MVP/demo local.
 - Persistenta este SQLite locala, nu schema production.
-- Nu exista auth/login.
-- Nu exista app mobile inca.
+- Auth-M1 este local SQLite MVP, nu sistem production-grade.
+- Sesiunile sunt long-lived local si nu au inca management avansat.
 - Generatorul ramane Python si ruleaza in backend process.
 - `GET /profiles` returneaza doar profilurile salvate in SQLite; pentru membrii demo foloseste `GET /households/demo`.

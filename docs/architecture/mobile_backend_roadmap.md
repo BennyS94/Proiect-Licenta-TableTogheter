@@ -97,6 +97,8 @@ Python Generator:
 SQLite:
 
 - `households`
+- `users`
+- `user_sessions`
 - `member_profiles`
 - `feedback_events`
 - `generated_plans`
@@ -212,7 +214,7 @@ Backend M1-M5 sunt implementate:
 - M4: demo household, profile endpoints si feedback endpoints.
 - M5: generatie persistence-aware cu profile SQLite si injectare de feedback context cand `feedback_enabled=true`.
 
-Mobile M1-M8 sunt implementate:
+Mobile M1-M8 si UI-1 sunt implementate:
 
 - M1: Expo Android skeleton si `GET /health`.
 - M2: `GET /households/demo`, selectie membru demo, `POST /plans/generate` si afisare plan individual pe 3 zile.
@@ -222,6 +224,7 @@ Mobile M1-M8 sunt implementate:
 - M6: creare si listare profiluri salvate prin SQLite backend, plus generare individuala prin `member_profile_id`.
 - M7: generatie household cu profiluri salvate; mobile selecteaza profiluri salvate multiple si apeleaza `POST /household-plans/generate` cu `selected_member_ids`.
 - M8: cleanup local/demo pentru profiluri si feedback; mobile poate soft-dezactiva profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true` si poate sterge feedback events prin `DELETE /feedback?confirm=true`.
+- UI-1: shell mobil prefinal cu 4 pagini (`Home`, `Meal Plan`, `Insights`, `Household / Account`), navigatie flotanta, guard states, Home hardcoded, Insights de baza si Household/Account pentru setup demo/profiluri/status.
 
 Flow mobil validat:
 
@@ -235,18 +238,38 @@ Flow-ul M7 reutilizeaza afisarea household din M5: selector de membru, selector 
 
 Flow-ul M8 nu adauga auth/login sau cloud sync. Profilurile salvate sunt soft-dezactivate in SQLite local/demo, nu hard-deleted. Cleanup pentru planuri generate ramane neimplementat in M8 si poate fi adaugat doar ca endpoint dev/demo separat daca devine necesar.
 
+UI-1 nu schimba backend/generator/grocery/pricing si nu modifica `data/recipesdb/current` sau `data/fooddb/current`. Meal Plan pastreaza fluxurile reale deja validate: generatie individuala, generatie household, grocery list, feedback, KNN alternatives si meal-level replacement explicit. Home foloseste continut hardcoded MVP, iar Insights ramane vizualizare de baza fara claims complete de micronutrienti.
+
+Auth-M1 + UI-2A sunt implementate ca productization pass local:
+
+- `POST /auth/register`, `POST /auth/login`, `POST /auth/logout` si `GET /auth/me`.
+- Conturile sunt locale SQLite, fara Firebase/Supabase, fara cloud auth, fara email verification si fara password reset.
+- Parolele sunt stocate ca PBKDF2-HMAC-SHA256 hash + salt; plaintext password nu se stocheaza.
+- Sesiunile returneaza token brut clientului, dar SQLite stocheaza doar hash-ul tokenului.
+- Fiecare cont primeste un household implicit.
+- Profilele create cu `Authorization: Bearer <session_token>` sunt salvate automat sub household-ul contului.
+- Mobile pastreaza sesiunea in React state pentru acest MVP; persistenta peste restart de app ramane limitare/future work deoarece nu exista inca AsyncStorage.
+- Page 4 este reorganizata ca hub: Account Settings, Household Management si App Settings.
+- `Create Account` si `Log In` sunt flow-uri reale locale; `Log Out` revoca sesiunea cand exista token si curata state-ul local.
+- `Household ID` nu mai este expus in formularul Add Profile.
+- Textele principale de demo/test/MVP au fost scoase din flow-ul user-facing; fallback-ul optional este denumit `Try Sample Household`.
+- Safe area/status bar spacing este reparat global in mobile shell, iar empty/guard states sunt centrate.
+- Meal Plan are titlu centrat, selector de profil cu sageti, selector compact de zile si control 1-5 zile fara dependency noua.
+- Missing price si missing cooking steps raman probleme de continut/date, dar UI-ul afiseaza fallback-uri curate.
+
 ## Remaining mobile milestones
 
-Later - UI polish and screen separation:
+Later - UI polish after UI-1:
 
-- structurare mai clara a ecranelor
-- detalii masa mai bune
+- polish vizual final
+- iconuri finale in locul placeholderelor ASCII din navigatia flotanta
 - stari loading/error mai polishate
 - pregatire demo MVP mai apropiata de produs
 
 Later - Product/account work:
 
-- auth/login daca devine necesar
+- persistenta sigura a sesiunii peste restart de app
+- change email / change password daca devin necesare pentru prezentare
 - cloud sync doar dupa ce fluxul local/demo este stabil
 - ecrane household dedicate si feedback household imbunatatit
 
@@ -254,7 +277,7 @@ Later - Product/account work:
 
 - Fara iOS.
 - Fara Play Store publishing.
-- Fara login complex.
+- Fara login cloud/complex.
 - Fara payments.
 - Fara cloud deployment complexity.
 - Fara Firebase/Supabase daca nu exista o justificare ulterioara clara.

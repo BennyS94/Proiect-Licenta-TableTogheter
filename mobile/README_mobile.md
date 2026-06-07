@@ -6,6 +6,8 @@ Acest folder contine scheletul Android MVP pentru aplicatia mobila TableTogether
 
 Scopul curent este conectivitatea cu backend-ul FastAPI si un flow demo minim: health check, incarcare household demo, selectie membru, generare plan individual si generare plan household. Aplicatia mobila nu citeste CSV-uri, nu ruleaza generatorul si nu contine logica nutritionala.
 
+Auth-M1 schimba flow-ul principal spre cont local SQLite: utilizatorul poate crea cont, se poate loga, poate crea profiluri salvate sub household-ul contului si poate iesi prin Log Out. Fallback-ul sample household ramane doar pentru inspectie rapida.
+
 ## Requirements
 
 - Node.js
@@ -19,6 +21,12 @@ Din radacina proiectului:
 
 ```powershell
 uvicorn backend.app.main:app --reload
+```
+
+Pentru testare viitoare pe telefon fizic in aceeasi retea Wi-Fi, backend-ul trebuie pornit ascultand pe LAN:
+
+```powershell
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## Run mobile
@@ -63,10 +71,23 @@ Pentru telefon fizic pe acelasi Wi-Fi, schimba `API_BASE_URL` in `mobile/src/con
 http://192.168.x.x:8000
 ```
 
+Forma asteptata pentru telefon fizic este:
+
+```text
+http://<PC_LAN_IP>:8000
+```
+
 Pentru web/browser local poate fi folosit:
 
 ```text
 http://127.0.0.1:8000
+```
+
+Pentru test pe telefon fara hardcode permanent, porneste Expo cu:
+
+```powershell
+$env:EXPO_PUBLIC_API_BASE_URL='http://<PC_LAN_IP>:8000'
+npx expo start --go --host lan
 ```
 
 ## Current Scope
@@ -90,6 +111,17 @@ http://127.0.0.1:8000
 - Poate curata feedback-ul local/demo prin `DELETE /feedback?confirm=true`.
 - Poate afisa KNN alternatives read-only pentru mese cu `recipe_id`, prin `POST /recipes/similar`.
 - Poate face meal-level replacement explicit dintr-o alternativa `approved`, prin `POST /plans/{plan_id}/replace-meal`.
+- UI-1 adauga shell mobil prefinal cu 4-page navigation: Home, Meal Plan, Insights si Household / Account.
+- Home este hardcoded pentru MVP si nu apeleaza backend-ul.
+- Meal Plan pastreaza fluxurile reale de generare, feedback, KNN alternatives, replacement si grocery list.
+- Insights are guard state si o vizualizare de baza peste planul generat, fara claims complete de micronutrienti.
+- Household / Account gazduieste setup demo, profiluri salvate, default viewer, status backend si tool-uri demo.
+- Auth-M1 adauga Create Account, Log In, Log Out si account-scoped profile calls.
+- Add Profile nu mai expune `Household ID`; backend-ul il asigneaza automat din sesiunea contului cand exista token.
+- Page 4 este hub cu Account Settings, Household Management si App Settings.
+- Safe area/status bar spacing este reparat global in `AppScreen`, iar empty states sunt centrate.
+- Meal Plan are header mai curat, selector de profil cu sageti, selector compact de zi si control 1-5 zile fara dependency noua.
+- Missing price afiseaza `Price unavailable`; missing cooking steps afiseaza mesaj dedicat.
 
 ## Mobile M2 Flow
 
@@ -102,6 +134,26 @@ http://127.0.0.1:8000
 Mobile M2 trimite profilul demo inline din `/households/demo`. Nu foloseste inca `member_profile_id` persistent din SQLite.
 
 Auth/login si cloud sync raman pentru checkpointuri ulterioare.
+
+## Mobile Auth-M1 Flow
+
+1. Porneste backend-ul FastAPI.
+2. Deschide aplicatia.
+3. Alege `Create Account`.
+4. Introdu email, parola si confirmare parola.
+5. La succes, aplicatia seteaza sesiunea in React state si intra in Household / Account.
+6. Mergi la `Household Management`.
+7. Creeaza primul profil; aplicatia selecteaza profilul si Meal Plan devine utilizabil fara Load Demo.
+8. Pentru revenire ulterioara in aceeasi sesiune de app, foloseste `Log In`.
+9. `Log Out` revoca sesiunea daca exista token si curata state-ul local.
+
+Limitari Auth-M1:
+
+- sesiunea nu este persistata peste restart de app deoarece nu exista inca AsyncStorage sau storage echivalent;
+- nu exista email verification;
+- nu exista password reset email;
+- nu exista change email / change password functional;
+- nu exista cloud sync, Firebase sau Supabase.
 
 ## Mobile M3 Flow
 
@@ -225,6 +277,26 @@ Mobile KNN-4 adauga replacement explicit peste panoul `Alternatives`:
 
 Alternativele `review` pot fi previzualizate, dar nu pot fi aplicate in MVP. Replacement-ul nu porneste automat cand se deschide panoul si nu face substitutii de ingrediente. Aplicatia consuma doar FastAPI prin HTTP/JSON; nu citeste CSV-uri si nu importa generatorul.
 
+## Mobile UI-1 Flow
+
+Mobile UI-1 adauga structura prefinala de produs, fara polish final:
+
+1. App-ul porneste in Household / Account daca nu exista setup demo activ.
+2. `Create Account` sau `Log In` activeaza flow-ul principal local.
+3. Navigatia flotanta comuta intre Home, Meal Plan, Insights si Household.
+4. Home afiseaza continut hardcoded scurt, family-friendly.
+5. Meal Plan pastreaza generarea individuala si household, tab intern `Meal Plan` / `Grocery List`, feedback pe mese, KNN alternatives si replacement explicit.
+6. Insights afiseaza empty state inainte de plan si o vizualizare de baza dupa generare.
+7. Household / Account este hub pentru Account Settings, Household Management si App Settings.
+
+UI-1 nu adauga cloud, payments, animatii finale sau chart dependency. Auth-M1 adauga auth local SQLite, nu production-grade cloud auth. Pentru emulator backend URL implicit ramane `http://10.0.2.2:8000`.
+
+Structura UI-1 este verificata cu:
+
+```powershell
+python tools/extra/check_mobile_ui_shell_structure.py
+```
+
 ## Next Step
 
-Urmatorul pas este validarea runtime KNN-4 pe emulator Android, apoi design separat pentru ingredient substitution daca ramane necesar.
+Urmatorul pas este validarea runtime UI-1 pe emulator Android si apoi testarea pe telefon fizic pentru prezentare. Ingredient-level substitution ramane in afara MVP-ului curent.

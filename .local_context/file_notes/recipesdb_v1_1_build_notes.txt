@@ -3096,3 +3096,114 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - no grocery list recalculation from alternatives
 - Next recommendation:
   - decide separately whether KNN-4 is an explicit replacement flow or an ingredient substitution design.
+
+## 98. KNN-4 explicit meal replacement - 2026-06-06
+- Added backend functional meal replacement preview/apply:
+  - `src/generator_v1/plan_replacement.py`
+  - `src.generator_v1.service.preview_meal_replacement_from_request(request)`
+  - `src.generator_v1.service.apply_meal_replacement_from_request(request)`
+  - `backend/app/api/routes/plan_replacements.py`
+  - `backend/app/schemas/plan_replacement.py`
+- Added endpoint:
+  - `POST /plans/{plan_id}/replace-meal?dry_run=true`
+  - `POST /plans/{plan_id}/replace-meal?dry_run=false`
+- Behavior:
+  - KNN remains candidate provider only.
+  - Generator approval gate remains mandatory.
+  - `dry_run=true` previews impact and does not persist.
+  - `dry_run=false` creates a new derived generated plan row and recalculates grocery list.
+  - Approved alternatives can be applied; review alternatives remain preview-only.
+  - Original plan rows are not overwritten.
+- Added mobile KNN-4 preview/confirm flow:
+  - `previewMealReplacement`
+  - `applyMealReplacement`
+  - `Preview replacement`
+  - `Replace meal`
+  - state update for individual and household generated plans.
+- Added validation helpers:
+  - `tools/extra/check_backend_knn_meal_replacement.py`
+  - `tools/extra/check_mobile_knn_replacement_structure.py`
+  - audit outputs under `data/recipesdb/audit/`.
+- Limitations:
+  - no automatic replacement when opening Alternatives
+  - no ingredient substitution
+  - no auth/user ownership enforcement
+  - household support is MVP/demo over currently exposed plan rows
+  - no changes to `data/recipesdb/current`, `data/fooddb/current`, or `src/legacy`
+
+## 99. KNN-4b MVP substitution scope lock - 2026-06-07
+- MVP substitution/swap scope is locked to meal-level replacement only.
+- Current KNN-4 behavior replaces one full recipe/meal with another approved recipe after preview and explicit confirmation.
+- Ingredient-level substitution is deferred; no ingredient-by-ingredient in-recipe replacement is implemented.
+- KNN remains candidate provider, and generator/backend approval gate remains validator/approver.
+- Opening Alternatives remains read-only; replacement applies only after `Replace meal`.
+- No behavior changes were intended for generator selection, backend replacement logic, mobile flow, grocery/pricing, or data current files.
+
+## 100. Mobile UI-1 prefinal shell - 2026-06-07
+- Added prefinal mobile UI shell with 4 pages:
+  - `Home`
+  - `Meal Plan`
+  - `Insights`
+  - `Household / Account`
+- Added floating bottom navigation with icon placeholders, not final icon polish.
+- Home is hardcoded MVP content only; it does not call backend or show fake plan data.
+- Meal Plan preserves existing real flows:
+  - backend health remains available under Household/App Settings
+  - demo household load
+  - saved profiles load/create/remove
+  - individual plan generation
+  - household plan generation
+  - grocery list display as an internal Meal Plan tab
+  - feedback buttons and feedback cleanup
+  - KNN alternatives
+  - meal-level replacement preview/apply with explicit confirmation
+- Added basic guard states for not setup, no profiles/members and no generated plan.
+- Added basic Insights page using generated plan data, simple macro bars and a non-final macro donut placeholder.
+- Added Household / Account page for demo setup, account placeholders, household management, default viewer/current device user and app settings.
+- Added `tools/extra/check_mobile_ui_shell_structure.py`, writing `data/recipesdb/audit/mobile_ui_shell_structure_summary.txt`.
+- Phone physical testing is deferred; emulator URL remains `http://10.0.2.2:8000`.
+- No backend generation logic, backend replacement logic, generator selection logic, grocery/pricing behavior, `data/recipesdb/current`, `data/fooddb/current`, or `src/legacy` changes were intended.
+
+## 101. Auth-M1 + UI-2A productization fixes - 2026-06-07
+- Added local SQLite Auth-M1:
+  - `users`
+  - `user_sessions`
+  - household ownership columns on `households`
+  - `/auth/register`
+  - `/auth/login`
+  - `/auth/logout`
+  - `/auth/me`
+- Passwords are stored with PBKDF2-HMAC-SHA256 hash + salt; plaintext passwords are not stored.
+- Session tokens are returned raw to the client once; SQLite stores only token hashes.
+- Each created account gets a default household.
+- Profile endpoints remain backwards-compatible without auth, but with `Authorization: Bearer <session_token>` they are scoped to the account household.
+- Mobile now has real local Create Account / Log In / Log Out flow.
+- Mobile session is kept in React state only; persistence across app restart is future work because no storage dependency is present.
+- Add Profile no longer exposes `Household ID`; backend assigns household internally for logged-in accounts.
+- Main UI wording was cleaned to avoid prominent demo/test/MVP text; fallback sample household remains secondary.
+- Household / Account page was reorganized as a small hub with Account Settings, Household Management and App Settings.
+- Safe area/status bar spacing was adjusted globally in `AppScreen`; empty/guard states are centered.
+- Meal Plan cleanup:
+  - title centered,
+  - profile selector with arrows under title,
+  - compact day selector,
+  - 1-5 day count selector without new slider dependency.
+- Missing content fallbacks:
+  - missing price shows `Price unavailable`,
+  - missing cooking steps show a clean unavailable message.
+- Added checkers:
+  - `tools/extra/check_backend_auth_m1.py`
+  - `tools/extra/check_mobile_auth_m1_structure.py`
+- Data current folders were not modified:
+  - `data/recipesdb/current`
+  - `data/fooddb/current`
+- Generator selection logic, nutrition formulas, grocery/pricing logic, KNN/replacement behavior and `src/legacy` were not intentionally changed.
+- Remaining limitations:
+  - no email verification,
+  - no password reset,
+  - no email sending,
+  - no cloud sync/auth,
+  - no production-grade auth claims,
+  - no change email/change password implementation,
+  - no real iOS-style wheel picker dependency,
+  - data/content pass still needed for missing prices and missing cooking steps in top recipes.

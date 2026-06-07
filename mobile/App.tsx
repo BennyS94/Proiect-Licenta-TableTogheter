@@ -1,13 +1,13 @@
-import { SafeAreaView, StatusBar, StyleSheet } from "react-native";
+import { StatusBar, StyleSheet, View } from "react-native";
 
 import { HomeScreen } from "./src/screens/HomeScreen";
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.root}>
+    <View style={styles.root}>
       <StatusBar barStyle="dark-content" />
       <HomeScreen />
-    </SafeAreaView>
+    </View>
   );
 }
 

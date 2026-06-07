@@ -4,7 +4,7 @@
 
 Acest document defineste contractul API pregatit pentru primul backend TableTogether. Scopul este sa existe o limita clara intre aplicatia Android si generatorul Python inainte de implementarea FastAPI.
 
-Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite.
+Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite. Auth-M1 adauga autentificare locala SQLite pentru conturi MVP si profile scoped pe household-ul contului.
 Backend KNN-2 adauga `POST /recipes/similar` pentru alternative de retete aprobate/review prin KNN-lite + generator approval gate. Backend KNN-4 adauga meal-level replacement explicit prin `POST /plans/{plan_id}/replace-meal`; acesta schimba o reteta/masa intreaga, nu ingrediente individuale.
 
 Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu schimba fisierele din `data/recipesdb/current` sau `data/fooddb/current`.
@@ -18,7 +18,109 @@ Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu 
 - Mobile app nu citeste CSV-uri si nu ruleaza generatorul.
 - FastAPI backend apeleaza un wrapper Python peste Generator v1.
 - SQLite persista household-uri, profiluri, feedback, planuri generate si grocery lists.
-- Nu exista auth/login inca; profilele si feedbackul sunt demo/local.
+- Auth-M1 foloseste conturi locale SQLite, fara cloud auth, fara email verification si fara password reset.
+- Parolele sunt stocate ca `password_hash` + `password_salt`; parola plaintext nu se stocheaza.
+- Sesiunile folosesc token brut returnat clientului o singura data si hash de token stocat in SQLite.
+- Daca `Authorization: Bearer <session_token>` este prezent la profile API, profilurile sunt scoped pe household-ul contului.
+
+## POST /auth/register
+
+Purpose:
+- Creeaza un cont local MVP, creeaza household-ul implicit al contului si autentifica utilizatorul.
+
+Request schema example:
+
+```json
+{
+  "email": "alex@example.com",
+  "password": "Secret123",
+  "confirm_password": "Secret123"
+}
+```
+
+Response schema example:
+
+```json
+{
+  "status": "ok",
+  "message": "Account created",
+  "session_token": "raw-token-returned-once",
+  "account": {
+    "user_id": "user_abc123",
+    "email": "alex@example.com",
+    "household_id": "household_abc123",
+    "household_display_name": "My Household"
+  }
+}
+```
+
+MVP notes:
+- Emailul este normalizat lowercase/trim.
+- Parola minima are 6 caractere.
+- `password` si `confirm_password` trebuie sa coincida.
+- Duplicate email returneaza eroare clara.
+- Nu se trimite email.
+
+## POST /auth/login
+
+Purpose:
+- Autentifica un cont local si creeaza o sesiune noua.
+
+Request schema example:
+
+```json
+{
+  "email": "alex@example.com",
+  "password": "Secret123"
+}
+```
+
+Response:
+- Aceeasi forma ca `/auth/register`, cu mesaj `Logged in`.
+
+## POST /auth/logout
+
+Purpose:
+- Revoca sesiunea locala daca tokenul este furnizat.
+
+Request schema example:
+
+```json
+{
+  "session_token": "raw-token"
+}
+```
+
+Response schema example:
+
+```json
+{
+  "status": "ok",
+  "message": "Logged out"
+}
+```
+
+## GET /auth/me
+
+Purpose:
+- Returneaza contul curent pentru un `Authorization: Bearer <session_token>` valid.
+
+Response schema example:
+
+```json
+{
+  "status": "ok",
+  "account": {
+    "user_id": "user_abc123",
+    "email": "alex@example.com",
+    "household_id": "household_abc123",
+    "household_display_name": "My Household"
+  }
+}
+```
+
+Error cases:
+- `401 unauthenticated` daca tokenul lipseste, este invalid sau a fost revocat.
 
 ## Shared generation options
 
@@ -847,9 +949,10 @@ MVP notes:
 - Backend M8 returneaza profiluri active implicit; profilurile soft-dezactivate nu apar in lista standard.
 - `active_only=false` poate fi folosit pentru inspectie demo/dev a profilurilor inactive, daca este necesar.
 - Daca nu exista profiluri SQLite, raspunsul este lista goala; mobile poate folosi `GET /households/demo` pentru membrii demo.
+- In Auth-M1, daca requestul include `Authorization: Bearer <session_token>`, backend-ul ignora `household_id` din query si returneaza doar profilurile household-ului contului.
 
 Non-goals:
-- Nu implementeaza login complex.
+- Nu implementeaza login cloud sau production-grade auth claims.
 - Nu implementeaza multi-tenant cloud accounts.
 
 ## POST /profiles
@@ -908,10 +1011,12 @@ Response schema example:
 MVP notes:
 - Backend-ul trebuie sa pastreze forma profilului compatibila cu `target_builder`.
 - Backend M4 salveaza profilul in SQLite si pastreaza `training`, `meal_config` si `dietary_preferences` ca JSON.
+- In Auth-M1, daca requestul include `Authorization: Bearer <session_token>`, `household_id` este asignat automat din cont si orice `household_id` trimis de client este ignorat/overridden.
+- Mobile nu trebuie sa expuna `household_id` in formularul Add Profile.
 
 Non-goals:
 - Nu valideaza medical obiectivele.
-- Nu introduce conturi reale sau autentificare complexa.
+- Nu introduce cloud auth, email verification sau sincronizare cloud.
 
 ## GET /profiles/{member_profile_id}
 
@@ -993,6 +1098,7 @@ MVP notes:
 - Dupa dezactivare, `GET /profiles` nu mai returneaza profilul in lista implicita active-only.
 - Endpoint-ul este comportament demo/local SQLite.
 - Mobile foloseste endpoint-ul pentru actiunea `Remove` pe profiluri salvate.
+- In Auth-M1, daca requestul include `Authorization: Bearer <session_token>`, profilul poate fi dezactivat doar daca apartine household-ului contului.
 
 Error cases:
 - `400` daca lipseste `confirm=true`.

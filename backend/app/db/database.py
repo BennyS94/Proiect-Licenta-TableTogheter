@@ -27,6 +27,7 @@ def init_db() -> Path:
     schema_sql = SCHEMA_PATH.read_text(encoding="utf-8")
     with get_connection() as connection:
         connection.executescript(schema_sql)
+        _ensure_household_auth_columns(connection)
     return get_sqlite_path()
 
 
@@ -40,3 +41,18 @@ def check_db_connection() -> bool:
         return True
     except sqlite3.Error:
         return False
+
+
+def _ensure_household_auth_columns(connection: sqlite3.Connection) -> None:
+    existing_columns = {
+        row[1]
+        for row in connection.execute("PRAGMA table_info(households)").fetchall()
+    }
+    column_sql = {
+        "user_id": "ALTER TABLE households ADD COLUMN user_id TEXT",
+        "display_name": "ALTER TABLE households ADD COLUMN display_name TEXT",
+        "is_active": "ALTER TABLE households ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1",
+    }
+    for column_name, statement in column_sql.items():
+        if column_name not in existing_columns:
+            connection.execute(statement)

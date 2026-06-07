@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../config/api";
 import type {
+  AuthResponse,
   DeleteProfileResponse,
   DemoHouseholdResponse,
   FeedbackContextResponse,
@@ -15,6 +16,7 @@ import type {
   MealReplacementResponse,
   MemberProfileCreateRequest,
   MemberProfileResponse,
+  MeResponse,
   ProfilesListResponse,
   RecipeAlternativesRequest,
   RecipeAlternativesResponse,
@@ -39,18 +41,78 @@ export async function getHealth(): Promise<HealthResponse> {
 export async function getDemoHousehold(): Promise<DemoHouseholdResponse> {
   const payload = await requestJson<DemoHouseholdResponse>("/households/demo");
   if (!Array.isArray(payload.members)) {
-    throw new Error("Demo household response does not include members");
+    throw new Error("Sample household response does not include members");
   }
   return payload;
 }
 
-export async function getProfiles(householdId?: string): Promise<MemberProfileResponse[]> {
+export async function registerAccount(
+  email: string,
+  password: string,
+  confirmPassword: string,
+): Promise<AuthResponse> {
+  return requestJson<AuthResponse>("/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      confirm_password: confirmPassword,
+    }),
+  });
+}
+
+export async function loginAccount(
+  email: string,
+  password: string,
+): Promise<AuthResponse> {
+  return requestJson<AuthResponse>("/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+  });
+}
+
+export async function logoutAccount(sessionToken?: string): Promise<{ status: string; message: string }> {
+  return requestJson<{ status: string; message: string }>("/auth/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      session_token: sessionToken ?? "",
+    }),
+  });
+}
+
+export async function getCurrentAccount(sessionToken: string): Promise<MeResponse> {
+  return requestJson<MeResponse>("/auth/me", {
+    headers: authHeaders(sessionToken),
+  });
+}
+
+export async function getProfiles(
+  householdId?: string,
+  sessionToken?: string,
+): Promise<MemberProfileResponse[]> {
   const params = new URLSearchParams();
-  if (householdId) {
+  if (householdId && !sessionToken) {
     params.set("household_id", householdId);
   }
   const query = params.toString();
-  const payload = await requestJson<ProfilesListResponse>(`/profiles${query ? `?${query}` : ""}`);
+  const payload = await requestJson<ProfilesListResponse>(
+    `/profiles${query ? `?${query}` : ""}`,
+    {
+      headers: authHeaders(sessionToken),
+    },
+  );
   if (!Array.isArray(payload.profiles)) {
     throw new Error("Profiles response does not include profiles");
   }
@@ -59,28 +121,40 @@ export async function getProfiles(householdId?: string): Promise<MemberProfileRe
 
 export async function createProfile(
   request: MemberProfileCreateRequest,
+  sessionToken?: string,
 ): Promise<MemberProfileResponse> {
   return requestJson<MemberProfileResponse>("/profiles", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(sessionToken),
     },
     body: JSON.stringify(request),
   });
 }
 
-export async function getProfile(memberProfileId: string): Promise<MemberProfileResponse> {
-  return requestJson<MemberProfileResponse>(`/profiles/${encodeURIComponent(memberProfileId)}`);
+export async function getProfile(
+  memberProfileId: string,
+  sessionToken?: string,
+): Promise<MemberProfileResponse> {
+  return requestJson<MemberProfileResponse>(
+    `/profiles/${encodeURIComponent(memberProfileId)}`,
+    {
+      headers: authHeaders(sessionToken),
+    },
+  );
 }
 
 export async function deleteProfile(
   memberProfileId: string,
+  sessionToken?: string,
 ): Promise<DeleteProfileResponse> {
   const encodedProfileId = encodeURIComponent(memberProfileId);
   return requestJson<DeleteProfileResponse>(
     `/profiles/${encodedProfileId}?confirm=true`,
     {
       method: "DELETE",
+      headers: authHeaders(sessionToken),
     },
   );
 }
@@ -217,6 +291,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+function authHeaders(sessionToken?: string): Record<string, string> {
+  return sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
 }
 
 async function readErrorDetail(response: Response): Promise<string> {
