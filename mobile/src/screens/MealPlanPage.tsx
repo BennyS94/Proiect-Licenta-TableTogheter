@@ -95,7 +95,6 @@ export function MealPlanPage({
                 <View style={styles.section}>
                   {profileSelector ? (
                     <View style={styles.viewerBlock}>
-                      <Text style={styles.viewerLabel}>Viewing</Text>
                       {profileSelector}
                     </View>
                   ) : null}
@@ -191,13 +190,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   viewerBlock: {
-    gap: 6,
-  },
-  viewerLabel: {
-    color: colors.mutedSoft,
-    fontSize: 12,
-    fontWeight: "900",
-    textAlign: "center",
-    textTransform: "uppercase",
+    gap: 0,
   },
 });

@@ -109,6 +109,7 @@ export function HomePage({
           <Text style={styles.readyText}>Ready to cook?</Text>
         </View>
         <View style={[styles.animationCard, { height: animationHeight, width: animationWidth }]}>
+          <View pointerEvents="none" style={styles.animationBackdrop} />
           <LottieView
             autoPlay
             loop
@@ -282,10 +283,19 @@ function openExternalUrl(url?: string) {
 const styles = StyleSheet.create({
   animationCard: {
     alignItems: "center",
-    backgroundColor: "#EAF5DF",
     borderRadius: 28,
     justifyContent: "center",
     overflow: "hidden",
+    position: "relative",
+  },
+  animationBackdrop: {
+    backgroundColor: "#EAF5DF",
+    borderRadius: 28,
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 8,
   },
   backButton: {
     alignItems: "center",

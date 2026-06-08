@@ -48,8 +48,9 @@ export function GroceryListSection({
   const groups = groupItems(items);
   const summary = asRecord(groceryList.summary);
   const estimatedTotal = estimatedTotalCost(groceryList, summary);
-  const missingPrices = missingPriceCount(groceryList, summary);
   const currency = summaryCurrency(groceryList, summary);
+  const estimatedTotalText =
+    estimatedTotal !== null ? `${estimatedTotal.toFixed(2)} ${currency}` : "Not available";
 
   return (
     <View style={styles.panel}>
@@ -58,16 +59,20 @@ export function GroceryListSection({
         <Text style={styles.meta}>{items.length} items</Text>
       </View>
 
-      <View style={styles.summaryBox}>
-        {estimatedTotal !== null ? (
-          <InfoLine label="Estimated total" value={`${estimatedTotal.toFixed(2)} ${currency}`} />
-        ) : null}
-        {missingPrices !== null ? (
-          <InfoLine label="Missing prices" value={`${missingPrices} items`} />
-        ) : null}
-        {estimatedTotal === null && missingPrices === null ? (
-          <Text style={styles.mutedText}>No grocery summary returned.</Text>
-        ) : null}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryVisual}>
+          <View style={styles.summaryVisualPlate} />
+          <View style={styles.summaryVisualLeafOne} />
+          <View style={styles.summaryVisualLeafTwo} />
+          <View style={styles.summaryVisualDot} />
+        </View>
+        <View style={styles.summaryCopy}>
+          <Text style={styles.summaryLabel}>Estimated total</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.summaryValue}>
+            {estimatedTotalText}
+          </Text>
+          <Text style={styles.summaryMeta}>{items.length} items</Text>
+        </View>
       </View>
 
       <View style={styles.actionRow}>
@@ -109,15 +114,6 @@ export function GroceryListSection({
       ) : (
         <Text style={styles.mutedText}>No grocery items returned.</Text>
       )}
-    </View>
-  );
-}
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoLine}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
 }
@@ -177,23 +173,6 @@ function estimatedTotalCost(
     numberValue(summary.total_estimated_cost) ??
     numberValue(summary.estimated_total_cost) ??
     numberValue(pricing.total_estimated_cost)
-  );
-}
-
-function missingPriceCount(
-  groceryList: GroceryListResponse,
-  summary: Record<string, unknown>,
-): number | null {
-  const pricing = asRecord(summary.pricing_summary);
-  const priceWarningCounts = asRecord(summary.price_warning_counts);
-  const pricingWarningCounts = asRecord(pricing.price_warning_counts);
-  return (
-    numberValue(groceryList.missing_price_count) ??
-    numberValue(summary.missing_price_count) ??
-    numberValue(summary.unpriced_item_count) ??
-    numberValue(pricing.unpriced_item_count) ??
-    numberValue(priceWarningCounts.price_missing) ??
-    numberValue(pricingWarningCounts.price_missing)
   );
 }
 
@@ -276,9 +255,10 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 16,
+    flex: 1,
     justifyContent: "center",
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 16,
   },
   actionButtonPrimary: {
@@ -288,7 +268,7 @@ const styles = StyleSheet.create({
   },
   actionButtonPrimaryText: {
     color: colors.card,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "900",
   },
   actionButtonSecondary: {
@@ -298,7 +278,7 @@ const styles = StyleSheet.create({
   },
   actionButtonSecondaryText: {
     color: colors.accentDark,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "900",
   },
   actionRow: {
@@ -324,30 +304,91 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "right",
   },
-  summaryBox: {
+  summaryCard: {
+    alignItems: "center",
+    backgroundColor: "#F1F8E9",
+    borderColor: "#DDEAD3",
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    backgroundColor: colors.card,
-    padding: 14,
-    gap: 8,
-  },
-  infoLine: {
+    elevation: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 16,
+    gap: 14,
+    minHeight: 112,
+    padding: 14,
+    shadowColor: "#1F2933",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
-  infoLabel: {
+  summaryCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  summaryLabel: {
     color: colors.muted,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  infoValue: {
-    color: colors.text,
-    flexShrink: 1,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
-    textAlign: "right",
+    textTransform: "uppercase",
+  },
+  summaryMeta: {
+    color: colors.mutedSoft,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 3,
+  },
+  summaryValue: {
+    color: "#1B2430",
+    fontSize: 27,
+    fontWeight: "900",
+    lineHeight: 34,
+    marginTop: 4,
+  },
+  summaryVisual: {
+    alignItems: "center",
+    backgroundColor: "#F7CF53",
+    borderRadius: 20,
+    height: 82,
+    justifyContent: "center",
+    overflow: "hidden",
+    width: 82,
+  },
+  summaryVisualDot: {
+    backgroundColor: "#F8B84E",
+    borderRadius: 8,
+    height: 16,
+    position: "absolute",
+    right: 20,
+    top: 31,
+    width: 16,
+  },
+  summaryVisualLeafOne: {
+    backgroundColor: colors.accent,
+    borderBottomLeftRadius: 12,
+    borderTopRightRadius: 12,
+    height: 22,
+    position: "absolute",
+    right: 17,
+    top: 22,
+    transform: [{ rotate: "-18deg" }],
+    width: 32,
+  },
+  summaryVisualLeafTwo: {
+    backgroundColor: "#A8D66D",
+    borderBottomLeftRadius: 11,
+    borderTopRightRadius: 11,
+    bottom: 19,
+    height: 19,
+    left: 19,
+    position: "absolute",
+    transform: [{ rotate: "18deg" }],
+    width: 29,
+  },
+  summaryVisualPlate: {
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 28,
+    height: 48,
+    transform: [{ rotate: "-10deg" }],
+    width: 58,
   },
   groups: {
     gap: 16,

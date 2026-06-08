@@ -3332,3 +3332,62 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Validation outputs:
   - `data/recipesdb/audit/profile_wizard_1b_runtime_validation_summary.txt`
   - `data/recipesdb/audit/profile_wizard_1b_no_pork_filter_summary.txt`
+
+## 107. HOME-1 mobile Home demo layout - 2026-06-07
+- Implemented Page 1 / Home as a warm family discovery screen.
+- Changed Home startup behavior so the mobile shell opens on Home.
+- Home uses:
+  - hero greeting with selected/default profile fallback,
+  - household CTA with Account Setup vs Meal Plan target,
+  - local Daily Food Tip rotation,
+  - reusable carousel sections,
+  - internal See all subpages.
+- Added hardcoded Home content in `mobile/src/data/homeContent.ts`.
+- Added reusable carousel component in `mobile/src/components/home/ResourceCarouselSection.tsx`.
+- Added HOME-1 checker:
+  - `tools/extra/check_mobile_home_page_structure.py`
+  - output: `data/recipesdb/audit/mobile_home_page_structure_summary.txt`
+- No backend calls were added from Home.
+- No backend, generator, grocery/pricing, KNN, `data/recipesdb/current`, `data/fooddb/current` or `src/legacy` behavior changes were intended.
+- Pending:
+  - final Lottie asset,
+  - final Home thumbnails/illustrations,
+  - final external links,
+  - emulator/physical phone runtime validation.
+
+## 108. UI-ASSETS-1 mobile asset structure - 2026-06-07
+- Prepared a clean mobile asset folder structure under `mobile/assets/`.
+- Added asset documentation for:
+  - brand icon/splash assets for future APK work,
+  - common placeholders/backgrounds/patterns,
+  - Home welcome/tips/highlights/family_kids/healthy_habits,
+  - navigation icons,
+  - meal plan visuals,
+  - grocery package/category icons,
+  - insights visuals,
+  - household/account/member/profile wizard visuals.
+- Added naming and integration rules in `mobile/assets/README_assets.md`.
+- Added Home-specific asset guidance in `mobile/assets/home/README.md`.
+- Added safe source-level metadata only:
+  - `mobile/src/assets/assetRegistry.ts`
+  - no missing asset imports are used at runtime.
+- Added checker:
+  - `tools/extra/check_mobile_assets_structure.py`
+  - output: `data/recipesdb/audit/mobile_assets_structure_summary.txt`
+- No final custom assets were added.
+- No dependency was added; `lottie-react-native` remains explicitly pending approval.
+- Current Home still uses React Native placeholder views and should not crash if asset folders are empty.
+- No backend, generator, grocery/pricing, KNN, `data/recipesdb/current`, `data/fooddb/current` or `src/legacy` changes were intended.
+
+## 109. HOME-Lottie hero integration - 2026-06-07
+- Integrated the provided Home hero Lottie asset:
+  - `mobile/assets/home/welcome/cooking_lottie.json`
+- Installed Expo-compatible dependency:
+  - `lottie-react-native`
+- Replaced only the internal React Native placeholder drawing inside the pale green Home hero card.
+- Kept the hero card background, dimensions and surrounding Home layout.
+- Validation:
+  - `npx tsc --noEmit` passed.
+  - `npx expo install --check` passed.
+- Caveat:
+  - npm reported Node engine warnings because local Node is `20.19.1` while some React Native packages request `20.19.4+`; install still completed.

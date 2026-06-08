@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import LottieView from "lottie-react-native";
 
 import { FloatingNav, type AppPageKey } from "../components/navigation/FloatingNav";
 import { AddMemberWizard } from "../components/AddMemberWizard";
@@ -62,6 +63,8 @@ import type {
   MemberProfileCreateRequest,
   MemberProfileResponse,
 } from "../types/api";
+
+const profileEyeLottie = require("../../assets/home/eye_for_page_2.json");
 
 type HealthState = "idle" | "loading" | "connected" | "error";
 type GenerationMode = "individual" | "household";
@@ -1007,6 +1010,13 @@ export function HomeScreen() {
       selectedId={selectedProfileSelectorId}
     />
   ) : null;
+  const mealPlanProfileSelectorNode = profileSelectorItems.length ? (
+    <MealPlanProfileSelector
+      items={profileSelectorItems}
+      onSelect={selectProfileFromSelector}
+      selectedId={selectedProfileSelectorId}
+    />
+  ) : null;
 
   const messagesContent =
     errorMessage ||
@@ -1254,7 +1264,7 @@ export function HomeScreen() {
         messagesContent={messagesContent}
         onGoToHousehold={() => setActivePage("household")}
         onSelectTab={setMealPlanTab}
-        profileSelector={profileSelectorNode}
+        profileSelector={mealPlanProfileSelectorNode}
         selectedTab={mealPlanTab}
       />
     );
@@ -1272,7 +1282,7 @@ export function HomeScreen() {
         onGoToHousehold={() => setActivePage("household")}
         onGoToMealPlan={() => setActivePage("mealPlan")}
         onSelectDay={handleInsightsDaySelect}
-        profileSelector={profileSelectorNode}
+        profileSelector={mealPlanProfileSelectorNode}
         selectedDay={safeInsightsDay}
         targetTotals={insightsTargetTotals}
         totals={insightsTotals}
@@ -1374,6 +1384,83 @@ function ModeButton({
   );
 }
 
+function MealPlanProfileSelector({
+  items,
+  onSelect,
+  selectedId,
+}: {
+  items: ProfileSelectorItem[];
+  onSelect: (id: string) => void;
+  selectedId?: string;
+}) {
+  const selectedIndex = Math.max(
+    0,
+    items.findIndex((item) => item.id === selectedId),
+  );
+  const selected = items[selectedIndex] ?? null;
+  const compactMeta = compactProfileMeta(selected?.meta);
+
+  function selectOffset(offset: number) {
+    if (!items.length) {
+      return;
+    }
+    const nextIndex = (selectedIndex + offset + items.length) % items.length;
+    onSelect(items[nextIndex].id);
+  }
+
+  return (
+    <View style={styles.mealPlanProfileSelector}>
+      <Pressable
+        accessibilityLabel="Previous profile"
+        accessibilityRole="button"
+        disabled={!items.length}
+        onPress={() => selectOffset(-1)}
+        style={({ pressed }) => [
+          styles.mealPlanProfileArrow,
+          pressed ? styles.buttonPressed : null,
+        ]}
+      >
+        <Text style={styles.mealPlanProfileArrowText}>{"<"}</Text>
+      </Pressable>
+
+      <View style={styles.mealPlanProfilePill}>
+        <View style={styles.mealPlanProfileIdentity}>
+          <LottieView
+            autoPlay
+            key={selected?.id ?? "profile-eye"}
+            loop={false}
+            resizeMode="contain"
+            source={profileEyeLottie}
+            speed={0.7}
+            style={styles.mealPlanProfileEye}
+          />
+          <Text numberOfLines={1} style={styles.mealPlanProfileName}>
+            {selected?.label ?? "No profile selected"}
+          </Text>
+        </View>
+        {compactMeta ? (
+          <Text numberOfLines={1} style={styles.mealPlanProfileMeta}>
+            {compactMeta}
+          </Text>
+        ) : null}
+      </View>
+
+      <Pressable
+        accessibilityLabel="Next profile"
+        accessibilityRole="button"
+        disabled={!items.length}
+        onPress={() => selectOffset(1)}
+        style={({ pressed }) => [
+          styles.mealPlanProfileArrow,
+          pressed ? styles.buttonPressed : null,
+        ]}
+      >
+        <Text style={styles.mealPlanProfileArrowText}>{">"}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function DayCountSelector({
   days,
   onChange,
@@ -1418,61 +1505,67 @@ function DayCountSelector({
           {days} {days === 1 ? "day" : "days"}
         </Text>
       </View>
-      <View
-        accessibilityRole="adjustable"
-        accessibilityValue={{
-          min: 1,
-          max: 5,
-          now: days,
-          text: `${days} ${days === 1 ? "day" : "days"}`,
-        }}
-        onLayout={(event) => {
-          sliderWidthRef.current = Math.max(1, event.nativeEvent.layout.width);
-        }}
-        style={styles.sliderShell}
-        {...panResponder.panHandlers}
-      >
-        <View style={styles.sliderTrackLayer}>
-          <View style={styles.sliderTrack}>
-            <View style={[styles.sliderTrackFill, { width: fillWidth }]} />
-          </View>
-          <View style={styles.sliderDotRow}>
-            {options.map((option) => (
-              <View
-                key={`dot-${option}`}
-                style={[
-                  styles.sliderDot,
-                  option <= days ? styles.sliderDotActive : null,
-                ]}
-              />
-            ))}
-          </View>
-          <View style={[styles.sliderThumb, { left: fillWidth }]}>
-            <View style={styles.sliderThumbCore} />
+      <View style={styles.sliderFrame}>
+        <View
+          accessibilityRole="adjustable"
+          accessibilityValue={{
+            min: 1,
+            max: 5,
+            now: days,
+            text: `${days} ${days === 1 ? "day" : "days"}`,
+          }}
+          onLayout={(event) => {
+            sliderWidthRef.current = Math.max(1, event.nativeEvent.layout.width);
+          }}
+          style={styles.sliderShell}
+          {...panResponder.panHandlers}
+        >
+          <View style={styles.sliderTrackLayer}>
+            <View style={styles.sliderTrack}>
+              <View style={[styles.sliderTrackFill, { width: fillWidth }]} />
+            </View>
+            <View style={styles.sliderDotRow}>
+              {options.map((option) => (
+                <View
+                  key={`dot-${option}`}
+                  style={[
+                    styles.sliderDot,
+                    option <= days ? styles.sliderDotActive : null,
+                  ]}
+                />
+              ))}
+            </View>
+            <View style={[styles.sliderThumb, { left: fillWidth }]}>
+              <View style={styles.sliderThumbCore} />
+            </View>
           </View>
         </View>
-      </View>
-      <View style={styles.sliderTouchRow}>
-        {options.map((option) => (
-          <Pressable
-            accessibilityRole="button"
-            key={option}
-            onPress={() => onChange(option)}
-            style={({ pressed }) => [
-              styles.sliderTouchTarget,
-              pressed ? styles.buttonPressed : null,
-            ]}
-          >
-            <Text
-              style={[
-                styles.sliderStepLabel,
-                option === days ? styles.sliderStepLabelActive : null,
-              ]}
-            >
-              {option}
-            </Text>
-          </Pressable>
-        ))}
+        <View style={styles.sliderTouchRow}>
+          {options.map((option) => {
+            const stepLeft = `${((option - 1) / 4) * 100}%` as `${number}%`;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={option}
+                onPress={() => onChange(option)}
+                style={({ pressed }) => [
+                  styles.sliderTouchTarget,
+                  { left: stepLeft },
+                  pressed ? styles.buttonPressed : null,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.sliderStepLabel,
+                    option === days ? styles.sliderStepLabelActive : null,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -1526,6 +1619,24 @@ function getProfileMeta(profile: DemoMemberProfile | MemberProfileResponse): str
   const mealsPerDay = numberValue(mealConfig.meals_per_day) ?? 3;
   const includesSnack = Boolean(mealConfig.include_snacks ?? true);
   return `Goal: ${goal} - ${mealsPerDay} meals${includesSnack ? " + snack" : ""}`;
+}
+
+function compactProfileMeta(meta?: string): string | null {
+  if (!meta) {
+    return null;
+  }
+  const cleaned = meta
+    .replace(/^Goal:\s*/i, "")
+    .replace(/\s+\+\s+snack\b/i, "")
+    .trim();
+  const parts = cleaned
+    .split(/\s+-\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]} \u00B7 ${parts[1]}`;
+  }
+  return cleaned || null;
 }
 
 function formatGoal(goal: string): string {
@@ -2390,19 +2501,84 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
   },
+  mealPlanProfileArrow: {
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderColor: "#DDEAD3",
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  mealPlanProfileArrowText: {
+    color: colors.accentDark,
+    fontSize: 20,
+    fontWeight: "900",
+    lineHeight: 22,
+  },
+  mealPlanProfileEye: {
+    height: 22,
+    width: 22,
+  },
+  mealPlanProfileIdentity: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    minWidth: 0,
+  },
+  mealPlanProfileMeta: {
+    color: colors.mutedSoft,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  mealPlanProfileName: {
+    color: "#1B2430",
+    flexShrink: 1,
+    fontSize: 17,
+    fontWeight: "900",
+    lineHeight: 21,
+  },
+  mealPlanProfilePill: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#DDEAD3",
+    borderRadius: 18,
+    borderWidth: 1,
+    elevation: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 56,
+    minWidth: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    shadowColor: "#1F2933",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  mealPlanProfileSelector: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
   dayList: {
     gap: 12,
   },
   dayCountSelector: {
     alignItems: "stretch",
     backgroundColor: "#F8FBF3",
-    borderColor: "#E2EDD9",
-    borderRadius: 8,
+    borderColor: "#DDEAD3",
+    borderRadius: 18,
     borderWidth: 1,
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingTop: 13,
-    paddingBottom: 10,
+    gap: 9,
+    paddingBottom: 12,
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
   dayCountHeader: {
     alignItems: "center",
@@ -2441,8 +2617,13 @@ const styles = StyleSheet.create({
     right: 0,
     top: 11,
   },
+  sliderFrame: {
+    alignSelf: "center",
+    overflow: "visible",
+    width: "84%",
+  },
   sliderShell: {
-    minHeight: 34,
+    minHeight: 30,
     position: "relative",
   },
   sliderStepLabel: {
@@ -2455,14 +2636,18 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   sliderTouchRow: {
-    flexDirection: "row",
-    marginTop: -5,
+    height: 22,
+    marginTop: -2,
+    overflow: "visible",
+    position: "relative",
   },
   sliderTouchTarget: {
     alignItems: "center",
-    flex: 1,
-    minHeight: 28,
     justifyContent: "center",
+    minHeight: 22,
+    marginLeft: -18,
+    position: "absolute",
+    width: 36,
   },
   sliderThumb: {
     alignItems: "center",

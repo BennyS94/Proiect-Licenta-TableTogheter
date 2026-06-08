@@ -132,6 +132,8 @@ npx expo start --go --host lan
 - UI-2C: Meal Plan are header curat doar cu titlul `Meal Plan`; selectorul de membru/profil apare o singura data in zona rezultatului, dupa taburile `Meal Plan` / `Grocery List`.
 - UI-2C: controlul de generare 1-5 zile este slider-like custom, fara dependency noua, si afiseaza valoarea selectata ca `1 day` / `N days`.
 - UI-2C: selectorul de zile generate arata Day 1-Day 5 pe un singur rand, cu zilele negenerate disabled/gri.
+- PAGE2-POLISH-1: Page 2 are slider 1-5 zile centrat/compact, selector profil fara label `Viewing`, eye Lottie mic langa numele profilului, iar `Target summary` a fost scos din Meal Plan.
+- PAGE2-POLISH-1: Grocery List nu mai afiseaza `Missing prices` ca metric permanent; sumarul de sus foloseste card vizual pentru `Estimated total`, item count si actiuni `Send to` / `Copy` 50/50.
 - HOME-1: Home este acum Page 1 warm/family discovery, cu hero, household CTA, Daily Food Tip rotativ, carusele de resurse si subpagini interne See all.
 - HOME-1: continutul Home este hardcoded in `mobile/src/data/homeContent.ts`; pagina nu apeleaza backend-ul si nu afecteaza planurile generate.
 - HOME-1: asset-urile vizuale sunt placeholder-uri React Native usoare; Lottie si imaginile finale raman pending.
@@ -168,10 +170,11 @@ UI-2C pastreaza flow-ul UI-2B, dar face Page 2 / Meal Plan mai product-facing:
 
 1. Headerul Meal Plan nu mai afiseaza profilul curent.
 2. Generation card afiseaza doar intentia produsului, slider-ul 1-5 zile si `Generate meal plan`.
-3. Dupa generare, selectorul `Viewing` apare o singura data sub taburi.
+3. Dupa generare, selectorul de profil apare o singura data sub taburi, ca pill central cu eye indicator si nume.
 4. Ziua generata se alege din Day 1-Day 5, toate pe un singur rand.
 5. Mesele raman ordonate Breakfast, Lunch, Snack, Dinner.
 6. Debug/status/generator metadata nu apar in main flow.
+7. Grocery List foloseste card vizual pentru estimarea totala si actiuni placeholder `Send to` / `Copy`.
 
 ## Mobile M2 Flow
 

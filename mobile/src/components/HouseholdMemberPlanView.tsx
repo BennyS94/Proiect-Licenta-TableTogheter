@@ -6,7 +6,6 @@ import type {
   HouseholdMeal,
   HouseholdMemberMacroSummary,
   HouseholdMemberMenu,
-  HouseholdMemberTarget,
   HouseholdPlanGenerateResponse,
   MealReplacementResponse,
 } from "../types/api";
@@ -43,10 +42,8 @@ export function HouseholdMemberPlanView({
   const availableDayIndexes = new Set(dayIndexes);
   const menu = findMemberMenu(plan, memberId, selectedDayIndex);
   const meals = getMeals(menu);
-  const target = findMemberTarget(plan, memberId);
   const summary = findMacroSummary(plan, memberId, selectedDayIndex);
   const totals = getTotals(menu, summary);
-  const targetTotals = getTargetTotals(target, summary);
 
   return (
     <View style={styles.container}>
@@ -78,14 +75,6 @@ export function HouseholdMemberPlanView({
           </Pressable>
           );
         })}
-      </View>
-
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryTitle}>Target summary</Text>
-        <MetricLine label="kcal" value={formatOptionalNumber(targetTotals.kcal, 0)} />
-        <MetricLine label="protein" value={formatOptionalWithUnit(targetTotals.protein_g, 1, "g")} />
-        <MetricLine label="carbs" value={formatOptionalWithUnit(targetTotals.carbs_g, 1, "g")} />
-        <MetricLine label="fats" value={formatOptionalWithUnit(targetTotals.fat_g, 1, "g")} />
       </View>
 
       <View style={styles.summaryBox}>
@@ -159,15 +148,6 @@ function findMemberMenu(
   );
 }
 
-function findMemberTarget(
-  plan: HouseholdPlanGenerateResponse,
-  memberId: string,
-): HouseholdMemberTarget | null {
-  return (
-    (plan.member_targets ?? []).find((target) => getMemberId(target) === memberId) ?? null
-  );
-}
-
 function findMacroSummary(
   plan: HouseholdPlanGenerateResponse,
   memberId: string,
@@ -213,43 +193,6 @@ function getTotals(
       numberValue(menuTotals.fat_g) ??
       numberValue(summaryTotals.fat_g) ??
       numberValue(summary?.fat_g) ??
-      undefined,
-  };
-}
-
-function getTargetTotals(
-  target: HouseholdMemberTarget | null,
-  summary: HouseholdMemberMacroSummary | null,
-): HouseholdMacroTotals {
-  const summaryTargets = asRecord(summary?.targets);
-  return {
-    kcal:
-      numberValue(target?.target_kcal) ??
-      numberValue(target?.kcal) ??
-      numberValue(summaryTargets.target_kcal) ??
-      numberValue(summaryTargets.kcal) ??
-      numberValue(summary?.target_kcal) ??
-      undefined,
-    protein_g:
-      numberValue(target?.target_protein_g) ??
-      numberValue(target?.protein_g) ??
-      numberValue(summaryTargets.target_protein_g) ??
-      numberValue(summaryTargets.protein_g) ??
-      numberValue(summary?.target_protein_g) ??
-      undefined,
-    carbs_g:
-      numberValue(target?.target_carbs_g) ??
-      numberValue(target?.carbs_g) ??
-      numberValue(summaryTargets.target_carbs_g) ??
-      numberValue(summaryTargets.carbs_g) ??
-      numberValue(summary?.target_carbs_g) ??
-      undefined,
-    fat_g:
-      numberValue(target?.target_fat_g) ??
-      numberValue(target?.fat_g) ??
-      numberValue(summaryTargets.target_fat_g) ??
-      numberValue(summaryTargets.fat_g) ??
-      numberValue(summary?.target_fat_g) ??
       undefined,
   };
 }
