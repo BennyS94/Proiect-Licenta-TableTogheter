@@ -94,6 +94,8 @@ npx expo start --go --host lan
 
 ## Current Scope
 
+Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza istoricul checkpoint-urilor. Starea curenta a aplicatiei este cea din aceasta sectiune si include Auth-M1, UI-2B/UI-2C, HOME-1, PROFILE-WIZARD-1, KNN alternatives si meal-level replacement explicit.
+
 - Afiseaza numele aplicatiei.
 - Afiseaza URL-ul backend.
 - Apeleaza `GET /health`.

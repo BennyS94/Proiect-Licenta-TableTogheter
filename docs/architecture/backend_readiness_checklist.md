@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `backend/` si implementarea FastAPI.
+Acest checklist pastreaza istoricul de readiness pentru backend/API/mobile. Initial marca ce trebuia sa existe inainte de crearea folderului `backend/`; in prezent este folosit ca evidenta a checkpoint-urilor implementate si a limitarilor ramase.
 
 ## Contract and planning
 
@@ -35,7 +35,7 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 ## Ready for next checkpoint
 
 - [x] Ready to create `backend/` folder.
-- [x] Backend M1 skeleton created.
+- [x] Backend M1 app shell created.
 - [x] Implement FastAPI app shell.
 - [x] Add `GET /health`.
 - [x] Add SQLite connection/settings.
@@ -98,8 +98,9 @@ Acest checklist marcheaza ce trebuie sa existe inainte de crearea folderului `ba
 - [x] Mobile M7: saved-profile household generation.
 - [x] Mobile M8: saved profile remove and clear feedback cleanup.
 - [x] Backend KNN-2: approved/review recipe alternatives endpoint.
+- [x] Mobile KNN-3 alternatives UI implemented.
+- [x] KNN-4 explicit meal replacement flow implemented in backend and mobile.
 - [ ] Later: UI polish for MVP demo.
-- [ ] Later: mobile alternatives UI and explicit replacement flow.
 
 ## Non-goals for backend skeleton
 

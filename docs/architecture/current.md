@@ -2,178 +2,256 @@
 
 ## 1. Scope and current status
 
-TableTogether este in prezent un proiect-concept de licenta pentru planificarea meniurilor pe mai multe zile, orientat spre gospodarie / familie. Sistemul actual urmareste generarea unui plan alimentar pe baza preferintelor, obiectivelor si restrictiilor utilizatorilor, folosind o abordare in principal rule-based, sustinuta de scoring si de un strat de feedback de baza.
+TableTogether este un proiect de licenta pentru planificarea meniurilor pe mai multe zile, orientat spre gospodarie / familie. Sistemul foloseste profile interne de membri, obiective nutritionale, restrictii, preferinte, feedback explicit si o lista de cumparaturi agregata.
 
-Implementarea existenta este functionala la nivel de pipeline, dar arhitectura nu este considerata finala. Proiectul se afla intr-o faza de tranzitie, iar urmatoarea prioritate majora este reorganizarea stratului de date si clarificarea separarii dintre alimente canonice si entitati compuse.
+Starea curenta nu mai este doar un pipeline de generator izolat. Exista un MVP local functional cu:
 
-## 2. Current functional pipeline
+- aplicatie mobila Android-first in React Native + Expo;
+- backend FastAPI;
+- SQLite local/demo pentru conturi, sesiuni, household-uri, profile, feedback, planuri si grocery lists;
+- Generator v1 Python expus prin service wrapper;
+- Food_DB si Recipes_DB ca fisiere CSV pilot/draft;
+- flux real mobile -> backend -> generator -> persistenta.
 
-In forma actuala, sistemul este organizat in jurul urmatoarelor etape principale:
+Expo este folosit pentru viteza de dezvoltare si testare. Directia produsului ramane o aplicatie mobila finalizabila incremental, nu un demo separat de codul real.
 
-- enrich pentru alimente si atasare de buckets, micro-buckets si tag-uri utile
-- construire item index pentru similaritate si substitutions
-- generare de substitutions item-based
-- generator principal rule/scoring-driven pentru selectia planului
-- ajustari zilnice de portii prin daily rules
-- feedback de baza agregat in preferinte simple
-- generare de output operational, inclusiv plan si grocery list
+Arhitectura nu este finala. Proiectul ramane in faza de consolidare, dar directia curenta este clara: Android mobile + FastAPI backend + generator Python deterministic, cu date curate Food_DB / Recipes_DB.
 
-Acest pipeline permite obtinerea unui plan functional si ofera deja o baza practica pentru experimentare si iteratie.
+## 2. Current system shape
 
-Nota operationala: codul generatorului vechi este izolat pentru referinta in `src/legacy/`. Lucrul activ pentru Generator v1 este separat in `src/generator_v1/` si `src/generator_v1_cli.py`.
+Flux operational app-facing:
 
-## 2.1. Generator v1 demo status
+```text
+Android Mobile App
+  -> FastAPI Backend
+  -> Generator Service / Python Generator
+  -> Food_DB + Recipes_DB
+  -> SQLite persistence
+  -> Mobile display
+```
 
-Generator v1 este acum demo/testing-ready pentru un profil activ si pentru un draft multi-day configurabil 1-5 zile.
+Roluri:
 
-Datasetul recomandat pentru demo este:
+- Mobile:
+  - create account / login / logout local;
+  - gestioneaza profile interne de membri;
+  - declanseaza generare plan;
+  - afiseaza plan, grocery list, feedback, alternatives, replacement si insights.
+- Backend:
+  - valideaza requesturi;
+  - incarca profile/feedback din SQLite;
+  - apeleaza `src/generator_v1/service.py`;
+  - persista planuri si grocery lists;
+  - expune endpoints pentru alternatives si replacement.
+- Generator:
+  - calculeaza `nutrition_target`;
+  - aplica `profile_guard`;
+  - incarca Recipes_DB / Food_DB;
+  - aplica hard filters;
+  - construieste candidati pe sloturi;
+  - calculeaza scoring deterministic;
+  - selecteaza plan individual sau household v1 Lite;
+  - construieste grocery list optionala.
+- SQLite:
+  - stocheaza conturi locale, sesiuni, household-uri, profile, feedback events, planuri generate si grocery lists.
+
+Mobile-ul nu citeste CSV-uri si nu ruleaza generatorul.
+
+## 3. Generator v1 status
+
+Generator v1 este recipe-based, deterministic, scoring-driven si modular.
+
+Dataset app-facing/demo:
+
 - `dataset_profile=v1_2_demo_final`
 - path: `data/recipesdb/draft/v1_2_demo_final/`
 - total recipes: `266`
 - active recipes: `261`
-- sursa: `v1_2_demo_candidate_round48_cleaned`
 - status: demo-final draft, nu productie/current
 
 Config demo recomandat:
+
 - `selection_mode=balanced_day`
 - `portion_policy=target_aware`
 - `meal_realism_mode=practical`
 - `quality_gate=demo_safe`
-- `days=3`
+- `days=1..5`
 - `multi_day_mode=global_alternatives_3_day`
 - `multi_day_no_repeat_policy=hard`
 - `day_candidate_builder=direct_from_slots`
 - `profile_guard=demo`
 
-Smoke-ul curent pentru acest pachet:
-- one-day valid/accept = true
-- three-day valid = 3/3
-- accept = 3/3
-- repeated recipes = 0
-- `multi_day_loss=0.006322`
+Capabilitati curente:
 
-`profile_guard` este un strat de protectie pentru demo. Profilul edge `sedentary_lose_fast_with_snack` cu `target_kcal=1227.8` este blocat in modul `demo`; modul `permissive` avertizeaza si continua. Guard-ul nu schimba formulele din `target_builder`.
+- generare individuala 1-5 zile;
+- Household Generation v1 Lite;
+- feedback fit;
+- grocery list determinista;
+- purchase suggestions;
+- cooked-to-raw helpers;
+- price estimates demo/source-backed;
+- KNN-lite alternatives ca strat auxiliar;
+- meal-level replacement explicit.
 
-Limitari explicite ale demo-ului curent:
-- fara OR-Tools / KNN ca motor principal / MILP
-- Grocery List v1 si Purchase Rules v1 exista ca feature determinist demo/helper
-- Household Preview v1 exista in Streamlit ca preview demo/audit peste ultimul plan generat
-- fara preturi live, store/brand optimization, pantry inventory real sau grocery optimization
-- fara household-native multi-member selection
-- family-level variety este inca imperfecta
-- unele outlier risks raman cu warnings
-- Feedback v1 este local/demo, nu productie
-- `data/recipesdb/current` ramane neatins
-- `data/fooddb/current` ramane neatins
+## 4. Household model
 
-Nota DATA-QA-1:
-- DATA-QA-1 este completat pentru price/time coverage in fluxurile app-facing generate.
-- Grocery prices folosesc un strat determinist: catalog exact, alias catalog, category fallback si emergency fallback.
-- Cooking time foloseste campurile directe/time-layer si fallback-uri controlate pentru estimari utilizabile.
-- Rezultatul verificat: `0` preturi lipsa in outputurile grocery app-facing si `0` cooking-time estimates lipsa pentru retetele active/displayable din `v1_2_demo_final`.
-- Limitarea ramasa: multe preturi sunt estimari demo controlate, nu preturi live sau source-backed exact pentru fiecare item.
+Modelul curent este household/family-first:
 
-Nota KNN-lite: exista un modul auxiliar `src/generator_v1/recipe_similarity.py` pentru retete similare, documentat in `docs/architecture/knn_substitution_v1_design.md`. KNN-backed alternatives suporta acum meal-level replacement cu preview si confirmare explicita prin backend/mobile MVP. KNN poate propune candidati, dar generatorul principal ramane deterministic, scoring/constraint-based si validator/approver; nu exista substitutii automate sau substitutii de ingrediente in MVP.
+- contul local reprezinta household-ul;
+- membrii sunt profile interne, nu utilizatori separati;
+- `default viewer` controleaza profilul afisat primul in mobile;
+- un singur profil activ produce plan individual;
+- doua sau mai multe profile active produc plan household prin `POST /household-plans/generate`.
 
-## 2.2. Feedback v1 local/demo
+Household Generation v1 Lite:
 
-Generator v1 are Feedback v1 implementat ca functie locala pentru demo si testare.
+- calculeaza targeturi per membru;
+- construieste target agregat household;
+- foloseste mese principale shared in modul recomandat `individual_breakfast_shared_main`;
+- pastreaza breakfast/snack individuale/flexibile;
+- ajusteaza portii per membru;
+- calculeaza macro summary per membru;
+- pastreaza grocery list agregata.
 
-Storage:
-- `data/runtime/generator_v1_feedback_events.jsonl`
+Limitare importanta: nu exista optimizer household global. `macro_aware_simple` este euristic, nu MILP/OR-Tools.
 
-Tipuri suportate:
+## 5. Grocery and pricing
+
+Grocery List v1 este implementata determinist:
+
+- extrage ingredientele retetelor selectate;
+- aplica multiplicatori de portie;
+- agrega ingredientele;
+- curata numele;
+- categorizeaza itemii;
+- poate adauga purchase suggestions;
+- poate adauga cooked-to-raw helpers pentru shopping display;
+- poate include cost estimat.
+
+Preturile sunt estimari demo/source-backed/fallback-based. Nu exista:
+
+- live price fetching;
+- runtime scraping;
+- optimizare pe magazine;
+- optimizare pe branduri;
+- pantry inventory real;
+- cart optimization.
+
+DATA-QA-1 este completat pentru fluxurile app-facing normale: nu ar trebui sa existe preturi lipsa sau cooking-time estimates lipsa in outputurile generate.
+
+## 6. Feedback
+
+Feedback v1 este implementat in generator si in backend/mobile.
+
+Tipuri:
+
 - `liked`
 - `disliked`
 - `too_long`
 - `explicit_avoid`
 
-Aplicare:
-- `explicit_avoid` este hard filter pe `recipe_id`
-- `liked` creste scorul prin `feedback_fit`
-- `disliked` scade scorul prin `feedback_fit`
-- `too_long` aplica penalizare de timp si reduce `time_fit`
+Comportament:
+
+- `explicit_avoid` exclude reteta prin hard filter pe `recipe_id`;
+- `liked` si `disliked` modifica `feedback_fit`;
+- `too_long` penalizeaza `time_fit`;
+- feedback-ul se aplica la generari viitoare, nu modifica retroactiv planul afisat.
+
+Storage:
+
+- CLI/Streamlit: JSONL local;
+- backend/mobile: SQLite local/demo.
 
 Limitari:
-- JSONL local only
-- fara conturi reale
-- fara DB/backend/server
-- fara ML/KNN
-- fara personalizare de productie
-- fara propagare la nivel de ingrediente
-- context household/demo only
 
-## 2.3. Next product direction: Android mobile MVP via FastAPI backend
+- nu exista cloud sync;
+- nu exista ML;
+- nu exista propagare completa la ingrediente/familii;
+- `Like`/`Dislike` din profile sunt persistate, dar soft scoring ingredient/family ramane deferat.
 
-Directia urmatoare de produs este un MVP Android care consuma un backend FastAPI prin HTTP/JSON. Generatorul ramane Python in backend, iar aplicatia mobila nu citeste CSV-uri, nu ruleaza generatorul si nu acceseaza direct Food_DB sau Recipes_DB.
+## 7. KNN-lite and replacement
 
-Roadmap-ul pentru aceasta directie este documentat in `docs/architecture/mobile_backend_roadmap.md`.
+KNN-lite este strat auxiliar, nu motor principal.
 
-## 2.4. PROFILE-WIZARD-1 status
+Implementat:
 
-Household / Account foloseste un flow Add Member in 3 pasi:
-- General Info
-- Food Preferences
-- Activity & Goal
+- `POST /recipes/similar`;
+- approved/review alternatives;
+- generator approval gate;
+- `POST /plans/{plan_id}/replace-meal`;
+- preview cu `dry_run=true`;
+- apply cu `dry_run=false`;
+- plan derivat nou si grocery recalculata.
 
-Profilul membrului suporta acum:
-- `dietary_preferences.no_pork`
-- `food_preferences.ratings`
-- `food_preferences.avoid_ingredients`
-- `food_preferences.cooking_time_preference`
+Limitari:
 
-Semantica preferintelor alimentare:
-- lipsa unei chei in `ratings` inseamna `Neutral`
-- `Like` este preferinta soft persistata
-- `Dislike` este preferinta soft persistata, nu hard ban
-- `Avoid` este hard filter pentru cheile suportate si pentru ingrediente custom
+- nu exista inlocuire automata;
+- nu exista ingredient-level substitution;
+- alternativele `review` sunt preview-only.
 
-Limitare curenta: soft scoring pentru `Like`/`Dislike` la nivel de aliment/familie este pastrat pentru PROFILE-PREF-2. In PROFILE-WIZARD-1 s-au integrat doar persistenta si hard filter-ele sigure.
+## 8. Current data model reality
 
-## 3. Current data model reality
+Food_DB:
 
-Modelul actual este construit peste un dataset nutritional prelucrat, imbogatit cu clasificari suplimentare si semnale utile pentru generare. In aceasta forma, baza de date curenta este suficienta pentru rularea pipeline-ului existent, dar nu separa inca suficient de clar:
+- baseline activ: `data/fooddb/current/fooddb_v1_core_master_draft.csv`;
+- contine alimente canonice si valori nutritionale/taxonomice;
+- nu este baza production/cloud.
 
-- alimente canonice / atomice
-- preparate sau entitati compuse
-- nivelul de ingredient
-- nivelul de reteta
+Recipes_DB current:
 
-Aceasta lipsa de separare face ca unele componente sa devina mai greu de extins elegant, mai ales in perspectiva introducerii unui model mai clar de recipes, feedback mai expresiv si ML ulterior.
+- `data/recipesdb/current/recipes.csv` - 106 retete pilot;
+- `data/recipesdb/current/recipe_ingredients.csv` - 947 ingrediente;
+- `data/recipesdb/current/recipe_nutrition_cache.csv` - 106 randuri cache;
+- `data/recipesdb/current/recipe_components.csv` - placeholder gol.
 
-## 4. Current strengths
+Recipes_DB app-facing:
 
-Arhitectura actuala are cateva puncte forte importante:
+- `data/recipesdb/draft/v1_2_demo_final/`;
+- folosit de Generator v1 in MVP;
+- nu este promovat automat in `current`.
 
-- exista deja un pipeline cap-coada functional
-- exista un nucleu de scoring si selectie care poate produce rezultate utilizabile
-- exista output-uri practice pentru plan si grocery
-- exista o baza initiala pentru substitutions si feedback
-- exista deja documentatie tehnica si structura modulara suficient de buna pentru refactorizare incrementala
+Directia ramane separarea curata:
 
-Aceste lucruri reprezinta o baza buna pentru urmatoarea etapa de dezvoltare.
+- Food_DB = alimente canonice;
+- Recipes_DB = retete compuse;
+- Recipe Ingredients = legatura reteta-ingredient;
+- Recipe Nutrition Cache = macro/nutrition cache pentru retete.
 
-## 5. Current limitations
+## 9. Current strengths
 
-Forma actuala a sistemului are si limitari importante:
+- Exista flux functional mobile -> backend -> generator -> SQLite -> mobile.
+- Generatorul produce planuri individuale si household v1 Lite.
+- Grocery list este integrata in outputul app-facing.
+- Feedback-ul explicit este functional si se aplica la generari viitoare.
+- Alternatives si replacement explicit exista end-to-end.
+- Datele demo au coverage verificat pentru price/time in scenariile normale.
+- Arhitectura este suficient de modulara pentru evolutie incrementala.
 
-- modelul de date nu este inca suficient de curat pentru a sustine natural separarea Food_DB / Recipes_DB
-- logica de generare a acumulat datorie tehnica si euristici distribuite in mai multe module
-- unele reguli, fallback-uri si conventii de coloane trebuie canonizate mai clar
-- unele documente mai vechi descriu o directie intermediara si nu trebuie tratate ca sursa finala de adevar
-- structura actuala este suficienta pentru experimentare, dar nu este forma dorita pe termen mediu
+## 10. Current limitations
 
-## 6. Immediate next priority
+- Nu exista productie QA completa.
+- SQLite este local/demo, nu production DB.
+- Auth-M1 este local si nu include email verification, password reset sau cloud sync.
+- Sesiunea mobila nu este persistata peste restart.
+- Household Generation v1 Lite este euristic, nu optimizer global.
+- KNN nu este motor principal si nu face ingredient substitution.
+- Price estimates nu sunt live prices.
+- Food_DB / Recipes_DB current sunt baseline-uri pilot si au nevoie de curatare treptata.
+- Unele documente vechi pot descrie stadii anterioare si nu trebuie tratate ca sursa curenta de adevar.
 
-Prioritatea imediata a proiectului nu este extinderea directa a componentei de ML, ci reorganizarea stratului de date si a modelului de lucru. Inainte de KNN mai avansat, feedback mai bogat sau ranking supervizat, este necesara clarificarea unei fundatii mai curate pentru:
+## 11. Immediate next priority
 
-- alimente canonice
-- retete
-- relatia dintre retete si ingrediente
-- semnale de timp, cost si feedback
+Prioritatea imediata este consolidarea aplicatiei reale, nu adaugarea unui optimizer avansat.
 
-Aceasta etapa este considerata preconditie pentru dezvoltarea urmatoarelor componente ale sistemului.
+Pasi rezonabili:
 
-## 7. Transitional note
+- polish UI si assets pentru mobile;
+- testare reala pe telefon/emulator;
+- stabilizarea flow-ului account -> add members -> generate -> grocery -> feedback -> alternatives -> replace -> insights;
+- clarificarea documentatiei de licenta pe baza implementarii reale;
+- imbunatatirea treptata a Food_DB / Recipes_DB fara a rupe MVP-ul functional;
+- amanarea ML/optimizerilor pana cand datele si flow-urile de baza sunt stabile.
 
-Acest document descrie starea curenta a proiectului si limitele ei. El nu trebuie interpretat ca descrierea arhitecturii tinta. Directia de evolutie planificata va fi descrisa separat in documentul `docs/architecture/restructure_target.md`.
+## 12. Transitional note
+
+Acest document descrie starea curenta a proiectului. Arhitectura tinta ramane documentata separat in `docs/architecture/restructure_target.md`, dar orice decizie noua trebuie verificata si fata de codul real, nu doar fata de documentele istorice.

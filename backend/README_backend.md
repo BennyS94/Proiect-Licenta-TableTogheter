@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Acest folder contine scheletul backend M1 pentru TableTogether API.
+Acest folder contine backend-ul FastAPI MVP pentru TableTogether API.
 
 Backend-ul este gandit pentru arhitectura:
 
@@ -11,6 +11,8 @@ Android Mobile App -> FastAPI Backend -> Python Generator -> Food_DB + Recipes_D
 ```
 
 ## Current scope
+
+Nota: sectiunile M1/M3/M4/etc. pastreaza istoricul checkpoint-urilor, dar starea curenta include toate checkpoint-urile bifate mai jos, nu doar scheletul M1.
 
 Implementat in M1:
 

@@ -5,6 +5,9 @@ fara sa inlocuiasca draft-urile, auditul sau istoricul existent.
 
 Rol acum:
 - `fooddb_v1_core_master_draft.csv` este baseline-ul activ pentru Food_DB v1 in lucru.
+- fisierul contine alimente canonice si metadate nutritionale/taxonomice utile pentru mapping, filtrare si scoring.
+- nu este o baza cloud/production si nu trebuie tratat ca strat runtime final pentru aplicatia mobila.
+- completari viitoare trebuie sa fie gap-driven, pornind din nevoi reale de Recipes_DB / grocery / substitution, nu bulk import necontrolat.
 
 Istoric, audit si staging raman in:
 - `data/fooddb/draft/`

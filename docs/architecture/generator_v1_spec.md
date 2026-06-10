@@ -3,7 +3,7 @@
 ## 1. Scopul documentului
 
 Acest document fixeaza deciziile de arhitectura si contractele operationale pentru Generator v1.
-Scopul este de a produce o versiune functionala, testabila si extensibila. Starea curenta include demo/testing pentru o zi si un draft multi-day configurabil 1-5 zile, dar ramane limitata la un singur household si un singur member_profile activ.
+Scopul este de a produce o versiune functionala, testabila si extensibila. Starea curenta include generare individuala 1-5 zile, Household Generation v1 Lite, feedback explicit, grocery list determinista si integrare prin FastAPI backend / mobile MVP.
 
 ---
 
@@ -11,19 +11,21 @@ Scopul este de a produce o versiune functionala, testabila si extensibila. Stare
 
 Generatorul v1 este:
 - recipe-based, deterministic, scoring-based si modular
-- proiectat pentru testare rapida (Streamlit) si iteratie pe pilot
-- limitat la 1 household + 1 member_profile activ
-- demo/testing-ready pentru 1 zi si demo-ready pentru multi-day v1 draft configurabil 1-5 zile
+- proiectat pentru testare rapida (Streamlit), integrare backend si iteratie pe pilot
+- demo/testing-ready pentru generare individuala 1-5 zile
+- integrat cu Household Generation v1 Lite pentru fluxuri household MVP/demo
+- expus catre mobile prin FastAPI backend, nu rulat in aplicatia mobila
 
 Unitatea principala de selectie este reteta (`recipe`).
 
 Datele principale consumate:
 - `recipes`, `recipe_ingredients`, `recipe_nutrition_cache`, `member_profile`, `nutrition_target`, `household_preference_context`
-- pentru Feedback v1 local/demo: `data/runtime/generator_v1_feedback_events.jsonl`
+- pentru Feedback v1 local CLI/Streamlit: `data/runtime/generator_v1_feedback_events.jsonl`
+- pentru Feedback v1 backend/mobile: SQLite local/demo prin tabela `feedback_events`
 
 Decizii arhitecturale importante:
 - NU folosim OR-Tools/MILP in Generator v1 demo
-- KNN nu este motorul principal in v1 (doar strat auxiliar viitor)
+- KNN nu este motorul principal in v1; este strat auxiliar pentru alternatives si meal-level replacement explicit
 - Nu se rescrie structura retetelor; se permit doar multiplicatori de portie
 
 ---
@@ -37,12 +39,14 @@ Generatorul construieste planul pe baza de `recipes` si metadate asociate. Fieca
 ## 4. Ce NU face generatorul v1
 
 - household optimization complet multi-profile
-- household multi-member simultan
+- optimizer household global multi-objective
+- meniuri complet separate per membru by default
 - live grocery price fetching sau store/brand/cart optimization
 - folosirea KNN ca motor principal
 - OR-Tools / MILP / CP-SAT
 - rescrierea automata a retetelor sau componentizare automata
 - promovarea automata a dataseturilor draft in `current`
+- ingredient-level substitution
 
 Generatorul poate ajusta portiile retetelor prin multiplicatori (ex. 0.8x/1.0x/1.2x), dar nu modifica lista de ingrediente.
 
@@ -167,7 +171,9 @@ Portion multipliers disponibile: 0.8x, 1.0x, 1.2x
 - In v1, preferintele sunt comune la nivel de `household`.
 - Profilul activ (`member_profile`) este folosit pentru `nutrition_target`.
 - `household_preference_context` contine liste simple: liked/disliked/avoid si time sensitivity.
-- In Feedback v1 local/demo, contextul este agregat din evenimente JSONL locale si ramane household/demo, nu productie.
+- In CLI/Streamlit, contextul poate fi agregat din evenimente JSONL locale.
+- In backend/mobile MVP, contextul este agregat din SQLite si injectat in requestul de generare cand `feedback_enabled=true`.
+- Contextul ramane explicit si interpretabil; nu este ML si nu este personalizare cloud/productie.
 
 ---
 
@@ -177,8 +183,9 @@ Tipuri minime:
 - `liked`, `disliked`, `too_long`, `explicit_avoid`
 
 Status curent:
-- Feedback v1 este implementat ca feature local/demo pentru Generator v1.
-- Storage: `data/runtime/generator_v1_feedback_events.jsonl`
+- Feedback v1 este implementat ca feature local/demo pentru Generator v1 si este integrat in backend/mobile MVP.
+- Storage CLI/Streamlit: `data/runtime/generator_v1_feedback_events.jsonl`
+- Storage backend/mobile: SQLite local/demo, tabela `feedback_events`
 - Feedback-ul se aplica la generatiile urmatoare.
 
 Reguli implementate:
@@ -188,9 +195,8 @@ Reguli implementate:
 - `explicit_avoid` -> hard filter pe `recipe_id`
 
 Limitari:
-- local JSONL only
-- fara conturi reale
-- fara DB/backend/server
+- fara cloud sync
+- SQLite local/demo, nu productie
 - fara ML/KNN
 - fara personalizare de productie
 - fara propagare ingredient/family
@@ -215,12 +221,16 @@ Limitari:
 
 ## 13. Pipeline generator v1
 
-1. incarca `member_profile` -> calculeaza `nutrition_target`
-2. construieste pool initial de `recipes` aplicand `hard_filters`
-3. pentru fiecare slot: filtru candidat + calcul scor (candidate_filter + recipe_scorer)
-4. selectie cea mai buna per slot (deterministic tie-breaker)
-5. assemble day -> aplica post-pass daily rules (ex. adjust veg servings)
-6. output CSV/JSON plan + readable
+1. incarca profilul / household context
+2. calculeaza `nutrition_target` individual sau targeturi per membru + agregat household
+3. evalueaza devreme `profile_guard`
+4. incarca Recipes_DB / Food_DB / nutrition cache
+5. aplica `hard_filters`
+6. construieste candidati pe sloturi
+7. calculeaza scoruri si semnale auxiliare (`macro_fit`, `time_fit`, `slot_fit`, `feedback_fit`, `variety_fit`, `nutrition_quality`, realism)
+8. selecteaza plan individual sau household v1 Lite
+9. aplica validare / quality gate
+10. optional construieste grocery list si output JSON-safe pentru backend/mobile
 
 ---
 
@@ -400,7 +410,7 @@ Exemplu validat:
 ## 24. Module logice recomandate
 
 - `target_builder` (calc nutrition_target)
-- `feedback_store` (append/load/clear evenimente JSONL locale)
+- `feedback_store` (append/load/clear evenimente JSONL locale pentru CLI/Streamlit)
 - `feedback_adapter` (agrega evenimente in household_preference_context)
 - `feedback_fit` (calculeaza scorul local de feedback)
 - `candidate_filter` (aplica hard filters)
@@ -420,8 +430,9 @@ Exemplu validat:
 
 ## 26. Rolul KNN
 
-- KNN ramane strat auxiliar: substitutii, candidate expansion, propagare feedback
+- KNN ramane strat auxiliar: recipe alternatives, candidate support si meal-level replacement explicit
 - NU este folosit ca motor principal de selectie in v1
+- NU face ingredient-level substitution in MVP
 
 ---
 
@@ -437,9 +448,10 @@ Exemplu validat:
 - Checkpoint 0: contract generator, profil, nutrition_target, feedback, hard filters, scoring - conceptual complet
 - Checkpoint 1: 1 household + 1 member_profile activ + 1 zi - demo/testing-ready
 - Checkpoint 2: multi-day v1 draft + demo polish - implementat/demo-ready
-- Checkpoint 3: Feedback v1 local/demo implementat; raman feedback explainability, UI polish si family-level variety polish
-- Checkpoint 4: source verification suplimentar si pregatire grocery/list
-- Checkpoint 5: household generation multi-profile
+- Checkpoint 3: Feedback v1 implementat local si backend/mobile SQLite
+- Checkpoint 4: Grocery/list, purchase suggestions, cooked-to-raw helpers si price estimates demo implementate
+- Checkpoint 5: Household Generation v1 Lite implementat; optimizer household global ramane viitor
+- Checkpoint KNN-2/KNN-4: alternatives si meal-level replacement explicit implementate ca strat auxiliar
 
 ---
 
@@ -458,5 +470,5 @@ Exemplu validat:
 
 ## 31. Concluzie
 
-Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven, limitat la 1 household + 1 profile activ. Checkpoint 1 si Checkpoint 2 sunt demo-ready pe pachetul `v1_2_demo_final`, iar Feedback v1 exista ca feature local/demo. Urmatorii pasi tin de feedback explainability, polish de varietate, source verification, grocery/list si household multi-member ulterior.
+Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven si integrat prin backend/mobile MVP. Generarea individuala 1-5 zile, Household Generation v1 Lite, feedback explicit, grocery list, price/time coverage demo, KNN alternatives si meal-level replacement exista deja pe pachetul `v1_2_demo_final`. Urmatorii pasi tin de polish mobile, QA pe telefon, feedback explainability, varietate family-level si consolidarea Food_DB / Recipes_DB, nu de introducerea prematura a unui optimizer global sau a unui motor ML principal.
 
