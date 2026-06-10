@@ -182,6 +182,41 @@ def get_household_for_user(user_id: str) -> dict[str, Any] | None:
         return _get_household_for_user(conn, user_id)
 
 
+def update_household_display_name(user_id: str, display_name: str) -> dict[str, Any]:
+    clean_user_id = str(user_id or "").strip()
+    clean_display_name = _normalize_household_display_name(display_name)
+    init_db()
+    with get_connection() as conn:
+        user = _get_user_by_id(conn, clean_user_id)
+        if user is None or not user.get("is_active"):
+            raise ValueError("user_not_found")
+        household = _get_household_for_user(conn, clean_user_id)
+        if household is None:
+            raise ValueError("household_not_found")
+
+        now = _utc_now_iso()
+        conn.execute(
+            """
+            UPDATE households
+            SET household_name = ?,
+                display_name = ?,
+                updated_at = ?,
+                is_active = 1
+            WHERE household_id = ?
+              AND user_id = ?
+            """,
+            (
+                clean_display_name,
+                clean_display_name,
+                now,
+                household["household_id"],
+                clean_user_id,
+            ),
+        )
+        updated_household = _get_household_for_user(conn, clean_user_id)
+        return _account_from_user_and_household(user, updated_household)
+
+
 def create_session_for_account(account: dict[str, Any]) -> dict[str, Any]:
     session = create_user_session(str(account["user_id"]))
     return {
@@ -342,6 +377,15 @@ def _validate_email(email: str) -> None:
 def _validate_password(password: str) -> None:
     if len(str(password or "")) < 6:
         raise ValueError("password_min_6")
+
+
+def _normalize_household_display_name(display_name: str) -> str:
+    clean_name = " ".join(str(display_name or "").strip().split())
+    if not clean_name:
+        raise ValueError("household_name_required")
+    if len(clean_name) > 64:
+        raise ValueError("household_name_too_long")
+    return clean_name
 
 
 def _hash_password(password: str, salt: str) -> str:

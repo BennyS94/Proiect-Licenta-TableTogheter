@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import LottieView from "lottie-react-native";
@@ -43,6 +44,7 @@ import {
   logoutAccount,
   registerAccount,
   submitFeedback,
+  updateHouseholdName,
 } from "../services/apiClient";
 import { colors } from "../theme/colors";
 import type {
@@ -129,6 +131,7 @@ export function HomeScreen() {
   const [feedbackError, setFeedbackError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [householdErrorMessage, setHouseholdErrorMessage] = useState("");
+  const [householdMessage, setHouseholdMessage] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
   const [profileErrorMessage, setProfileErrorMessage] = useState("");
   const [authMessage, setAuthMessage] = useState("");
@@ -136,6 +139,8 @@ export function HomeScreen() {
   const [authSessionToken, setAuthSessionToken] = useState("");
   const [authAccount, setAuthAccount] = useState<AuthAccount | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [householdNameDraft, setHouseholdNameDraft] = useState("My Household");
+  const [isUpdatingHouseholdName, setIsUpdatingHouseholdName] = useState(false);
   const [activePage, setActivePage] = useState<AppPageKey>("home");
   const [isDemoModeEnabled, setIsDemoModeEnabled] = useState(false);
   const [isContinuingDemo, setIsContinuingDemo] = useState(false);
@@ -235,6 +240,12 @@ export function HomeScreen() {
       : "None";
   const feedbackStats = getFeedbackStats(feedbackContext);
 
+  useEffect(() => {
+    setHouseholdNameDraft(
+      formatHouseholdDisplayName(authAccount?.household_display_name ?? "My Household"),
+    );
+  }, [authAccount?.household_display_name]);
+
   async function checkBackendHealth() {
     setHealthStatus("loading");
     setErrorMessage("");
@@ -308,6 +319,38 @@ export function HomeScreen() {
       setProfileErrorMessage(error instanceof Error ? error.message : "Profiles fetch failed");
     } finally {
       setIsLoadingProfiles(false);
+    }
+  }
+
+  async function saveHouseholdDisplayName() {
+    if (!authAccount || !authSessionToken) {
+      setHouseholdMessage("");
+      setHouseholdErrorMessage("Log in before editing household settings.");
+      return;
+    }
+
+    const displayName = formatHouseholdDisplayName(householdNameDraft);
+    setIsUpdatingHouseholdName(true);
+    setHouseholdMessage("");
+    setHouseholdErrorMessage("");
+
+    try {
+      const response = await updateHouseholdName(displayName, authSessionToken);
+      const updatedAccount = {
+        ...response.account,
+        household_display_name: formatHouseholdDisplayName(
+          response.account.household_display_name,
+        ),
+      };
+      setAuthAccount(updatedAccount);
+      setHouseholdNameDraft(updatedAccount.household_display_name);
+      setHouseholdMessage("Household name updated.");
+    } catch (error) {
+      setHouseholdErrorMessage(
+        error instanceof Error ? error.message : "Household name update failed",
+      );
+    } finally {
+      setIsUpdatingHouseholdName(false);
     }
   }
 
@@ -777,6 +820,8 @@ export function HomeScreen() {
     setProfileErrorMessage("");
     setAuthError("");
     setAuthMessage("");
+    setHouseholdMessage("");
+    setHouseholdErrorMessage("");
 
     try {
       setIsDemoModeEnabled(true);
@@ -799,6 +844,8 @@ export function HomeScreen() {
     setAuthError("");
     setAuthMessage("");
     setProfileErrorMessage("");
+    setHouseholdMessage("");
+    setHouseholdErrorMessage("");
 
     try {
       const response = await registerAccount(email, password, confirmPassword);
@@ -815,6 +862,8 @@ export function HomeScreen() {
     setAuthError("");
     setAuthMessage("");
     setProfileErrorMessage("");
+    setHouseholdMessage("");
+    setHouseholdErrorMessage("");
 
     try {
       const response = await loginAccount(email, password);
@@ -846,6 +895,7 @@ export function HomeScreen() {
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
+    setHouseholdMessage("");
     setProfileMessage("");
     setSavedProfiles([]);
     setSelectedSavedProfileId("");
@@ -910,6 +960,7 @@ export function HomeScreen() {
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
+    setHouseholdMessage("");
     setProfileMessage("");
     setProfileErrorMessage("");
     setIsDemoModeEnabled(false);
@@ -968,7 +1019,9 @@ export function HomeScreen() {
   const activeProfileName = selectedProfileItem?.label ?? "there";
   const activeProfileMeta =
     selectedProfileItem?.meta ?? "Goal: Muscle gain - 3 meals + snack";
-  const householdName = authAccount?.household_display_name ?? "Your Household";
+  const householdName = authAccount
+    ? formatHouseholdDisplayName(authAccount.household_display_name)
+    : "Your Household";
   const backendStatusText =
     healthStatus === "connected" ? "Connected" : healthStatus === "loading" ? "Checking" : "Unknown";
   const individualDayIndexes = getIndividualDayIndexes(generatedPlan);
@@ -1021,6 +1074,7 @@ export function HomeScreen() {
   const messagesContent =
     errorMessage ||
     householdErrorMessage ||
+    householdMessage ||
     profileMessage ||
     profileErrorMessage ||
     feedbackMessage ||
@@ -1030,6 +1084,7 @@ export function HomeScreen() {
         {householdErrorMessage ? (
           <Text style={styles.errorText}>{householdErrorMessage}</Text>
         ) : null}
+        {householdMessage ? <Text style={styles.successText}>{householdMessage}</Text> : null}
         {profileMessage ? <Text style={styles.successText}>{profileMessage}</Text> : null}
         {profileErrorMessage ? (
           <Text style={styles.errorText}>{profileErrorMessage}</Text>
@@ -1150,6 +1205,35 @@ export function HomeScreen() {
 
   const householdManagementContent = (
     <View style={styles.stack}>
+      <AppCard>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Household name</Text>
+          <Text numberOfLines={1} style={styles.panelMeta}>
+            {householdName}
+          </Text>
+        </View>
+        <View style={styles.householdNameForm}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            autoCapitalize="words"
+            editable={!isUpdatingHouseholdName}
+            onChangeText={setHouseholdNameDraft}
+            onSubmitEditing={saveHouseholdDisplayName}
+            placeholder="My Household"
+            placeholderTextColor={colors.mutedSoft}
+            returnKeyType="done"
+            style={styles.textInput}
+            value={householdNameDraft}
+          />
+        </View>
+        <ActionButton
+          disabled={!authAccount || isUpdatingHouseholdName}
+          label="Save name"
+          loading={isUpdatingHouseholdName}
+          onPress={saveHouseholdDisplayName}
+          variant="secondary"
+        />
+      </AppCard>
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Member profiles</Text>
@@ -1398,7 +1482,6 @@ function MealPlanProfileSelector({
     items.findIndex((item) => item.id === selectedId),
   );
   const selected = items[selectedIndex] ?? null;
-  const compactMeta = compactProfileMeta(selected?.meta);
 
   function selectOffset(offset: number) {
     if (!items.length) {
@@ -1438,11 +1521,6 @@ function MealPlanProfileSelector({
             {selected?.label ?? "No profile selected"}
           </Text>
         </View>
-        {compactMeta ? (
-          <Text numberOfLines={1} style={styles.mealPlanProfileMeta}>
-            {compactMeta}
-          </Text>
-        ) : null}
       </View>
 
       <Pressable
@@ -1647,6 +1725,17 @@ function formatGoal(goal: string): string {
     maintain: "Maintain",
   };
   return labels[normalized] ?? titleize(normalized || "maintain");
+}
+
+function formatHouseholdDisplayName(value?: string): string {
+  const cleaned = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!cleaned) {
+    return "My Household";
+  }
+  if (cleaned.toLowerCase().endsWith("household")) {
+    return cleaned;
+  }
+  return `${cleaned} Household`;
 }
 
 function getIndividualDayIndexes(
@@ -2475,6 +2564,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
   },
+  householdNameForm: {
+    gap: 6,
+  },
+  textInput: {
+    backgroundColor: "#F8FBF3",
+    borderColor: "#DDEAD3",
+    borderRadius: 8,
+    borderWidth: 1,
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "800",
+    minHeight: 46,
+    paddingHorizontal: 12,
+  },
   modeButton: {
     alignItems: "center",
     borderColor: colors.accent,
@@ -2528,14 +2631,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minWidth: 0,
   },
-  mealPlanProfileMeta: {
-    color: colors.mutedSoft,
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 16,
-    marginTop: 2,
-    textAlign: "center",
-  },
   mealPlanProfileName: {
     color: "#1B2430",
     flexShrink: 1,
@@ -2552,10 +2647,10 @@ const styles = StyleSheet.create({
     elevation: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 56,
+    minHeight: 52,
     minWidth: 0,
     paddingHorizontal: 16,
-    paddingVertical: 7,
+    paddingVertical: 10,
     shadowColor: "#1F2933",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,

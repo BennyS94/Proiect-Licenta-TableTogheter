@@ -8,6 +8,7 @@ import type {
   FeedbackEventRequest,
   FeedbackEventResponse,
   HealthResponse,
+  HouseholdSettingsResponse,
   HouseholdPlanGenerateRequest,
   HouseholdPlanGenerateResponse,
   IndividualPlanGenerateRequest,
@@ -99,6 +100,22 @@ export async function logoutAccount(sessionToken?: string): Promise<{ status: st
 export async function getCurrentAccount(sessionToken: string): Promise<MeResponse> {
   return requestJson<MeResponse>("/auth/me", {
     headers: authHeaders(sessionToken),
+  });
+}
+
+export async function updateHouseholdName(
+  displayName: string,
+  sessionToken: string,
+): Promise<HouseholdSettingsResponse> {
+  return requestJson<HouseholdSettingsResponse>("/households/me", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(sessionToken),
+    },
+    body: JSON.stringify({
+      display_name: displayName,
+    }),
   });
 }
 

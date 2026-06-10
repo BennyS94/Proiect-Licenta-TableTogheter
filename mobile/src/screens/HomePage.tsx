@@ -1,10 +1,20 @@
 import { useMemo, useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import {
+  Image,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import LottieView from "lottie-react-native";
 
 import { ResourceCarouselSection } from "../components/home/ResourceCarouselSection";
-import { TipLightbulbLeafIcon } from "../components/icons/TipLightbulbLeafIcon";
+import { DailyFoodTipIcon } from "../components/icons/DailyFoodTipIcon";
+import { HouseholdIcon } from "../components/icons/HouseholdIcon";
 import { AppScreen } from "../components/ui/AppScreen";
+import { RotatingRefreshButton } from "../components/ui/RotatingRefreshButton";
 import {
   dailyFoodTips,
   familyKidsIdeas,
@@ -14,6 +24,11 @@ import {
 } from "../data/homeContent";
 
 const cookingLottie = require("../../assets/home/welcome/cooking_lottie.json");
+const HOME_CARD_ICON_SIZE = 58;
+const DAILY_TIP_IMAGE_SLOT_RADIUS = 20;
+const DAILY_TIP_IMAGE_SLOT_SIZE = 104;
+const DAILY_TIP_REFRESH_BUTTON_SIZE = 38;
+const DAILY_TIP_REFRESH_ICON_SIZE = 22;
 
 type HomePageProps = {
   activeProfileName: string;
@@ -51,6 +66,7 @@ export function HomePage({
   activeProfileName,
   householdName,
   isSetupComplete,
+  onGoToHousehold,
   onGoToMealPlan,
   profileCount,
 }: HomePageProps) {
@@ -66,6 +82,8 @@ export function HomePage({
   const currentTip = dailyFoodTips[tipIndex % dailyFoodTips.length] ?? dailyFoodTips[0];
   const animationWidth = Math.min(194, Math.max(174, Math.round(contentWidth * 0.52)));
   const animationHeight = Math.min(164, Math.max(150, Math.round(animationWidth * 0.84)));
+  const householdCtaLabel = hasProfiles ? "Go to Meal Plan" : "Add Member Profile";
+  const householdCtaTarget = hasProfiles ? onGoToMealPlan : onGoToHousehold;
 
   const profileCountLabel = useMemo(() => {
     if (profileCount === 1) {
@@ -123,12 +141,10 @@ export function HomePage({
 
       <View style={[styles.householdCard, { width: contentWidth }]}>
         <View style={styles.householdTopRow}>
-          <View style={styles.householdIconCircle}>
-            <Text style={styles.householdIcon}>⌂</Text>
-          </View>
+          <HouseholdIcon height={HOME_CARD_ICON_SIZE} width={HOME_CARD_ICON_SIZE} />
           <View style={styles.householdCopy}>
             <Text numberOfLines={1} style={styles.householdTitle}>
-              {hasProfiles ? safeHouseholdName : "Set up your household"}
+              {isSetupComplete ? safeHouseholdName : "Set up your household"}
             </Text>
             <Text style={styles.householdMeta}>
               {hasProfiles ? profileCountLabel : "0 profiles configured"}
@@ -142,22 +158,17 @@ export function HomePage({
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={onGoToMealPlan}
+          onPress={householdCtaTarget}
           style={({ pressed }) => [styles.ctaButton, pressed ? styles.pressed : null]}
         >
-          <Text style={styles.ctaText}>Go to Meal Plan</Text>
+          <Text style={styles.ctaText}>{householdCtaLabel}</Text>
           <Text style={styles.ctaChevron}>›</Text>
         </Pressable>
       </View>
 
       <View style={[styles.tipCard, { width: contentWidth }]}>
-        <View pointerEvents="none" style={styles.tipTextureLayer}>
-          <View style={[styles.tipTextureLine, styles.tipTextureLineOne]} />
-          <View style={[styles.tipTextureLine, styles.tipTextureLineTwo]} />
-          <View style={[styles.tipTextureLine, styles.tipTextureLineThree]} />
-          <View style={[styles.tipTextureLine, styles.tipTextureLineFour]} />
-        </View>
         <View style={styles.tipHeaderRow}>
+          <DailyFoodTipIcon height={HOME_CARD_ICON_SIZE} width={HOME_CARD_ICON_SIZE} />
           <Text
             adjustsFontSizeToFit
             minimumFontScale={0.86}
@@ -166,33 +177,21 @@ export function HomePage({
           >
             Daily Food Tip
           </Text>
-          <Pressable
+          <RotatingRefreshButton
             accessibilityLabel="Refresh daily food tip"
-            accessibilityRole="button"
+            iconSize={DAILY_TIP_REFRESH_ICON_SIZE}
             onPress={() => setTipIndex((index) => (index + 1) % dailyFoodTips.length)}
-            style={({ pressed }) => [styles.refreshButton, pressed ? styles.pressed : null]}
-          >
-            <Text style={styles.refreshIcon}>↻</Text>
-          </Pressable>
+            size={DAILY_TIP_REFRESH_BUTTON_SIZE}
+          />
         </View>
-        <View style={styles.tipDivider} />
-        <View style={styles.tipContentRow}>
-          <View style={styles.tipBadgeSlot}>
-            <View style={styles.tipIconCircle}>
-              <TipLightbulbLeafIcon size={52} />
-            </View>
-          </View>
-          <View style={styles.tipCopy}>
-            <Text style={styles.tipBody}>{currentTip.body}</Text>
-          </View>
-          <View style={styles.tipImageSlot}>
-            <View style={[styles.tipIllustration, { backgroundColor: currentTip.imageTone }]}>
-              <View style={styles.tipPlate} />
-              <View style={styles.tipBowl} />
-              <View style={styles.tipFoodDot} />
-              <View style={styles.tipLeafOne} />
-              <View style={styles.tipLeafTwo} />
-            </View>
+        <View style={styles.tipBodyRow}>
+          <Text style={styles.tipBody}>{currentTip.body}</Text>
+          <View style={[styles.tipImagePlaceholder, { backgroundColor: currentTip.imageTone }]}>
+            <Image
+              resizeMode="contain"
+              source={currentTip.image}
+              style={styles.tipImage}
+            />
           </View>
         </View>
       </View>
@@ -378,20 +377,6 @@ const styles = StyleSheet.create({
   householdCopy: {
     flex: 1,
   },
-  householdIcon: {
-    color: "#74B72E",
-    fontSize: 24,
-    fontWeight: "900",
-    lineHeight: 28,
-  },
-  householdIconCircle: {
-    alignItems: "center",
-    backgroundColor: "#EAF5DF",
-    borderRadius: 22,
-    height: 44,
-    justifyContent: "center",
-    width: 44,
-  },
   householdMeta: {
     color: "#6B7280",
     fontSize: 14.5,
@@ -403,6 +388,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   householdTopRow: {
+    alignItems: "center",
     flexDirection: "row",
     gap: 12,
   },
@@ -421,22 +407,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 24,
     marginTop: 1,
-  },
-  refreshButton: {
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.72)",
-    borderColor: "rgba(116,183,46,0.22)",
-    borderWidth: 1,
-    borderRadius: 18,
-    height: 36,
-    justifyContent: "center",
-    width: 36,
-  },
-  refreshIcon: {
-    color: "#4F8F1F",
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 22,
   },
   resourceDescription: {
     color: "#6B7280",
@@ -515,8 +485,17 @@ const styles = StyleSheet.create({
   },
   tipBody: {
     color: "#1F2933",
-    fontSize: 16.5,
-    lineHeight: 21.5,
+    flex: 1,
+    fontSize: 17.8,
+    lineHeight: 24.8,
+    minWidth: 0,
+  },
+  tipBodyRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 14,
+    marginTop: 14,
+    zIndex: 1,
   },
   tipCard: {
     alignItems: "stretch",
@@ -526,164 +505,43 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     elevation: 2,
     marginTop: 20,
-    minHeight: 198,
+    minHeight: 216,
     overflow: "hidden",
-    paddingHorizontal: 18,
-    paddingVertical: 17,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     shadowColor: "#1F2933",
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.08,
     shadowRadius: 14,
   },
-  tipBadgeSlot: {
-    alignItems: "flex-start",
-    justifyContent: "center",
-    width: 56,
-    zIndex: 1,
-  },
-  tipCopy: {
-    flex: 1,
-    justifyContent: "center",
-    minWidth: 0,
-    zIndex: 1,
-  },
-  tipContentRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
-    minHeight: 100,
-    zIndex: 1,
-  },
-  tipDivider: {
-    backgroundColor: "rgba(116,183,46,0.18)",
-    height: 1,
-    marginBottom: 13,
-    marginTop: 10,
-    zIndex: 1,
-  },
   tipHeaderRow: {
     alignItems: "center",
     flexDirection: "row",
+    gap: 12,
     justifyContent: "space-between",
-    minHeight: 36,
+    minHeight: 58,
     zIndex: 1,
   },
-  tipIconCircle: {
+  tipImagePlaceholder: {
     alignItems: "center",
-    backgroundColor: "#DFF2CF",
-    borderColor: "rgba(116,183,46,0.22)",
-    borderRadius: 28,
+    borderColor: "rgba(255,255,255,0.56)",
+    borderRadius: DAILY_TIP_IMAGE_SLOT_RADIUS,
     borderWidth: 1,
-    height: 56,
+    height: DAILY_TIP_IMAGE_SLOT_SIZE,
     justifyContent: "center",
     overflow: "hidden",
-    width: 56,
-    zIndex: 1,
+    width: DAILY_TIP_IMAGE_SLOT_SIZE,
   },
-  tipImageSlot: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-    width: 80,
-    zIndex: 1,
-  },
-  tipIllustration: {
-    alignItems: "center",
-    borderRadius: 16,
-    height: 80,
-    justifyContent: "center",
-    overflow: "hidden",
-    width: 80,
-  },
-  tipTextureLayer: {
-    backgroundColor: "rgba(255, 249, 226, 0.22)",
-    bottom: 0,
-    left: 0,
-    opacity: 0.72,
-    position: "absolute",
-    right: 0,
-    top: 0,
-  },
-  tipTextureLine: {
-    backgroundColor: "rgba(116, 183, 46, 0.08)",
-    height: 1,
-    position: "absolute",
-  },
-  tipTextureLineFour: {
-    bottom: 27,
-    left: 88,
-    width: 170,
-  },
-  tipTextureLineOne: {
-    left: 18,
-    top: 24,
-    width: 130,
-  },
-  tipTextureLineThree: {
-    right: 24,
-    top: 104,
-    width: 96,
-  },
-  tipTextureLineTwo: {
-    left: 42,
-    top: 68,
-    width: 210,
-  },
-  tipLeafOne: {
-    backgroundColor: "#7CCB39",
-    borderBottomLeftRadius: 12,
-    borderTopRightRadius: 12,
-    height: 21,
-    position: "absolute",
-    right: 17,
-    top: 22,
-    transform: [{ rotate: "-20deg" }],
-    width: 32,
-  },
-  tipLeafTwo: {
-    backgroundColor: "#A8D66D",
-    borderBottomLeftRadius: 10,
-    borderTopRightRadius: 10,
-    bottom: 19,
-    height: 18,
-    left: 20,
-    position: "absolute",
-    transform: [{ rotate: "18deg" }],
-    width: 27,
-  },
-  tipPlate: {
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 35,
-    height: 50,
-    transform: [{ rotate: "-10deg" }],
-    width: 60,
-  },
-  tipBowl: {
-    backgroundColor: "#FFFFFF",
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    bottom: 22,
-    height: 20,
-    position: "absolute",
-    width: 52,
-  },
-  tipFoodDot: {
-    backgroundColor: "#F7C948",
-    borderRadius: 8,
-    height: 15,
-    position: "absolute",
-    right: 18,
-    top: 31,
-    width: 15,
+  tipImage: {
+    height: "100%",
+    width: "100%",
   },
   tipTitle: {
     color: "#1F2933",
     flex: 1,
-    fontSize: 23,
+    fontSize: 24,
     fontWeight: "800",
     includeFontPadding: false,
-    lineHeight: 28,
-    marginRight: 12,
+    lineHeight: 30,
   },
 });

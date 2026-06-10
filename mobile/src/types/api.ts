@@ -71,6 +71,12 @@ export type MeResponse = {
   account: AuthAccount | null;
 };
 
+export type HouseholdSettingsResponse = {
+  status: string;
+  message: string;
+  account: AuthAccount;
+};
+
 export type MemberProfileCreateRequest = {
   household_id?: string;
   member_profile_id?: string;

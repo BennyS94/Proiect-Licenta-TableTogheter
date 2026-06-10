@@ -1,3 +1,5 @@
+import type { ImageSourcePropType } from "react-native";
+
 export type HomeResourceKind = "article" | "video" | "tip";
 
 export type HomeResourceItem = {
@@ -14,52 +16,43 @@ export type HomeResourceItem = {
 export type DailyFoodTip = {
   body: string;
   id: string;
-  image: string;
+  image: ImageSourcePropType;
   imageTone: string;
   title: string;
 };
 
+const tipFruitChoice = require("../../assets/home/tips/tip_fruit_choice.png") as ImageSourcePropType;
+const tipArrangedPlate = require("../../assets/home/tips/tip_arranged_plate.png") as ImageSourcePropType;
+const tipBackupMeal = require("../../assets/home/tips/tip_backup_meal.png") as ImageSourcePropType;
+const tipKidsTastes = require("../../assets/home/tips/tip_kids_tastes.png") as ImageSourcePropType;
+
 export const dailyFoodTips: DailyFoodTip[] = [
   {
-    body: "Pair fruit with yogurt, nuts, or cheese for a snack that feels more filling.",
-    id: "balanced-snack",
-    image: "mobile/assets/home/tips/tip_snack.png",
+    body: "Choosing a piece of fruit is better than staying hungry while dieting.",
+    id: "fruit-while-dieting",
+    image: tipFruitChoice,
     imageTone: "#F7C948",
-    title: "Balanced snacks",
+    title: "Fruit while dieting",
   },
   {
-    body: "A planned snack can help you avoid rushed food choices later.",
-    id: "family-compromise",
-    image: "mobile/assets/home/tips/tip_compromise.png",
+    body: "A well-arranged plate can make eating feel easier and more enjoyable.",
+    id: "well-arranged-plate",
+    image: tipArrangedPlate,
     imageTone: "#74B72E",
-    title: "Shared meals",
+    title: "Plate arrangement",
   },
   {
-    body: "Add one colorful food to the plate. Small changes make meals easier.",
-    id: "colorful-plate",
-    image: "mobile/assets/home/tips/tip_colorful_plate.png",
+    body: "Keeping a backup meal in the fridge is helpful for days when cooking feels like too much.",
+    id: "fridge-backup-meal",
+    image: tipBackupMeal,
     imageTone: "#F97316",
-    title: "Colorful plates",
-  },
-  {
-    body: "Plan one simple meal ahead to make busy days less stressful.",
-    id: "planning",
-    image: "mobile/assets/home/tips/tip_planning.png",
-    imageTone: "#38BDF8",
-    title: "Simple planning",
-  },
-  {
-    body: "Keep one easy backup meal at home for days when cooking feels too much.",
-    id: "backup-meal",
-    image: "mobile/assets/home/tips/tip_backup_meal.png",
-    imageTone: "#F7C948",
     title: "Backup meal",
   },
   {
-    body: "For kids, small low-pressure tastes still count as progress.",
-    id: "kids-progress",
-    image: "mobile/assets/home/tips/tip_kids_progress.png",
-    imageTone: "#74B72E",
+    body: "For kids, even small low-pressure tastes count as progress.",
+    id: "kids-low-pressure-tastes",
+    image: tipKidsTastes,
+    imageTone: "#38BDF8",
     title: "Kids progress",
   },
 ];

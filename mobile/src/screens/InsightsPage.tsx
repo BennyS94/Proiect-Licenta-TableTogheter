@@ -3,9 +3,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { MacroDonutRing } from "../components/insights/MacroDonutRing";
 import {
-  BreakfastSunriseIcon,
-  DinnerMoonIcon,
-  LunchSunIcon,
+  BreakfastCoffeeCupIcon,
+  DinnerPlateCutleryIcon,
+  LunchServingDomeIcon,
+  SnackAppleIcon,
 } from "../components/icons/MealTimeIcons";
 import {
   CaloriesFlameIcon,
@@ -59,7 +60,7 @@ const MACRO_COLORS = {
   protein: "#EF3B45",
 };
 
-const MEAL_DASHBOARD_ORDER = ["breakfast", "lunch", "dinner"];
+const MEAL_DASHBOARD_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 
 export function InsightsPage({
   activeProfileMeta,
@@ -117,9 +118,8 @@ export function InsightsPage({
   }
 
   const macroPercents = macroEnergyPercents(totals);
-  const selectedDayLabel = formatDayLabel(selectedDay);
   const mealRows = getDashboardMealRows(mealContributions);
-  const compactMeta = compactProfileMeta(activeProfileMeta);
+  const goalBadgeLabel = getGoalBadgeLabel(activeProfileMeta);
 
   return (
     <AppScreen contentContainerStyle={styles.screenContainer}>
@@ -132,11 +132,6 @@ export function InsightsPage({
             <Text numberOfLines={1} style={styles.profileFallbackName}>
               {activeProfileName}
             </Text>
-            {compactMeta ? (
-              <Text numberOfLines={1} style={styles.profileFallbackMeta}>
-                {compactMeta}
-              </Text>
-            ) : null}
           </View>
         )}
       </View>
@@ -150,7 +145,11 @@ export function InsightsPage({
       <View style={styles.dashboardCard}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Daily Balance</Text>
-          <Text style={styles.dayPill}>{selectedDayLabel}</Text>
+          {goalBadgeLabel ? (
+            <Text numberOfLines={1} style={styles.goalBadge}>
+              {goalBadgeLabel}
+            </Text>
+          ) : null}
         </View>
         <View style={styles.balanceContent}>
           <MacroDonutRing
@@ -183,12 +182,24 @@ export function InsightsPage({
             </View>
           </View>
         </View>
+        <View style={styles.mealContributionSection}>
+          <Text style={styles.cardSubheading}>Meal contribution</Text>
+          <View style={styles.mealList}>
+            {mealRows.length ? (
+              mealRows.map((meal) => (
+                <MealContributionRow key={meal.slot} meal={meal} />
+              ))
+            ) : (
+              <Text style={styles.emptyDashboardText}>
+                No meal breakdown available for this day.
+              </Text>
+            )}
+          </View>
+        </View>
       </View>
 
       <View style={styles.dashboardCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Macro Targets</Text>
-        </View>
+        <Text style={styles.cardTitle}>Macro Targets</Text>
         <View style={styles.targetList}>
           <MacroTargetRow
             Icon={CaloriesFlameIcon}
@@ -227,28 +238,10 @@ export function InsightsPage({
 
       <View style={styles.dashboardCard}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Meal Contribution</Text>
-        </View>
-        <View style={styles.mealList}>
-          {mealRows.length ? (
-            mealRows.map((meal) => (
-              <MealContributionRow key={meal.slot} meal={meal} />
-            ))
-          ) : (
-            <Text style={styles.emptyDashboardText}>
-              No meal breakdown available for this day.
-            </Text>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.dashboardCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Micronutrient Snapshot</Text>
-          <Text style={styles.conceptBadge}>Concept / Estimated</Text>
+          <Text style={styles.cardTitle}>Micronutrients</Text>
         </View>
         <Text style={styles.bodyText}>
-          Limited micronutrient data available for this demo.
+          Limited micronutrient data available.
         </Text>
       </View>
     </AppScreen>
@@ -265,42 +258,67 @@ function InsightsDaySelector({
   selected: InsightsDaySelection;
 }) {
   const generatedDays = new Set(dayIndexes);
-  const options: InsightsDaySelection[] = [1, 2, 3, 4, 5, "average"];
+  const dayOptions = [1, 2, 3, 4, 5];
+  const averageEnabled = dayIndexes.length > 0;
+  const averageActive = selected === "average";
 
   return (
     <View style={styles.daySelector}>
-      {options.map((option) => {
-        const isAverage = option === "average";
-        const enabled = isAverage ? dayIndexes.length > 0 : generatedDays.has(option);
-        const active = selected === option;
-        const label = isAverage ? "Avg" : `Day ${option}`;
-        return (
-          <Pressable
-            accessibilityRole="button"
-            disabled={!enabled}
-            key={String(option)}
-            onPress={() => onSelect(option)}
-            style={({ pressed }) => [
-              styles.dayChip,
-              active ? styles.dayChipActive : null,
-              !active && enabled ? styles.dayChipEnabled : null,
-              !enabled ? styles.dayChipDisabled : null,
-              pressed && enabled ? styles.pressed : null,
-            ]}
-          >
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.dayChipText,
-                active ? styles.dayChipTextActive : null,
-                !enabled ? styles.dayChipTextDisabled : null,
+      <View style={styles.daySelectorRow}>
+        {dayOptions.map((option) => {
+          const enabled = generatedDays.has(option);
+          const active = selected === option;
+          return (
+            <Pressable
+              accessibilityRole="button"
+              disabled={!enabled}
+              key={String(option)}
+              onPress={() => onSelect(option)}
+              style={({ pressed }) => [
+                styles.dayChip,
+                active ? styles.dayChipActive : null,
+                !active && enabled ? styles.dayChipEnabled : null,
+                !enabled ? styles.dayChipDisabled : null,
+                pressed && enabled ? styles.pressed : null,
               ]}
             >
-              {label}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.dayChipText,
+                  active ? styles.dayChipTextActive : null,
+                  !enabled ? styles.dayChipTextDisabled : null,
+                ]}
+              >
+                {`Day ${option}`}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        disabled={!averageEnabled}
+        onPress={() => onSelect("average")}
+        style={({ pressed }) => [
+          styles.averageChip,
+          averageActive ? styles.dayChipActive : null,
+          !averageActive && averageEnabled ? styles.dayChipEnabled : null,
+          !averageEnabled ? styles.dayChipDisabled : null,
+          pressed && averageEnabled ? styles.pressed : null,
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.dayChipText,
+            averageActive ? styles.dayChipTextActive : null,
+            !averageEnabled ? styles.dayChipTextDisabled : null,
+          ]}
+        >
+          Average
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -341,6 +359,7 @@ function MacroTargetRow({
   const percent = percentOfTarget(actual, target);
   const cappedPercent = Math.min(100, Math.max(0, percent ?? 0));
   const progressWidth = `${cappedPercent}%` as `${number}%`;
+  const percentText = percent === null ? "-" : `${Math.round(percent)}%`;
 
   return (
     <View style={styles.targetRow}>
@@ -352,7 +371,7 @@ function MacroTargetRow({
           <Text style={styles.targetLabel}>{label}</Text>
         </View>
         <Text numberOfLines={1} style={styles.targetValue}>
-          {formatNumber(actual)} / {target == null ? "-" : formatNumber(target)} {unit}
+          {formatNumber(actual)} / {target == null ? "-" : formatNumber(target)} {unit} {"\u00B7"} {percentText}
         </Text>
       </View>
       <View style={styles.targetProgressLine}>
@@ -364,7 +383,6 @@ function MacroTargetRow({
             ]}
           />
         </View>
-        <Text style={styles.targetPercent}>{percent === null ? "-" : `${Math.round(percent)}%`}</Text>
       </View>
     </View>
   );
@@ -391,12 +409,15 @@ function MealContributionRow({ meal }: { meal: MealContribution }) {
 
 function getMealIcon(slot: string): IconComponent {
   if (slot === "breakfast") {
-    return BreakfastSunriseIcon;
+    return BreakfastCoffeeCupIcon;
+  }
+  if (slot === "snack") {
+    return SnackAppleIcon;
   }
   if (slot === "dinner") {
-    return DinnerMoonIcon;
+    return DinnerPlateCutleryIcon;
   }
-  return LunchSunIcon;
+  return LunchServingDomeIcon;
 }
 
 function getDashboardMealRows(meals: MealContribution[]): MealContribution[] {
@@ -407,7 +428,9 @@ function getDashboardMealRows(meals: MealContribution[]): MealContribution[] {
   const dashboardRows = MEAL_DASHBOARD_ORDER
     .map((slot) => bySlot.get(slot))
     .filter((meal): meal is MealContribution => Boolean(meal));
-  return dashboardRows.length ? dashboardRows : meals.slice(0, 3);
+  const orderedSlots = new Set(MEAL_DASHBOARD_ORDER);
+  const extraRows = meals.filter((meal) => !orderedSlots.has(normalizeSlot(meal.slot)));
+  return [...dashboardRows, ...extraRows];
 }
 
 function macroEnergyPercents(totals?: InsightsTotals) {
@@ -434,26 +457,12 @@ function percentOfTarget(actual?: number, target?: number): number | null {
   return (parsedActual / parsedTarget) * 100;
 }
 
-function compactProfileMeta(meta?: string): string | null {
+function getGoalBadgeLabel(meta?: string): string | null {
   if (!meta) {
     return null;
   }
-  const cleaned = meta
-    .replace(/^Goal:\s*/i, "")
-    .replace(/\s+\+\s+snack\b/i, "")
-    .trim();
-  const parts = cleaned
-    .split(/\s+-\s+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]} \u00B7 ${parts[1]}`;
-  }
-  return cleaned || null;
-}
-
-function formatDayLabel(value: InsightsDaySelection): string {
-  return value === "average" ? "Avg" : `Day ${value}`;
+  const goal = meta.replace(/^Goal:\s*/i, "").split(/\s+-\s+|\s+\u00B7\s+/)[0]?.trim();
+  return goal || null;
 }
 
 function formatMealSlot(value: string): string {
@@ -498,6 +507,18 @@ function titleize(value: string): string {
 }
 
 const styles = StyleSheet.create({
+  averageChip: {
+    alignItems: "center",
+    borderColor: colors.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    minWidth: 0,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    width: "100%",
+  },
   balanceContent: {
     alignItems: "center",
     flexDirection: "row",
@@ -523,21 +544,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: "#1B2430",
     flexShrink: 1,
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: "900",
-    lineHeight: 27,
+    lineHeight: 26,
   },
-  conceptBadge: {
-    backgroundColor: "#F1F8EA",
-    borderColor: "#DDEFCF",
-    borderRadius: 999,
-    borderWidth: 1,
-    color: colors.accentDark,
-    fontSize: 12,
+  cardSubheading: {
+    color: "#1B2430",
+    fontSize: 14,
     fontWeight: "900",
-    overflow: "hidden",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    lineHeight: 18,
   },
   dashboardCard: {
     backgroundColor: colors.card,
@@ -545,7 +560,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     elevation: 2,
-    gap: 16,
+    gap: 15,
     paddingHorizontal: 18,
     paddingVertical: 18,
     shadowColor: "#1F2933",
@@ -555,31 +570,33 @@ const styles = StyleSheet.create({
   },
   dayChip: {
     alignItems: "center",
-    borderRadius: 14,
+    borderColor: colors.accent,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 34,
+    minHeight: 38,
     minWidth: 0,
     paddingHorizontal: 4,
+    paddingVertical: 8,
   },
   dayChipActive: {
     backgroundColor: colors.accent,
     borderColor: colors.accent,
   },
   dayChipDisabled: {
-    backgroundColor: "#EEF1EA",
-    borderColor: "#E1E5DC",
+    backgroundColor: "#F3F4F6",
+    borderColor: "#D1D5DB",
   },
   dayChipEnabled: {
     backgroundColor: colors.card,
     borderColor: colors.accent,
   },
   dayChipText: {
-    color: colors.accentDark,
+    color: colors.accent,
     fontSize: 12,
-    fontWeight: "900",
-    lineHeight: 15,
+    fontWeight: "800",
+    textAlign: "center",
   },
   dayChipTextActive: {
     color: "#FFFFFF",
@@ -587,21 +604,13 @@ const styles = StyleSheet.create({
   dayChipTextDisabled: {
     color: "#9CA3AF",
   },
-  dayPill: {
-    backgroundColor: "#F1F8EA",
-    borderColor: "#DDEFCF",
-    borderRadius: 999,
-    borderWidth: 1,
-    color: colors.accentDark,
-    fontSize: 13,
-    fontWeight: "900",
-    overflow: "hidden",
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-  },
   daySelector: {
+    gap: 8,
+  },
+  daySelectorRow: {
     flexDirection: "row",
     gap: 6,
+    width: "100%",
   },
   emptyDashboardText: {
     color: colors.muted,
@@ -610,8 +619,24 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   header: {
-    gap: 12,
+    alignItems: "center",
+    gap: 8,
     paddingTop: 2,
+  },
+  goalBadge: {
+    backgroundColor: "#F1F8EA",
+    borderColor: "#DDEFCF",
+    borderRadius: 999,
+    borderWidth: 1,
+    color: colors.accentDark,
+    flexShrink: 0,
+    fontSize: 13,
+    fontWeight: "900",
+    maxWidth: "48%",
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    textAlign: "center",
   },
   kcalValue: {
     color: "#1B2430",
@@ -659,12 +684,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#EEF8E6",
     borderRadius: 999,
-    height: 40,
+    height: 32,
     justifyContent: "center",
-    width: 40,
+    width: 32,
   },
   mealList: {
-    gap: 12,
+    gap: 9,
+  },
+  mealContributionSection: {
+    borderTopColor: "#E7EEDF",
+    borderTopWidth: 1,
+    gap: 10,
+    paddingTop: 14,
   },
   mealRow: {
     alignItems: "center",
@@ -673,9 +704,9 @@ const styles = StyleSheet.create({
   },
   mealSlot: {
     color: "#1B2430",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "900",
-    lineHeight: 20,
+    lineHeight: 18,
   },
   mealTextBlock: {
     flex: 1,
@@ -684,9 +715,9 @@ const styles = StyleSheet.create({
   },
   mealValue: {
     color: colors.muted,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
-    lineHeight: 19,
+    lineHeight: 17,
   },
   pressed: {
     opacity: 0.82,
@@ -702,12 +733,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  profileFallbackMeta: {
-    color: colors.mutedSoft,
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 16,
-  },
   profileFallbackName: {
     color: "#1B2430",
     fontSize: 17,
@@ -715,6 +740,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   profileSelectorSlot: {
+    alignSelf: "stretch",
     gap: 0,
   },
   progressFill: {
@@ -746,23 +772,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   targetList: {
-    gap: 15,
-  },
-  targetPercent: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: "900",
-    minWidth: 42,
-    textAlign: "right",
+    gap: 12,
   },
   targetProgressLine: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 12,
     paddingLeft: 44,
   },
   targetRow: {
-    gap: 8,
+    gap: 6,
   },
   targetText: {
     color: colors.accentDark,
@@ -778,8 +796,8 @@ const styles = StyleSheet.create({
   },
   targetValue: {
     color: colors.muted,
-    flexShrink: 0,
-    fontSize: 14,
+    flexShrink: 1,
+    fontSize: 13,
     fontWeight: "800",
     textAlign: "right",
   },

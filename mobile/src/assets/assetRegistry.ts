@@ -5,10 +5,10 @@ export const expectedHomeAssets = {
     fallbackWebp: "mobile/assets/home/welcome/cooking_loop.webp",
   },
   tips: {
-    colorfulPlate: "mobile/assets/home/tips/tip_colorful_plate.png",
-    compromise: "mobile/assets/home/tips/tip_compromise.png",
-    planning: "mobile/assets/home/tips/tip_planning.png",
-    snack: "mobile/assets/home/tips/tip_snack.png",
+    arrangedPlate: "mobile/assets/home/tips/tip_arranged_plate.png",
+    backupMeal: "mobile/assets/home/tips/tip_backup_meal.png",
+    fruitChoice: "mobile/assets/home/tips/tip_fruit_choice.png",
+    kidsTastes: "mobile/assets/home/tips/tip_kids_tastes.png",
   },
   highlights: {
     balancedPlate: "mobile/assets/home/highlights/highlight_balanced_plate.png",
@@ -46,4 +46,18 @@ export const expectedGroceryPackageAssets = {
   scale: "mobile/assets/grocery/package_icons/package_scale.png",
   tub: "mobile/assets/grocery/package_icons/package_tub.png",
   warning: "mobile/assets/grocery/package_icons/package_warning.png",
+} as const;
+
+export const expectedInsightsAssets = {
+  macro: {
+    carbsWheat: "mobile/assets/insights/macro/carbs_wheat.png",
+    fatsAvocado: "mobile/assets/insights/macro/fats_avocado.png",
+    proteinDrumstick: "mobile/assets/insights/macro/protein_drumstick.png",
+  },
+  meals: {
+    breakfastCoffee: "mobile/assets/insights/meals/breakfast_coffee.svg",
+    dinnerPlateCutlery: "mobile/assets/insights/meals/dinner_plate_cutlery.svg",
+    lunchServingDome: "mobile/assets/insights/meals/lunch_serving_dome.svg",
+    snackApple: "mobile/assets/insights/meals/snack_apple.svg",
+  },
 } as const;
