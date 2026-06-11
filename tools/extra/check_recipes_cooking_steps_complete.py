@@ -60,7 +60,7 @@ def main() -> int:
     _check_audit_file("before", BEFORE_AUDIT_PATH, recipes, active_rows, errors)
     _check_audit_file("after", AFTER_AUDIT_PATH, recipes, active_rows, errors)
 
-    generated_counts: dict[str, int] = {}
+    generated_counts: dict[str, dict[str, int]] = {}
     generated_counts[PILOT_CURRENT_PROFILE] = _check_generated_payload(
         PILOT_CURRENT_PROFILE,
         errors,
@@ -193,26 +193,51 @@ def _check_audit_file(
         errors.append(f"{label}_audit_requires_completion_count={len(required_rows)}")
 
 
-def _check_generated_payload(dataset_profile: str, errors: list[str]) -> int:
-    from src.generator_v1.service import generate_individual_plan_from_request
-
-    response = generate_individual_plan_from_request(
-        {
-            "dataset_profile": dataset_profile,
-            "days": 1,
-            "member_profile": _demo_member_profile(),
-            "generation_options": {
-                "profile_guard": "off",
-                "feedback_enabled": False,
-            },
-        }
+def _check_generated_payload(dataset_profile: str, errors: list[str]) -> dict[str, int]:
+    from src.generator_v1.service import (
+        generate_household_plan_from_request,
+        generate_individual_plan_from_request,
     )
+
+    individual_response = generate_individual_plan_from_request(
+        _individual_request(dataset_profile)
+    )
+    household_response = generate_household_plan_from_request(
+        _household_request(dataset_profile)
+    )
+    counts = {
+        "individual": _check_meal_group(
+            dataset_profile,
+            "individual",
+            individual_response,
+            _individual_response_meals(individual_response),
+            errors,
+        ),
+        "household": _check_meal_group(
+            dataset_profile,
+            "household",
+            household_response,
+            _household_response_meals(household_response),
+            errors,
+        ),
+    }
+    return counts
+
+
+def _check_meal_group(
+    dataset_profile: str,
+    generation_type: str,
+    response: dict[str, Any],
+    meals: list[dict[str, Any]],
+    errors: list[str],
+) -> int:
     if response.get("status") != "ok":
-        errors.append(f"{dataset_profile}:generation_status={response.get('status')}")
+        errors.append(
+            f"{dataset_profile}:{generation_type}:generation_status={response.get('status')}"
+        )
         return 0
-    meals = _response_meals(response)
     if not meals:
-        errors.append(f"{dataset_profile}:generated_meals_missing")
+        errors.append(f"{dataset_profile}:{generation_type}:generated_meals_missing")
         return 0
     meals_with_steps = 0
     for meal in meals:
@@ -220,15 +245,19 @@ def _check_generated_payload(dataset_profile: str, errors: list[str]) -> int:
         slot = _clean_text(meal.get("slot"))
         steps = _as_step_list(meal.get("cooking_steps"))
         if not steps:
-            errors.append(f"{dataset_profile}:meal_cooking_steps_missing:{recipe_id}:{slot}")
+            errors.append(
+                f"{dataset_profile}:{generation_type}:meal_cooking_steps_missing:{recipe_id}:{slot}"
+            )
             continue
         if any(FALLBACK_TEXT in step for step in steps):
-            errors.append(f"{dataset_profile}:meal_contains_mobile_fallback_text:{recipe_id}:{slot}")
+            errors.append(
+                f"{dataset_profile}:{generation_type}:meal_contains_mobile_fallback_text:{recipe_id}:{slot}"
+            )
         meals_with_steps += 1
     return meals_with_steps
 
 
-def _response_meals(response: dict[str, Any]) -> list[dict[str, Any]]:
+def _individual_response_meals(response: dict[str, Any]) -> list[dict[str, Any]]:
     meals: list[dict[str, Any]] = []
     for day in response.get("daily_plan", []) or []:
         if not isinstance(day, dict):
@@ -239,9 +268,70 @@ def _response_meals(response: dict[str, Any]) -> list[dict[str, Any]]:
     return meals
 
 
-def _demo_member_profile() -> dict[str, Any]:
+def _household_response_meals(response: dict[str, Any]) -> list[dict[str, Any]]:
+    meals: list[dict[str, Any]] = []
+    for menu in response.get("per_member_menus", []) or []:
+        if not isinstance(menu, dict):
+            continue
+        for meal in menu.get("meals", []) or []:
+            if isinstance(meal, dict) and meal.get("recipe_id"):
+                meals.append(meal)
+    for meal in response.get("shared_meals", []) or []:
+        if isinstance(meal, dict) and meal.get("recipe_id"):
+            meals.append(meal)
+    return meals
+
+
+def _individual_request(dataset_profile: str) -> dict[str, Any]:
     return {
-        "display_name": "Cooking Steps Check",
+        "dataset_profile": dataset_profile,
+        "days": 1,
+        "member_profile": _demo_member_profile("Cooking Steps Check"),
+        "generation_options": {
+            "profile_guard": "off",
+            "feedback_enabled": False,
+        },
+    }
+
+
+def _household_request(dataset_profile: str) -> dict[str, Any]:
+    return {
+        "dataset_profile": dataset_profile,
+        "days": 1,
+        "household_profile": {
+            "household_id": "cooking_steps_check_household",
+            "household_name": "Cooking Steps Check Household",
+            "active_member_ids": [
+                "cooking_steps_adult",
+                "cooking_steps_teen",
+            ],
+            "members": [
+                {
+                    **_demo_member_profile("Cooking Steps Adult"),
+                    "member_id": "cooking_steps_adult",
+                    "display_name": "Cooking Steps Adult",
+                },
+                {
+                    **_demo_member_profile("Cooking Steps Teen"),
+                    "member_id": "cooking_steps_teen",
+                    "display_name": "Cooking Steps Teen",
+                    "age": 15,
+                    "weight_kg": 58.0,
+                    "height_cm": 170.0,
+                    "goal": "gain",
+                },
+            ],
+        },
+        "generation_options": {
+            "profile_guard": "off",
+            "feedback_enabled": False,
+        },
+    }
+
+
+def _demo_member_profile(display_name: str = "Cooking Steps Check") -> dict[str, Any]:
+    return {
+        "display_name": display_name,
         "age": 35,
         "sex": "female",
         "weight_kg": 68.0,

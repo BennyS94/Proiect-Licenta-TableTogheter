@@ -766,6 +766,9 @@ def _allocation_rows_from_days(days: list[dict[str, Any]]) -> list[dict[str, Any
                         "recipe_id": meal.get("recipe_id"),
                         "display_name": meal.get("display_name"),
                         "recipe": meal.get("display_name"),
+                        "directions_json": meal.get("directions_json"),
+                        "directions_step_count": meal.get("directions_step_count"),
+                        "cooking_steps": meal.get("cooking_steps", []),
                         "household_portion_sum": meal.get("household_portion_sum"),
                         "household_grocery_scaling_factor": meal.get(
                             "household_grocery_scaling_factor"
@@ -972,6 +975,9 @@ def _select_individual_candidate(
                 "recipe_id": recipe_id,
                 "display_name": row.get("display_name"),
                 "recipe": row.get("display_name"),
+                "directions_json": row.get("directions_json"),
+                "directions_step_count": row.get("directions_step_count"),
+                "cooking_steps": row.get("cooking_steps", []),
                 "member_id": member.get("member_id"),
                 "member": member.get("display_name"),
                 "portion_multiplier_raw": round(raw_multiplier, 3),
