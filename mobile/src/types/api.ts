@@ -235,6 +235,9 @@ export type GeneratedMeal = {
   display_name?: string;
   kcal?: number;
   protein_g?: number;
+  cooking_steps?: string[];
+  directions?: string[];
+  directions_step_count?: number;
   warnings?: unknown[];
   [key: string]: unknown;
 };

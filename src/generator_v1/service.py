@@ -1339,6 +1339,8 @@ def _meal_rows_view(meals: Any) -> list[dict[str, Any]]:
                 "slot": meal.get("slot"),
                 "recipe_id": meal.get("recipe_id"),
                 "display_name": meal.get("display_name"),
+                "directions_step_count": meal.get("directions_step_count"),
+                "cooking_steps": meal.get("cooking_steps", []),
                 "portion_multiplier": meal.get("portion_multiplier"),
                 "meal_scope": "shared"
                 if bool(meal.get("household_generation_shared_slot", False))
@@ -1508,6 +1510,8 @@ def _per_member_menus(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "slot": row.get("slot"),
                 "recipe_id": row.get("recipe_id"),
                 "display_name": row.get("display_name") or row.get("recipe"),
+                "directions_step_count": row.get("directions_step_count"),
+                "cooking_steps": row.get("cooking_steps", []),
                 "portion_multiplier": row.get("portion_multiplier_member")
                 or row.get("portion_multiplier"),
                 "meal_scope": row.get("allocation_scope"),
@@ -1541,6 +1545,8 @@ def _shared_meals(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "slot": meal.get("slot"),
                     "recipe_id": meal.get("recipe_id"),
                     "display_name": meal.get("display_name"),
+                    "directions_step_count": meal.get("directions_step_count"),
+                    "cooking_steps": meal.get("cooking_steps", []),
                     "household_portion_sum": meal.get("household_portion_sum"),
                     "household_grocery_scaling_factor": meal.get(
                         "household_grocery_scaling_factor"

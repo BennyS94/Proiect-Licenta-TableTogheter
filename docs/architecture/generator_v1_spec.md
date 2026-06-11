@@ -371,6 +371,7 @@ Extensii viitoare: acumulare preferinte familie/ingredient
 ## 23. Output generator v1
 
 - format CSV/JSON cu coloane/chei: meal, recipe_id, portion_multiplier, kcal_meal, protein_meal_g, carb_meal_g, fat_meal_g, score, reasons
+- pentru backend/mobile, randurile de masa expun si `directions_step_count` + `cooking_steps`, derivate din `directions_json`
 - versiune `readable` (text) pentru inspectie
 
 ---
@@ -386,6 +387,12 @@ Datasetul demo curent este:
 - status: demo-final draft, nu productie/current
 
 Datele `data/recipesdb/current` si `data/fooddb/current` raman neatinse de acest pachet demo.
+
+Cooking steps:
+- COOKING-STEPS-1 valideaza ca `data/recipesdb/current/recipes.csv` are `directions_json` valid si `directions_step_count > 0` pentru toate cele `106/106` retete active/app-facing.
+- Pasii sunt instructiuni MVP practice, suficiente pentru demo/prezentare mobila, nu text extern copiat/scraped.
+- Generatorul expune `cooking_steps` in outputurile individuale si household, astfel incat fallback-ul mobil pentru pasi lipsa nu este asteptat pentru retetele active generate.
+- Rafinarea culinara ramane posibila ulterior fara schimbarea `recipe_id`, nutrition cache, grocery logic sau flow-ul de replacement.
 
 Config recomandat pentru demo:
 - `selection_mode=balanced_day`
@@ -442,7 +449,7 @@ Exemplu validat:
 
 ## 25. Dependente minime pe date
 
-- `recipes` cu `directions_json`/`directions_step_count`
+- `recipes` cu `directions_json`/`directions_step_count`; COOKING-STEPS-1 cere pasi valizi pentru toate retetele active/app-facing
 - `recipe_ingredients` parsed
 - optional: `recipe_nutrition_cache` pentru macro estimates (soft)
 

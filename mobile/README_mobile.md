@@ -153,7 +153,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - UI-2B: Add Profile ramane in Household Management dupa salvare, selecteaza profilul nou si afiseaza CTA catre Meal Plan.
 - UI-2B: Validarile profilului acopera nume fara cifre, age 4-120, weight 15-300 kg, height 80-230 cm, sessions/week 0-7 si meals/day 1-5; Goal Speed este inactiv pentru Maintain.
 - Backend-ul trimite estimari de pret si cooking time in outputurile generate. Dupa DATA-QA-1, `Price unavailable` sau missing time nu ar trebui sa apara in fluxurile normale generate; daca apar, ruleaza checker-ul DATA-QA.
-- Missing cooking steps afiseaza mesaj dedicat cand instructiunile nu sunt disponibile.
+- Backend-ul trimite `cooking_steps` pentru mesele generate din retetele active. Dupa COOKING-STEPS-1, fallback-ul `Cooking steps are not available for this recipe yet.` ar trebui sa ramana doar pentru date viitoare incomplete sau payload-uri neasteptate.
 
 ## Screen idle / keep-awake investigation
 
@@ -249,6 +249,8 @@ Preturile sunt estimari demo/reference-based, nu preturi live. Dupa DATA-QA-1, i
 ```powershell
 python tools/extra/check_data_qa_price_time_no_missing.py
 ```
+
+Cooking steps sunt livrate de backend in `GeneratedMeal.cooking_steps` si sunt randate in slotul curent de recipe details. COOKING-STEPS-1 valideaza ca toate retetele active/app-facing au pasi MVP practici, suficienti pentru demo/prezentare; rafinarea culinara poate ramane o etapa ulterioara.
 
 Nu exista inca feedback screen, household mobile generation, auth/login sau cloud sync. Aplicatia mobila continua sa consume doar FastAPI prin HTTP/JSON si nu citeste CSV-uri.
 

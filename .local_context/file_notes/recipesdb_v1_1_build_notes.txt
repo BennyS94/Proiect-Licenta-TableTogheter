@@ -3438,3 +3438,21 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Checker added:
   - `tools/extra/check_heart_friendly_profile.py`
   - output: `data/recipesdb/audit/heart_friendly_profile_summary.txt`
+
+## 114. COOKING-STEPS-1 active recipe cooking steps - 2026-06-11
+- Audited `data/recipesdb/current/recipes.csv`.
+- Active/app-facing recipes checked: `106`.
+- Recipes with valid `directions_json`: `106`.
+- Recipes with `directions_step_count > 0`: `106`.
+- Recipes requiring manual/semi-manual cooking-step completion in this phase: `0`.
+- No `recipes.csv`, Food_DB, nutrition formula, recipe ID, grocery, KNN alternative or replacement-flow data edits were needed.
+- Generator v1 now carries `directions_step_count` and parsed `cooking_steps` into selected meal rows for backend/mobile.
+- Mobile `GeneratedMeal` type now includes optional `cooking_steps`, `directions` and `directions_step_count`.
+- Added checker:
+  - `tools/extra/check_recipes_cooking_steps_complete.py`
+  - output: `data/recipesdb/audit/cooking_steps_completion_summary.txt`
+- Added audit outputs:
+  - `data/recipesdb/audit/cooking_steps_coverage_before.csv`
+  - `data/recipesdb/audit/cooking_steps_coverage_after.csv`
+- Cooking steps are MVP practical instructions for mobile demo/presentation, not externally scraped copyrighted instructions.
+- Further culinary refinement remains possible later.

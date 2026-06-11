@@ -152,6 +152,9 @@ def build_slot_candidates(
                     "recipe_category": recipe.get("recipe_category"),
                     "recipe_subcategory": recipe.get("recipe_subcategory"),
                     "recipe_cuisine": recipe.get("recipe_cuisine"),
+                    "directions_json": recipe.get("directions_json"),
+                    "directions_step_count": _to_float(recipe.get("directions_step_count")),
+                    "cooking_steps": _cooking_steps(recipe.get("directions_json")),
                     "allowed_slots_json": recipe.get("allowed_slots_json"),
                     "slot_policy_reason": recipe.get("slot_policy_reason"),
                     "portion_multiplier": float(portion_multiplier),
@@ -341,6 +344,9 @@ def _slot_candidate_columns() -> list[str]:
         "recipe_category",
         "recipe_subcategory",
         "recipe_cuisine",
+        "directions_json",
+        "directions_step_count",
+        "cooking_steps",
         "allowed_slots_json",
         "slot_policy_reason",
         "portion_multiplier",
@@ -544,6 +550,25 @@ def _parse_allowed_slots(value: object) -> set[str] | None:
     if not isinstance(parsed, list):
         return set()
     return {str(item).strip().lower() for item in parsed if str(item).strip()}
+
+
+def _cooking_steps(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, float) and pd.isna(value):
+        return []
+    text = str(value).strip()
+    if not text:
+        return []
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [str(item).strip() for item in parsed if str(item).strip()]
 
 
 def _macro_values(recipe: pd.Series, overlay: dict[str, object]) -> dict[str, object]:
