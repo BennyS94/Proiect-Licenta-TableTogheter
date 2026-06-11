@@ -144,6 +144,8 @@ def _health_mode_fit(
     carbs = _to_float(candidate_row.get("carbs_g"))
     protein = _to_float(candidate_row.get("protein_g"))
     sugars = _to_float(candidate_row.get("sugars_g"))
+    salt = _to_float(candidate_row.get("salt_g"))
+    proxy_flags = _string_set(candidate_row.get("health_proxy_flags"))
 
     if mode == "diabetes_aware":
         score = 1.0
@@ -165,6 +167,25 @@ def _health_mode_fit(
         elif sugars > 18:
             score *= 0.78
             reasons.append("diabetes_aware_penalty_moderate_sugar")
+        return clamp(score), reasons
+
+    if mode == "hypertension_friendly":
+        score = 1.0
+        reasons = ["hypertension_friendly_fit_neutral"]
+        if salt > 2.0:
+            score *= 0.62
+            reasons = ["hypertension_friendly_penalty_high_salt"]
+        elif salt > 1.2:
+            score *= 0.78
+            reasons = ["hypertension_friendly_penalty_moderate_salt"]
+        if "processed_salty" in proxy_flags:
+            score *= 0.72
+            reasons.append("hypertension_friendly_penalty_processed_salty_proxy")
+        if "salty_sauce" in proxy_flags:
+            score *= 0.78
+            reasons.append("hypertension_friendly_penalty_salty_sauce_proxy")
+        if score == 1.0:
+            reasons = ["hypertension_friendly_fit_simple_recipe"]
         return clamp(score), reasons
 
     return 1.0, [f"{mode}_pending"]
@@ -189,3 +210,14 @@ def _to_float(value: object) -> float:
     if math.isnan(numeric_value) or math.isinf(numeric_value):
         return 0.0
     return numeric_value
+
+
+def _string_set(value: object) -> set[str]:
+    if isinstance(value, list):
+        return {str(item).strip() for item in value if str(item).strip()}
+    if isinstance(value, tuple):
+        return {str(item).strip() for item in value if str(item).strip()}
+    text = str(value or "").strip()
+    if not text:
+        return set()
+    return {item.strip() for item in text.split(";") if item.strip()}

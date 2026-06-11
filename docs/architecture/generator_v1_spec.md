@@ -226,6 +226,8 @@ Limitari:
 - `health_and_diet_preferences.dietary_patterns.keto` si `.paleo` folosesc filtre conservative pentru ingrediente clar incompatibile si penalizari de scoring cand exista date macro.
 - `health_and_diet_preferences.dietary_patterns.mediterranean` este aplicat ca preferinta/scoring mode, fara hard ban general.
 - `health_and_diet_preferences.health_modes.diabetes_aware` penalizeaza soft mesele foarte high-carb, high-sugar sau high-carb/low-protein unde exista date suficiente.
+- `health_and_diet_preferences.health_modes.hypertension_friendly` penalizeaza soft sare mare unde exista cache si proxy-uri de ingrediente sarate/procesate precum bacon, ham, salami, pepperoni, sausage, soy sauce, fish sauce, bouillon sau stock cube.
+- Pentru blood-pressure friendly, sodium/salt coverage poate fi incomplet, deci scoringul ramane proxy-based si interpretabil.
 - DIET-HEALTH-PROFILES nu schimba formulele nutritionale si nu aplica claims medicale.
 - `banned_recipe_ids`, `banned_ingredient_names`
 - `recipe.is_active` si `recipe.scope_status` acceptate

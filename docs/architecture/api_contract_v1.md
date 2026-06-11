@@ -1048,6 +1048,7 @@ MVP notes:
 - `keto` si `paleo` pot activa filtre conservative pentru ingrediente clar incompatibile si penalizari de scoring; `mediterranean` este preferinta de scoring, nu hard ban.
 - `health_and_diet_preferences.health_modes` exista in contract cu valori default `false`, dar modurile health-aware sunt activate in fazele urmatoare.
 - DIET-HEALTH-PROFILES Phase 2 activeaza `health_and_diet_preferences.health_modes.diabetes_aware` ca mod de preferinta/scoring. Nu este tratament, diagnostic sau management medical.
+- DIET-HEALTH-PROFILES Phase 3 activeaza `health_and_diet_preferences.health_modes.hypertension_friendly`; UI-ul foloseste label-ul `Blood-pressure friendly` si ramane o preferinta de selectie, nu tratament.
 
 Non-goals:
 - Nu valideaza medical obiectivele.

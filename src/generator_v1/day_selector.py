@@ -68,6 +68,7 @@ SELECTED_MEAL_FIELDS = [
     "time_estimation_reasons",
     "time_feedback_penalty",
     "time_fit_reasons",
+    "health_proxy_flags",
     "macro_fit",
     "time_fit",
     "slot_fit",

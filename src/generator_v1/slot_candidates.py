@@ -26,6 +26,42 @@ from src.generator_v1.time_fit import apply_time_feedback_penalty, household_tim
 
 PORTION_MULTIPLIERS = tuple(STANDARD_PORTION_MULTIPLIERS)
 
+INGREDIENT_TEXT_COLUMNS = (
+    "ingredient_name_normalized",
+    "ingredient_name_parsed",
+    "mapped_food_canonical_name",
+    "ingredient_raw_text",
+)
+
+HEALTH_PROXY_KEYWORDS = {
+    "processed_salty": (
+        "bacon",
+        "cured meat",
+        "ham",
+        "pepperoni",
+        "processed meat",
+        "salami",
+        "sausage",
+    ),
+    "salty_sauce": (
+        "bouillon",
+        "fish sauce",
+        "soy sauce",
+        "stock cube",
+    ),
+    "fatty_creamy": (
+        "butter",
+        "cheese",
+        "cream",
+        "heavy cream",
+        "sour cream",
+    ),
+    "fried_heavy": (
+        "deep fried",
+        "fried",
+    ),
+}
+
 
 def build_slot_candidates(
     target: NutritionTarget,
@@ -48,6 +84,7 @@ def build_slot_candidates(
             if not _slot_allowed_for_recipe(recipe, slot):
                 continue
             recipe_ingredients = _ingredients_for_recipe(recipe, ingredients)
+            health_proxy_flags = _health_proxy_flags(recipe_ingredients)
             overlay = compute_pilot_overlay_nutrition(
                 recipe_row=recipe,
                 ingredients_for_recipe=recipe_ingredients,
@@ -215,6 +252,7 @@ def build_slot_candidates(
                     "time_fit": time_fit,
                     "time_feedback_penalty": time_feedback["time_feedback_penalty"],
                     "time_fit_reasons": time_feedback["time_fit_reasons"],
+                    "health_proxy_flags": health_proxy_flags,
                 }
                 feedback_scores = compute_feedback_fit(
                     candidate_row,
@@ -366,6 +404,7 @@ def _slot_candidate_columns() -> list[str]:
         "time_fit",
         "time_feedback_penalty",
         "time_fit_reasons",
+        "health_proxy_flags",
         "slot_fit",
         "slot_fit_reasons",
         "is_slot_suspicious",
@@ -458,6 +497,29 @@ def _ingredients_for_recipe(
     if not recipe_id:
         return pd.DataFrame()
     return ingredients.loc[ingredients["recipe_id"].astype(str).eq(recipe_id)].copy()
+
+
+def _health_proxy_flags(recipe_ingredients: pd.DataFrame) -> list[str]:
+    if recipe_ingredients.empty:
+        return []
+    available_columns = [
+        column for column in INGREDIENT_TEXT_COLUMNS if column in recipe_ingredients.columns
+    ]
+    if not available_columns:
+        return []
+    text = (
+        recipe_ingredients[available_columns]
+        .fillna("")
+        .astype(str)
+        .agg(" ".join, axis=1)
+        .str.lower()
+    )
+    joined = " ".join(text.tolist())
+    flags: list[str] = []
+    for flag, keywords in HEALTH_PROXY_KEYWORDS.items():
+        if any(keyword in joined for keyword in keywords):
+            flags.append(flag)
+    return flags
 
 
 def _slot_allowed_for_recipe(recipe: pd.Series, slot: str) -> bool:

@@ -127,6 +127,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - `dietary_preferences.no_pork` si `food_preferences` sunt trimise la backend la Save Member.
 - DIET-HEALTH-PROFILES Phase 1 trimite si `health_and_diet_preferences.dietary_patterns` pentru Keto, Paleo si Mediterranean.
 - DIET-HEALTH-PROFILES Phase 2 trimite `health_and_diet_preferences.health_modes.diabetes_aware` prin chip-ul `Diabetes-aware`.
+- DIET-HEALTH-PROFILES Phase 3 trimite `health_and_diet_preferences.health_modes.hypertension_friendly` prin chip-ul `Blood-pressure friendly`.
 - `Avoid` este hard filter pentru cheile suportate si pentru custom avoided ingredients; `Dislike` este soft preference persistata, nu hard ban.
 - PROFILE-WIZARD-1 summary: Add Member este un 3-step wizard; Neutral = no selection; Avoid = hard filter; Dislike = soft preference only.
 - Soft scoring pentru `Like`/`Dislike` la nivel de aliment/familie este deferat; edit wizard ramane polish viitor.
@@ -228,6 +229,7 @@ Limitari PROFILE-WIZARD-1:
 - `Dislike` si `Like` sunt persistate, dar nu au inca scoring ingredient-level/family-level.
 - Keto/Paleo/Mediterranean sunt preferinte de filtrare/scoring si nu sunt afisate ca sfat medical.
 - `Diabetes-aware` este o preferinta de prioritizare/scoring si nu este formulat ca tratament sau management medical.
+- `Blood-pressure friendly` prioritizeaza soft alegeri mai simple/mai putin sarate unde exista semnale, fara claims medicale.
 - Editarea profilului cu acelasi wizard ramane viitoare.
 
 ## Mobile M3 Flow

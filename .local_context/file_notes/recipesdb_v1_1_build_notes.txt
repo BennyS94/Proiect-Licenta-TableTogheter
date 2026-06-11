@@ -3418,3 +3418,13 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Checker added:
   - `tools/extra/check_diabetes_aware_profile.py`
   - output: `data/recipesdb/audit/diabetes_aware_profile_summary.txt`
+
+## 112. DIET-HEALTH-PROFILES Phase 3 blood-pressure friendly mode - 2026-06-11
+- Added `health_and_diet_preferences.health_modes.hypertension_friendly`.
+- Mobile label is `Blood-pressure friendly`.
+- Generator v1 applies soft `health_and_diet_fit` penalties for high salt values when available and salty/processed ingredient proxies.
+- Proxy flags currently include processed salty meats and salty sauces such as soy sauce, fish sauce, bouillon and stock cube.
+- This is documented as preference/scoring logic, not medical treatment or diagnosis.
+- Checker added:
+  - `tools/extra/check_hypertension_friendly_profile.py`
+  - output: `data/recipesdb/audit/hypertension_friendly_profile_summary.txt`
