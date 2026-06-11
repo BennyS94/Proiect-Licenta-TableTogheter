@@ -69,6 +69,11 @@ def compute_health_and_diet_fit(
         score *= pattern_score
         reasons.extend(pattern_reasons)
 
+    for mode in active_modes:
+        mode_score, mode_reasons = _health_mode_fit(candidate_row, mode)
+        score *= mode_score
+        reasons.extend(mode_reasons)
+
     return {
         "health_and_diet_fit": round(clamp(score), 4),
         "health_and_diet_reasons": reasons or ["health_and_diet_neutral"],
@@ -130,6 +135,39 @@ def _dietary_pattern_fit(
         return clamp(score), reasons
 
     return 1.0, [f"{pattern}_not_supported"]
+
+
+def _health_mode_fit(
+    candidate_row: Mapping[str, object],
+    mode: str,
+) -> tuple[float, list[str]]:
+    carbs = _to_float(candidate_row.get("carbs_g"))
+    protein = _to_float(candidate_row.get("protein_g"))
+    sugars = _to_float(candidate_row.get("sugars_g"))
+
+    if mode == "diabetes_aware":
+        score = 1.0
+        reasons = ["diabetes_aware_fit_neutral"]
+        if carbs > 65 and protein < 18:
+            score *= 0.55
+            reasons = ["diabetes_aware_penalty_high_carb_low_protein"]
+        elif carbs > 55:
+            score *= 0.68
+            reasons = ["diabetes_aware_penalty_high_carb"]
+        elif carbs > 35 and protein < 12:
+            score *= 0.78
+            reasons = ["diabetes_aware_penalty_moderate_carb_low_protein"]
+        elif carbs <= 35 and protein >= 15:
+            reasons = ["diabetes_aware_fit_protein_moderate_carb"]
+        if sugars > 30:
+            score *= 0.6
+            reasons.append("diabetes_aware_penalty_high_sugar")
+        elif sugars > 18:
+            score *= 0.78
+            reasons.append("diabetes_aware_penalty_moderate_sugar")
+        return clamp(score), reasons
+
+    return 1.0, [f"{mode}_pending"]
 
 
 def _candidate_text(candidate_row: Mapping[str, object]) -> str:

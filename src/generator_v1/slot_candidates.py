@@ -100,6 +100,9 @@ def build_slot_candidates(
                     "protein_g": _scaled(macro_values["protein_g_per_serving"], portion_multiplier),
                     "carbs_g": _scaled(macro_values["carbs_g_per_serving"], portion_multiplier),
                     "fat_g": _scaled(macro_values["fat_g_per_serving"], portion_multiplier),
+                    "sugars_g": _scaled(recipe.get("sugars_g_per_serving"), portion_multiplier),
+                    "fibre_g": _scaled(recipe.get("fibre_g_per_serving"), portion_multiplier),
+                    "salt_g": _scaled(recipe.get("salt_g_per_serving"), portion_multiplier),
                 }
                 macro_scores = macro_fit(actual=actual_macros, target=slot_target)
                 candidate_row = {
@@ -140,6 +143,15 @@ def build_slot_candidates(
                     "original_fat_g_per_serving": _to_float(
                         recipe.get("fat_g_per_serving")
                     ),
+                    "original_sugars_g_per_serving": _to_float(
+                        recipe.get("sugars_g_per_serving")
+                    ),
+                    "original_fibre_g_per_serving": _to_float(
+                        recipe.get("fibre_g_per_serving")
+                    ),
+                    "original_salt_g_per_serving": _to_float(
+                        recipe.get("salt_g_per_serving")
+                    ),
                     "overlay_energy_kcal_per_serving": overlay[
                         "overlay_energy_kcal_per_serving"
                     ],
@@ -176,6 +188,9 @@ def build_slot_candidates(
                     "protein_g": actual_macros["protein_g"],
                     "carbs_g": actual_macros["carbs_g"],
                     "fat_g": actual_macros["fat_g"],
+                    "sugars_g": actual_macros["sugars_g"],
+                    "fibre_g": actual_macros["fibre_g"],
+                    "salt_g": actual_macros["salt_g"],
                     "macro_fit": macro_scores["macro_fit"],
                     "protein_fit": macro_scores["protein_fit"],
                     "kcal_fit": macro_scores["kcal_fit"],
@@ -305,6 +320,9 @@ def _slot_candidate_columns() -> list[str]:
         "original_protein_g_per_serving",
         "original_carbs_g_per_serving",
         "original_fat_g_per_serving",
+        "original_sugars_g_per_serving",
+        "original_fibre_g_per_serving",
+        "original_salt_g_per_serving",
         "overlay_energy_kcal_per_serving",
         "overlay_protein_g_per_serving",
         "overlay_carbs_g_per_serving",
@@ -325,6 +343,9 @@ def _slot_candidate_columns() -> list[str]:
         "protein_g",
         "carbs_g",
         "fat_g",
+        "sugars_g",
+        "fibre_g",
+        "salt_g",
         "macro_fit",
         "protein_fit",
         "kcal_fit",

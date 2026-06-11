@@ -30,6 +30,8 @@ type DietaryDraft = {
 };
 type DietaryPatternKey = keyof HealthAndDietPreferences["dietary_patterns"];
 type DietaryPatternDraft = HealthAndDietPreferences["dietary_patterns"];
+type HealthModeKey = keyof HealthAndDietPreferences["health_modes"];
+type HealthModeDraft = HealthAndDietPreferences["health_modes"];
 
 type FoodPreferenceItem = {
   key: string;
@@ -85,6 +87,10 @@ const DIETARY_PATTERN_OPTIONS: Array<{ label: string; value: DietaryPatternKey }
   { label: "Mediterranean", value: "mediterranean" },
 ];
 
+const HEALTH_MODE_OPTIONS: Array<{ label: string; value: HealthModeKey }> = [
+  { label: "Diabetes-aware", value: "diabetes_aware" },
+];
+
 const FOOD_SECTIONS: FoodPreferenceSection[] = [
   {
     title: "Protein sources",
@@ -136,6 +142,12 @@ const DEFAULT_DIETARY_PATTERNS: DietaryPatternDraft = {
   mediterranean: false,
 };
 
+const DEFAULT_HEALTH_MODES: HealthModeDraft = {
+  diabetes_aware: false,
+  hypertension_friendly: false,
+  heart_friendly: false,
+};
+
 export function AddMemberWizard({
   defaultHouseholdId,
   disabled,
@@ -151,6 +163,8 @@ export function AddMemberWizard({
   const [dietary, setDietary] = useState<DietaryDraft>(DEFAULT_DIETARY);
   const [dietaryPatterns, setDietaryPatterns] =
     useState<DietaryPatternDraft>(DEFAULT_DIETARY_PATTERNS);
+  const [healthModes, setHealthModes] =
+    useState<HealthModeDraft>(DEFAULT_HEALTH_MODES);
   const [ratings, setRatings] = useState<Record<string, PreferenceRating>>({});
   const [customAvoidInput, setCustomAvoidInput] = useState("");
   const [avoidIngredients, setAvoidIngredients] = useState<string[]>([]);
@@ -174,6 +188,7 @@ export function AddMemberWizard({
     setWeightKg("75");
     setDietary(DEFAULT_DIETARY);
     setDietaryPatterns(DEFAULT_DIETARY_PATTERNS);
+    setHealthModes(DEFAULT_HEALTH_MODES);
     setRatings({});
     setCustomAvoidInput("");
     setAvoidIngredients([]);
@@ -283,11 +298,7 @@ export function AddMemberWizard({
       },
       health_and_diet_preferences: {
         dietary_patterns: dietaryPatterns,
-        health_modes: {
-          diabetes_aware: false,
-          hypertension_friendly: false,
-          heart_friendly: false,
-        },
+        health_modes: healthModes,
       },
       bf_profile: "normal",
     };
@@ -319,6 +330,13 @@ export function AddMemberWizard({
 
   function toggleDietaryPattern(key: DietaryPatternKey) {
     setDietaryPatterns((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }
+
+  function toggleHealthMode(key: HealthModeKey) {
+    setHealthModes((current) => ({
       ...current,
       [key]: !current[key],
     }));
@@ -400,12 +418,14 @@ export function AddMemberWizard({
           customAvoidInput={customAvoidInput}
           dietary={dietary}
           dietaryPatterns={dietaryPatterns}
+          healthModes={healthModes}
           ratings={ratings}
           onAddAvoidIngredient={addAvoidIngredient}
           onCustomAvoidInputChange={setCustomAvoidInput}
           onRemoveAvoidIngredient={removeAvoidIngredient}
           onToggleDietary={toggleDietary}
           onToggleDietaryPattern={toggleDietaryPattern}
+          onToggleHealthMode={toggleHealthMode}
           onToggleRating={toggleRating}
         />
       ) : null}
@@ -559,24 +579,28 @@ function FoodPreferencesStep({
   customAvoidInput,
   dietary,
   dietaryPatterns,
+  healthModes,
   ratings,
   onAddAvoidIngredient,
   onCustomAvoidInputChange,
   onRemoveAvoidIngredient,
   onToggleDietary,
   onToggleDietaryPattern,
+  onToggleHealthMode,
   onToggleRating,
 }: {
   avoidIngredients: string[];
   customAvoidInput: string;
   dietary: DietaryDraft;
   dietaryPatterns: DietaryPatternDraft;
+  healthModes: HealthModeDraft;
   ratings: Record<string, PreferenceRating>;
   onAddAvoidIngredient: () => void;
   onCustomAvoidInputChange: (value: string) => void;
   onRemoveAvoidIngredient: (value: string) => void;
   onToggleDietary: (key: keyof DietaryDraft) => void;
   onToggleDietaryPattern: (key: DietaryPatternKey) => void;
+  onToggleHealthMode: (key: HealthModeKey) => void;
   onToggleRating: (foodKey: string, rating: PreferenceRating) => void;
 }) {
   return (
@@ -619,6 +643,20 @@ function FoodPreferencesStep({
               label={option.label}
               onPress={() => onToggleDietaryPattern(option.value)}
               selected={dietaryPatterns[option.value]}
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.subsection}>
+        <Text style={styles.subsectionTitle}>Health-aware preferences</Text>
+        <View style={styles.optionGrid}>
+          {HEALTH_MODE_OPTIONS.map((option) => (
+            <TogglePill
+              key={option.value}
+              label={option.label}
+              onPress={() => onToggleHealthMode(option.value)}
+              selected={healthModes[option.value]}
             />
           ))}
         </View>

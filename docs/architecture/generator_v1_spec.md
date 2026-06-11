@@ -225,7 +225,8 @@ Limitari:
 - `Neutral` inseamna lipsa cheii in `food_preferences.ratings`.
 - `health_and_diet_preferences.dietary_patterns.keto` si `.paleo` folosesc filtre conservative pentru ingrediente clar incompatibile si penalizari de scoring cand exista date macro.
 - `health_and_diet_preferences.dietary_patterns.mediterranean` este aplicat ca preferinta/scoring mode, fara hard ban general.
-- DIET-HEALTH-PROFILES Phase 1 nu schimba formulele nutritionale si nu aplica claims medicale.
+- `health_and_diet_preferences.health_modes.diabetes_aware` penalizeaza soft mesele foarte high-carb, high-sugar sau high-carb/low-protein unde exista date suficiente.
+- DIET-HEALTH-PROFILES nu schimba formulele nutritionale si nu aplica claims medicale.
 - `banned_recipe_ids`, `banned_ingredient_names`
 - `recipe.is_active` si `recipe.scope_status` acceptate
 - `recipe_nutrition_cache.cache_status` acceptat (configurabil)

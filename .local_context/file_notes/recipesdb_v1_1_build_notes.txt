@@ -3408,3 +3408,13 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Checker added:
   - `tools/extra/check_dietary_patterns_profiles.py`
   - output: `data/recipesdb/audit/dietary_pattern_profile_options_summary.txt`
+
+## 111. DIET-HEALTH-PROFILES Phase 2 diabetes-aware mode - 2026-06-11
+- Added `health_and_diet_preferences.health_modes.diabetes_aware`.
+- Mobile Add Member Step 2 shows `Diabetes-aware` under Health-aware preferences.
+- Generator v1 applies soft `health_and_diet_fit` penalties for very high-carb, high-sugar and high-carb/low-protein meals.
+- Macro target formulas are unchanged.
+- The mode is documented as a meal-selection preference, not medical treatment or diagnosis.
+- Checker added:
+  - `tools/extra/check_diabetes_aware_profile.py`
+  - output: `data/recipesdb/audit/diabetes_aware_profile_summary.txt`
