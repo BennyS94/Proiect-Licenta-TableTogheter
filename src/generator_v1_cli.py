@@ -204,6 +204,7 @@ def main() -> None:
         fooddb=fooddb,
         portion_policy_mode=args.portion_policy,
         feedback_preference_context=feedback_preference_context,
+        health_and_diet_preferences=preference_context.health_and_diet_preferences,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
@@ -1165,6 +1166,7 @@ def _run_household_generation(args: argparse.Namespace) -> None:
         ingredients=pool.ingredients,
         fooddb=fooddb,
         portion_policy_mode="target_aware",
+        health_and_diet_preferences=preference_context.health_and_diet_preferences,
     )
     household_candidate_config = _household_generation_config(args)
     household_candidate_config["recipe_ingredients_df"] = pool.ingredients
@@ -1281,6 +1283,10 @@ def _household_context_profile(
         household_profile,
         primary_member,
     )
+    profile["health_and_diet_preferences"] = _merged_household_health_and_diet_preferences(
+        household_profile,
+        primary_member,
+    )
     return profile
 
 
@@ -1364,6 +1370,42 @@ def _merged_household_food_preferences(
         "avoid_ingredients": sorted(avoid_ingredients),
         "cooking_time_preference": cooking_time_preference,
     }
+
+
+def _merged_household_health_and_diet_preferences(
+    household_profile: dict[str, object],
+    primary_member: dict[str, object],
+) -> dict[str, object]:
+    result = {
+        "dietary_patterns": {
+            "keto": False,
+            "paleo": False,
+            "mediterranean": False,
+        },
+        "health_modes": {
+            "diabetes_aware": False,
+            "hypertension_friendly": False,
+            "heart_friendly": False,
+        },
+    }
+    for member in _active_household_members(household_profile, primary_member):
+        preferences = member.get("health_and_diet_preferences") or {}
+        if not isinstance(preferences, dict):
+            continue
+        dietary_patterns = preferences.get("dietary_patterns") or {}
+        if isinstance(dietary_patterns, dict):
+            for key in result["dietary_patterns"]:
+                result["dietary_patterns"][key] = bool(
+                    result["dietary_patterns"][key]
+                    or dietary_patterns.get(key, False)
+                )
+        health_modes = preferences.get("health_modes") or {}
+        if isinstance(health_modes, dict):
+            for key in result["health_modes"]:
+                result["health_modes"][key] = bool(
+                    result["health_modes"][key] or health_modes.get(key, False)
+                )
+    return result
 
 
 def _active_household_members(

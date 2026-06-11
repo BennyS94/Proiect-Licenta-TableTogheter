@@ -22,6 +22,19 @@ DIETARY_PREFERENCE_DEFAULTS = {
 
 FOOD_PREFERENCE_RATINGS = {"like", "dislike", "avoid"}
 
+HEALTH_AND_DIET_DEFAULTS = {
+    "dietary_patterns": {
+        "keto": False,
+        "paleo": False,
+        "mediterranean": False,
+    },
+    "health_modes": {
+        "diabetes_aware": False,
+        "hypertension_friendly": False,
+        "heart_friendly": False,
+    },
+}
+
 
 def save_generated_plan(
     conn: sqlite3.Connection,
@@ -343,6 +356,9 @@ def save_member_profile(
         "food_preferences": _normalized_food_preferences(
             profile_dict.get("food_preferences")
         ),
+        "health_and_diet_preferences": _normalized_health_and_diet_preferences(
+            profile_dict.get("health_and_diet_preferences")
+        ),
         "bf_profile": _clean_text(profile_dict.get("bf_profile")) or "normal",
         "is_active": bool(profile_dict.get("is_active", True)),
         "created_at": created_at,
@@ -365,11 +381,12 @@ def save_member_profile(
             meal_config_json,
             dietary_preferences_json,
             food_preferences_json,
+            health_and_diet_preferences_json,
             is_active,
             created_at,
             updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             saved["member_profile_id"],
@@ -386,6 +403,7 @@ def save_member_profile(
             _json_dumps(saved["meal_config"]),
             _json_dumps(saved["dietary_preferences"]),
             _json_dumps(saved["food_preferences"]),
+            _json_dumps(saved["health_and_diet_preferences"]),
             1 if saved["is_active"] else 0,
             saved["created_at"],
             saved["updated_at"],
@@ -424,6 +442,7 @@ def list_member_profiles(
             meal_config_json,
             dietary_preferences_json,
             food_preferences_json,
+            health_and_diet_preferences_json,
             is_active,
             created_at,
             updated_at
@@ -457,6 +476,7 @@ def get_member_profile(
             meal_config_json,
             dietary_preferences_json,
             food_preferences_json,
+            health_and_diet_preferences_json,
             is_active,
             created_at,
             updated_at
@@ -727,10 +747,13 @@ def _profile_row_to_dict(row: Any) -> dict[str, Any]:
         "meal_config": _json_loads(row[11]),
         "dietary_preferences": _normalized_dietary_preferences(_json_loads(row[12])),
         "food_preferences": _normalized_food_preferences(_json_loads(row[13])),
+        "health_and_diet_preferences": _normalized_health_and_diet_preferences(
+            _json_loads(row[14])
+        ),
         "bf_profile": "normal",
-        "is_active": bool(row[14]),
-        "created_at": row[15],
-        "updated_at": row[16],
+        "is_active": bool(row[15]),
+        "created_at": row[16],
+        "updated_at": row[17],
     }
 
 
@@ -753,6 +776,9 @@ def _profile_for_generation(profile: dict[str, Any]) -> dict[str, Any]:
             profile.get("dietary_preferences")
         ),
         "food_preferences": _normalized_food_preferences(profile.get("food_preferences")),
+        "health_and_diet_preferences": _normalized_health_and_diet_preferences(
+            profile.get("health_and_diet_preferences")
+        ),
         "bf_profile": _clean_text(profile.get("bf_profile")) or "normal",
     }
 
@@ -824,6 +850,23 @@ def _normalized_food_preferences(value: Any) -> dict[str, Any]:
         "avoid_ingredients": avoid_ingredients,
         "cooking_time_preference": cooking_time,
     }
+
+
+def _normalized_health_and_diet_preferences(value: Any) -> dict[str, Any]:
+    source = value if isinstance(value, dict) else {}
+    result = {
+        "dietary_patterns": dict(HEALTH_AND_DIET_DEFAULTS["dietary_patterns"]),
+        "health_modes": dict(HEALTH_AND_DIET_DEFAULTS["health_modes"]),
+    }
+    dietary_source = source.get("dietary_patterns")
+    if isinstance(dietary_source, dict):
+        for key in result["dietary_patterns"]:
+            result["dietary_patterns"][key] = bool(dietary_source.get(key, False))
+    health_source = source.get("health_modes")
+    if isinstance(health_source, dict):
+        for key in result["health_modes"]:
+            result["health_modes"][key] = bool(health_source.get(key, False))
+    return result
 
 
 def _json_loads(payload: str | None) -> dict[str, Any]:

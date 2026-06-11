@@ -11,6 +11,10 @@ def compute_score_preview(candidate_row: Mapping[str, object]) -> dict[str, floa
     time_score = _fit_value(candidate_row.get("time_fit"))
     slot_score = _fit_value(candidate_row.get("slot_fit"))
     nutrition_quality = _fit_value(candidate_row.get("nutrition_quality"), default=1.0)
+    health_and_diet_fit = _fit_value(
+        candidate_row.get("health_and_diet_fit"),
+        default=1.0,
+    )
 
     feedback_fit = _fit_value(candidate_row.get("feedback_fit"), default=0.50)
     # TODO: conecteaza varietate reala cand exista selectie pe zi / istoric.
@@ -23,7 +27,7 @@ def compute_score_preview(candidate_row: Mapping[str, object]) -> dict[str, floa
         + 0.10 * feedback_fit
         + 0.05 * variety_fit
     )
-    score_preview = base_score_preview * nutrition_quality
+    score_preview = base_score_preview * nutrition_quality * health_and_diet_fit
 
     return {
         "score_preview": round(clamp(score_preview), 4),
@@ -32,6 +36,7 @@ def compute_score_preview(candidate_row: Mapping[str, object]) -> dict[str, floa
         "time_fit": round(time_score, 4),
         "slot_fit": round(slot_score, 4),
         "nutrition_quality": round(nutrition_quality, 4),
+        "health_and_diet_fit": round(health_and_diet_fit, 4),
         "feedback_fit": round(feedback_fit, 4),
         "variety_fit": variety_fit,
     }

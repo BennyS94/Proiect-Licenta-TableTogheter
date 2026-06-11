@@ -6,6 +6,7 @@ from typing import Iterable
 import pandas as pd
 
 from src.generator_v1.feedback_fit import compute_feedback_fit
+from src.generator_v1.health_diet_fit import compute_health_and_diet_fit
 from src.generator_v1.macro_fit import macro_fit
 from src.generator_v1.meal_realism import compute_meal_realism
 from src.generator_v1.nutrition_quality import compute_nutrition_quality
@@ -35,6 +36,7 @@ def build_slot_candidates(
     fooddb: pd.DataFrame | None = None,
     portion_policy_mode: str = "standard",
     feedback_preference_context: dict[str, object] | None = None,
+    health_and_diet_preferences: dict[str, object] | None = None,
 ) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     if filtered_candidates.empty:
@@ -109,6 +111,7 @@ def build_slot_candidates(
                     "recipe_kind": recipe.get("recipe_kind"),
                     "recipe_category": recipe.get("recipe_category"),
                     "recipe_subcategory": recipe.get("recipe_subcategory"),
+                    "recipe_cuisine": recipe.get("recipe_cuisine"),
                     "allowed_slots_json": recipe.get("allowed_slots_json"),
                     "slot_policy_reason": recipe.get("slot_policy_reason"),
                     "portion_multiplier": float(portion_multiplier),
@@ -236,11 +239,26 @@ def build_slot_candidates(
                 )
                 nutrition_scores = compute_nutrition_quality(candidate_row, slot_target)
                 candidate_row.update(nutrition_scores)
+                health_and_diet_scores = compute_health_and_diet_fit(
+                    candidate_row,
+                    health_and_diet_preferences,
+                )
+                candidate_row.update(health_and_diet_scores)
                 preview_scores = compute_score_preview(candidate_row)
                 candidate_row.update(
                     {
                         "base_score_preview": preview_scores["base_score_preview"],
                         "nutrition_quality": preview_scores["nutrition_quality"],
+                        "health_and_diet_fit": preview_scores["health_and_diet_fit"],
+                        "health_and_diet_reasons": health_and_diet_scores[
+                            "health_and_diet_reasons"
+                        ],
+                        "active_dietary_patterns": health_and_diet_scores[
+                            "active_dietary_patterns"
+                        ],
+                        "active_health_modes": health_and_diet_scores[
+                            "active_health_modes"
+                        ],
                         "feedback_fit": preview_scores["feedback_fit"],
                         "feedback_bonus_penalty": feedback_scores[
                             "feedback_bonus_penalty"
@@ -269,6 +287,7 @@ def _slot_candidate_columns() -> list[str]:
         "recipe_kind",
         "recipe_category",
         "recipe_subcategory",
+        "recipe_cuisine",
         "allowed_slots_json",
         "slot_policy_reason",
         "portion_multiplier",
@@ -342,6 +361,10 @@ def _slot_candidate_columns() -> list[str]:
         "realism_reject_reason",
         "nutrition_quality",
         "nutrition_quality_reasons",
+        "health_and_diet_fit",
+        "health_and_diet_reasons",
+        "active_dietary_patterns",
+        "active_health_modes",
         "is_nutrition_suspicious",
         "base_score_preview",
         "feedback_fit",

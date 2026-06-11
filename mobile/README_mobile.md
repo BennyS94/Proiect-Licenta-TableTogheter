@@ -125,6 +125,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - PROFILE-WIZARD-1 inlocuieste formularul lung Add Profile cu Add Member wizard in 3 pasi: General Info, Food Preferences, Activity & Goal.
 - Food Preferences foloseste o matrice `food item -> Like / Dislike / Avoid`; lipsa selectiei inseamna Neutral.
 - `dietary_preferences.no_pork` si `food_preferences` sunt trimise la backend la Save Member.
+- DIET-HEALTH-PROFILES Phase 1 trimite si `health_and_diet_preferences.dietary_patterns` pentru Keto, Paleo si Mediterranean.
 - `Avoid` este hard filter pentru cheile suportate si pentru custom avoided ingredients; `Dislike` este soft preference persistata, nu hard ban.
 - PROFILE-WIZARD-1 summary: Add Member este un 3-step wizard; Neutral = no selection; Avoid = hard filter; Dislike = soft preference only.
 - Soft scoring pentru `Like`/`Dislike` la nivel de aliment/familie este deferat; edit wizard ramane polish viitor.
@@ -214,7 +215,7 @@ Limitari Auth-M1:
 
 1. In Household Management, apasa `Add Member`.
 2. Step 1 / General Info colecteaza nume, sex, varsta, inaltime si greutate.
-3. Step 2 / Food Preferences colecteaza restrictii dietetice si rating-uri `Like`, `Dislike`, `Avoid`.
+3. Step 2 / Food Preferences colecteaza restrictii dietetice, pattern-uri dietare si rating-uri `Like`, `Dislike`, `Avoid`.
 4. Step 3 / Activity & Goal colecteaza obiectivul, activitatea, antrenamentul, mesele pe zi, snack-ul si preferinta de timp.
 5. Backend-ul este apelat doar la `Save Member`.
 6. La succes, utilizatorul ramane in Household Management si vede mesajul `Member added`.
@@ -224,6 +225,7 @@ Limitari PROFILE-WIZARD-1:
 - `Neutral` nu se stocheaza explicit; lipsa cheii din `food_preferences.ratings` inseamna neutral.
 - `Avoid` este integrat ca hard filter.
 - `Dislike` si `Like` sunt persistate, dar nu au inca scoring ingredient-level/family-level.
+- Keto/Paleo/Mediterranean sunt preferinte de filtrare/scoring si nu sunt afisate ca sfat medical.
 - Editarea profilului cu acelasi wizard ramane viitoare.
 
 ## Mobile M3 Flow

@@ -9,7 +9,10 @@ import {
 } from "react-native";
 
 import { colors } from "../theme/colors";
-import type { MemberProfileCreateRequest } from "../types/api";
+import type {
+  HealthAndDietPreferences,
+  MemberProfileCreateRequest,
+} from "../types/api";
 
 type AddMemberWizardProps = {
   defaultHouseholdId: string;
@@ -25,6 +28,8 @@ type DietaryDraft = {
   vegan: boolean;
   gluten_free: boolean;
 };
+type DietaryPatternKey = keyof HealthAndDietPreferences["dietary_patterns"];
+type DietaryPatternDraft = HealthAndDietPreferences["dietary_patterns"];
 
 type FoodPreferenceItem = {
   key: string;
@@ -74,6 +79,12 @@ const COOKING_TIME_OPTIONS: Array<{ label: string; value: CookingTimePreference 
   { label: "No rush", value: "no_rush" },
 ];
 
+const DIETARY_PATTERN_OPTIONS: Array<{ label: string; value: DietaryPatternKey }> = [
+  { label: "Keto", value: "keto" },
+  { label: "Paleo", value: "paleo" },
+  { label: "Mediterranean", value: "mediterranean" },
+];
+
 const FOOD_SECTIONS: FoodPreferenceSection[] = [
   {
     title: "Protein sources",
@@ -119,6 +130,12 @@ const DEFAULT_DIETARY: DietaryDraft = {
   gluten_free: false,
 };
 
+const DEFAULT_DIETARY_PATTERNS: DietaryPatternDraft = {
+  keto: false,
+  paleo: false,
+  mediterranean: false,
+};
+
 export function AddMemberWizard({
   defaultHouseholdId,
   disabled,
@@ -132,6 +149,8 @@ export function AddMemberWizard({
   const [heightCm, setHeightCm] = useState("175");
   const [weightKg, setWeightKg] = useState("75");
   const [dietary, setDietary] = useState<DietaryDraft>(DEFAULT_DIETARY);
+  const [dietaryPatterns, setDietaryPatterns] =
+    useState<DietaryPatternDraft>(DEFAULT_DIETARY_PATTERNS);
   const [ratings, setRatings] = useState<Record<string, PreferenceRating>>({});
   const [customAvoidInput, setCustomAvoidInput] = useState("");
   const [avoidIngredients, setAvoidIngredients] = useState<string[]>([]);
@@ -154,6 +173,7 @@ export function AddMemberWizard({
     setHeightCm("175");
     setWeightKg("75");
     setDietary(DEFAULT_DIETARY);
+    setDietaryPatterns(DEFAULT_DIETARY_PATTERNS);
     setRatings({});
     setCustomAvoidInput("");
     setAvoidIngredients([]);
@@ -261,6 +281,14 @@ export function AddMemberWizard({
         avoid_ingredients: avoidIngredients,
         cooking_time_preference: cookingTimePreference,
       },
+      health_and_diet_preferences: {
+        dietary_patterns: dietaryPatterns,
+        health_modes: {
+          diabetes_aware: false,
+          hypertension_friendly: false,
+          heart_friendly: false,
+        },
+      },
       bf_profile: "normal",
     };
   }
@@ -287,6 +315,13 @@ export function AddMemberWizard({
       }
       return { ...current, [foodKey]: rating };
     });
+  }
+
+  function toggleDietaryPattern(key: DietaryPatternKey) {
+    setDietaryPatterns((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
   }
 
   function addAvoidIngredient() {
@@ -364,11 +399,13 @@ export function AddMemberWizard({
           avoidIngredients={avoidIngredients}
           customAvoidInput={customAvoidInput}
           dietary={dietary}
+          dietaryPatterns={dietaryPatterns}
           ratings={ratings}
           onAddAvoidIngredient={addAvoidIngredient}
           onCustomAvoidInputChange={setCustomAvoidInput}
           onRemoveAvoidIngredient={removeAvoidIngredient}
           onToggleDietary={toggleDietary}
+          onToggleDietaryPattern={toggleDietaryPattern}
           onToggleRating={toggleRating}
         />
       ) : null}
@@ -521,21 +558,25 @@ function FoodPreferencesStep({
   avoidIngredients,
   customAvoidInput,
   dietary,
+  dietaryPatterns,
   ratings,
   onAddAvoidIngredient,
   onCustomAvoidInputChange,
   onRemoveAvoidIngredient,
   onToggleDietary,
+  onToggleDietaryPattern,
   onToggleRating,
 }: {
   avoidIngredients: string[];
   customAvoidInput: string;
   dietary: DietaryDraft;
+  dietaryPatterns: DietaryPatternDraft;
   ratings: Record<string, PreferenceRating>;
   onAddAvoidIngredient: () => void;
   onCustomAvoidInputChange: (value: string) => void;
   onRemoveAvoidIngredient: (value: string) => void;
   onToggleDietary: (key: keyof DietaryDraft) => void;
+  onToggleDietaryPattern: (key: DietaryPatternKey) => void;
   onToggleRating: (foodKey: string, rating: PreferenceRating) => void;
 }) {
   return (
@@ -562,6 +603,24 @@ function FoodPreferencesStep({
             onPress={() => onToggleDietary("gluten_free")}
             selected={dietary.gluten_free}
           />
+        </View>
+      </View>
+
+      <View style={styles.subsection}>
+        <Text style={styles.subsectionTitle}>Dietary patterns</Text>
+        <Text style={styles.helperText}>
+          These options help TableTogether prioritize and filter meals. They are not
+          medical advice.
+        </Text>
+        <View style={styles.optionGrid}>
+          {DIETARY_PATTERN_OPTIONS.map((option) => (
+            <TogglePill
+              key={option.value}
+              label={option.label}
+              onPress={() => onToggleDietaryPattern(option.value)}
+              selected={dietaryPatterns[option.value]}
+            />
+          ))}
         </View>
       </View>
 
@@ -1041,6 +1100,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     justifyContent: "space-between",
+  },
+  helperText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
   },
   input: {
     color: colors.text,

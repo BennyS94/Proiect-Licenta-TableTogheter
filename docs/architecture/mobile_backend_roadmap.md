@@ -129,6 +129,8 @@ Modelul de profil accepta `dietary_preferences.no_pork` si `food_preferences`.
 `Avoid` este hard filter; `Dislike` ramane preferinta soft si nu este tratat ca ban.
 Custom avoided ingredients sunt salvate in `food_preferences.avoid_ingredients` si sunt mapate pe filtrul hard existent.
 Soft scoring pentru `like`/`dislike` la nivel de aliment/familie este deferat pentru PROFILE-PREF-2.
+DIET-HEALTH-PROFILES Phase 1 adauga in Step 2 compact chips pentru `Keto`, `Paleo` si `Mediterranean`.
+Acestea sunt trimise ca `health_and_diet_preferences.dietary_patterns`; helper text-ul spune explicit ca nu sunt sfat medical.
 
 ## Planned backend/API endpoints
 

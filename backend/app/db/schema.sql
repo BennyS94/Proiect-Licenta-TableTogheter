@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS member_profiles (
     meal_config_json TEXT NOT NULL,
     dietary_preferences_json TEXT NOT NULL,
     food_preferences_json TEXT NOT NULL DEFAULT '{}',
+    health_and_diet_preferences_json TEXT NOT NULL DEFAULT '{}',
     is_active INTEGER NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL

@@ -69,6 +69,10 @@ def _ensure_member_profile_preference_columns(connection: sqlite3.Connection) ->
             "ALTER TABLE member_profiles "
             "ADD COLUMN food_preferences_json TEXT NOT NULL DEFAULT '{}'"
         ),
+        "health_and_diet_preferences_json": (
+            "ALTER TABLE member_profiles "
+            "ADD COLUMN health_and_diet_preferences_json TEXT NOT NULL DEFAULT '{}'"
+        ),
     }
     for column_name, statement in column_sql.items():
         if column_name not in existing_columns:

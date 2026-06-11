@@ -7,6 +7,8 @@ from typing import Any
 
 import pandas as pd
 
+from src.generator_v1.health_diet_fit import normalize_health_and_diet_preferences
+
 
 DIETARY_KEYS = (
     "vegetarian",
@@ -164,18 +166,57 @@ FOOD_PREFERENCE_AVOID_KEYWORDS = {
     "spicy_food": {"cayenne", "chili", "chilli", "hot sauce", "jalapeno", "spicy"},
 }
 
+DIETARY_PATTERN_HARD_KEYWORDS = {
+    "keto": {
+        "bread",
+        "breadcrumb",
+        "corn",
+        "flour",
+        "honey",
+        "noodle",
+        "pasta",
+        "potato",
+        "rice",
+        "sugar",
+        "syrup",
+        "tortilla",
+    },
+    "paleo": {
+        "bean",
+        "beans",
+        "bread",
+        "cheese",
+        "cream",
+        "flour",
+        "lentil",
+        "milk",
+        "noodle",
+        "oat",
+        "pasta",
+        "rice",
+        "soy sauce",
+        "sugar",
+        "tortilla",
+        "yogurt",
+    },
+}
+
 
 @dataclass(frozen=True)
 class HouseholdPreferenceContext:
     banned_recipe_ids: set[str] = field(default_factory=set)
     banned_ingredient_names: set[str] = field(default_factory=set)
     dietary_preferences: dict[str, bool] = field(default_factory=dict)
+    health_and_diet_preferences: dict[str, dict[str, bool]] = field(default_factory=dict)
     time_sensitivity: str = "normal"
 
 
 def build_household_preference_context(profile: dict[str, Any]) -> HouseholdPreferenceContext:
     dietary_preferences = profile.get("dietary_preferences") or {}
     food_preferences = profile.get("food_preferences") or {}
+    health_and_diet_preferences = normalize_health_and_diet_preferences(
+        profile.get("health_and_diet_preferences")
+    )
     meal_config = profile.get("meal_config") or {}
     resolved_dietary_preferences = {
         key: bool(dietary_preferences.get(key, False))
@@ -196,6 +237,7 @@ def build_household_preference_context(profile: dict[str, Any]) -> HouseholdPref
         banned_recipe_ids=_as_string_set(profile.get("banned_recipe_ids", [])),
         banned_ingredient_names=resolved_banned_ingredients,
         dietary_preferences=resolved_dietary_preferences,
+        health_and_diet_preferences=health_and_diet_preferences,
         time_sensitivity=str(
             meal_config.get("time_sensitivity", profile.get("time_sensitivity", "normal"))
         ).strip().lower(),
@@ -230,6 +272,7 @@ def filter_recipe_candidates(
         ingredients=ingredients,
         banned_ingredient_names=context.banned_ingredient_names,
         dietary_preferences=context.dietary_preferences,
+        health_and_diet_preferences=context.health_and_diet_preferences,
     )
     if banned_ingredient_recipe_ids:
         filtered = filtered.loc[
@@ -249,6 +292,7 @@ def _recipe_ids_with_banned_ingredients(
     ingredients: pd.DataFrame,
     banned_ingredient_names: set[str],
     dietary_preferences: dict[str, bool],
+    health_and_diet_preferences: dict[str, dict[str, bool]],
 ) -> set[str]:
     required_columns = {"recipe_id", *INGREDIENT_TEXT_COLUMNS}
     available_columns = [col for col in INGREDIENT_TEXT_COLUMNS if col in ingredients.columns]
@@ -266,6 +310,13 @@ def _recipe_ids_with_banned_ingredients(
         if not enabled:
             continue
         for keyword in DIETARY_KEYWORDS.get(preference_key, set()):
+            mask |= text.str.contains(_keyword_pattern(keyword), regex=True, na=False)
+
+    dietary_patterns = health_and_diet_preferences.get("dietary_patterns", {})
+    for pattern_key, enabled in dietary_patterns.items():
+        if not enabled:
+            continue
+        for keyword in DIETARY_PATTERN_HARD_KEYWORDS.get(pattern_key, set()):
             mask |= text.str.contains(_keyword_pattern(keyword), regex=True, na=False)
 
     return set(ingredients.loc[mask, "recipe_id"].astype(str))

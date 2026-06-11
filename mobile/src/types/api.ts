@@ -21,6 +21,7 @@ export type DemoMemberProfile = {
   meal_config?: Record<string, unknown>;
   dietary_preferences?: Record<string, unknown>;
   food_preferences?: FoodPreferences;
+  health_and_diet_preferences?: HealthAndDietPreferences;
   bf_profile?: string;
   [key: string]: unknown;
 };
@@ -31,6 +32,19 @@ export type FoodPreferences = {
   ratings: Record<string, FoodPreferenceRating>;
   avoid_ingredients: string[];
   cooking_time_preference: "quick" | "balanced" | "no_rush";
+};
+
+export type HealthAndDietPreferences = {
+  dietary_patterns: {
+    keto: boolean;
+    paleo: boolean;
+    mediterranean: boolean;
+  };
+  health_modes: {
+    diabetes_aware: boolean;
+    hypertension_friendly: boolean;
+    heart_friendly: boolean;
+  };
 };
 
 export type DemoHouseholdResponse = {
@@ -92,6 +106,7 @@ export type MemberProfileCreateRequest = {
   meal_config: Record<string, unknown>;
   dietary_preferences: Record<string, unknown>;
   food_preferences?: FoodPreferences;
+  health_and_diet_preferences?: HealthAndDietPreferences;
   bf_profile?: string;
   [key: string]: unknown;
 };
@@ -111,6 +126,7 @@ export type MemberProfileResponse = {
   meal_config: Record<string, unknown>;
   dietary_preferences: Record<string, unknown>;
   food_preferences: FoodPreferences;
+  health_and_diet_preferences: HealthAndDietPreferences;
   bf_profile?: string;
   is_active: boolean;
   created_at: string;

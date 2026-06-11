@@ -164,6 +164,7 @@ def generate_individual_plan_from_request(request: dict[str, Any]) -> dict[str, 
         fooddb=fooddb,
         portion_policy_mode=args.portion_policy,
         feedback_preference_context=feedback_context,
+        health_and_diet_preferences=preference_context.health_and_diet_preferences,
     )
     candidate_diagnostics = build_candidate_diagnostics(
         slot_candidates=slot_candidates,
@@ -279,6 +280,7 @@ def generate_household_plan_from_request(request: dict[str, Any]) -> dict[str, A
         fooddb=fooddb,
         portion_policy_mode="target_aware",
         feedback_preference_context=feedback_context,
+        health_and_diet_preferences=preference_context.health_and_diet_preferences,
     )
     household_config = _household_generation_config(args)
     household_config["recipe_ingredients_df"] = pool.ingredients
@@ -493,6 +495,7 @@ def get_recipe_alternatives_from_request(request: dict[str, Any]) -> dict[str, A
         fooddb=fooddb,
         portion_policy_mode=args.portion_policy,
         feedback_preference_context=feedback_context,
+        health_and_diet_preferences=preference_context.health_and_diet_preferences,
     )
     features = build_recipe_similarity_features(
         pool.recipes,
@@ -1347,6 +1350,10 @@ def _meal_rows_view(meals: Any) -> list[dict[str, Any]]:
                 **_meal_time_fields(meal),
                 "feedback_fit": meal.get("feedback_fit"),
                 "warnings": meal.get("warnings", []),
+                "health_and_diet_fit": meal.get("health_and_diet_fit"),
+                "health_and_diet_reasons": meal.get("health_and_diet_reasons", []),
+                "active_dietary_patterns": meal.get("active_dietary_patterns", []),
+                "active_health_modes": meal.get("active_health_modes", []),
             }
         )
     return rows

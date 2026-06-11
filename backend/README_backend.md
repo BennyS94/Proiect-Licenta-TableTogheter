@@ -92,8 +92,10 @@ Implementat in PROFILE-WIZARD-1:
 
 - `POST /profiles`, `GET /profiles` si `GET /profiles/{member_profile_id}` accepta/returneaza `dietary_preferences.no_pork`
 - profilurile accepta/returneaza `food_preferences.ratings`, `food_preferences.avoid_ingredients` si `food_preferences.cooking_time_preference`
+- profilurile accepta/returneaza `health_and_diet_preferences.dietary_patterns` pentru `keto`, `paleo` si `mediterranean`
 - profilurile vechi fara aceste campuri primesc defaults compatibile: `no_pork=false`, `ratings={}`, `avoid_ingredients=[]`, `cooking_time_preference=balanced`
-- SQLite foloseste `food_preferences_json` in `member_profiles`; migratia locala este aplicata in `init_db`
+- profilurile vechi fara `health_and_diet_preferences` primesc defaults compatibile cu toate optiunile `false`
+- SQLite foloseste `food_preferences_json` si `health_and_diet_preferences_json` in `member_profiles`; migratia locala este aplicata in `init_db`
 - `Avoid` pentru cheile suportate si ingredientele custom intra in hard filter-ul generatorului; `Dislike` ramane soft/persistat, nu hard ban
 - soft scoring pentru `like`/`dislike` la nivel de aliment/familie este deferat pentru PROFILE-PREF-2
 
@@ -193,6 +195,18 @@ Schema profilului suporta in plus:
     },
     "avoid_ingredients": [],
     "cooking_time_preference": "balanced"
+  },
+  "health_and_diet_preferences": {
+    "dietary_patterns": {
+      "keto": false,
+      "paleo": false,
+      "mediterranean": true
+    },
+    "health_modes": {
+      "diabetes_aware": false,
+      "hypertension_friendly": false,
+      "heart_friendly": false
+    }
   }
 }
 ```

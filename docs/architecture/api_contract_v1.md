@@ -225,6 +225,18 @@ Request schema example:
       "avoid_ingredients": [],
       "cooking_time_preference": "balanced"
     },
+    "health_and_diet_preferences": {
+      "dietary_patterns": {
+        "keto": false,
+        "paleo": false,
+        "mediterranean": true
+      },
+      "health_modes": {
+        "diabetes_aware": false,
+        "hypertension_friendly": false,
+        "heart_friendly": false
+      }
+    },
     "bf_profile": "normal"
   },
   "generation_options": {
@@ -1025,13 +1037,16 @@ Response schema example:
 
 MVP notes:
 - Backend-ul trebuie sa pastreze forma profilului compatibila cu `target_builder`.
-- Backend M4 salveaza profilul in SQLite si pastreaza `training`, `meal_config`, `dietary_preferences` si `food_preferences` ca JSON.
+- Backend M4 salveaza profilul in SQLite si pastreaza `training`, `meal_config`, `dietary_preferences`, `food_preferences` si `health_and_diet_preferences` ca JSON.
 - In Auth-M1, daca requestul include `Authorization: Bearer <session_token>`, `household_id` este asignat automat din cont si orice `household_id` trimis de client este ignorat/overridden.
 - Mobile nu trebuie sa expuna `household_id` in formularul Add Profile.
 - PROFILE-WIZARD-1 extinde profilul cu `dietary_preferences.no_pork` si `food_preferences`.
 - `food_preferences.ratings` foloseste valorile `like`, `dislike`, `avoid`; lipsa unei chei inseamna `Neutral`.
 - `Avoid` este hard filter pentru cheile suportate si pentru `avoid_ingredients`; `Dislike` este preferinta soft persistata, nu hard ban.
 - In implementarea curenta, soft scoring pentru `like`/`dislike` la nivel de ingredient/familie este deferat pentru PROFILE-PREF-2.
+- DIET-HEALTH-PROFILES Phase 1 adauga `health_and_diet_preferences.dietary_patterns` cu `keto`, `paleo` si `mediterranean`, toate default `false` pentru profilurile vechi.
+- `keto` si `paleo` pot activa filtre conservative pentru ingrediente clar incompatibile si penalizari de scoring; `mediterranean` este preferinta de scoring, nu hard ban.
+- `health_and_diet_preferences.health_modes` exista in contract cu valori default `false`, dar modurile health-aware sunt activate in fazele urmatoare.
 
 Non-goals:
 - Nu valideaza medical obiectivele.

@@ -3391,3 +3391,20 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
   - `npx expo install --check` passed.
 - Caveat:
   - npm reported Node engine warnings because local Node is `20.19.1` while some React Native packages request `20.19.4+`; install still completed.
+
+## 110. DIET-HEALTH-PROFILES Phase 1 dietary patterns - 2026-06-11
+- Added `health_and_diet_preferences` as a backend/mobile/generator profile field.
+- Phase 1 active dietary patterns:
+  - `keto`
+  - `paleo`
+  - `mediterranean`
+- Defaults remain backward-compatible for old profiles:
+  - all dietary patterns false,
+  - all health-aware modes false.
+- Backend persistence now stores `health_and_diet_preferences_json` in SQLite member profiles.
+- Generator v1 adds conservative keto/paleo hard ingredient filters for clear mismatches and a `health_and_diet_fit` scoring signal.
+- Mediterranean is handled as a soft preference/scoring signal.
+- This phase does not modify Food_DB, Recipes_DB current data, nutrition formulas or `src/legacy`.
+- Checker added:
+  - `tools/extra/check_dietary_patterns_profiles.py`
+  - output: `data/recipesdb/audit/dietary_pattern_profile_options_summary.txt`

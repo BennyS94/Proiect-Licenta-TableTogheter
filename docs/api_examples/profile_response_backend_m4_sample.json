@@ -36,6 +36,18 @@
     "avoid_ingredients": [],
     "cooking_time_preference": "balanced"
   },
+  "health_and_diet_preferences": {
+    "dietary_patterns": {
+      "keto": false,
+      "paleo": false,
+      "mediterranean": true
+    },
+    "health_modes": {
+      "diabetes_aware": false,
+      "hypertension_friendly": false,
+      "heart_friendly": false
+    }
+  },
   "bf_profile": "normal",
   "is_active": true,
   "created_at": "2026-05-30T12:00:00+00:00",

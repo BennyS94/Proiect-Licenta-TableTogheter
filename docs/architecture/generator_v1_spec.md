@@ -62,6 +62,7 @@ Campuri obligatorii in `member_profile` (v1):
 - `meal_config.meals_per_day`, `meal_config.include_snacks`
 - `dietary_preferences` (chei booleene, inclusiv `no_pork`)
 - `food_preferences` (PROFILE-WIZARD-1: ratings + avoid ingredients + cooking time preference)
+- `health_and_diet_preferences` (DIET-HEALTH-PROFILES: dietary patterns si health-aware modes)
 - `bf_profile` (pastrat, dar nefolosit in formula energetica v1)
 
 Exemplu minim:
@@ -91,6 +92,18 @@ Exemplu minim:
     "ratings": {},
     "avoid_ingredients": [],
     "cooking_time_preference": "balanced"
+  },
+  "health_and_diet_preferences": {
+    "dietary_patterns": {
+      "keto": false,
+      "paleo": false,
+      "mediterranean": true
+    },
+    "health_modes": {
+      "diabetes_aware": false,
+      "hypertension_friendly": false,
+      "heart_friendly": false
+    }
   },
   "bf_profile": "normal"
 }
@@ -210,6 +223,9 @@ Limitari:
 - `food_preferences.ratings[*] = "avoid"` se mapeaza la hard filter pentru cheile suportate; `like` si `dislike` sunt persistate, dar nu modifica inca scoringul de ingrediente/familii.
 - `food_preferences.avoid_ingredients` intra in filtrul hard de ingrediente.
 - `Neutral` inseamna lipsa cheii in `food_preferences.ratings`.
+- `health_and_diet_preferences.dietary_patterns.keto` si `.paleo` folosesc filtre conservative pentru ingrediente clar incompatibile si penalizari de scoring cand exista date macro.
+- `health_and_diet_preferences.dietary_patterns.mediterranean` este aplicat ca preferinta/scoring mode, fara hard ban general.
+- DIET-HEALTH-PROFILES Phase 1 nu schimba formulele nutritionale si nu aplica claims medicale.
 - `banned_recipe_ids`, `banned_ingredient_names`
 - `recipe.is_active` si `recipe.scope_status` acceptate
 - `recipe_nutrition_cache.cache_status` acceptat (configurabil)
@@ -227,7 +243,7 @@ Limitari:
 4. incarca Recipes_DB / Food_DB / nutrition cache
 5. aplica `hard_filters`
 6. construieste candidati pe sloturi
-7. calculeaza scoruri si semnale auxiliare (`macro_fit`, `time_fit`, `slot_fit`, `feedback_fit`, `variety_fit`, `nutrition_quality`, realism)
+7. calculeaza scoruri si semnale auxiliare (`macro_fit`, `time_fit`, `slot_fit`, `feedback_fit`, `health_and_diet_fit`, `variety_fit`, `nutrition_quality`, realism)
 8. selecteaza plan individual sau household v1 Lite
 9. aplica validare / quality gate
 10. optional construieste grocery list si output JSON-safe pentru backend/mobile

@@ -298,6 +298,7 @@ def _slot_candidate_row_for_request(
         fooddb=fooddb,
         portion_policy_mode=args.portion_policy,
         feedback_preference_context=feedback_context,
+        health_and_diet_preferences=preference_context.health_and_diet_preferences,
     )
     if slot_candidates.empty:
         return None
