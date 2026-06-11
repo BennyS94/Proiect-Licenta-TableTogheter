@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import uuid
 from datetime import date, datetime
 from pathlib import Path
@@ -120,6 +121,15 @@ TIME_OUTPUT_FIELDS = (
     "time_estimation_method",
     "time_warnings",
 )
+PREP_ONLY_INGREDIENT_NAMES = {
+    "chopped",
+    "cubed",
+    "diced",
+    "melted",
+    "minced",
+    "pressed",
+    "sliced",
+}
 
 
 def generate_individual_plan_from_request(request: dict[str, Any]) -> dict[str, Any]:
@@ -206,6 +216,7 @@ def generate_individual_plan_from_request(request: dict[str, Any]) -> dict[str, 
         filtered_candidates,
         slot_candidates,
     )
+    _attach_meal_ingredient_amounts(plan, pool.ingredients)
 
     grocery_list = None
     if _generation_option(args, "include_grocery_list", False):
@@ -309,6 +320,7 @@ def generate_household_plan_from_request(request: dict[str, Any]) -> dict[str, A
         filtered_candidates,
         household_candidates,
     )
+    _attach_meal_ingredient_amounts(plan, pool.ingredients)
 
     grocery_list = None
     if _generation_option(args, "include_grocery_list", False):
@@ -1296,6 +1308,256 @@ def _feedback_events_from_request(request: Mapping[str, Any]) -> list[dict[str, 
     return load_feedback_events(path)
 
 
+def _attach_meal_ingredient_amounts(
+    plan: Mapping[str, Any],
+    ingredients_df: pd.DataFrame,
+) -> None:
+    if ingredients_df.empty or "recipe_id" not in ingredients_df.columns:
+        return
+    ingredients_by_recipe = _ingredient_rows_by_recipe(ingredients_df)
+    for meal in _iter_meal_records_for_ingredients(plan):
+        recipe_id = _clean_text(meal.get("recipe_id"))
+        if not recipe_id:
+            continue
+        ingredient_rows = ingredients_by_recipe.get(recipe_id, [])
+        if not ingredient_rows:
+            continue
+        multiplier = _ingredient_multiplier_for_meal(meal)
+        ingredient_amounts = [
+            item
+            for item in (
+                _ingredient_amount_item(row, multiplier)
+                for row in ingredient_rows
+            )
+            if item
+        ]
+        if not ingredient_amounts:
+            continue
+        meal["ingredient_amounts"] = ingredient_amounts
+        meal["ingredients"] = [item["text"] for item in ingredient_amounts]
+
+
+def _iter_meal_records_for_ingredients(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    selected_meals = plan.get("selected_meals")
+    if isinstance(selected_meals, list):
+        records.extend(item for item in selected_meals if isinstance(item, dict))
+    for day in plan.get("days", []) or []:
+        if not isinstance(day, dict):
+            continue
+        day_meals = day.get("selected_meals")
+        if isinstance(day_meals, list):
+            records.extend(item for item in day_meals if isinstance(item, dict))
+    for key in ("allocations", "shared_allocations", "individual_meals"):
+        rows = plan.get(key)
+        if isinstance(rows, list):
+            records.extend(item for item in rows if isinstance(item, dict))
+    return records
+
+
+def _ingredient_rows_by_recipe(ingredients_df: pd.DataFrame) -> dict[str, list[dict[str, Any]]]:
+    ingredients = ingredients_df.copy()
+    if "ingredient_position" in ingredients.columns:
+        ingredients["_ingredient_position_sort"] = pd.to_numeric(
+            ingredients["ingredient_position"],
+            errors="coerce",
+        )
+        ingredients = ingredients.sort_values(
+            ["recipe_id", "_ingredient_position_sort"],
+            kind="mergesort",
+            na_position="last",
+        )
+    rows_by_recipe: dict[str, list[dict[str, Any]]] = {}
+    for _, row in ingredients.iterrows():
+        recipe_id = _clean_text(row.get("recipe_id"))
+        if not recipe_id:
+            continue
+        rows_by_recipe.setdefault(recipe_id, []).append(row.to_dict())
+    return rows_by_recipe
+
+
+def _ingredient_multiplier_for_meal(meal: Mapping[str, Any]) -> float:
+    for key in (
+        "portion_multiplier_member",
+        "household_portion_sum",
+        "portion_multiplier",
+    ):
+        value = _to_float(meal.get(key))
+        if value is not None and value > 0:
+            return value
+    return 1.0
+
+
+def _ingredient_amount_item(
+    row: Mapping[str, Any],
+    multiplier: float,
+) -> dict[str, Any] | None:
+    name = _ingredient_display_name(row)
+    raw_text = _clean_text(row.get("ingredient_raw_text"))
+    if not name and not raw_text:
+        return None
+    scaled_quantity = _scaled_quantity(row, multiplier)
+    scaled_grams = _scaled_grams(row, multiplier)
+    amount_text = _ingredient_amount_text(
+        name=name,
+        raw_text=raw_text,
+        scaled_quantity=scaled_quantity,
+        quantity_unit=_clean_text(row.get("quantity_unit")),
+        scaled_grams=scaled_grams,
+    )
+    text = amount_text or raw_text or name
+    return {
+        "text": text,
+        "name": name or raw_text,
+        "raw_text": raw_text,
+        "amount_text": amount_text,
+        "portion_multiplier": round(multiplier, 4),
+        "quantity_value_scaled": _round_optional(scaled_quantity, 3),
+        "quantity_unit": _clean_text(row.get("quantity_unit")),
+        "quantity_grams_scaled": _round_optional(scaled_grams, 1),
+        "is_optional": bool(_to_float(row.get("is_optional")) or 0.0),
+    }
+
+
+def _ingredient_display_name(row: Mapping[str, Any]) -> str:
+    raw_name = _ingredient_name_from_raw_text(row)
+    parsed = _clean_text(row.get("ingredient_name_parsed")).replace("_", " ")
+    if parsed and parsed.lower() not in PREP_ONLY_INGREDIENT_NAMES:
+        return parsed
+    mapped = _clean_text(row.get("mapped_food_canonical_name")).replace("_", " ")
+    if mapped:
+        return mapped
+    if raw_name:
+        return raw_name
+    normalized = _clean_text(row.get("ingredient_name_normalized")).replace("_", " ")
+    if normalized:
+        return normalized
+    if parsed:
+        return parsed
+    return ""
+
+
+def _ingredient_name_from_raw_text(row: Mapping[str, Any]) -> str:
+    text = _clean_text(row.get("ingredient_raw_text"))
+    if not text:
+        return ""
+    quantity_value = _to_float(row.get("quantity_value"))
+    prefixes: list[str] = []
+    quantity_text = _clean_text(row.get("quantity_text"))
+    if quantity_text:
+        prefixes.append(quantity_text)
+    if quantity_value is not None and quantity_value > 0:
+        prefixes.append(_format_quantity(quantity_value))
+        if abs(quantity_value - round(quantity_value)) < 0.001:
+            prefixes.append(str(int(round(quantity_value))))
+    for prefix in sorted(set(prefixes), key=len, reverse=True):
+        if text.lower().startswith(prefix.lower()):
+            text = text[len(prefix) :].strip()
+            break
+    text = re.sub(r"^\([^)]*\)\s*", "", text).strip()
+    unit = _clean_text(row.get("quantity_unit"))
+    if unit:
+        unit_pattern = re.escape(unit.strip().lower().replace("_", " "))
+        text = re.sub(
+            rf"^(?:{unit_pattern}|{unit_pattern}s)\b\s*",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        ).strip()
+    return text.strip(" ,;-")
+
+
+def _scaled_quantity(row: Mapping[str, Any], multiplier: float) -> float | None:
+    value = _to_float(row.get("quantity_value"))
+    if value is None or value <= 0:
+        return None
+    return value * multiplier
+
+
+def _scaled_grams(row: Mapping[str, Any], multiplier: float) -> float | None:
+    grams = _to_float(row.get("quantity_grams_estimated"))
+    if grams is None or grams <= 0:
+        return None
+    return grams * multiplier
+
+
+def _ingredient_amount_text(
+    *,
+    name: str,
+    raw_text: str,
+    scaled_quantity: float | None,
+    quantity_unit: str,
+    scaled_grams: float | None,
+) -> str:
+    display_name = name or raw_text
+    if scaled_quantity is not None and quantity_unit:
+        amount = _format_quantity(scaled_quantity)
+        unit = _display_unit(quantity_unit, scaled_quantity)
+        base = " ".join(part for part in (amount, unit, display_name) if part).strip()
+        grams = _format_grams_suffix(scaled_grams, quantity_unit)
+        return f"{base} {grams}".strip()
+    if scaled_grams is not None:
+        return f"{_format_grams(scaled_grams)} {display_name}".strip()
+    if raw_text:
+        return raw_text
+    return display_name
+
+
+def _display_unit(unit: str, quantity: float) -> str:
+    normalized = unit.strip().lower().replace("_", " ")
+    if normalized == "count":
+        return ""
+    irregular_units = {
+        "pinch": "pinches",
+    }
+    if abs(quantity - 1.0) >= 0.001 and normalized in irregular_units:
+        return irregular_units[normalized]
+    unit_map = {
+        "gram": "g",
+        "grams": "g",
+        "g": "g",
+        "kilogram": "kg",
+        "kilograms": "kg",
+        "kg": "kg",
+        "milliliter": "ml",
+        "milliliters": "ml",
+        "ml": "ml",
+        "liter": "l",
+        "liters": "l",
+        "l": "l",
+    }
+    display = unit_map.get(normalized, normalized)
+    if display in {"g", "kg", "ml", "l"}:
+        return display
+    if abs(quantity - 1.0) < 0.001 or display.endswith("s"):
+        return display
+    return f"{display}s"
+
+
+def _format_grams_suffix(grams: float | None, quantity_unit: str) -> str:
+    if grams is None:
+        return ""
+    if _display_unit(quantity_unit, 2.0) in {"g", "kg"}:
+        return ""
+    return f"({_format_grams(grams)})"
+
+
+def _format_grams(grams: float) -> str:
+    if grams >= 1000:
+        return f"{_format_quantity(grams / 1000.0)} kg"
+    return f"{_format_quantity(grams)} g"
+
+
+def _format_quantity(value: float) -> str:
+    if value >= 10:
+        return f"{value:.0f}"
+    elif value >= 1:
+        text = f"{value:.1f}"
+    else:
+        text = f"{value:.2f}"
+    return text.rstrip("0").rstrip(".")
+
+
 def _daily_plan_view(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
     days = plan.get("days")
     if isinstance(days, list) and days:
@@ -1341,6 +1603,8 @@ def _meal_rows_view(meals: Any) -> list[dict[str, Any]]:
                 "display_name": meal.get("display_name"),
                 "directions_step_count": meal.get("directions_step_count"),
                 "cooking_steps": meal.get("cooking_steps", []),
+                "ingredients": meal.get("ingredients", []),
+                "ingredient_amounts": meal.get("ingredient_amounts", []),
                 "portion_multiplier": meal.get("portion_multiplier"),
                 "meal_scope": "shared"
                 if bool(meal.get("household_generation_shared_slot", False))
@@ -1512,6 +1776,8 @@ def _per_member_menus(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "display_name": row.get("display_name") or row.get("recipe"),
                 "directions_step_count": row.get("directions_step_count"),
                 "cooking_steps": row.get("cooking_steps", []),
+                "ingredients": row.get("ingredients", []),
+                "ingredient_amounts": row.get("ingredient_amounts", []),
                 "portion_multiplier": row.get("portion_multiplier_member")
                 or row.get("portion_multiplier"),
                 "meal_scope": row.get("allocation_scope"),
@@ -1547,6 +1813,8 @@ def _shared_meals(plan: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "display_name": meal.get("display_name"),
                     "directions_step_count": meal.get("directions_step_count"),
                     "cooking_steps": meal.get("cooking_steps", []),
+                    "ingredients": meal.get("ingredients", []),
+                    "ingredient_amounts": meal.get("ingredient_amounts", []),
                     "household_portion_sum": meal.get("household_portion_sum"),
                     "household_grocery_scaling_factor": meal.get(
                         "household_grocery_scaling_factor"
@@ -1723,6 +1991,13 @@ def _to_float(value: Any) -> float | None:
     if math.isnan(result) or math.isinf(result):
         return None
     return result
+
+
+def _round_optional(value: Any, digits: int) -> float | None:
+    numeric = _to_float(value)
+    if numeric is None:
+        return None
+    return round(numeric, digits)
 
 
 def _sum_mapping_values(value: Any) -> int:

@@ -38,7 +38,11 @@ export function HouseholdMealRow({
   const recipeId = stringValue(meal.recipe_id);
   const replaceScope = replacementScopeFromMeal(scope);
   const ingredients = getTextList(
-    meal.ingredients ?? meal.ingredient_names ?? meal.ingredients_list ?? meal.recipe_ingredients,
+    meal.ingredients ??
+      meal.ingredient_amounts ??
+      meal.ingredient_names ??
+      meal.ingredients_list ??
+      meal.recipe_ingredients,
   );
   const steps = getTextList(meal.cooking_steps ?? meal.directions ?? meal.steps ?? meal.instructions);
   const estimatedTime = firstNumber(
@@ -123,7 +127,7 @@ export function HouseholdMealRow({
           {ingredients.length ? (
             <View style={styles.inlineList}>
               <Text style={styles.detailTitle}>Ingredients</Text>
-              {ingredients.slice(0, 8).map((ingredient, index) => (
+              {ingredients.map((ingredient, index) => (
                 <Text key={`${ingredient}-${index}`} style={styles.detailText}>
                   {ingredient}
                 </Text>

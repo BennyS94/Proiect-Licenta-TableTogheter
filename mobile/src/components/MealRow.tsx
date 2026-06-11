@@ -100,7 +100,7 @@ export function MealRow({
           {ingredients.length ? (
             <View style={styles.inlineList}>
               <Text style={styles.detailTitle}>Ingredients</Text>
-              {ingredients.slice(0, 8).map((ingredient, index) => (
+              {ingredients.map((ingredient, index) => (
                 <Text key={`${ingredient}-${index}`} style={styles.detailText}>
                   {ingredient}
                 </Text>
@@ -217,6 +217,7 @@ function getEstimatedTime(meal: GeneratedMeal): number | null {
 function getIngredients(meal: GeneratedMeal): string[] {
   const raw =
     meal.ingredients ??
+    meal.ingredient_amounts ??
     meal.ingredient_names ??
     meal.ingredients_list ??
     meal.recipe_ingredients;

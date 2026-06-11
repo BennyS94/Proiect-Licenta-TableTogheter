@@ -229,6 +229,18 @@ export type GroceryListResponse = {
   [key: string]: unknown;
 };
 
+export type MealIngredientAmount = {
+  text: string;
+  name?: string;
+  raw_text?: string;
+  amount_text?: string;
+  portion_multiplier?: number;
+  quantity_value_scaled?: number | null;
+  quantity_unit?: string;
+  quantity_grams_scaled?: number | null;
+  is_optional?: boolean;
+};
+
 export type GeneratedMeal = {
   slot?: string;
   recipe_id?: string;
@@ -238,6 +250,8 @@ export type GeneratedMeal = {
   cooking_steps?: string[];
   directions?: string[];
   directions_step_count?: number;
+  ingredients?: string[];
+  ingredient_amounts?: MealIngredientAmount[];
   warnings?: unknown[];
   [key: string]: unknown;
 };
