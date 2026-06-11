@@ -133,6 +133,7 @@ DIET-HEALTH-PROFILES Phase 1 adauga in Step 2 compact chips pentru `Keto`, `Pale
 Acestea sunt trimise ca `health_and_diet_preferences.dietary_patterns`; helper text-ul spune explicit ca nu sunt sfat medical.
 DIET-HEALTH-PROFILES Phase 2 adauga `Diabetes-aware` sub Health-aware preferences; modul este o preferinta de prioritizare/scoring, nu recomandare medicala.
 DIET-HEALTH-PROFILES Phase 3 adauga `Blood-pressure friendly`; backend key-ul este `hypertension_friendly`, iar scoringul foloseste proxy-uri pentru sare/ingrediente procesate.
+DIET-HEALTH-PROFILES Phase 4 adauga `Heart-friendly`; backend key-ul este `heart_friendly`, iar scoringul penalizeaza soft retete foarte grase/procesate.
 
 ## Planned backend/API endpoints
 

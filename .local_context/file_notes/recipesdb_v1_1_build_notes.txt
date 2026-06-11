@@ -3428,3 +3428,13 @@ After each meaningful Recipes_DB/Food_DB v1.1 pass, append:
 - Checker added:
   - `tools/extra/check_hypertension_friendly_profile.py`
   - output: `data/recipesdb/audit/hypertension_friendly_profile_summary.txt`
+
+## 113. DIET-HEALTH-PROFILES Phase 4 heart-friendly mode - 2026-06-11
+- Added `health_and_diet_preferences.health_modes.heart_friendly`.
+- Mobile Add Member Step 2 shows `Heart-friendly`.
+- Generator v1 applies soft `health_and_diet_fit` penalties for fat-heavy meals and fatty/creamy/fried/processed proxies.
+- The mode does not ban all fat and remains compatible with conflicting selections.
+- This is documented as preference/scoring logic, not medical treatment or diagnosis.
+- Checker added:
+  - `tools/extra/check_heart_friendly_profile.py`
+  - output: `data/recipesdb/audit/heart_friendly_profile_summary.txt`

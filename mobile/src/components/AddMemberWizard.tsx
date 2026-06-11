@@ -90,6 +90,7 @@ const DIETARY_PATTERN_OPTIONS: Array<{ label: string; value: DietaryPatternKey }
 const HEALTH_MODE_OPTIONS: Array<{ label: string; value: HealthModeKey }> = [
   { label: "Diabetes-aware", value: "diabetes_aware" },
   { label: "Blood-pressure friendly", value: "hypertension_friendly" },
+  { label: "Heart-friendly", value: "heart_friendly" },
 ];
 
 const FOOD_SECTIONS: FoodPreferenceSection[] = [

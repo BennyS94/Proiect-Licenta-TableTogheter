@@ -95,6 +95,7 @@ Implementat in PROFILE-WIZARD-1:
 - profilurile accepta/returneaza `health_and_diet_preferences.dietary_patterns` pentru `keto`, `paleo` si `mediterranean`
 - profilurile accepta/returneaza `health_and_diet_preferences.health_modes.diabetes_aware`
 - profilurile accepta/returneaza `health_and_diet_preferences.health_modes.hypertension_friendly`
+- profilurile accepta/returneaza `health_and_diet_preferences.health_modes.heart_friendly`
 - profilurile vechi fara aceste campuri primesc defaults compatibile: `no_pork=false`, `ratings={}`, `avoid_ingredients=[]`, `cooking_time_preference=balanced`
 - profilurile vechi fara `health_and_diet_preferences` primesc defaults compatibile cu toate optiunile `false`
 - SQLite foloseste `food_preferences_json` si `health_and_diet_preferences_json` in `member_profiles`; migratia locala este aplicata in `init_db`
@@ -207,7 +208,7 @@ Schema profilului suporta in plus:
     "health_modes": {
       "diabetes_aware": true,
       "hypertension_friendly": true,
-      "heart_friendly": false
+      "heart_friendly": true
     }
   }
 }

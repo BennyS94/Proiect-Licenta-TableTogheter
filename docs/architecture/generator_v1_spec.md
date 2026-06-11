@@ -228,6 +228,7 @@ Limitari:
 - `health_and_diet_preferences.health_modes.diabetes_aware` penalizeaza soft mesele foarte high-carb, high-sugar sau high-carb/low-protein unde exista date suficiente.
 - `health_and_diet_preferences.health_modes.hypertension_friendly` penalizeaza soft sare mare unde exista cache si proxy-uri de ingrediente sarate/procesate precum bacon, ham, salami, pepperoni, sausage, soy sauce, fish sauce, bouillon sau stock cube.
 - Pentru blood-pressure friendly, sodium/salt coverage poate fi incomplet, deci scoringul ramane proxy-based si interpretabil.
+- `health_and_diet_preferences.health_modes.heart_friendly` penalizeaza soft retete foarte fat-heavy, prajite, cremoase sau cu carne procesata; nu interzice toate grasimile si trebuie sa ramana compatibil cu selectii conflictuale precum keto + heart-friendly.
 - DIET-HEALTH-PROFILES nu schimba formulele nutritionale si nu aplica claims medicale.
 - `banned_recipe_ids`, `banned_ingredient_names`
 - `recipe.is_active` si `recipe.scope_status` acceptate

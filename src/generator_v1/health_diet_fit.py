@@ -145,6 +145,8 @@ def _health_mode_fit(
     protein = _to_float(candidate_row.get("protein_g"))
     sugars = _to_float(candidate_row.get("sugars_g"))
     salt = _to_float(candidate_row.get("salt_g"))
+    fat = _to_float(candidate_row.get("fat_g"))
+    kcal = _to_float(candidate_row.get("kcal"))
     proxy_flags = _string_set(candidate_row.get("health_proxy_flags"))
 
     if mode == "diabetes_aware":
@@ -186,6 +188,29 @@ def _health_mode_fit(
             reasons.append("hypertension_friendly_penalty_salty_sauce_proxy")
         if score == 1.0:
             reasons = ["hypertension_friendly_fit_simple_recipe"]
+        return clamp(score), reasons
+
+    if mode == "heart_friendly":
+        score = 1.0
+        reasons = ["heart_friendly_fit_neutral"]
+        fat_energy_ratio = (fat * 9 / kcal) if kcal > 0 else 0.0
+        if fat >= 45 or fat_energy_ratio > 0.62:
+            score *= 0.62
+            reasons = ["heart_friendly_penalty_very_fat_heavy"]
+        elif fat >= 32 or fat_energy_ratio > 0.52:
+            score *= 0.78
+            reasons = ["heart_friendly_penalty_fat_heavy"]
+        if "fatty_creamy" in proxy_flags:
+            score *= 0.78
+            reasons.append("heart_friendly_penalty_fatty_creamy_proxy")
+        if "fried_heavy" in proxy_flags:
+            score *= 0.78
+            reasons.append("heart_friendly_penalty_fried_proxy")
+        if "processed_salty" in proxy_flags:
+            score *= 0.84
+            reasons.append("heart_friendly_penalty_processed_meat_proxy")
+        if score == 1.0:
+            reasons = ["heart_friendly_fit_lighter_recipe"]
         return clamp(score), reasons
 
     return 1.0, [f"{mode}_pending"]
