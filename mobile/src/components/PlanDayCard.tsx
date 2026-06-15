@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import type {
   FeedbackType,
@@ -6,8 +6,8 @@ import type {
   GeneratedMeal,
   MealReplacementResponse,
 } from "../types/api";
-import { colors } from "../theme/colors";
 import { MealRow } from "./MealRow";
+import { MacroMiniStat } from "./ui/MacroMiniStat";
 
 const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 
@@ -20,7 +20,8 @@ type PlanDayCardProps = {
   planId?: string;
   feedbackDisabled?: boolean;
   getPendingFeedbackType?: (meal: GeneratedMeal) => FeedbackType | null;
-  onSubmitFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => void;
+  onSubmitFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => Promise<void> | void;
+  onUndoFeedback?: (meal: GeneratedMeal, feedbackType: FeedbackType) => Promise<void> | void;
   onReplacementApplied?: (response: MealReplacementResponse) => void;
 };
 
@@ -34,19 +35,15 @@ export function PlanDayCard({
   feedbackDisabled,
   getPendingFeedbackType,
   onSubmitFeedback,
+  onUndoFeedback,
   onReplacementApplied,
 }: PlanDayCardProps) {
   const meals = getMealsFromGeneratedDay(day);
   const dayIndex = normalizeDayIndex(day.day_index);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Day {day.day_index ?? 1}</Text>
-        <Text style={styles.totals}>
-          {formatNumber(day.totals?.kcal)} kcal · {formatNumber(day.totals?.protein_g)}g protein
-        </Text>
-      </View>
+    <View style={styles.container}>
+      <DaySummaryStrip totals={day.totals} />
       <View style={styles.meals}>
         {meals.map((meal, index) => (
           <MealRow
@@ -59,12 +56,48 @@ export function PlanDayCard({
             memberProfile={memberProfile}
             memberProfileId={memberProfileId}
             onSubmitFeedback={onSubmitFeedback}
+            onUndoFeedback={onUndoFeedback}
             onReplacementApplied={onReplacementApplied}
             pendingFeedbackType={getPendingFeedbackType?.(meal) ?? null}
             planId={planId}
           />
         ))}
       </View>
+    </View>
+  );
+}
+
+function DaySummaryStrip({
+  totals,
+}: {
+  totals?: GeneratedDay["totals"];
+}) {
+  return (
+    <View style={styles.summaryStrip}>
+      <MacroMiniStat
+        iconSize={18}
+        kind="calories"
+        tone="soft"
+        value={`${formatNumber(totals?.kcal)} kcal`}
+      />
+      <MacroMiniStat
+        iconSize={18}
+        kind="protein"
+        tone="soft"
+        value={`${formatNumber(totals?.protein_g)}g`}
+      />
+      <MacroMiniStat
+        iconSize={18}
+        kind="carbs"
+        tone="soft"
+        value={`${formatNumber(totals?.carbs_g)}g`}
+      />
+      <MacroMiniStat
+        iconSize={18}
+        kind="fat"
+        tone="soft"
+        value={`${formatNumber(totals?.fat_g)}g`}
+      />
     </View>
   );
 }
@@ -115,28 +148,22 @@ function isGeneratedMeal(value: unknown): value is GeneratedMeal {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    backgroundColor: colors.card,
-    padding: 16,
+  container: {
     gap: 12,
-  },
-  headerRow: {
-    gap: 4,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  totals: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: "700",
   },
   meals: {
     gap: 10,
+  },
+  summaryStrip: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: "#DDEAD3",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 });

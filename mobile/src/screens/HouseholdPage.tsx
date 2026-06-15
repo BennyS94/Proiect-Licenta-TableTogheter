@@ -8,7 +8,7 @@ import { AppScreen } from "../components/ui/AppScreen";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { colors } from "../theme/colors";
 
-type HouseholdSection = "hub" | "account" | "household" | "app";
+type HouseholdSection = "hub" | "account" | "household" | "app" | "diagnostics";
 type AuthMode = "register" | "login";
 
 type HouseholdPageProps = {
@@ -18,11 +18,15 @@ type HouseholdPageProps = {
   authMessage?: string;
   backendStatusText: string;
   defaultViewerContent?: ReactNode;
+  developerDiagnosticsContent?: ReactNode;
   feedbackToolsContent?: ReactNode;
   householdManagementContent?: ReactNode;
   isAuthLoading?: boolean;
   isSetupComplete: boolean;
+  memberEditorContent?: ReactNode;
+  memberEditorTitle?: string;
   messagesContent?: ReactNode;
+  onCloseMemberEditor?: () => void;
   onLogin: (email: string, password: string) => Promise<void> | void;
   onLogout: () => Promise<void> | void;
   onRegister: (
@@ -39,11 +43,15 @@ export function HouseholdPage({
   authMessage,
   backendStatusText,
   defaultViewerContent,
+  developerDiagnosticsContent,
   feedbackToolsContent,
   householdManagementContent,
   isAuthLoading,
   isSetupComplete,
+  memberEditorContent,
+  memberEditorTitle,
   messagesContent,
+  onCloseMemberEditor,
   onLogin,
   onLogout,
   onRegister,
@@ -52,7 +60,7 @@ export function HouseholdPage({
 
   if (!isSetupComplete) {
     return (
-      <AppScreen>
+      <AppScreen contentContainerStyle={styles.screenContainer}>
         <AuthSetupCard
           authError={authError}
           authMessage={authMessage}
@@ -65,19 +73,39 @@ export function HouseholdPage({
     );
   }
 
+  if (memberEditorContent) {
+    return (
+      <AppScreen contentContainerStyle={styles.screenContainer}>
+        <SubpageHeader
+          backLabel="Household Management"
+          onBack={onCloseMemberEditor ?? (() => setSection("household"))}
+          title={memberEditorTitle ?? "Add Member"}
+        />
+        {memberEditorContent}
+        {messagesContent}
+      </AppScreen>
+    );
+  }
+
   if (section === "account") {
     return (
-      <AppScreen>
-        <BackButton label="Household / Account" onPress={() => setSection("hub")} />
+      <AppScreen contentContainerStyle={styles.screenContainer}>
+        <SubpageHeader
+          backLabel="Household / Account"
+          onBack={() => setSection("hub")}
+          title="Account Settings"
+        />
         <AppCard>
-          <SectionHeader title="Account Settings" />
-          <InfoLine label="Email" value={accountEmail || "Guest session"} />
-          <InfoLine label="Account type" value={accountEmail ? "Local household account" : "Local session"} />
+          <DetailBlock label="Email" value={accountEmail || "Guest session"} />
+          <DetailBlock
+            label="Account type"
+            value={accountEmail ? "Local household account" : "Local session"}
+          />
           <View style={styles.settingsStack}>
-            <SettingStatusLine label="Change Email" value="Coming soon" />
-            <SettingStatusLine label="Change Password" value="Coming soon" />
-            <SecondaryButton label="Log Out" onPress={onLogout} />
+            <DisabledActionRow label="Change Email" />
+            <DisabledActionRow label="Change Password" />
           </View>
+          <SecondaryButton label="Log Out" onPress={onLogout} />
         </AppCard>
         {messagesContent}
       </AppScreen>
@@ -86,10 +114,13 @@ export function HouseholdPage({
 
   if (section === "household") {
     return (
-      <AppScreen>
-        <BackButton label="Household / Account" onPress={() => setSection("hub")} />
+      <AppScreen contentContainerStyle={styles.screenContainer}>
+        <SubpageHeader
+          backLabel="Household / Account"
+          onBack={() => setSection("hub")}
+          title="Household Management"
+        />
         <View style={styles.section}>
-          <SectionHeader title="Household Management" />
           {householdManagementContent}
         </View>
         <AppCard>
@@ -103,15 +134,39 @@ export function HouseholdPage({
 
   if (section === "app") {
     return (
-      <AppScreen>
-        <BackButton label="Household / Account" onPress={() => setSection("hub")} />
+      <AppScreen contentContainerStyle={styles.screenContainer}>
+        <SubpageHeader
+          backLabel="Household / Account"
+          onBack={() => setSection("hub")}
+          title="App Settings"
+        />
         <AppCard>
-          <SectionHeader title="App Settings" />
           <SettingStatusLine label="Language" value="English" />
-          <SettingStatusLine label="Appearance" value="Light - Dark mode coming soon" />
+          <SettingStatusLine label="Appearance" value="Light" />
+          <SettingNavLine
+            description="Backend, health check and feedback tools"
+            onPress={() => setSection("diagnostics")}
+            title="Developer Diagnostics"
+          />
+        </AppCard>
+        {messagesContent}
+      </AppScreen>
+    );
+  }
+
+  if (section === "diagnostics") {
+    return (
+      <AppScreen contentContainerStyle={styles.screenContainer}>
+        <SubpageHeader
+          backLabel="App Settings"
+          onBack={() => setSection("app")}
+          title="Developer Diagnostics"
+        />
+        <AppCard>
+          <SectionHeader title="Runtime" />
           <InfoLine label="Backend status" value={backendStatusText} />
           <InfoLine label="Version" value="1.0 Preview" />
-          {appSettingsContent}
+          {developerDiagnosticsContent ?? appSettingsContent}
         </AppCard>
         {feedbackToolsContent}
         {messagesContent}
@@ -120,7 +175,7 @@ export function HouseholdPage({
   }
 
   return (
-    <AppScreen>
+    <AppScreen contentContainerStyle={styles.screenContainer}>
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Household / Account</Text>
         <Text style={styles.subtitle}>Manage account, members and app preferences.</Text>
@@ -128,7 +183,7 @@ export function HouseholdPage({
 
       <View style={styles.hubList}>
         <HubRow
-          description="Email, password, log out"
+          description="Email, account type and logout"
           onPress={() => setSection("account")}
           title="Account Settings"
         />
@@ -138,7 +193,7 @@ export function HouseholdPage({
           title="Household Management"
         />
         <HubRow
-          description="Theme, language, backend status"
+          description="Language, appearance and diagnostics"
           onPress={() => setSection("app")}
           title="App Settings"
         />
@@ -309,6 +364,24 @@ function HubRow({
   );
 }
 
+function SubpageHeader({
+  backLabel,
+  onBack,
+  title,
+}: {
+  backLabel: string;
+  onBack: () => void;
+  title: string;
+}) {
+  return (
+    <View style={styles.subpageHeader}>
+      <BackButton label={backLabel} onPress={onBack} />
+      {/* TODO: Adauga swipe-back dupa ce verificam interactiunea cu scroll-ul vertical. */}
+      <Text style={styles.subpageTitle}>{title}</Text>
+    </View>
+  );
+}
+
 function BackButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable
@@ -356,12 +429,55 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DetailBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailBlock}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text selectable style={styles.detailValue}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 function SettingStatusLine({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.settingLine}>
       <Text style={styles.settingLabel}>{label}</Text>
       <Text style={styles.settingValue}>{value}</Text>
     </View>
+  );
+}
+
+function DisabledActionRow({ label }: { label: string }) {
+  return (
+    <View style={styles.disabledActionRow}>
+      <Text style={styles.disabledActionText}>{label}</Text>
+    </View>
+  );
+}
+
+function SettingNavLine({
+  description,
+  onPress,
+  title,
+}: {
+  description: string;
+  onPress: () => void;
+  title: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.settingNavLine, pressed ? styles.pressed : null]}
+    >
+      <View style={styles.hubText}>
+        <Text style={styles.settingLabel}>{title}</Text>
+        <Text style={styles.settingValue}>{description}</Text>
+      </View>
+      <Text style={styles.settingChevron}>{">"}</Text>
+    </Pressable>
   );
 }
 
@@ -394,6 +510,21 @@ const styles = StyleSheet.create({
   },
   copy: {
     gap: 8,
+  },
+  detailBlock: {
+    gap: 6,
+  },
+  detailLabel: {
+    color: "#4B5563",
+    fontSize: 13,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  detailValue: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 22,
   },
   errorText: {
     color: "#B42318",
@@ -450,6 +581,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   infoLine: {
+    alignItems: "flex-start",
     flexDirection: "row",
     gap: 12,
     justifyContent: "space-between",
@@ -508,6 +640,10 @@ const styles = StyleSheet.create({
   section: {
     gap: 10,
   },
+  screenContainer: {
+    paddingBottom: 128,
+    paddingTop: 14,
+  },
   settingLabel: {
     color: colors.text,
     fontSize: 15,
@@ -521,6 +657,37 @@ const styles = StyleSheet.create({
     gap: 4,
     padding: 12,
   },
+  settingNavLine: {
+    alignItems: "center",
+    backgroundColor: "#F7FAF2",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    padding: 12,
+  },
+  settingChevron: {
+    color: colors.accent,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  disabledActionRow: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  disabledActionText: {
+    color: colors.mutedSoft,
+    fontSize: 15,
+    fontWeight: "900",
+  },
   settingsStack: {
     gap: 10,
   },
@@ -533,6 +700,14 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 17,
     fontWeight: "800",
+  },
+  subpageHeader: {
+    gap: 6,
+  },
+  subpageTitle: {
+    color: "#111827",
+    fontSize: 27,
+    fontWeight: "900",
   },
   successText: {
     color: "#1E7A4C",

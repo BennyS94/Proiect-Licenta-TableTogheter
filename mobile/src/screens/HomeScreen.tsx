@@ -91,7 +91,6 @@ const FEEDBACK_TYPES: FeedbackType[] = [
   "liked",
   "disliked",
   "too_long",
-  "explicit_avoid",
 ];
 
 const DEFAULT_HOUSEHOLD_ID = "household_demo_family_001";
@@ -127,8 +126,7 @@ export function HomeScreen() {
   const [isLoadingFeedbackContext, setIsLoadingFeedbackContext] = useState(false);
   const [isClearingFeedback, setIsClearingFeedback] = useState(false);
   const [pendingFeedbackKey, setPendingFeedbackKey] = useState("");
-  const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackError, setFeedbackError] = useState("");
+  const [, setFeedbackError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [householdErrorMessage, setHouseholdErrorMessage] = useState("");
   const [householdMessage, setHouseholdMessage] = useState("");
@@ -140,7 +138,10 @@ export function HomeScreen() {
   const [authAccount, setAuthAccount] = useState<AuthAccount | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [householdNameDraft, setHouseholdNameDraft] = useState("My Household");
+  const [isEditingHouseholdName, setIsEditingHouseholdName] = useState(false);
   const [isUpdatingHouseholdName, setIsUpdatingHouseholdName] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [editingMemberProfileId, setEditingMemberProfileId] = useState("");
   const [activePage, setActivePage] = useState<AppPageKey>("home");
   const [isDemoModeEnabled, setIsDemoModeEnabled] = useState(false);
   const [isContinuingDemo, setIsContinuingDemo] = useState(false);
@@ -268,7 +269,6 @@ export function HomeScreen() {
     setGeneratedPlan(null);
     setGeneratedHouseholdPlan(null);
     setFeedbackContext(null);
-    setFeedbackMessage("");
     setFeedbackError("");
 
     try {
@@ -344,6 +344,7 @@ export function HomeScreen() {
       };
       setAuthAccount(updatedAccount);
       setHouseholdNameDraft(updatedAccount.household_display_name);
+      setIsEditingHouseholdName(false);
       setHouseholdMessage("Household name updated.");
     } catch (error) {
       setHouseholdErrorMessage(
@@ -372,7 +373,7 @@ export function HomeScreen() {
           ? current
           : [...current, createdProfile.member_profile_id],
       );
-      setProfileMessage("Member added");
+      setProfileMessage(request.member_profile_id ? "Member updated" : "Member added");
       setGeneratedPlan(null);
       setFeedbackContext(null);
     } catch (error) {
@@ -383,10 +384,21 @@ export function HomeScreen() {
     }
   }
 
+  async function saveMemberFromEditor(request: MemberProfileCreateRequest) {
+    await createSavedProfile(request);
+    setIsAddingMember(false);
+    setEditingMemberProfileId("");
+  }
+
+  function closeMemberEditor() {
+    setIsAddingMember(false);
+    setEditingMemberProfileId("");
+  }
+
   function confirmDeleteSavedProfile(profile: MemberProfileResponse) {
     Alert.alert(
-      "Remove this saved profile?",
-      `${profile.display_name} will be deactivated in local SQLite.`,
+      "Remove this member?",
+      `${profile.display_name} will no longer be used in this household.`,
       [
         {
           text: "Cancel",
@@ -435,6 +447,9 @@ export function HomeScreen() {
         setCurrentHouseholdMemberIndex(0);
         setSelectedHouseholdDayIndex(1);
       }
+      if (editingMemberProfileId === memberProfileId) {
+        setEditingMemberProfileId("");
+      }
       setProfileMessage(`Profile removed: ${profile.display_name}`);
     } catch (error) {
       setProfileErrorMessage(error instanceof Error ? error.message : "Profile remove failed");
@@ -452,7 +467,6 @@ export function HomeScreen() {
     setIsGeneratingPlan(true);
     setErrorMessage("");
     setGeneratedPlan(null);
-    setFeedbackMessage("");
     setFeedbackError("");
 
     try {
@@ -491,7 +505,6 @@ export function HomeScreen() {
     setIsGeneratingHouseholdPlan(true);
     setHouseholdErrorMessage("");
     setGeneratedHouseholdPlan(null);
-    setFeedbackMessage("");
     setFeedbackError("");
 
     try {
@@ -529,7 +542,6 @@ export function HomeScreen() {
 
     const orderedProfiles = orderSavedProfilesForViewing(savedProfiles, defaultViewerId);
     const selectedProfile = orderedProfiles[0];
-    setFeedbackMessage("");
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
@@ -643,10 +655,6 @@ export function HomeScreen() {
     );
   }
 
-  function handleSavedProfilePress(memberProfileId: string) {
-    selectSavedProfile(memberProfileId);
-  }
-
   function handleDemoMemberPress(memberId: string) {
     if (generationMode === "individual") {
       selectDemoMember(memberId);
@@ -677,6 +685,37 @@ export function HomeScreen() {
     );
   }
 
+  function getFeedbackMemberProfileId(): string {
+    if (generationMode === "household" && currentHouseholdMember) {
+      return memberKey(currentHouseholdMember);
+    }
+    return activeMemberProfileId;
+  }
+
+  function getFeedbackPlanId(): string | undefined {
+    if (generationMode === "household" && generatedHouseholdPlan) {
+      return getHouseholdPlanId(generatedHouseholdPlan);
+    }
+    return generatedPlan ? getPlanIdFromResponse(generatedPlan) : undefined;
+  }
+
+  function getFeedbackDayIndex(): number {
+    return generationMode === "household"
+      ? selectedHouseholdDayIndex
+      : selectedIndividualDayIndex;
+  }
+
+  function buildMealFeedbackEventId(meal: GeneratedMeal): string {
+    return buildStableFeedbackEventId({
+      householdId: activeHouseholdId,
+      memberProfileId: getFeedbackMemberProfileId(),
+      planId: getFeedbackPlanId() ?? "",
+      recipeId: getMealRecipeId(meal),
+      slot: getMealSlot(meal),
+      dayIndex: getFeedbackDayIndex(),
+    });
+  }
+
   async function refreshFeedbackContext(quiet = false) {
     if (!activeHouseholdId) {
       setFeedbackError("Load a household before refreshing feedback context.");
@@ -685,12 +724,11 @@ export function HomeScreen() {
 
     setIsLoadingFeedbackContext(true);
     if (!quiet) {
-      setFeedbackMessage("");
       setFeedbackError("");
     }
 
     try {
-      const context = await getFeedbackContext(activeHouseholdId, activeMemberProfileId);
+      const context = await getFeedbackContext(activeHouseholdId, getFeedbackMemberProfileId());
       setFeedbackContext(context);
     } catch (error) {
       setFeedbackError(error instanceof Error ? error.message : "Feedback context failed");
@@ -731,13 +769,11 @@ export function HomeScreen() {
     }
 
     setIsClearingFeedback(true);
-    setFeedbackMessage("");
     setFeedbackError("");
 
     try {
-      const response = await clearFeedback(activeHouseholdId, undefined, true);
+      await clearFeedback(activeHouseholdId, undefined, true);
       await refreshFeedbackContext(true);
-      setFeedbackMessage(`Feedback cleared (${response.deleted_event_count} events).`);
     } catch (error) {
       setFeedbackError(error instanceof Error ? error.message : "Feedback clear failed");
     } finally {
@@ -757,25 +793,55 @@ export function HomeScreen() {
     }
 
     const slot = getMealSlot(meal);
-    const feedbackKey = buildFeedbackKey(meal, feedbackType);
+    const eventId = buildMealFeedbackEventId(meal);
+    const feedbackKey = buildFeedbackKey(eventId, feedbackType);
+    const feedbackMemberProfileId = getFeedbackMemberProfileId();
+    const feedbackPlanId = getFeedbackPlanId();
     setPendingFeedbackKey(feedbackKey);
-    setFeedbackMessage("");
     setFeedbackError("");
 
     try {
       await submitFeedback({
+        event_id: eventId,
         household_id: activeHouseholdId,
-        member_profile_id: activeMemberProfileId || undefined,
-        plan_id: generatedPlan ? getPlanIdFromResponse(generatedPlan) : undefined,
+        member_profile_id: feedbackMemberProfileId || undefined,
+        plan_id: feedbackPlanId,
         recipe_id: recipeId,
         slot: slot || undefined,
         feedback_type: feedbackType,
         source: "mobile",
       });
-      setFeedbackMessage("Feedback saved. Generate again to apply it.");
       await refreshFeedbackContext(true);
     } catch (error) {
       setFeedbackError(error instanceof Error ? error.message : "Feedback save failed");
+    } finally {
+      setPendingFeedbackKey("");
+    }
+  }
+
+  async function undoMealFeedback(meal: GeneratedMeal, feedbackType: FeedbackType) {
+    const recipeId = getMealRecipeId(meal);
+    if (!recipeId) {
+      setFeedbackError("Feedback unavailable for this meal.");
+      return;
+    }
+    if (!activeHouseholdId) {
+      setFeedbackError("Load a household before removing feedback.");
+      return;
+    }
+
+    const eventId = buildMealFeedbackEventId(meal);
+    const feedbackKey = buildFeedbackKey(eventId, feedbackType);
+    setPendingFeedbackKey(feedbackKey);
+    setFeedbackError("");
+
+    try {
+      await clearFeedback(activeHouseholdId, getFeedbackMemberProfileId() || undefined, true, {
+        eventId,
+      });
+      await refreshFeedbackContext(true);
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : "Feedback undo failed");
     } finally {
       setPendingFeedbackKey("");
     }
@@ -798,7 +864,6 @@ export function HomeScreen() {
     } else {
       setGeneratedPlan(updatedPlan as IndividualPlanGenerateResponse);
     }
-    setFeedbackMessage("Meal replaced. Plan and grocery list updated.");
     setFeedbackError("");
   }
 
@@ -807,7 +872,7 @@ export function HomeScreen() {
       return null;
     }
     for (const feedbackType of FEEDBACK_TYPES) {
-      if (pendingFeedbackKey === buildFeedbackKey(meal, feedbackType)) {
+      if (pendingFeedbackKey === buildFeedbackKey(buildMealFeedbackEventId(meal), feedbackType)) {
         return feedbackType;
       }
     }
@@ -891,7 +956,6 @@ export function HomeScreen() {
     setGeneratedPlan(null);
     setGeneratedHouseholdPlan(null);
     setFeedbackContext(null);
-    setFeedbackMessage("");
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
@@ -956,7 +1020,6 @@ export function HomeScreen() {
     setGeneratedHouseholdPlan(null);
     setFeedbackContext(null);
     setPendingFeedbackKey("");
-    setFeedbackMessage("");
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
@@ -970,10 +1033,6 @@ export function HomeScreen() {
     setSelectedInsightsDay(1);
     setActivePage("household");
     Alert.alert("Log Out", "Local session cleared.");
-  }
-
-  function showUnavailableAction(label: string) {
-    Alert.alert(label, "This account action is not available in the local preview yet.");
   }
 
   function selectProfileFromSelector(profileId: string) {
@@ -1022,6 +1081,9 @@ export function HomeScreen() {
   const householdName = authAccount
     ? formatHouseholdDisplayName(authAccount.household_display_name)
     : "Your Household";
+  const editingMemberProfile =
+    savedProfiles.find((profile) => profile.member_profile_id === editingMemberProfileId) ??
+    null;
   const backendStatusText =
     healthStatus === "connected" ? "Connected" : healthStatus === "loading" ? "Checking" : "Unknown";
   const individualDayIndexes = getIndividualDayIndexes(generatedPlan);
@@ -1058,7 +1120,7 @@ export function HomeScreen() {
 
   const profileSelectorNode = profileSelectorItems.length ? (
     <ProfileSelector
-      items={profileSelectorItems}
+      items={profileSelectorItems.map((item) => ({ id: item.id, label: item.label }))}
       onSelect={selectProfileFromSelector}
       selectedId={selectedProfileSelectorId}
     />
@@ -1076,9 +1138,7 @@ export function HomeScreen() {
     householdErrorMessage ||
     householdMessage ||
     profileMessage ||
-    profileErrorMessage ||
-    feedbackMessage ||
-    feedbackError ? (
+    profileErrorMessage ? (
       <View style={styles.messageStack}>
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         {householdErrorMessage ? (
@@ -1089,18 +1149,16 @@ export function HomeScreen() {
         {profileErrorMessage ? (
           <Text style={styles.errorText}>{profileErrorMessage}</Text>
         ) : null}
-        {feedbackMessage ? <Text style={styles.successText}>{feedbackMessage}</Text> : null}
-        {feedbackError ? <Text style={styles.errorText}>{feedbackError}</Text> : null}
       </View>
     ) : null;
 
   const generationControls = (
-    <View style={styles.stack}>
+    <View style={styles.generateStack}>
       <DayCountSelector days={planDays} onChange={setPlanDays} />
       <ActionButton
         disabled={!savedProfiles.length || isGeneratingPlan || isGeneratingHouseholdPlan}
         loading={isGeneratingPlan || isGeneratingHouseholdPlan}
-        label={hasCurrentPlan ? "Generate meal plan again" : "Generate meal plan"}
+        label={hasCurrentPlan ? "Regenerate" : "Generate meal plan"}
         onPress={generateMealPlan}
       />
     </View>
@@ -1133,6 +1191,7 @@ export function HomeScreen() {
             memberProfileId={activeMemberProfileId || undefined}
             onReplacementApplied={handleMealReplacementApplied}
             onSubmitFeedback={submitMealFeedback}
+            onUndoFeedback={undoMealFeedback}
             planId={getPlanIdFromResponse(generatedPlan)}
           />
         ) : (
@@ -1147,11 +1206,15 @@ export function HomeScreen() {
         {currentHouseholdMember ? (
           <HouseholdMemberPlanView
             datasetProfile={generatedHouseholdPlan.dataset_profile ?? "v1_2_demo_final"}
+            feedbackDisabled={Boolean(pendingFeedbackKey)}
+            getPendingFeedbackType={getPendingFeedbackType}
             householdId={generatedHouseholdPlan.household_id || activeHouseholdId || undefined}
             memberId={memberKey(currentHouseholdMember)}
             members={selectedHouseholdDisplayMembers}
             onReplacementApplied={handleMealReplacementApplied}
             onSelectDay={setSelectedHouseholdDayIndex}
+            onSubmitFeedback={submitMealFeedback}
+            onUndoFeedback={undoMealFeedback}
             plan={generatedHouseholdPlan}
             planId={getHouseholdPlanId(generatedHouseholdPlan)}
             selectedDayIndex={selectedHouseholdDayIndex}
@@ -1207,38 +1270,72 @@ export function HomeScreen() {
     <View style={styles.stack}>
       <AppCard>
         <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>Household name</Text>
+          <Text style={styles.panelTitle}>Household</Text>
           <Text numberOfLines={1} style={styles.panelMeta}>
             {householdName}
           </Text>
         </View>
-        <View style={styles.householdNameForm}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput
-            autoCapitalize="words"
-            editable={!isUpdatingHouseholdName}
-            onChangeText={setHouseholdNameDraft}
-            onSubmitEditing={saveHouseholdDisplayName}
-            placeholder="My Household"
-            placeholderTextColor={colors.mutedSoft}
-            returnKeyType="done"
-            style={styles.textInput}
-            value={householdNameDraft}
-          />
-        </View>
-        <ActionButton
-          disabled={!authAccount || isUpdatingHouseholdName}
-          label="Save name"
-          loading={isUpdatingHouseholdName}
-          onPress={saveHouseholdDisplayName}
-          variant="secondary"
-        />
+        {isEditingHouseholdName ? (
+          <View style={styles.householdNameForm}>
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              autoCapitalize="words"
+              editable={!isUpdatingHouseholdName}
+              onChangeText={setHouseholdNameDraft}
+              onSubmitEditing={saveHouseholdDisplayName}
+              placeholder="My Household"
+              placeholderTextColor={colors.mutedSoft}
+              returnKeyType="done"
+              style={styles.textInput}
+              value={householdNameDraft}
+            />
+            <View style={styles.inlineButtonRow}>
+              <ActionButton
+                disabled={!authAccount || isUpdatingHouseholdName}
+                label="Save"
+                loading={isUpdatingHouseholdName}
+                onPress={saveHouseholdDisplayName}
+                variant="secondary"
+              />
+              <ActionButton
+                disabled={isUpdatingHouseholdName}
+                label="Cancel"
+                onPress={() => {
+                  setHouseholdNameDraft(householdName);
+                  setIsEditingHouseholdName(false);
+                }}
+                variant="secondary"
+              />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.householdNameReadRow}>
+            <Text numberOfLines={1} style={styles.householdName}>
+              {householdName}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={!authAccount}
+              onPress={() => {
+                setHouseholdNameDraft(householdName);
+                setIsEditingHouseholdName(true);
+              }}
+              style={({ pressed }) => [
+                styles.inlineEditButton,
+                pressed ? styles.buttonPressed : null,
+                !authAccount ? styles.buttonDisabled : null,
+              ]}
+            >
+              <Text style={styles.inlineEditButtonText}>Edit</Text>
+            </Pressable>
+          </View>
+        )}
       </AppCard>
-      <View style={styles.panel}>
+      <AppCard>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Member profiles</Text>
           <Text style={styles.panelMeta}>
-            {savedProfiles.length ? `${savedProfiles.length} profiles` : "No profiles"}
+            {savedProfiles.length ? `${savedProfiles.length}` : "0"}
           </Text>
         </View>
         <ActionButton
@@ -1260,9 +1357,10 @@ export function HomeScreen() {
               return (
                 <ProfileCard
                   key={profile.member_profile_id}
-                  deleteDisabled={deletingProfileId === profile.member_profile_id}
-                  onDelete={() => confirmDeleteSavedProfile(profile)}
-                  onPress={() => handleSavedProfilePress(profile.member_profile_id)}
+                  onPress={() => {
+                    setIsAddingMember(false);
+                    setEditingMemberProfileId(profile.member_profile_id);
+                  }}
                   profile={profile}
                   selected={selected}
                 />
@@ -1272,10 +1370,14 @@ export function HomeScreen() {
             <Text style={styles.mutedText}>No profiles yet.</Text>
           )}
         </View>
-        <AddMemberWizard
-          defaultHouseholdId={savedProfileHouseholdId}
-          disabled={isCreatingProfile}
-          onSubmit={createSavedProfile}
+        <ActionButton
+          disabled={isLoadingProfiles}
+          label="Add Member"
+          onPress={() => {
+            setEditingMemberProfileId("");
+            setIsAddingMember(true);
+          }}
+          variant="secondary"
         />
         <ActionButton
           disabled={!savedProfiles.length}
@@ -1283,24 +1385,22 @@ export function HomeScreen() {
           onPress={() => setActivePage("mealPlan")}
           variant="secondary"
         />
-      </View>
+      </AppCard>
     </View>
   );
 
   const defaultViewerContent = profileSelectorItems.length ? (
     <View style={styles.stack}>
-      <Text style={styles.mutedText}>Who is using this device?</Text>
       {profileSelectorNode}
       <Text style={styles.mutedText}>
-        This controls which profile appears first in Meal Plan and Insights. You can still
-        switch profiles.
+        Shown first in Meal Plan and Insights. You can still switch profiles.
       </Text>
     </View>
   ) : (
     <Text style={styles.mutedText}>Add or load profiles to choose a default viewer.</Text>
   );
 
-  const appSettingsContent = (
+  const developerDiagnosticsContent = (
     <View style={styles.stack}>
       <View style={styles.section}>
         <Text style={styles.label}>Backend URL</Text>
@@ -1322,6 +1422,30 @@ export function HomeScreen() {
       ) : null}
     </View>
   );
+
+  const memberEditorProfile = editingMemberProfileId ? editingMemberProfile : null;
+  const memberEditorContent =
+    isAddingMember || memberEditorProfile ? (
+      <AddMemberWizard
+        defaultHouseholdId={memberEditorProfile?.household_id || savedProfileHouseholdId}
+        deleteDisabled={
+          memberEditorProfile
+            ? deletingProfileId === memberEditorProfile.member_profile_id
+            : false
+        }
+        disabled={isCreatingProfile}
+        forceOpen
+        initialProfile={memberEditorProfile}
+        mode={memberEditorProfile ? "edit" : "add"}
+        onCancel={closeMemberEditor}
+        onDelete={
+          memberEditorProfile
+            ? () => confirmDeleteSavedProfile(memberEditorProfile)
+            : undefined
+        }
+        onSubmit={saveMemberFromEditor}
+      />
+    ) : null;
 
   let pageContent;
   if (activePage === "home") {
@@ -1355,6 +1479,7 @@ export function HomeScreen() {
   } else if (activePage === "insights") {
     pageContent = (
       <InsightsPage
+        activeProfileKey={selectedProfileSelectorId}
         activeProfileMeta={activeProfileMeta}
         activeProfileName={activeProfileName}
         dayIndexes={insightsDayIndexes.length ? insightsDayIndexes : [1]}
@@ -1376,16 +1501,19 @@ export function HomeScreen() {
     pageContent = (
       <HouseholdPage
         accountEmail={authAccount?.email}
-        appSettingsContent={appSettingsContent}
         authError={authError}
         authMessage={authMessage}
         backendStatusText={backendStatusText}
         defaultViewerContent={defaultViewerContent}
+        developerDiagnosticsContent={developerDiagnosticsContent}
         feedbackToolsContent={feedbackToolsContent}
         householdManagementContent={householdManagementContent}
         isAuthLoading={isAuthLoading}
         isSetupComplete={isSetupComplete}
+        memberEditorContent={memberEditorContent}
+        memberEditorTitle={memberEditorProfile ? "Edit Member" : "Add Member"}
         messagesContent={messagesContent}
+        onCloseMemberEditor={closeMemberEditor}
         onLogin={loginLocalAccount}
         onLogout={logOutLocalSession}
         onRegister={registerLocalAccount}
@@ -1944,7 +2072,65 @@ function getHouseholdMealsForDay(
     return getRecordMemberId(item) === memberId && itemDayIndex === dayIndex;
   });
   const meals = Array.isArray(menu?.meals) ? menu?.meals : menu?.selected_meals;
-  return sortMealsBySlot((meals ?? []).filter(isRecord) as GeneratedMeal[]);
+  const menuMeals = (meals ?? []).filter(isRecord) as GeneratedMeal[];
+  const allocationMeals = getHouseholdAllocationMealsForDay(response, memberId, dayIndex);
+  return sortMealsBySlot(mergeMealsBySlot([...menuMeals, ...allocationMeals]));
+}
+
+function getHouseholdAllocationMealsForDay(
+  response: HouseholdPlanGenerateResponse,
+  memberId: string,
+  dayIndex: number,
+): GeneratedMeal[] {
+  const generatorPlan = asRecord(response.generator_plan);
+  const allocations = Array.isArray(generatorPlan.allocations)
+    ? generatorPlan.allocations
+    : [];
+  return allocations
+    .filter(isRecord)
+    .filter((row) => {
+      const rowDayIndex = normalizeDayIndexForUi(row.day_index ?? row.day, 1);
+      return getRecordMemberId(row) === memberId && rowDayIndex === dayIndex;
+    })
+    .map(allocationRowToMeal);
+}
+
+function allocationRowToMeal(row: Record<string, unknown>): GeneratedMeal {
+  return {
+    carbs_g: numberValue(row.carbs_g) ?? undefined,
+    cooking_steps: Array.isArray(row.cooking_steps)
+      ? row.cooking_steps.map((step) => String(step))
+      : undefined,
+    directions_step_count: numberValue(row.directions_step_count) ?? undefined,
+    display_name: stringValue(row.display_name) ?? stringValue(row.recipe) ?? undefined,
+    fat_g: numberValue(row.fat_g) ?? undefined,
+    ingredient_amounts: Array.isArray(row.ingredient_amounts)
+      ? row.ingredient_amounts
+      : undefined,
+    ingredients: Array.isArray(row.ingredients)
+      ? row.ingredients.map((item) => String(item))
+      : undefined,
+    kcal: numberValue(row.kcal) ?? undefined,
+    meal_scope: stringValue(row.allocation_scope) ?? stringValue(row.meal_scope) ?? undefined,
+    portion_multiplier:
+      numberValue(row.portion_multiplier_member) ??
+      numberValue(row.portion_multiplier) ??
+      undefined,
+    protein_g: numberValue(row.protein_g) ?? undefined,
+    recipe_id: stringValue(row.recipe_id) ?? undefined,
+    slot: stringValue(row.slot) ?? undefined,
+  };
+}
+
+function mergeMealsBySlot(meals: GeneratedMeal[]): GeneratedMeal[] {
+  const bySlot = new Map<string, GeneratedMeal>();
+  for (const meal of meals) {
+    const slot = String(meal.slot ?? "meal").trim().toLowerCase() || "meal";
+    if (!bySlot.has(slot)) {
+      bySlot.set(slot, meal);
+    }
+  }
+  return [...bySlot.values()];
 }
 
 function markAppliedHouseholdReplacementAsIndividual(
@@ -2041,6 +2227,8 @@ function getMealSlotOrderIndex(slot: unknown): number {
 
 function mealToContribution(meal: GeneratedMeal): MealContribution {
   return {
+    carbs_g: numberValue(meal.carbs_g) ?? undefined,
+    fat_g: numberValue(meal.fat_g) ?? undefined,
     kcal: numberValue(meal.kcal) ?? undefined,
     protein_g: numberValue(meal.protein_g) ?? undefined,
     slot: String(meal.slot ?? "meal"),
@@ -2051,15 +2239,19 @@ function averageMealContributions(
   rows: Array<{ dayIndex: number; meal: GeneratedMeal }>,
   dayCount: number,
 ): MealContribution[] {
-  const grouped = new Map<string, { kcal: number; protein: number }>();
+  const grouped = new Map<string, { carbs: number; fat: number; kcal: number; protein: number }>();
   for (const row of rows) {
     const slot = String(row.meal.slot ?? "meal");
-    const current = grouped.get(slot) ?? { kcal: 0, protein: 0 };
+    const current = grouped.get(slot) ?? { carbs: 0, fat: 0, kcal: 0, protein: 0 };
+    current.carbs += numberValue(row.meal.carbs_g) ?? 0;
+    current.fat += numberValue(row.meal.fat_g) ?? 0;
     current.kcal += numberValue(row.meal.kcal) ?? 0;
     current.protein += numberValue(row.meal.protein_g) ?? 0;
     grouped.set(slot, current);
   }
   return [...grouped.entries()].map(([slot, values]) => ({
+    carbs_g: dayCount > 0 ? values.carbs / dayCount : values.carbs,
+    fat_g: dayCount > 0 ? values.fat / dayCount : values.fat,
     kcal: dayCount > 0 ? values.kcal / dayCount : values.kcal,
     protein_g: dayCount > 0 ? values.protein / dayCount : values.protein,
     slot,
@@ -2323,8 +2515,40 @@ function getMealSlot(meal: GeneratedMeal): string {
   return String(meal.slot ?? "").trim();
 }
 
-function buildFeedbackKey(meal: GeneratedMeal, feedbackType: FeedbackType): string {
-  return `${getMealRecipeId(meal)}:${getMealSlot(meal)}:${feedbackType}`;
+function buildStableFeedbackEventId({
+  dayIndex,
+  householdId,
+  memberProfileId,
+  planId,
+  recipeId,
+  slot,
+}: {
+  dayIndex: number;
+  householdId: string;
+  memberProfileId: string;
+  planId: string;
+  recipeId: string;
+  slot: string;
+}): string {
+  const parts = [
+    "meal_feedback",
+    householdId,
+    memberProfileId || "household",
+    planId || "no_plan",
+    `day_${dayIndex}`,
+    slot || "meal",
+    recipeId,
+  ];
+  return parts.map(toFeedbackEventIdPart).join("__");
+}
+
+function toFeedbackEventIdPart(value: string): string {
+  const cleaned = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  return cleaned.replace(/^_+|_+$/g, "") || "unknown";
+}
+
+function buildFeedbackKey(eventId: string, feedbackType: FeedbackType): string {
+  return `${eventId}:${feedbackType}`;
 }
 
 function getGroceryListFromPlanResponse(
@@ -2523,6 +2747,9 @@ const styles = StyleSheet.create({
   stack: {
     gap: 12,
   },
+  generateStack: {
+    gap: 9,
+  },
   messageStack: {
     gap: 8,
   },
@@ -2561,11 +2788,36 @@ const styles = StyleSheet.create({
   },
   householdName: {
     color: colors.text,
+    flex: 1,
     fontSize: 16,
     fontWeight: "800",
   },
   householdNameForm: {
     gap: 6,
+  },
+  householdNameReadRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  inlineButtonRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  inlineEditButton: {
+    alignItems: "center",
+    borderColor: colors.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: 14,
+  },
+  inlineEditButtonText: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: "900",
   },
   textInput: {
     backgroundColor: "#F8FBF3",
@@ -2647,10 +2899,10 @@ const styles = StyleSheet.create({
     elevation: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 52,
+    minHeight: 48,
     minWidth: 0,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     shadowColor: "#1F2933",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -2659,7 +2911,7 @@ const styles = StyleSheet.create({
   mealPlanProfileSelector: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
   dayList: {
     gap: 12,
@@ -2670,10 +2922,10 @@ const styles = StyleSheet.create({
     borderColor: "#DDEAD3",
     borderRadius: 18,
     borderWidth: 1,
-    gap: 9,
-    paddingBottom: 12,
-    paddingHorizontal: 18,
-    paddingTop: 14,
+    gap: 7,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   dayCountHeader: {
     alignItems: "center",

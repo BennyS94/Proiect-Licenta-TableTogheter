@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type {
   DemoMemberProfile,
+  FeedbackType,
   HouseholdMacroTotals,
   HouseholdMeal,
   HouseholdMemberMacroSummary,
@@ -11,6 +12,7 @@ import type {
 } from "../types/api";
 import { colors } from "../theme/colors";
 import { HouseholdMealRow } from "./HouseholdMealRow";
+import { MacroMiniStat } from "./ui/MacroMiniStat";
 
 const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 const DISPLAY_DAY_INDEXES = [1, 2, 3, 4, 5];
@@ -21,6 +23,10 @@ type HouseholdMemberPlanViewProps = {
   householdId?: string;
   members: DemoMemberProfile[];
   onSelectDay: (dayIndex: number) => void;
+  feedbackDisabled?: boolean;
+  getPendingFeedbackType?: (meal: HouseholdMeal) => FeedbackType | null;
+  onSubmitFeedback?: (meal: HouseholdMeal, feedbackType: FeedbackType) => Promise<void> | void;
+  onUndoFeedback?: (meal: HouseholdMeal, feedbackType: FeedbackType) => Promise<void> | void;
   onReplacementApplied?: (response: MealReplacementResponse) => void;
   plan: HouseholdPlanGenerateResponse;
   planId?: string;
@@ -33,6 +39,10 @@ export function HouseholdMemberPlanView({
   householdId,
   members,
   onSelectDay,
+  feedbackDisabled,
+  getPendingFeedbackType,
+  onSubmitFeedback,
+  onUndoFeedback,
   onReplacementApplied,
   plan,
   planId,
@@ -77,13 +87,31 @@ export function HouseholdMemberPlanView({
         })}
       </View>
 
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryTitle}>Daily totals</Text>
-        <MetricLine label="Kcal" value={formatOptionalNumber(totals.kcal, 0)} />
-        <MetricLine label="Protein" value={formatOptionalWithUnit(totals.protein_g, 1, "g")} />
-        <MetricLine label="Carbs" value={formatOptionalWithUnit(totals.carbs_g, 1, "g")} />
-        <MetricLine label="Fat" value={formatOptionalWithUnit(totals.fat_g, 1, "g")} />
-        {renderRatios(summary)}
+      <View style={styles.summaryStrip}>
+        <MacroMiniStat
+          iconSize={18}
+          kind="calories"
+          tone="soft"
+          value={`${formatOptionalNumber(totals.kcal, 0)} kcal`}
+        />
+        <MacroMiniStat
+          iconSize={18}
+          kind="protein"
+          tone="soft"
+          value={`${formatOptionalNumber(totals.protein_g, 0)}g`}
+        />
+        <MacroMiniStat
+          iconSize={18}
+          kind="carbs"
+          tone="soft"
+          value={`${formatOptionalNumber(totals.carbs_g, 0)}g`}
+        />
+        <MacroMiniStat
+          iconSize={18}
+          kind="fat"
+          tone="soft"
+          value={`${formatOptionalNumber(totals.fat_g, 0)}g`}
+        />
       </View>
 
       <View style={styles.mealList}>
@@ -92,11 +120,15 @@ export function HouseholdMemberPlanView({
             <HouseholdMealRow
               dayIndex={selectedDayIndex}
               datasetProfile={datasetProfile}
+              feedbackDisabled={feedbackDisabled}
               householdId={householdId}
               key={`${meal.slot ?? "meal"}-${meal.recipe_id ?? index}`}
               meal={meal}
               memberId={memberId}
+              onSubmitFeedback={onSubmitFeedback}
+              onUndoFeedback={onUndoFeedback}
               onReplacementApplied={onReplacementApplied}
+              pendingFeedbackType={getPendingFeedbackType?.(meal) ?? null}
               planId={planId}
             />
           ))
@@ -104,15 +136,6 @@ export function HouseholdMemberPlanView({
           <Text style={styles.mutedText}>No meals returned for this member/day.</Text>
         )}
       </View>
-    </View>
-  );
-}
-
-function MetricLine({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metricLine}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
     </View>
   );
 }
@@ -197,22 +220,6 @@ function getTotals(
   };
 }
 
-function renderRatios(summary: HouseholdMemberMacroSummary | null) {
-  const ratios = asRecord(summary?.ratios);
-  const kcalRatio = numberValue(summary?.kcal_ratio) ?? numberValue(ratios.kcal);
-  const proteinRatio = numberValue(summary?.protein_ratio) ?? numberValue(ratios.protein_g);
-  if (kcalRatio === null && proteinRatio === null) {
-    return null;
-  }
-
-  return (
-    <>
-      <MetricLine label="Kcal ratio" value={formatRatio(kcalRatio)} />
-      <MetricLine label="Protein ratio" value={formatRatio(proteinRatio)} />
-    </>
-  );
-}
-
 function getMemberDisplayName(
   memberId: string,
   selectedMembers: DemoMemberProfile[],
@@ -241,30 +248,15 @@ function normalizeDayIndex(value: number | null): number | null {
   return value <= 0 ? value + 1 : value;
 }
 
-function formatRatio(value: number | null): string {
-  if (value === null) {
-    return "-";
-  }
-  return `${Math.round(value * 100)}%`;
-}
-
 function formatOptionalNumber(value: unknown, digits: number): string {
   const parsed = numberValue(value);
   if (parsed === null) {
-    return "Not available";
+    return "-";
   }
   return parsed.toLocaleString("en-US", {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits > 0 ? 1 : 0,
   });
-}
-
-function formatOptionalWithUnit(value: unknown, digits: number, unit: string): string {
-  const parsed = numberValue(value);
-  if (parsed === null) {
-    return "Not available";
-  }
-  return `${formatOptionalNumber(parsed, digits)}${unit}`;
 }
 
 function numberValue(value: unknown): number | null {
@@ -364,39 +356,21 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "right",
   },
-  metricLabel: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  metricLine: {
-    flexDirection: "row",
-    gap: 16,
-    justifyContent: "space-between",
-  },
-  metricValue: {
-    color: colors.text,
-    flexShrink: 1,
-    fontSize: 14,
-    fontWeight: "800",
-    textAlign: "right",
-  },
   mutedText: {
     color: colors.mutedSoft,
     fontSize: 15,
   },
-  summaryBox: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+  summaryStrip: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: "#DDEAD3",
     borderRadius: 8,
     borderWidth: 1,
-    gap: 8,
-    padding: 14,
-  },
-  summaryTitle: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: "800",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   title: {
     color: colors.text,

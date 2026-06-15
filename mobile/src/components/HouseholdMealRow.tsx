@@ -2,12 +2,18 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type {
+  FeedbackType,
   HouseholdMeal,
   MealReplacementResponse,
   MealReplacementScope,
 } from "../types/api";
 import { colors } from "../theme/colors";
+import { MealFeedbackButtons } from "./MealFeedbackButtons";
 import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
+import { BottomSheet } from "./ui/BottomSheet";
+import { MacroMiniStat } from "./ui/MacroMiniStat";
+
+type HouseholdMealSheet = "cook" | "alternatives";
 
 type HouseholdMealRowProps = {
   meal: HouseholdMeal;
@@ -16,6 +22,10 @@ type HouseholdMealRowProps = {
   householdId?: string;
   memberId?: string;
   planId?: string;
+  feedbackDisabled?: boolean;
+  pendingFeedbackType?: FeedbackType | null;
+  onSubmitFeedback?: (meal: HouseholdMeal, feedbackType: FeedbackType) => Promise<void> | void;
+  onUndoFeedback?: (meal: HouseholdMeal, feedbackType: FeedbackType) => Promise<void> | void;
   onReplacementApplied?: (response: MealReplacementResponse) => void;
 };
 
@@ -26,14 +36,16 @@ export function HouseholdMealRow({
   householdId,
   memberId,
   planId,
+  feedbackDisabled,
+  pendingFeedbackType,
+  onSubmitFeedback,
+  onUndoFeedback,
   onReplacementApplied,
 }: HouseholdMealRowProps) {
-  const [showAlternatives, setShowAlternatives] = useState(false);
-  const [showCook, setShowCook] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [activeSheet, setActiveSheet] = useState<HouseholdMealSheet | null>(null);
   const name = stringValue(meal.display_name) ?? stringValue(meal.recipe_id) ?? "Meal";
   const slot = stringValue(meal.slot) ?? "meal";
-  const scope = stringValue(meal.meal_scope);
+  const scope = stringValue(meal.meal_scope) ?? "individual";
   const portionMultiplier = numberValue(meal.portion_multiplier);
   const recipeId = stringValue(meal.recipe_id);
   const replaceScope = replacementScopeFromMeal(scope);
@@ -52,6 +64,10 @@ export function HouseholdMealRow({
     meal.cooking_time_min,
     meal.time_min,
   );
+  const portionText =
+    portionMultiplier !== null ? `${formatNumber(portionMultiplier, 2)}x` : "1x";
+  const timeText = estimatedTime !== null ? `${Math.round(estimatedTime)} min` : "-";
+  const sheetTitle = activeSheet === "alternatives" ? "Alternatives" : "How to cook";
 
   return (
     <View style={styles.container}>
@@ -60,111 +76,104 @@ export function HouseholdMealRow({
           <Text style={styles.slot}>{titleize(slot)}</Text>
           <Text style={styles.name}>{name}</Text>
         </View>
-        {scope ? <Text style={styles.scope}>{scope}</Text> : null}
+        <Text style={styles.scope}>{scope}</Text>
       </View>
 
-      <View style={styles.metricsRow}>
-        {portionMultiplier !== null ? (
-          <Metric label="Portion" value={`${formatNumber(portionMultiplier, 2)}x`} />
-        ) : null}
-        <Metric label="Kcal" value={formatOptionalNumber(meal.kcal, 0)} />
-        <Metric label="Protein" value={formatOptionalNumber(meal.protein_g, 1)} />
-        <Metric label="Carbs" value={formatOptionalNumber(meal.carbs_g, 1)} />
-        <Metric label="Fat" value={formatOptionalNumber(meal.fat_g, 1)} />
+      <View style={styles.dataTopRow}>
+        <Text style={styles.dataTopValue}>{portionText}</Text>
+        <Text style={styles.dataTopValue}>{timeText}</Text>
+      </View>
+      <View style={styles.macroRow}>
+        <MacroMiniStat kind="calories" tone="soft" value={formatOptionalNumber(meal.kcal, 0)} />
+        <MacroMiniStat kind="protein" tone="soft" value={formatOptionalNumber(meal.protein_g, 1)} />
+        <MacroMiniStat kind="carbs" tone="soft" value={formatOptionalNumber(meal.carbs_g, 1)} />
+        <MacroMiniStat kind="fat" tone="soft" value={formatOptionalNumber(meal.fat_g, 1)} />
       </View>
 
       <View style={styles.actionRow}>
         <SmallActionButton
-          active={showDetails}
-          label="Details"
-          onPress={() => setShowDetails((current) => !current)}
-        />
-        <SmallActionButton
-          active={showCook}
+          active={activeSheet === "cook"}
           label="Cook / Steps"
-          onPress={() => setShowCook((current) => !current)}
+          onPress={() => setActiveSheet("cook")}
         />
         {recipeId ? (
           <SmallActionButton
-            active={showAlternatives}
+            active={activeSheet === "alternatives"}
             label="Alternatives"
-            onPress={() => setShowAlternatives((current) => !current)}
+            onPress={() => setActiveSheet("alternatives")}
           />
         ) : null}
       </View>
 
-      {showDetails ? (
-        <View style={styles.detailBox}>
-          <Text style={styles.detailTitle}>{name}</Text>
-          <MetricLine label="Calories" value={`${formatOptionalNumber(meal.kcal, 0)} kcal`} />
-          <MetricLine label="Protein" value={`${formatOptionalNumber(meal.protein_g, 1)}g`} />
-          <MetricLine label="Carbs" value={`${formatOptionalNumber(meal.carbs_g, 1)}g`} />
-          <MetricLine label="Fat" value={`${formatOptionalNumber(meal.fat_g, 1)}g`} />
-          <MetricLine
-            label="Cooking time"
-            value={estimatedTime !== null ? `${Math.round(estimatedTime)} min` : "-"}
-          />
-          {ingredients.length ? (
-            <View style={styles.inlineList}>
-              <Text style={styles.detailTitle}>Ingredients</Text>
-              {ingredients.slice(0, 8).map((ingredient, index) => (
-                <Text key={`${ingredient}-${index}`} style={styles.detailText}>
-                  {ingredient}
+      <BottomSheet
+        onClose={() => setActiveSheet(null)}
+        title={sheetTitle}
+        titleAccessory={
+          activeSheet === "cook" ? <Text style={styles.sheetTime}>{timeText}</Text> : undefined
+        }
+        visible={activeSheet !== null}
+      >
+        {activeSheet === "cook" ? (
+          <View style={styles.sheetContent}>
+            <SheetSection items={ingredients} title="Ingredients" />
+            <View style={styles.sheetSection}>
+              <Text style={styles.detailTitle}>Cooking steps</Text>
+              {steps.length ? (
+                steps.map((step, index) => (
+                  <Text key={`${step}-${index}`} style={styles.detailText}>
+                    {index + 1}. {step}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.detailText}>
+                  Cooking steps are not available for this recipe yet.
                 </Text>
-              ))}
+              )}
             </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      {showCook ? (
-        <View style={styles.detailBox}>
-          <Text style={styles.detailTitle}>{name}</Text>
-          <MetricLine
-            label="Estimated time"
-            value={estimatedTime !== null ? `${Math.round(estimatedTime)} min` : "-"}
-          />
-          {ingredients.length ? (
-            <View style={styles.inlineList}>
-              <Text style={styles.detailTitle}>Ingredients</Text>
-              {ingredients.map((ingredient, index) => (
-                <Text key={`${ingredient}-${index}`} style={styles.detailText}>
-                  {ingredient}
-                </Text>
-              ))}
-            </View>
-          ) : null}
-          <View style={styles.inlineList}>
-            <Text style={styles.detailTitle}>Cooking steps</Text>
-            {steps.length ? (
-              steps.map((step, index) => (
-                <Text key={`${step}-${index}`} style={styles.detailText}>
-                  {index + 1}. {step}
-                </Text>
-              ))
-            ) : (
-              <Text style={styles.detailText}>
-                Cooking steps are not available for this recipe yet.
-              </Text>
-            )}
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
+        {activeSheet === "alternatives" && recipeId ? (
+          <RecipeAlternativesPanel
+            dayIndex={dayIndex}
+            datasetProfile={datasetProfile}
+            generationType="household"
+            householdId={householdId}
+            isVisible={activeSheet === "alternatives"}
+            memberId={memberId}
+            memberProfileId={memberId}
+            onReplacementApplied={onReplacementApplied}
+            planId={planId}
+            replaceScope={replaceScope}
+            shouldLoad
+            slot={slot}
+            sourceRecipeId={recipeId}
+          />
+        ) : null}
+      </BottomSheet>
       {recipeId ? (
         <RecipeAlternativesPanel
           dayIndex={dayIndex}
           datasetProfile={datasetProfile}
           generationType="household"
           householdId={householdId}
-          isVisible={showAlternatives}
+          isVisible={false}
           memberId={memberId}
           memberProfileId={memberId}
-          onReplacementApplied={onReplacementApplied}
           planId={planId}
           replaceScope={replaceScope}
+          shouldLoad
           slot={slot}
           sourceRecipeId={recipeId}
+        />
+      ) : null}
+      {onSubmitFeedback ? (
+        <MealFeedbackButtons
+          disabled={feedbackDisabled}
+          meal={meal}
+          onSubmit={onSubmitFeedback}
+          onUndo={onUndoFeedback}
+          pendingFeedbackType={pendingFeedbackType}
         />
       ) : null}
     </View>
@@ -206,20 +215,19 @@ function SmallActionButton({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-    </View>
-  );
-}
+function SheetSection({ items, title }: { items: string[]; title: string }) {
+  if (!items.length) {
+    return null;
+  }
 
-function MetricLine({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.metricLine}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValueCompact}>{value}</Text>
+    <View style={styles.sheetSection}>
+      <Text style={styles.detailTitle}>{title}</Text>
+      {items.map((item, index) => (
+        <Text key={`${item}-${index}`} style={styles.detailText}>
+          {item}
+        </Text>
+      ))}
     </View>
   );
 }
@@ -293,10 +301,13 @@ function titleize(value: string): string {
 
 const styles = StyleSheet.create({
   alternativesButton: {
-    alignSelf: "flex-start",
+    alignItems: "center",
     borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 38,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
@@ -316,7 +327,6 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
   },
   container: {
@@ -327,13 +337,15 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
   },
-  detailBox: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 8,
-    padding: 12,
+  dataTopRow: {
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  dataTopValue: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "900",
   },
   detailText: {
     color: colors.muted,
@@ -350,38 +362,12 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: "space-between",
   },
-  metricsRow: {
+  macroRow: {
+    alignItems: "center",
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  metric: {
-    minWidth: 72,
-  },
-  metricLabel: {
-    color: colors.mutedSoft,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  metricValue: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  metricLine: {
-    flexDirection: "row",
+    flexWrap: "nowrap",
     gap: 12,
     justifyContent: "space-between",
-  },
-  metricValueCompact: {
-    color: colors.text,
-    flexShrink: 1,
-    fontSize: 13,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  inlineList: {
-    gap: 4,
   },
   name: {
     color: colors.text,
@@ -393,11 +379,28 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   scope: {
-    color: colors.accent,
+    color: colors.accentDark,
     flexShrink: 0,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
+    textAlign: "right",
     textTransform: "uppercase",
+  },
+  sheetContent: {
+    gap: 12,
+  },
+  sheetSection: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+    padding: 12,
+  },
+  sheetTime: {
+    color: colors.accentDark,
+    fontSize: 14,
+    fontWeight: "900",
   },
   slot: {
     color: colors.mutedSoft,

@@ -1,27 +1,52 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { GroceryListItem } from "../types/api";
 import { colors } from "../theme/colors";
 
 type GroceryItemRowProps = {
+  checked?: boolean;
+  disabled?: boolean;
   item: GroceryListItem;
+  onToggle?: () => void;
 };
 
-export function GroceryItemRow({ item }: GroceryItemRowProps) {
+export function GroceryItemRow({
+  checked = true,
+  disabled = false,
+  item,
+  onToggle,
+}: GroceryItemRowProps) {
   const priceText = formatCost(item);
   const missingPrice = !priceText;
+  const muted = disabled || !checked;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, muted ? styles.rowMuted : null]}>
       <View style={styles.main}>
         <Text style={styles.name}>{displayName(item)}</Text>
         <Text style={styles.detail}>Need: {neededAmount(item)}</Text>
         <Text style={styles.detail}>Buy: {purchaseSuggestion(item)}</Text>
       </View>
       <View style={styles.side}>
-        <Text style={missingPrice ? styles.missingPrice : styles.cost}>
+        <Text style={[missingPrice || muted ? styles.missingPrice : styles.cost]}>
           {priceText ?? "Price unavailable"}
         </Text>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked, disabled }}
+          disabled={disabled}
+          onPress={onToggle}
+          style={({ pressed }) => [
+            styles.checkbox,
+            checked ? styles.checkboxChecked : styles.checkboxUnchecked,
+            disabled ? styles.checkboxDisabled : null,
+            pressed && !disabled ? styles.checkboxPressed : null,
+          ]}
+        >
+          <Text style={[styles.checkboxMark, checked ? styles.checkboxMarkChecked : null]}>
+            {checked ? "✓" : ""}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -83,6 +108,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingTop: 12,
   },
+  rowMuted: {
+    opacity: 0.56,
+  },
   main: {
     flex: 1,
     gap: 3,
@@ -99,7 +127,40 @@ const styles = StyleSheet.create({
   },
   side: {
     alignItems: "flex-end",
+    gap: 7,
     minWidth: 104,
+  },
+  checkbox: {
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 26,
+    justifyContent: "center",
+    width: 26,
+  },
+  checkboxChecked: {
+    backgroundColor: "#EEF7E8",
+    borderColor: colors.accent,
+  },
+  checkboxDisabled: {
+    backgroundColor: "#F3F4F6",
+    borderColor: "#D1D5DB",
+  },
+  checkboxMark: {
+    color: colors.mutedSoft,
+    fontSize: 15,
+    fontWeight: "900",
+    lineHeight: 18,
+  },
+  checkboxMarkChecked: {
+    color: colors.accentDark,
+  },
+  checkboxPressed: {
+    opacity: 0.75,
+  },
+  checkboxUnchecked: {
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
   },
   cost: {
     color: colors.success,

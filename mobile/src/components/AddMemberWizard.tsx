@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -12,11 +12,18 @@ import { colors } from "../theme/colors";
 import type {
   HealthAndDietPreferences,
   MemberProfileCreateRequest,
+  MemberProfileResponse,
 } from "../types/api";
 
 type AddMemberWizardProps = {
+  deleteDisabled?: boolean;
   defaultHouseholdId: string;
   disabled?: boolean;
+  forceOpen?: boolean;
+  initialProfile?: MemberProfileResponse | null;
+  mode?: "add" | "edit";
+  onCancel?: () => void;
+  onDelete?: () => void;
   onSubmit: (request: MemberProfileCreateRequest) => Promise<void> | void;
 };
 
@@ -151,11 +158,17 @@ const DEFAULT_HEALTH_MODES: HealthModeDraft = {
 };
 
 export function AddMemberWizard({
+  deleteDisabled,
   defaultHouseholdId,
   disabled,
+  forceOpen,
+  initialProfile,
+  mode = "add",
+  onCancel,
+  onDelete,
   onSubmit,
 }: AddMemberWizardProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isInternalOpen, setIsInternalOpen] = useState(false);
   const [step, setStep] = useState<WizardStep>(1);
   const [displayName, setDisplayName] = useState("");
   const [sex, setSex] = useState("male");
@@ -180,6 +193,19 @@ export function AddMemberWizard({
   const [cookingTimePreference, setCookingTimePreference] =
     useState<CookingTimePreference>("balanced");
   const [validationError, setValidationError] = useState("");
+  const isOpen = Boolean(forceOpen || isInternalOpen);
+  const isEditMode = mode === "edit";
+
+  useEffect(() => {
+    if (!forceOpen) {
+      return;
+    }
+    if (isEditMode && initialProfile) {
+      hydrateDraft(initialProfile);
+      return;
+    }
+    resetDraft();
+  }, [forceOpen, initialProfile?.member_profile_id, isEditMode]);
 
   function resetDraft() {
     setStep(1);
@@ -203,6 +229,66 @@ export function AddMemberWizard({
     setIncludeSnacks(true);
     setCookingTimePreference("balanced");
     setValidationError("");
+  }
+
+  function hydrateDraft(profile: MemberProfileResponse) {
+    const training = asRecord(profile.training);
+    const mealConfig = asRecord(profile.meal_config);
+    const dietaryPreferences = asRecord(profile.dietary_preferences);
+    const foodPreferences = profile.food_preferences;
+    const healthAndDietPreferences = profile.health_and_diet_preferences;
+
+    setStep(1);
+    setDisplayName(profile.display_name || "");
+    setSex(profile.sex || "male");
+    setAge(String(profile.age || 30));
+    setHeightCm(String(profile.height_cm || 175));
+    setWeightKg(String(profile.weight_kg || 75));
+    setDietary({
+      vegetarian: Boolean(dietaryPreferences.vegetarian),
+      vegan: Boolean(dietaryPreferences.vegan),
+      gluten_free: Boolean(dietaryPreferences.gluten_free),
+    });
+    setDietaryPatterns({
+      keto: Boolean(healthAndDietPreferences?.dietary_patterns?.keto),
+      paleo: Boolean(healthAndDietPreferences?.dietary_patterns?.paleo),
+      mediterranean: Boolean(
+        healthAndDietPreferences?.dietary_patterns?.mediterranean,
+      ),
+    });
+    setHealthModes({
+      diabetes_aware: Boolean(
+        healthAndDietPreferences?.health_modes?.diabetes_aware,
+      ),
+      hypertension_friendly: Boolean(
+        healthAndDietPreferences?.health_modes?.hypertension_friendly,
+      ),
+      heart_friendly: Boolean(healthAndDietPreferences?.health_modes?.heart_friendly),
+    });
+    setRatings(cleanRatingMap(foodPreferences?.ratings ?? {}));
+    setCustomAvoidInput("");
+    setAvoidIngredients(
+      Array.isArray(foodPreferences?.avoid_ingredients)
+        ? foodPreferences.avoid_ingredients
+        : [],
+    );
+    setGoal(profile.goal || "maintain");
+    setGoalSpeed(profile.goal_speed || "normal");
+    setActivityLevel(profile.activity_level || "moderately_active");
+    setTrainingType(String(training.type || "mixed"));
+    setTrainingSessions(String(training.sessions_per_week ?? 3));
+    setMealsPerDay(String(mealConfig.meals_per_day ?? 3));
+    setIncludeSnacks(Boolean(mealConfig.include_snacks ?? true));
+    setCookingTimePreference(
+      normalizeCookingTimePreference(foodPreferences?.cooking_time_preference),
+    );
+    setValidationError("");
+  }
+
+  function closeWizard() {
+    resetDraft();
+    setIsInternalOpen(false);
+    onCancel?.();
   }
 
   function validateCurrentStep(): boolean {
@@ -263,7 +349,8 @@ export function AddMemberWizard({
     try {
       await onSubmit(request);
       resetDraft();
-      setIsOpen(false);
+      setIsInternalOpen(false);
+      onCancel?.();
     } catch (error) {
       setValidationError(error instanceof Error ? error.message : "Member save failed.");
     }
@@ -275,6 +362,7 @@ export function AddMemberWizard({
     const backendGoal = goal === "balanced" ? "maintain" : goal;
     return {
       household_id: defaultHouseholdId.trim(),
+      member_profile_id: isEditMode ? initialProfile?.member_profile_id : undefined,
       display_name: displayName.trim(),
       age: Math.round(Number(age)),
       sex,
@@ -367,7 +455,7 @@ export function AddMemberWizard({
         <Pressable
           accessibilityRole="button"
           disabled={disabled}
-          onPress={() => setIsOpen(true)}
+          onPress={() => setIsInternalOpen(true)}
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && !disabled ? styles.pressed : null,
@@ -384,15 +472,12 @@ export function AddMemberWizard({
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Add Member</Text>
+          <Text style={styles.title}>{isEditMode ? "Edit Member" : "Add Member"}</Text>
           <Text style={styles.progress}>Step {step} of 3</Text>
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => {
-            resetDraft();
-            setIsOpen(false);
-          }}
+          onPress={closeWizard}
           style={({ pressed }) => [styles.closeButton, pressed ? styles.pressed : null]}
         >
           <Text style={styles.closeText}>Cancel</Text>
@@ -500,11 +585,32 @@ export function AddMemberWizard({
             {disabled ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.primaryButtonText}>Save Member</Text>
+              <Text style={styles.primaryButtonText}>
+                {isEditMode ? "Save Changes" : "Save Member"}
+              </Text>
             )}
           </Pressable>
         )}
       </View>
+
+      {isEditMode && onDelete ? (
+        <View style={styles.removeSection}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={deleteDisabled}
+            onPress={onDelete}
+            style={({ pressed }) => [
+              styles.removeButton,
+              pressed && !deleteDisabled ? styles.pressed : null,
+              deleteDisabled ? styles.disabled : null,
+            ]}
+          >
+            <Text style={styles.removeButtonText}>
+              {deleteDisabled ? "Removing member" : "Remove member"}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1042,6 +1148,20 @@ function forceAvoidRatings(
   };
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function normalizeCookingTimePreference(
+  value: unknown,
+): CookingTimePreference {
+  return value === "quick" || value === "no_rush" || value === "balanced"
+    ? value
+    : "balanced";
+}
+
 function isNumberInRange(value: number, minimum: number, maximum: number): boolean {
   return Number.isFinite(value) && value >= minimum && value <= maximum;
 }
@@ -1090,6 +1210,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 14,
     padding: 14,
+    paddingBottom: 18,
   },
   customAvoidRow: {
     alignItems: "center",
@@ -1204,13 +1325,15 @@ const styles = StyleSheet.create({
   },
   preferenceActions: {
     flexDirection: "row",
-    gap: 6,
+    flexShrink: 0,
+    gap: 4,
   },
   preferenceLabel: {
     color: colors.text,
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "900",
+    minWidth: 96,
   },
   preferenceRow: {
     alignItems: "center",
@@ -1254,15 +1377,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: "center",
     minHeight: 34,
-    minWidth: 62,
-    paddingHorizontal: 7,
+    minWidth: 54,
+    paddingHorizontal: 5,
   },
   ratingButtonSelected: {
     borderWidth: 1,
   },
   ratingButtonText: {
     color: colors.text,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
   },
   ratingButtonTextSelected: {
@@ -1282,6 +1405,26 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 16,
     fontWeight: "900",
+  },
+  removeButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 14,
+  },
+  removeButtonText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  removeSection: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    gap: 10,
+    paddingTop: 12,
   },
   smallButton: {
     alignItems: "center",

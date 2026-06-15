@@ -28,10 +28,13 @@ type RecipeAlternativesPanelProps = {
   planId?: string;
   replaceScope?: MealReplacementScope;
   isVisible?: boolean;
+  shouldLoad?: boolean;
   onReplacementApplied?: (response: MealReplacementResponse) => void;
 };
 
 const DEFAULT_DATASET_PROFILE = "v1_2_demo_final";
+const alternativesResponseCache = new Map<string, RecipeAlternativesResponse>();
+const alternativesRequestCache = new Map<string, Promise<RecipeAlternativesResponse>>();
 
 export function RecipeAlternativesPanel({
   sourceRecipeId,
@@ -46,28 +49,41 @@ export function RecipeAlternativesPanel({
   planId,
   replaceScope,
   isVisible = true,
+  shouldLoad = isVisible,
   onReplacementApplied,
 }: RecipeAlternativesPanelProps) {
-  const [response, setResponse] = useState<RecipeAlternativesResponse | null>(null);
+  const requestCacheKey = buildAlternativesCacheKey({
+    datasetProfile,
+    householdId,
+    memberProfile,
+    memberProfileId,
+    slot,
+    sourceRecipeId,
+  });
+  const cachedResponse = requestCacheKey
+    ? alternativesResponseCache.get(requestCacheKey) ?? null
+    : null;
+  const [response, setResponse] = useState<RecipeAlternativesResponse | null>(cachedResponse);
   const [errorMessage, setErrorMessage] = useState("");
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(Boolean(cachedResponse));
   const [isLoading, setIsLoading] = useState(false);
   const [previewResponse, setPreviewResponse] = useState<MealReplacementResponse | null>(null);
   const [previewedRecipeId, setPreviewedRecipeId] = useState("");
   const [previewingRecipeId, setPreviewingRecipeId] = useState("");
   const [applyingRecipeId, setApplyingRecipeId] = useState("");
-  const [selectedAlternativeIndex, setSelectedAlternativeIndex] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
-    setResponse(null);
+    const cached = requestCacheKey
+      ? alternativesResponseCache.get(requestCacheKey) ?? null
+      : null;
     setErrorMessage("");
-    setHasLoaded(false);
+    setResponse(cached);
+    setHasLoaded(Boolean(cached));
     setPreviewResponse(null);
     setPreviewedRecipeId("");
     setPreviewingRecipeId("");
     setApplyingRecipeId("");
-    setSelectedAlternativeIndex(0);
     setSuccessMessage("");
   }, [
     datasetProfile,
@@ -78,6 +94,7 @@ export function RecipeAlternativesPanel({
     memberProfile,
     memberProfileId,
     planId,
+    requestCacheKey,
     slot,
     sourceRecipeId,
   ]);
@@ -86,28 +103,31 @@ export function RecipeAlternativesPanel({
     let isCurrent = true;
 
     async function loadAlternatives() {
-      if (!isVisible || hasLoaded || !sourceRecipeId) {
+      if (!shouldLoad || hasLoaded || !sourceRecipeId || !requestCacheKey) {
         return;
       }
 
       setIsLoading(true);
       setErrorMessage("");
       try {
-        const payload = await getRecipeAlternatives({
-          recipe_id: sourceRecipeId,
-          slot,
-          top_k: 5,
-          candidate_pool_k: 20,
-          dataset_profile: datasetProfile,
-          household_id: householdId,
-          member_profile_id: memberProfileId,
-          member_profile: memberProfile,
-          feedback_enabled: true,
-          approval_mode: "include_review",
-        });
+        const cached = alternativesResponseCache.get(requestCacheKey);
+        const payload =
+          cached ??
+          (await getOrCreateAlternativesRequest(requestCacheKey, {
+            recipe_id: sourceRecipeId,
+            slot,
+            top_k: 5,
+            candidate_pool_k: 20,
+            dataset_profile: datasetProfile,
+            household_id: householdId,
+            member_profile_id: memberProfileId,
+            member_profile: memberProfile,
+            feedback_enabled: true,
+            approval_mode: "include_review",
+          }));
         if (isCurrent) {
+          alternativesResponseCache.set(requestCacheKey, payload);
           setResponse(payload);
-          setSelectedAlternativeIndex(0);
           setHasLoaded(true);
         }
       } catch (error) {
@@ -133,9 +153,10 @@ export function RecipeAlternativesPanel({
     datasetProfile,
     hasLoaded,
     householdId,
-    isVisible,
     memberProfile,
     memberProfileId,
+    requestCacheKey,
+    shouldLoad,
     slot,
     sourceRecipeId,
   ]);
@@ -148,14 +169,7 @@ export function RecipeAlternativesPanel({
       }),
     [response],
   );
-  const currentAlternative = alternatives[selectedAlternativeIndex] ?? alternatives[0] ?? null;
   const canRequestReplacement = Boolean(planId && slot && sourceRecipeId);
-
-  useEffect(() => {
-    if (alternatives.length && selectedAlternativeIndex >= alternatives.length) {
-      setSelectedAlternativeIndex(0);
-    }
-  }, [alternatives.length, selectedAlternativeIndex]);
 
   async function previewReplacement(alternative: RecipeAlternativeItem) {
     if (!planId || !slot) {
@@ -226,17 +240,6 @@ export function RecipeAlternativesPanel({
     };
   }
 
-  function showNextAlternative() {
-    if (alternatives.length <= 1) {
-      return;
-    }
-    setSelectedAlternativeIndex((current) => (current + 1) % alternatives.length);
-    setPreviewResponse(null);
-    setPreviewedRecipeId("");
-    setSuccessMessage("");
-    setErrorMessage("");
-  }
-
   if (!isVisible) {
     return null;
   }
@@ -264,22 +267,25 @@ export function RecipeAlternativesPanel({
         <Text style={styles.mutedText}>No alternatives found for this meal.</Text>
       ) : null}
 
-      {currentAlternative ? (
-        <AlternativeCard
-          alternative={currentAlternative}
-          canRequestReplacement={canRequestReplacement}
-          hasMultipleAlternatives={alternatives.length > 1}
-          isApplying={applyingRecipeId === currentAlternative.recipe_id}
-          isPreviewing={previewingRecipeId === currentAlternative.recipe_id}
-          onApply={applyReplacement}
-          onPreview={() => previewReplacement(currentAlternative)}
-          onShuffle={showNextAlternative}
-          previewResponse={
-            previewResponse && previewedRecipeId === currentAlternative.recipe_id
-              ? previewResponse
-              : null
-          }
-        />
+      {alternatives.length ? (
+        <View style={styles.alternativesList}>
+          {alternatives.map((alternative) => (
+            <AlternativeCard
+              alternative={alternative}
+              canRequestReplacement={canRequestReplacement}
+              isApplying={applyingRecipeId === alternative.recipe_id}
+              isPreviewing={previewingRecipeId === alternative.recipe_id}
+              key={alternative.recipe_id}
+              onApply={applyReplacement}
+              onPreview={() => previewReplacement(alternative)}
+              previewResponse={
+                previewResponse && previewedRecipeId === alternative.recipe_id
+                  ? previewResponse
+                  : null
+              }
+            />
+          ))}
+        </View>
       ) : null}
 
       {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
@@ -287,25 +293,62 @@ export function RecipeAlternativesPanel({
   );
 }
 
+function getOrCreateAlternativesRequest(
+  cacheKey: string,
+  request: Parameters<typeof getRecipeAlternatives>[0],
+): Promise<RecipeAlternativesResponse> {
+  const existingRequest = alternativesRequestCache.get(cacheKey);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const nextRequest = getRecipeAlternatives(request).finally(() => {
+    alternativesRequestCache.delete(cacheKey);
+  });
+  alternativesRequestCache.set(cacheKey, nextRequest);
+  return nextRequest;
+}
+
+function buildAlternativesCacheKey({
+  datasetProfile,
+  householdId,
+  memberProfile,
+  memberProfileId,
+  slot,
+  sourceRecipeId,
+}: {
+  datasetProfile?: string;
+  householdId?: string;
+  memberProfile?: Record<string, unknown>;
+  memberProfileId?: string;
+  slot?: string;
+  sourceRecipeId?: string;
+}): string {
+  return JSON.stringify({
+    datasetProfile: datasetProfile ?? DEFAULT_DATASET_PROFILE,
+    householdId: householdId ?? "",
+    memberProfile: memberProfile ?? null,
+    memberProfileId: memberProfileId ?? "",
+    slot: slot ?? "",
+    sourceRecipeId: sourceRecipeId ?? "",
+  });
+}
+
 function AlternativeCard({
   alternative,
   canRequestReplacement,
-  hasMultipleAlternatives,
   isApplying,
   isPreviewing,
   onApply,
   onPreview,
-  onShuffle,
   previewResponse,
 }: {
   alternative: RecipeAlternativeItem;
   canRequestReplacement: boolean;
-  hasMultipleAlternatives: boolean;
   isApplying: boolean;
   isPreviewing: boolean;
   onApply: () => void;
   onPreview: () => void;
-  onShuffle: () => void;
   previewResponse: MealReplacementResponse | null;
 }) {
   const name = stringValue(alternative.display_name) ?? alternative.recipe_id;
@@ -329,18 +372,6 @@ function AlternativeCard({
             Similarity {formatScore(alternative.similarity_score)}
           </Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!hasMultipleAlternatives}
-          onPress={onShuffle}
-          style={({ pressed }) => [
-            styles.shuffleButton,
-            pressed && hasMultipleAlternatives ? styles.buttonPressed : null,
-            !hasMultipleAlternatives ? styles.buttonDisabled : null,
-          ]}
-        >
-          <Text style={styles.shuffleButtonText}>Shuffle</Text>
-        </Pressable>
       </View>
 
       <Text style={styles.deltaText}>{formatMacroDelta(alternative.macro_delta)}</Text>
@@ -479,6 +510,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  alternativesList: {
+    gap: 10,
+  },
   alternativeCard: {
     backgroundColor: colors.card,
     borderColor: colors.border,
@@ -615,20 +649,6 @@ const styles = StyleSheet.create({
   replaceButtonText: {
     color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "800",
-  },
-  shuffleButton: {
-    alignItems: "center",
-    borderColor: colors.accent,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 36,
-    paddingHorizontal: 10,
-  },
-  shuffleButtonText: {
-    color: colors.accent,
-    fontSize: 12,
     fontWeight: "800",
   },
   statusApproved: {

@@ -45,17 +45,21 @@ REAL_FLOW_MARKERS = [
     "PlanDayCard",
     "HouseholdMemberPlanView",
     "handleMealReplacementApplied",
-    "Meal replaced. Plan and grocery list updated.",
+    "submitMealFeedback",
+    "undoMealFeedback",
     "Refresh feedback context",
     "Clear feedback",
 ]
 
 MEAL_ROW_MARKERS = [
-    "Details",
     "Cook / Steps",
     "Alternatives",
     "RecipeAlternativesPanel",
     "onReplacementApplied",
+]
+
+MEAL_ROW_FORBIDDEN_MARKERS = [
+    "Details",
 ]
 
 GUARD_MARKERS = [
@@ -145,9 +149,12 @@ def main() -> int:
             ["Meal Plan", "Grocery List", "Generate meal plan", "No meal plan yet"],
         ),
         "real_flows_preserved_in_shell": _has_all(shell, REAL_FLOW_MARKERS),
-        "meal_rows_have_details_cook_alternatives": _has_all(
+        "meal_rows_have_cook_and_alternatives": _has_all(
             meal_row + household_meal_row,
             MEAL_ROW_MARKERS,
+        ),
+        "meal_rows_do_not_show_details_action": not any(
+            marker in meal_row + household_meal_row for marker in MEAL_ROW_FORBIDDEN_MARKERS
         ),
         "guard_states_present": _has_all(
             shell + home_page + meal_plan_page + insights_page,

@@ -3,58 +3,43 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MemberProfileResponse } from "../types/api";
 
 type ProfileCardProps = {
-  deleteDisabled?: boolean;
   onPress: () => void;
-  onDelete?: () => void;
   profile: MemberProfileResponse;
   selected: boolean;
 };
 
 export function ProfileCard({
-  deleteDisabled,
-  onDelete,
   onPress,
   profile,
   selected,
 }: ProfileCardProps) {
   return (
-    <View style={[styles.card, selected ? styles.cardSelected : null]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ selected }}
-        onPress={onPress}
-        style={({ pressed }) => [styles.tapArea, pressed ? styles.cardPressed : null]}
-      >
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        selected ? styles.cardSelected : null,
+        pressed ? styles.cardPressed : null,
+      ]}
+    >
+      <View style={styles.cardBody}>
         <View style={styles.headerRow}>
-          <Text style={styles.name}>{profile.display_name}</Text>
-          <Text style={[styles.badge, selected ? styles.badgeSelected : null]}>
-            {selected ? "Selected" : "Tap"}
+          <Text numberOfLines={1} style={styles.name}>
+            {profile.display_name}
           </Text>
+          <Text style={styles.chevron}>{">"}</Text>
         </View>
-        <Text style={styles.meta}>
-          {profile.age} years / {formatWeight(profile.weight_kg)} kg / {profile.activity_level}
+        <Text numberOfLines={1} style={styles.meta}>
+          {profile.age} years | {formatWeight(profile.weight_kg)} kg |{" "}
+          {formatActivityLevel(profile.activity_level)}
         </Text>
-        <Text style={styles.meta}>
-          Goal: {profile.goal} / {profile.goal_speed}
+        <Text numberOfLines={1} style={styles.goalText}>
+          {formatGoalSummary(profile.goal, profile.goal_speed)}
         </Text>
-      </Pressable>
-      {onDelete ? (
-        <Pressable
-          accessibilityRole="button"
-          disabled={deleteDisabled}
-          onPress={onDelete}
-          style={({ pressed }) => [
-            styles.deleteButton,
-            pressed && !deleteDisabled ? styles.cardPressed : null,
-            deleteDisabled ? styles.deleteButtonDisabled : null,
-          ]}
-        >
-          <Text style={styles.deleteButtonText}>
-            {deleteDisabled ? "Removing" : "Remove"}
-          </Text>
-        </Pressable>
-      ) : null}
-    </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -68,29 +53,62 @@ function formatWeight(value: number): string {
   });
 }
 
+function formatActivityLevel(value: string): string {
+  const labels: Record<string, string> = {
+    sedentary: "Sedentary",
+    lightly_active: "Lightly active",
+    moderately_active: "Moderately active",
+    very_active: "Very active",
+  };
+  return labels[value] ?? titleize(value);
+}
+
+function formatGoalSummary(goal: string, speed: string): string {
+  const normalizedGoal = goal.trim().toLowerCase();
+  if (normalizedGoal === "maintain") {
+    return "Maintain";
+  }
+  const goalLabel =
+    normalizedGoal === "gain"
+      ? "Muscle gain"
+      : normalizedGoal === "lose"
+      ? "Weight loss"
+      : titleize(normalizedGoal);
+  const speedLabel = speed.trim().toLowerCase()
+    ? titleize(speed)
+    : "Normal";
+  return `${goalLabel} | ${speedLabel} pace`;
+}
+
+function titleize(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 const styles = StyleSheet.create({
-  badge: {
-    color: "#6B7280",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  badgeSelected: {
-    color: "#165D77",
-  },
   card: {
     backgroundColor: "#FFFFFF",
     borderColor: "#D9D6CC",
     borderRadius: 8,
     borderWidth: 1,
-    gap: 6,
     padding: 14,
+  },
+  cardBody: {
+    gap: 6,
   },
   cardPressed: {
     opacity: 0.82,
   },
   cardSelected: {
-    backgroundColor: "#EEF7F8",
-    borderColor: "#165D77",
+    backgroundColor: "#F7FAF2",
+    borderColor: "#74B72E",
+  },
+  chevron: {
+    color: "#74B72E",
+    fontSize: 20,
+    fontWeight: "900",
   },
   headerRow: {
     alignItems: "center",
@@ -103,31 +121,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  goalText: {
+    color: "#4F8F1F",
+    fontSize: 14,
+    fontWeight: "800",
+  },
   name: {
     color: "#111827",
     flexShrink: 1,
     fontSize: 16,
     fontWeight: "800",
-  },
-  deleteButton: {
-    alignItems: "center",
-    alignSelf: "flex-start",
-    borderColor: "#B42318",
-    borderRadius: 8,
-    borderWidth: 1,
-    minHeight: 36,
-    justifyContent: "center",
-    paddingHorizontal: 12,
-  },
-  deleteButtonDisabled: {
-    opacity: 0.55,
-  },
-  deleteButtonText: {
-    color: "#B42318",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  tapArea: {
-    gap: 6,
   },
 });

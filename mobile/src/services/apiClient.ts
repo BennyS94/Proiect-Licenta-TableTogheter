@@ -295,6 +295,13 @@ export async function clearFeedback(
   householdId?: string,
   memberProfileId?: string,
   confirm = true,
+  options?: {
+    eventId?: string;
+    recipeId?: string;
+    planId?: string;
+    slot?: string;
+    feedbackType?: string;
+  },
 ): Promise<FeedbackDeleteResponse> {
   const params = new URLSearchParams();
   params.set("confirm", confirm ? "true" : "false");
@@ -303,6 +310,21 @@ export async function clearFeedback(
   }
   if (memberProfileId) {
     params.set("member_profile_id", memberProfileId);
+  }
+  if (options?.eventId) {
+    params.set("event_id", options.eventId);
+  }
+  if (options?.recipeId) {
+    params.set("recipe_id", options.recipeId);
+  }
+  if (options?.planId) {
+    params.set("plan_id", options.planId);
+  }
+  if (options?.slot) {
+    params.set("slot", options.slot);
+  }
+  if (options?.feedbackType) {
+    params.set("feedback_type", options.feedbackType);
   }
   return requestJson<FeedbackDeleteResponse>(`/feedback?${params.toString()}`, {
     method: "DELETE",

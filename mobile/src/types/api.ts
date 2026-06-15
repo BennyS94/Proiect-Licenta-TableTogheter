@@ -246,6 +246,8 @@ export type GeneratedMeal = {
   recipe_id?: string;
   display_name?: string;
   kcal?: number;
+  carbs_g?: number;
+  fat_g?: number;
   protein_g?: number;
   cooking_steps?: string[];
   directions?: string[];
@@ -388,6 +390,7 @@ export type HouseholdPlanGenerateResponse = {
 export type FeedbackType = "liked" | "disliked" | "too_long" | "explicit_avoid";
 
 export type FeedbackEventRequest = {
+  event_id?: string;
   household_id: string;
   member_profile_id?: string;
   plan_id?: string;

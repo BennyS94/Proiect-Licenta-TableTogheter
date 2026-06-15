@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { AppCard } from "../components/ui/AppCard";
 import { AppScreen } from "../components/ui/AppScreen";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SectionHeader } from "../components/ui/SectionHeader";
@@ -54,11 +53,7 @@ export function MealPlanPage({
   }
 
   return (
-    <AppScreen>
-      <View style={styles.header}>
-        <Text style={styles.title}>Meal Plan</Text>
-      </View>
-
+    <AppScreen contentContainerStyle={styles.screenContainer}>
       {!hasMembers ? (
         <EmptyState
           actionLabel="Add Member Profile"
@@ -68,11 +63,11 @@ export function MealPlanPage({
         />
       ) : (
         <>
-          <AppCard>
+          <View style={styles.generateCard}>
             <SectionHeader title="Generate meal plan" />
             <Text style={styles.bodyText}>Plan balanced meals for your household.</Text>
             {generationControls}
-          </AppCard>
+          </View>
 
           {messagesContent}
 
@@ -145,19 +140,26 @@ function TabButton({
 const styles = StyleSheet.create({
   bodyText: {
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 14,
+    lineHeight: 19,
   },
-  header: {
-    alignItems: "center",
-    gap: 4,
-    paddingTop: 4,
+  generateCard: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 9,
+    padding: 14,
   },
   pressed: {
     opacity: 0.82,
   },
-  section: {
+  screenContainer: {
     gap: 14,
+    paddingTop: 14,
+  },
+  section: {
+    gap: 10,
   },
   tabButton: {
     alignItems: "center",
@@ -182,12 +184,6 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
     gap: 10,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: "900",
-    textAlign: "center",
   },
   viewerBlock: {
     gap: 0,
