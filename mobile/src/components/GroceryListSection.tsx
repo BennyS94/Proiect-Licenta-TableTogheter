@@ -6,6 +6,7 @@ import { groceryCategoryIconForKey } from "../data/groceryCategoryIcons";
 import { colors } from "../theme/colors";
 import { GroceryItemRow } from "./GroceryItemRow";
 import { ChevronDownIcon } from "./icons/ChevronDownIcon";
+import { GroceryListIcon } from "./icons/GroceryListIcon";
 
 type GroceryListSectionProps = {
   emptyMessage?: string;
@@ -123,46 +124,44 @@ function GroceryListContent({
       </View>
 
       <View style={styles.summaryCard}>
-        <View style={styles.summaryVisual}>
-          <View style={styles.summaryVisualPlate} />
-          <View style={styles.summaryVisualLeafOne} />
-          <View style={styles.summaryVisualLeafTwo} />
-          <View style={styles.summaryVisualDot} />
+        <View style={styles.summaryTopRow}>
+          <View style={styles.summaryVisual}>
+            <GroceryListIcon size={60} />
+          </View>
+          <View style={styles.summaryCopy}>
+            <Text style={styles.summaryLabel}>Estimated total</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={styles.summaryValue}>
+              {estimatedTotalText}
+            </Text>
+            <Text style={styles.summaryMeta}>
+              {selectedItems.length} / {items.length} selected items
+            </Text>
+          </View>
         </View>
-        <View style={styles.summaryCopy}>
-          <Text style={styles.summaryLabel}>Estimated total</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.summaryValue}>
-            {estimatedTotalText}
-          </Text>
-          <Text style={styles.summaryMeta}>
-            {selectedItems.length} / {items.length} selected items
-          </Text>
+        <View style={styles.actionRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => Alert.alert("Sharing coming soon")}
+            style={({ pressed }) => [
+              styles.actionButton,
+              styles.actionButtonPrimary,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <Text style={styles.actionButtonPrimaryText}>Share</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => Alert.alert("Copy coming soon")}
+            style={({ pressed }) => [
+              styles.actionButton,
+              styles.actionButtonSecondary,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <Text style={styles.actionButtonSecondaryText}>Copy</Text>
+          </Pressable>
         </View>
-      </View>
-
-      <View style={styles.actionRow}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => Alert.alert("Sharing coming soon")}
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.actionButtonPrimary,
-            pressed ? styles.pressed : null,
-          ]}
-        >
-          <Text style={styles.actionButtonPrimaryText}>Send to</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => Alert.alert("Copy coming soon")}
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.actionButtonSecondary,
-            pressed ? styles.pressed : null,
-          ]}
-        >
-          <Text style={styles.actionButtonSecondaryText}>Copy</Text>
-        </Pressable>
       </View>
 
       {groups.length ? (
@@ -538,6 +537,7 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     gap: 10,
+    width: "100%",
   },
   headerRow: {
     flexDirection: "row",
@@ -559,15 +559,13 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   summaryCard: {
-    alignItems: "center",
+    alignItems: "stretch",
     backgroundColor: "#F1F8E9",
     borderColor: "#DDEAD3",
     borderRadius: 22,
     borderWidth: 1,
     elevation: 1,
-    flexDirection: "row",
-    gap: 14,
-    minHeight: 112,
+    gap: 9,
     padding: 14,
     shadowColor: "#1F2933",
     shadowOffset: { width: 0, height: 5 },
@@ -597,52 +595,22 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     marginTop: 4,
   },
+  summaryTopRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 14,
+    minHeight: 82,
+  },
   summaryVisual: {
     alignItems: "center",
-    backgroundColor: "#F7CF53",
+    backgroundColor: "#EEF7E8",
+    borderColor: "#DDEAD3",
     borderRadius: 20,
+    borderWidth: 1,
     height: 82,
     justifyContent: "center",
     overflow: "hidden",
     width: 82,
-  },
-  summaryVisualDot: {
-    backgroundColor: "#F8B84E",
-    borderRadius: 8,
-    height: 16,
-    position: "absolute",
-    right: 20,
-    top: 31,
-    width: 16,
-  },
-  summaryVisualLeafOne: {
-    backgroundColor: colors.accent,
-    borderBottomLeftRadius: 12,
-    borderTopRightRadius: 12,
-    height: 22,
-    position: "absolute",
-    right: 17,
-    top: 22,
-    transform: [{ rotate: "-18deg" }],
-    width: 32,
-  },
-  summaryVisualLeafTwo: {
-    backgroundColor: "#A8D66D",
-    borderBottomLeftRadius: 11,
-    borderTopRightRadius: 11,
-    bottom: 19,
-    height: 19,
-    left: 19,
-    position: "absolute",
-    transform: [{ rotate: "18deg" }],
-    width: 29,
-  },
-  summaryVisualPlate: {
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 28,
-    height: 48,
-    transform: [{ rotate: "-10deg" }],
-    width: 58,
   },
   groups: {
     gap: 12,
