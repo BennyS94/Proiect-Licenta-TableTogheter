@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { GroceryListItem, GroceryListResponse } from "../types/api";
+import { groceryCategoryIconForKey } from "../data/groceryCategoryIcons";
 import { colors } from "../theme/colors";
 import { GroceryItemRow } from "./GroceryItemRow";
+import { ChevronDownIcon } from "./icons/ChevronDownIcon";
 
 type GroceryListSectionProps = {
   emptyMessage?: string;
@@ -25,7 +27,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   meat_fish: "Meat & fish",
   oils_fats: "Oils & fats",
   other_review: "Other / review",
-  pantry_basics: "Pantry Basics / Check At Home",
+  pantry_basics: "Pantry Basics",
   sauces_canned: "Sauces & canned",
   seasonings_spices: "Seasonings & spices",
   sweeteners: "Sweeteners",
@@ -63,16 +65,13 @@ function GroceryListContent({
   const groupKeys = useMemo(() => groups.map((group) => group.categoryKey), [groups]);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [pantryEnabled, setPantryEnabled] = useState(true);
   const summary = asRecord(groceryList.summary);
   const currency = summaryCurrency(groceryList, summary);
   const selectedItems = items.filter((item, index) => {
-    const category = categoryLabel(item);
     const checked = checkedItems[itemKey(item, index)] ?? true;
-    return checked && (pantryEnabled || !isPantryCategory(category));
+    return checked;
   });
   const selectedPricedItems = selectedItems.filter((item) => itemEstimatedCost(item) !== null);
-  const selectedMissingPriceCount = selectedItems.length - selectedPricedItems.length;
   const selectedEstimatedTotal = selectedPricedItems.reduce(
     (total, item) => total + (itemEstimatedCost(item) ?? 0),
     0,
@@ -96,7 +95,7 @@ function GroceryListContent({
     setExpandedGroups((current) => {
       const next: Record<string, boolean> = {};
       for (const key of groupKeys) {
-        next[key] = current[key] ?? true;
+        next[key] = current[key] ?? false;
       }
       return next;
     });
@@ -113,7 +112,7 @@ function GroceryListContent({
   function toggleGroup(categoryKey: string) {
     setExpandedGroups((current) => ({
       ...current,
-      [categoryKey]: !(current[categoryKey] ?? true),
+      [categoryKey]: !(current[categoryKey] ?? false),
     }));
   }
 
@@ -121,9 +120,6 @@ function GroceryListContent({
     <View style={styles.panel}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.meta}>
-          {selectedItems.length} / {items.length} items
-        </Text>
       </View>
 
       <View style={styles.summaryCard}>
@@ -139,10 +135,7 @@ function GroceryListContent({
             {estimatedTotalText}
           </Text>
           <Text style={styles.summaryMeta}>
-            {selectedItems.length} / {items.length} selected
-          </Text>
-          <Text style={styles.summaryMeta}>
-            Missing prices {selectedMissingPriceCount} items
+            {selectedItems.length} / {items.length} selected items
           </Text>
         </View>
       </View>
@@ -174,65 +167,50 @@ function GroceryListContent({
 
       {groups.length ? (
         <View style={styles.groups}>
-          {groups.map((group) => (
-            <View key={group.category} style={styles.group}>
-              <View style={styles.categoryHeader}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => toggleGroup(group.categoryKey)}
-                  style={({ pressed }) => [
-                    styles.categoryToggle,
-                    pressed ? styles.pressed : null,
-                  ]}
-                >
-                  <View style={styles.categoryTextBlock}>
-                    <Text style={styles.category}>{group.category}</Text>
-                    <Text style={styles.categoryMeta}>{group.items.length} items</Text>
-                  </View>
-                  <Text style={styles.chevron}>
-                    {expandedGroups[group.categoryKey] ?? true ? "^" : "v"}
-                  </Text>
-                </Pressable>
-                {isPantryCategory(group.category) ? (
+          {groups.map((group) => {
+            const isExpanded = expandedGroups[group.categoryKey] ?? false;
+            return (
+              <View key={group.category} style={styles.group}>
+                <View style={styles.categoryHeader}>
                   <Pressable
-                    accessibilityRole="switch"
-                    accessibilityState={{ checked: pantryEnabled }}
-                    onPress={() => setPantryEnabled((current) => !current)}
-                    style={[
-                      styles.pantrySwitch,
-                      pantryEnabled ? styles.pantrySwitchOn : styles.pantrySwitchOff,
+                    accessibilityRole="button"
+                    onPress={() => toggleGroup(group.categoryKey)}
+                    style={({ pressed }) => [
+                      styles.categoryToggle,
+                      pressed ? styles.pressed : null,
                     ]}
                   >
+                    <GroceryCategoryIconHolder categoryKey={group.categoryKey} />
+                    <View style={styles.categoryTextBlock}>
+                      <Text style={styles.category}>{group.category}</Text>
+                      <Text style={styles.categoryMeta}>{group.items.length} items</Text>
+                    </View>
                     <View
                       style={[
-                        styles.pantrySwitchKnob,
-                        pantryEnabled ? styles.pantrySwitchKnobOn : null,
+                        styles.categoryChevron,
+                        isExpanded ? styles.categoryChevronExpanded : null,
                       ]}
-                    />
+                    >
+                      <ChevronDownIcon color={colors.accent} size={18} />
+                    </View>
                   </Pressable>
-                ) : null}
+                </View>
+                {isExpanded
+                  ? group.items.map((item, index) => {
+                      const key = itemKey(item, index);
+                      return (
+                        <GroceryItemRow
+                          checked={checkedItems[key] ?? true}
+                          item={item}
+                          key={key}
+                          onToggle={() => toggleItem(item, index)}
+                        />
+                      );
+                    })
+                  : null}
               </View>
-              {isPantryCategory(group.category) && !pantryEnabled ? (
-                <Text style={styles.pantryNote}>Assumed available at home</Text>
-              ) : null}
-              {expandedGroups[group.categoryKey] ?? true
-                ? group.items.map((item, index) => {
-                    const key = itemKey(item, index);
-                    const pantryDisabled =
-                      isPantryCategory(group.category) && !pantryEnabled;
-                    return (
-                      <GroceryItemRow
-                        checked={(checkedItems[key] ?? true) && !pantryDisabled}
-                        disabled={pantryDisabled}
-                        item={item}
-                        key={key}
-                        onToggle={() => toggleItem(item, index)}
-                      />
-                    );
-                  })
-                : null}
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : (
         <Text style={styles.mutedText}>No grocery items returned.</Text>
@@ -317,6 +295,18 @@ function groupItems(items: GroceryListItem[]): GroceryGroup[] {
   return groups;
 }
 
+function GroceryCategoryIconHolder({ categoryKey }: { categoryKey: string }) {
+  return (
+    <View style={styles.categoryIconHolder}>
+      <Image
+        resizeMode="contain"
+        source={groceryCategoryIconForKey(categoryKey)}
+        style={styles.categoryIconImage}
+      />
+    </View>
+  );
+}
+
 function duplicateGroupKey(item: GroceryListItem, category: string): string {
   const name =
     stringValue(item.canonical_name) ??
@@ -333,11 +323,10 @@ function categoryLabel(item: GroceryListItem): string {
     stringValue(item.grocery_category) ??
     "other_review";
   const normalized = rawLabel.trim();
+  if (normalizeKey(normalized).startsWith("pantry_basics")) {
+    return CATEGORY_LABELS.pantry_basics;
+  }
   return CATEGORY_LABELS[normalized] ?? titleize(normalized);
-}
-
-function isPantryCategory(category: string): boolean {
-  return normalizeKey(category) === normalizeKey(CATEGORY_LABELS.pantry_basics);
 }
 
 function neededGramsValue(item: GroceryListItem): number | null {
@@ -598,7 +587,7 @@ const styles = StyleSheet.create({
     width: 58,
   },
   groups: {
-    gap: 16,
+    gap: 12,
   },
   group: {
     borderWidth: 1,
@@ -634,41 +623,30 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     gap: 10,
-    minHeight: 34,
+    minHeight: 44,
   },
-  chevron: {
-    color: colors.accentDark,
-    fontSize: 16,
-    fontWeight: "900",
-    width: 18,
-  },
-  pantryNote: {
-    color: colors.mutedSoft,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: -4,
-  },
-  pantrySwitch: {
-    borderRadius: 12,
+  categoryChevron: {
+    alignItems: "center",
     height: 24,
     justifyContent: "center",
-    paddingHorizontal: 3,
+    transform: [{ rotate: "0deg" }],
+    width: 24,
+  },
+  categoryChevronExpanded: {
+    transform: [{ rotate: "180deg" }],
+  },
+  categoryIconHolder: {
+    alignItems: "center",
+    backgroundColor: "#EEF7E8",
+    borderRadius: 12,
+    height: 44,
+    justifyContent: "center",
+    overflow: "hidden",
     width: 44,
   },
-  pantrySwitchKnob: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 9,
-    height: 18,
-    width: 18,
-  },
-  pantrySwitchKnobOn: {
-    alignSelf: "flex-end",
-  },
-  pantrySwitchOff: {
-    backgroundColor: "#D1D5DB",
-  },
-  pantrySwitchOn: {
-    backgroundColor: colors.accent,
+  categoryIconImage: {
+    height: 44,
+    width: 44,
   },
   mutedText: {
     color: colors.mutedSoft,

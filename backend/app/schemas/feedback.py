@@ -9,6 +9,7 @@ FeedbackType = Literal["liked", "disliked", "too_long", "explicit_avoid"]
 
 
 class FeedbackEventRequest(BaseModel):
+    event_id: str | None = None
     household_id: str
     member_profile_id: str | None = None
     recipe_id: str

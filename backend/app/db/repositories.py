@@ -678,15 +678,35 @@ def delete_feedback_events(
     conn: sqlite3.Connection,
     household_id: str | None = None,
     member_profile_id: str | None = None,
+    event_id: str | None = None,
+    recipe_id: str | None = None,
+    plan_id: str | None = None,
+    slot: str | None = None,
+    feedback_type: str | None = None,
 ) -> int:
     clauses: list[str] = []
     params: list[Any] = []
+    if _clean_text(event_id):
+        clauses.append("event_id = ?")
+        params.append(_clean_text(event_id))
     if _clean_text(household_id):
         clauses.append("household_id = ?")
         params.append(_clean_text(household_id))
     if _clean_text(member_profile_id):
         clauses.append("member_profile_id = ?")
         params.append(_clean_text(member_profile_id))
+    if _clean_text(recipe_id):
+        clauses.append("recipe_id = ?")
+        params.append(_clean_text(recipe_id))
+    if _clean_text(plan_id):
+        clauses.append("plan_id = ?")
+        params.append(_clean_text(plan_id))
+    if _clean_text(slot):
+        clauses.append("slot = ?")
+        params.append(_clean_text(slot))
+    if _clean_text(feedback_type):
+        clauses.append("feedback_type = ?")
+        params.append(_clean_text(feedback_type))
     where_sql = " WHERE " + " AND ".join(clauses) if clauses else ""
     cursor = conn.execute(f"DELETE FROM feedback_events{where_sql}", params)
     return int(cursor.rowcount or 0)

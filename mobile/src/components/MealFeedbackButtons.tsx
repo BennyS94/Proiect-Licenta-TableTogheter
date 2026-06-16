@@ -1,17 +1,17 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   LayoutAnimation,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
-  UIManager,
   View,
 } from "react-native";
 
 import type { FeedbackType, GeneratedMeal } from "../types/api";
 import { colors } from "../theme/colors";
+import { ChevronDownIcon } from "./icons/ChevronDownIcon";
 
 type MealFeedbackButtonsProps = {
   meal: GeneratedMeal;
@@ -57,10 +57,6 @@ const FEEDBACK_SELECTED_STYLES: Record<
   },
 };
 
-if (Platform.OS === "android") {
-  UIManager.setLayoutAnimationEnabledExperimental?.(true);
-}
-
 export function MealFeedbackButtons({
   meal,
   disabled,
@@ -71,13 +67,31 @@ export function MealFeedbackButtons({
   const recipeId = getMealRecipeId(meal);
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<FeedbackType | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const chevronProgress = useRef(new Animated.Value(0)).current;
+  const isBusy = disabled || Boolean(pendingFeedbackType);
+  const controlLabel = selectedFeedbackType
+    ? `Rate meal: ${labelForFeedbackType(selectedFeedbackType)}`
+    : "Rate meal";
+
+  useEffect(() => {
+    Animated.timing(chevronProgress, {
+      duration: 220,
+      toValue: isExpanded ? 1 : 0,
+      useNativeDriver: true,
+    }).start();
+  }, [chevronProgress, isExpanded]);
+
+  const chevronRotate = chevronProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
 
   if (!recipeId) {
-    return <Text style={styles.unavailable}>Feedback unavailable for this meal.</Text>;
+    return <Text style={styles.unavailable}>Rate meal unavailable for this meal.</Text>;
   }
 
   async function selectFeedback(feedbackType: FeedbackType) {
-    if (disabled || pendingFeedbackType) {
+    if (isBusy) {
       return;
     }
     if (selectedFeedbackType === feedbackType) {
@@ -91,7 +105,7 @@ export function MealFeedbackButtons({
   }
 
   function toggleFeedback() {
-    if (disabled || pendingFeedbackType) {
+    if (isBusy) {
       return;
     }
     animateFeedbackLayout();
@@ -103,26 +117,26 @@ export function MealFeedbackButtons({
       {isExpanded ? (
         <View
           style={[
-            styles.feedbackControl,
-            styles.feedbackControlExpanded,
-            disabled || pendingFeedbackType ? styles.buttonDisabled : null,
+            styles.rateControl,
+            styles.rateControlExpanded,
+            isBusy ? styles.buttonDisabled : null,
           ]}
         >
           <Pressable
             accessibilityRole="button"
-            disabled={disabled || Boolean(pendingFeedbackType)}
+            disabled={isBusy}
             onPress={toggleFeedback}
             style={({ pressed }) => [
-              styles.feedbackHeader,
-              pressed && !disabled ? styles.buttonPressed : null,
+              styles.rateHeader,
+              pressed && !isBusy ? styles.buttonPressed : null,
             ]}
           >
-            <Text style={styles.toggleButtonText}>
-              {selectedFeedbackType
-                ? `Feedback: ${labelForFeedbackType(selectedFeedbackType)}`
-                : "Feedback"}{" "}
-              ^
+            <Text numberOfLines={1} style={styles.toggleButtonText}>
+              {controlLabel}
             </Text>
+            <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+              <ChevronDownIcon />
+            </Animated.View>
           </Pressable>
           <View style={styles.optionRow}>
             {FEEDBACK_ACTIONS.map((action) => {
@@ -132,7 +146,7 @@ export function MealFeedbackButtons({
               return (
                 <Pressable
                   accessibilityRole="button"
-                  disabled={disabled || Boolean(pendingFeedbackType)}
+                  disabled={isBusy}
                   key={action.type}
                   onPress={() => {
                     void selectFeedback(action.type);
@@ -145,8 +159,8 @@ export function MealFeedbackButtons({
                           borderColor: selectedStyle.borderColor,
                         }
                       : null,
-                    pressed && !disabled ? styles.buttonPressed : null,
-                    disabled || pendingFeedbackType ? styles.buttonDisabled : null,
+                    pressed && !isBusy ? styles.buttonPressed : null,
+                    isBusy ? styles.buttonDisabled : null,
                   ]}
                 >
                   {isPending ? (
@@ -169,21 +183,21 @@ export function MealFeedbackButtons({
       ) : (
         <Pressable
           accessibilityRole="button"
-          disabled={disabled || Boolean(pendingFeedbackType)}
+          disabled={isBusy}
           onPress={toggleFeedback}
           style={({ pressed }) => [
-            styles.feedbackControl,
-            styles.feedbackControlCollapsed,
-            pressed && !disabled ? styles.buttonPressed : null,
-            disabled || pendingFeedbackType ? styles.buttonDisabled : null,
+            styles.rateControl,
+            styles.rateControlCollapsed,
+            pressed && !isBusy ? styles.buttonPressed : null,
+            isBusy ? styles.buttonDisabled : null,
           ]}
         >
-          <Text style={styles.toggleButtonText}>
-            {selectedFeedbackType
-              ? `Feedback: ${labelForFeedbackType(selectedFeedbackType)}`
-              : "Feedback"}{" "}
-            v
+          <Text numberOfLines={1} style={styles.toggleButtonText}>
+            {controlLabel}
           </Text>
+          <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+            <ChevronDownIcon />
+          </Animated.View>
         </Pressable>
       )}
     </View>
@@ -219,38 +233,43 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 2,
   },
-  feedbackControl: {
+  rateControl: {
     alignItems: "center",
     backgroundColor: "#FAFCF7",
-    borderColor: "#CFE3BF",
+    borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: "center",
     paddingHorizontal: 12,
     width: "100%",
   },
-  feedbackControlCollapsed: {
-    minHeight: 34,
+  rateControlCollapsed: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 38,
   },
-  feedbackControlExpanded: {
+  rateControlExpanded: {
     alignItems: "stretch",
-    gap: 7,
-    minHeight: 74,
+    gap: 8,
+    minHeight: 80,
     paddingVertical: 7,
   },
-  feedbackHeader: {
+  rateHeader: {
     alignItems: "center",
-    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "space-between",
     minHeight: 25,
   },
   optionRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 7,
   },
   toggleButtonText: {
-    color: colors.accentDark,
+    color: colors.accent,
     fontSize: 13,
     fontWeight: "900",
+    flex: 1,
   },
   optionButton: {
     alignItems: "center",

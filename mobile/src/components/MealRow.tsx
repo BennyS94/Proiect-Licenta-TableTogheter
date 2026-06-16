@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { FeedbackType, GeneratedMeal, MealReplacementResponse } from "../types/api";
 import { colors } from "../theme/colors";
+import { IngredientMeasurementRow } from "./IngredientMeasurementRow";
 import { MealFeedbackButtons } from "./MealFeedbackButtons";
 import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 import { BottomSheet } from "./ui/BottomSheet";
@@ -100,7 +101,7 @@ export function MealRow({
       >
         {activeSheet === "cook" ? (
           <View style={styles.sheetContent}>
-            <SheetSection items={ingredients} title="Ingredients" />
+            <SheetSection items={ingredients} showIngredientIcons title="Ingredients" />
             <View style={styles.sheetSection}>
               <Text style={styles.detailTitle}>Cooking steps</Text>
               {steps.length ? (
@@ -195,7 +196,15 @@ function SmallActionButton({
   );
 }
 
-function SheetSection({ items, title }: { items: string[]; title: string }) {
+function SheetSection({
+  items,
+  showIngredientIcons,
+  title,
+}: {
+  items: string[];
+  showIngredientIcons?: boolean;
+  title: string;
+}) {
   if (!items.length) {
     return null;
   }
@@ -204,9 +213,13 @@ function SheetSection({ items, title }: { items: string[]; title: string }) {
     <View style={styles.sheetSection}>
       <Text style={styles.detailTitle}>{title}</Text>
       {items.map((item, index) => (
-        <Text key={`${item}-${index}`} style={styles.detailText}>
-          {item}
-        </Text>
+        <View key={`${item}-${index}`}>
+          {showIngredientIcons ? (
+            <IngredientMeasurementRow text={item} />
+          ) : (
+            <Text style={styles.detailText}>{item}</Text>
+          )}
+        </View>
       ))}
     </View>
   );

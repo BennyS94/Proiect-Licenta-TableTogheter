@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Platform, ScrollView, StatusBar, StyleSheet, View } from "react-native";
@@ -8,9 +9,26 @@ import { colors } from "../../theme/colors";
 type AppScreenProps = {
   children: ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  scrollToTopSignal?: number;
 };
 
-export function AppScreen({ children, contentContainerStyle }: AppScreenProps) {
+export function AppScreen({
+  children,
+  contentContainerStyle,
+  scrollToTopSignal,
+}: AppScreenProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const previousScrollSignalRef = useRef(scrollToTopSignal);
+
+  useEffect(() => {
+    if (scrollToTopSignal == null || previousScrollSignalRef.current === scrollToTopSignal) {
+      return;
+    }
+
+    previousScrollSignalRef.current = scrollToTopSignal;
+    scrollRef.current?.scrollTo({ animated: true, y: 0 });
+  }, [scrollToTopSignal]);
+
   return (
     <View style={styles.shell}>
       <ScrollView
@@ -19,6 +37,7 @@ export function AppScreen({ children, contentContainerStyle }: AppScreenProps) {
         contentContainerStyle={[styles.container, contentContainerStyle]}
         fadingEdgeLength={TOP_FADE_HEIGHT}
         overScrollMode="never"
+        ref={scrollRef}
         style={styles.scroll}
       >
         {children}

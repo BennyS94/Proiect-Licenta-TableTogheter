@@ -50,6 +50,7 @@ type InsightsPageProps = {
   onGoToMealPlan: () => void;
   onSelectDay: (value: InsightsDaySelection) => void;
   profileSelector?: ReactNode;
+  scrollToTopSignal?: number;
   selectedDay: InsightsDaySelection;
   targetTotals?: InsightsTotals;
   totals?: InsightsTotals;
@@ -87,6 +88,7 @@ export function InsightsPage({
   onGoToMealPlan,
   onSelectDay,
   profileSelector,
+  scrollToTopSignal,
   selectedDay,
   targetTotals,
   totals,
@@ -155,7 +157,7 @@ export function InsightsPage({
 
   if (!isSetupComplete) {
     return (
-      <AppScreen>
+      <AppScreen scrollToTopSignal={scrollToTopSignal}>
         <EmptyState
           actionLabel="Go to Account Setup"
           onAction={onGoToHousehold}
@@ -168,7 +170,7 @@ export function InsightsPage({
 
   if (!hasMembers) {
     return (
-      <AppScreen>
+      <AppScreen scrollToTopSignal={scrollToTopSignal}>
         <EmptyState
           actionLabel="Add Member Profile"
           onAction={onGoToHousehold}
@@ -181,7 +183,7 @@ export function InsightsPage({
 
   if (!hasPlan) {
     return (
-      <AppScreen>
+      <AppScreen scrollToTopSignal={scrollToTopSignal}>
         <EmptyState
           actionLabel="Go to Meal Plan"
           onAction={onGoToMealPlan}
@@ -193,7 +195,10 @@ export function InsightsPage({
   }
 
   return (
-    <AppScreen contentContainerStyle={styles.screenContainer}>
+    <AppScreen
+      contentContainerStyle={styles.screenContainer}
+      scrollToTopSignal={scrollToTopSignal}
+    >
       <View style={styles.header}>
         {profileSelector ? (
           <View style={styles.profileSelectorSlot}>{profileSelector}</View>

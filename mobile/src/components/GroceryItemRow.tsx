@@ -21,34 +21,41 @@ export function GroceryItemRow({
   const muted = disabled || !checked;
 
   return (
-    <View style={[styles.row, muted ? styles.rowMuted : null]}>
-      <View style={styles.main}>
-        <Text style={styles.name}>{displayName(item)}</Text>
-        <Text style={styles.detail}>Need: {neededAmount(item)}</Text>
-        <Text style={styles.detail}>Buy: {purchaseSuggestion(item)}</Text>
-      </View>
-      <View style={styles.side}>
-        <Text style={[missingPrice || muted ? styles.missingPrice : styles.cost]}>
-          {priceText ?? "Price unavailable"}
-        </Text>
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked, disabled }}
-          disabled={disabled}
-          onPress={onToggle}
-          style={({ pressed }) => [
-            styles.checkbox,
-            checked ? styles.checkboxChecked : styles.checkboxUnchecked,
-            disabled ? styles.checkboxDisabled : null,
-            pressed && !disabled ? styles.checkboxPressed : null,
-          ]}
-        >
-          <Text style={[styles.checkboxMark, checked ? styles.checkboxMarkChecked : null]}>
-            {checked ? "✓" : ""}
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked, disabled }}
+      disabled={disabled}
+      onPress={onToggle}
+      style={({ pressed }) => [
+        styles.row,
+        muted ? styles.rowMuted : null,
+        pressed && !disabled ? styles.rowPressed : null,
+      ]}
+    >
+      <View style={styles.content}>
+        <View style={styles.main}>
+          <Text style={styles.name}>{displayName(item)}</Text>
+          <Text style={styles.detail}>Need: {neededAmount(item)}</Text>
+          <Text style={styles.detail}>Buy: {purchaseSuggestion(item)}</Text>
+        </View>
+        <View style={styles.side}>
+          <Text style={[missingPrice || muted ? styles.missingPrice : styles.cost]}>
+            {priceText ?? "Price unavailable"}
           </Text>
-        </Pressable>
+          <View
+            style={[
+              styles.checkbox,
+              checked ? styles.checkboxChecked : styles.checkboxUnchecked,
+              disabled ? styles.checkboxDisabled : null,
+            ]}
+          >
+            <Text style={[styles.checkboxMark, checked ? styles.checkboxMarkChecked : null]}>
+              {checked ? "✓" : ""}
+            </Text>
+          </View>
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -69,7 +76,15 @@ function neededAmount(item: GroceryListItem): string {
 }
 
 function purchaseSuggestion(item: GroceryListItem): string {
-  return stringValue(item.purchase_display) ?? "-";
+  const value = stringValue(item.purchase_display);
+  if (!value) {
+    return "-";
+  }
+  return value
+    .replace(/(^|[\s;/])about\s+~?/gi, "$1")
+    .replace(/(^|[\s;/])~(?=\d)/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 function formatCost(item: GroceryListItem): string | null {
@@ -103,13 +118,19 @@ const styles = StyleSheet.create({
   row: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
     paddingTop: 12,
+  },
+  content: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
   },
   rowMuted: {
     opacity: 0.56,
+  },
+  rowPressed: {
+    opacity: 0.78,
   },
   main: {
     flex: 1,
@@ -127,16 +148,17 @@ const styles = StyleSheet.create({
   },
   side: {
     alignItems: "flex-end",
-    gap: 7,
+    gap: 6,
+    justifyContent: "center",
     minWidth: 104,
   },
   checkbox: {
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 7,
     borderWidth: 1,
-    height: 26,
+    height: 24,
     justifyContent: "center",
-    width: 26,
+    width: 24,
   },
   checkboxChecked: {
     backgroundColor: "#EEF7E8",
@@ -148,15 +170,12 @@ const styles = StyleSheet.create({
   },
   checkboxMark: {
     color: colors.mutedSoft,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "900",
-    lineHeight: 18,
+    lineHeight: 16,
   },
   checkboxMarkChecked: {
     color: colors.accentDark,
-  },
-  checkboxPressed: {
-    opacity: 0.75,
   },
   checkboxUnchecked: {
     backgroundColor: "#FFFFFF",

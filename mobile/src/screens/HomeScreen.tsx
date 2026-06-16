@@ -143,6 +143,14 @@ export function HomeScreen() {
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [editingMemberProfileId, setEditingMemberProfileId] = useState("");
   const [activePage, setActivePage] = useState<AppPageKey>("home");
+  const [scrollToTopRequests, setScrollToTopRequests] = useState<
+    Record<AppPageKey, number>
+  >({
+    home: 0,
+    household: 0,
+    insights: 0,
+    mealPlan: 0,
+  });
   const [isDemoModeEnabled, setIsDemoModeEnabled] = useState(false);
   const [isContinuingDemo, setIsContinuingDemo] = useState(false);
   const [defaultViewerId, setDefaultViewerId] = useState("");
@@ -260,6 +268,20 @@ export function HomeScreen() {
       setErrorMessage(error instanceof Error ? error.message : "Unknown error");
       setHealthStatus("error");
     }
+  }
+
+  function selectFloatingNavPage(page: AppPageKey) {
+    if (page === activePage) {
+      if (page !== "household") {
+        setScrollToTopRequests((current) => ({
+          ...current,
+          [page]: current[page] + 1,
+        }));
+      }
+      return;
+    }
+
+    setActivePage(page);
   }
 
   async function loadDemoHousehold() {
@@ -1457,6 +1479,7 @@ export function HomeScreen() {
         onGoToHousehold={() => setActivePage("household")}
         onGoToMealPlan={() => setActivePage("mealPlan")}
         profileCount={configuredProfileCount}
+        scrollToTopSignal={scrollToTopRequests.home}
       />
     );
   } else if (activePage === "mealPlan") {
@@ -1473,6 +1496,7 @@ export function HomeScreen() {
         onGoToHousehold={() => setActivePage("household")}
         onSelectTab={setMealPlanTab}
         profileSelector={mealPlanProfileSelectorNode}
+        scrollToTopSignal={scrollToTopRequests.mealPlan}
         selectedTab={mealPlanTab}
       />
     );
@@ -1492,6 +1516,7 @@ export function HomeScreen() {
         onGoToMealPlan={() => setActivePage("mealPlan")}
         onSelectDay={handleInsightsDaySelect}
         profileSelector={mealPlanProfileSelectorNode}
+        scrollToTopSignal={scrollToTopRequests.insights}
         selectedDay={safeInsightsDay}
         targetTotals={insightsTargetTotals}
         totals={insightsTotals}
@@ -1524,7 +1549,7 @@ export function HomeScreen() {
   return (
     <View style={styles.shell}>
       <View style={styles.content}>{pageContent}</View>
-      <FloatingNav activePage={activePage} onSelectPage={setActivePage} />
+      <FloatingNav activePage={activePage} onSelectPage={selectFloatingNavPage} />
     </View>
   );
 }

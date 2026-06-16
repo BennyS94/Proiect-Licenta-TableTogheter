@@ -23,6 +23,7 @@ Thumbs.db
 *.log
 *.tmp
 /zzzzzz_mobile_testing_notes/
+/zzzzzz_documentatie/
 .codex_runtime_logs/
 
 # Stare locala/demo, nu se comite.

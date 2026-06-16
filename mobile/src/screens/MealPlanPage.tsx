@@ -21,6 +21,7 @@ type MealPlanPageProps = {
   onGoToHousehold: () => void;
   onSelectTab: (tab: MealPlanTab) => void;
   profileSelector?: ReactNode;
+  scrollToTopSignal?: number;
   selectedTab: MealPlanTab;
 };
 
@@ -37,11 +38,12 @@ export function MealPlanPage({
   onGoToHousehold,
   onSelectTab,
   profileSelector,
+  scrollToTopSignal,
   selectedTab,
 }: MealPlanPageProps) {
   if (!isSetupComplete) {
     return (
-      <AppScreen>
+      <AppScreen scrollToTopSignal={scrollToTopSignal}>
         <EmptyState
           actionLabel="Go to Account Setup"
           onAction={onGoToHousehold}
@@ -53,7 +55,10 @@ export function MealPlanPage({
   }
 
   return (
-    <AppScreen contentContainerStyle={styles.screenContainer}>
+    <AppScreen
+      contentContainerStyle={styles.screenContainer}
+      scrollToTopSignal={scrollToTopSignal}
+    >
       {!hasMembers ? (
         <EmptyState
           actionLabel="Add Member Profile"

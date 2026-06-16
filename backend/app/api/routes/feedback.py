@@ -54,6 +54,11 @@ def get_feedback_context(
 def delete_feedback(
     household_id: str | None = None,
     member_profile_id: str | None = None,
+    event_id: str | None = None,
+    recipe_id: str | None = None,
+    plan_id: str | None = None,
+    slot: str | None = None,
+    feedback_type: str | None = None,
     confirm: bool = Query(default=False),
 ) -> dict[str, Any]:
     if not confirm:
@@ -64,6 +69,11 @@ def delete_feedback(
             conn,
             household_id=household_id,
             member_profile_id=member_profile_id,
+            event_id=event_id,
+            recipe_id=recipe_id,
+            plan_id=plan_id,
+            slot=slot,
+            feedback_type=feedback_type,
         )
     return {
         "deleted": True,

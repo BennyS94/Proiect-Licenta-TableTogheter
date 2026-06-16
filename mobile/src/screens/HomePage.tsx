@@ -37,6 +37,7 @@ type HomePageProps = {
   onGoToHousehold: () => void;
   onGoToMealPlan: () => void;
   profileCount: number;
+  scrollToTopSignal?: number;
 };
 
 type HomeSubPage = "highlights" | "familyKids" | "healthyHabits";
@@ -69,6 +70,7 @@ export function HomePage({
   onGoToHousehold,
   onGoToMealPlan,
   profileCount,
+  scrollToTopSignal,
 }: HomePageProps) {
   const { width } = useWindowDimensions();
   const [tipIndex, setTipIndex] = useState(0);
@@ -99,13 +101,14 @@ export function HomePage({
         contentWidth={contentWidth}
         items={section.items}
         onBack={() => setHomeSubPage(null)}
+        scrollToTopSignal={scrollToTopSignal}
         title={section.title}
       />
     );
   }
 
   return (
-    <AppScreen contentContainerStyle={styles.screen}>
+    <AppScreen contentContainerStyle={styles.screen} scrollToTopSignal={scrollToTopSignal}>
       <View style={[styles.hero, { minHeight: animationHeight, width: contentWidth }]}>
         <View style={styles.heroCopy}>
           <Text
@@ -222,15 +225,17 @@ function HomeSeeAllPage({
   contentWidth,
   items,
   onBack,
+  scrollToTopSignal,
   title,
 }: {
   contentWidth: number;
   items: HomeResourceItem[];
   onBack: () => void;
+  scrollToTopSignal?: number;
   title: string;
 }) {
   return (
-    <AppScreen contentContainerStyle={styles.screen}>
+    <AppScreen contentContainerStyle={styles.screen} scrollToTopSignal={scrollToTopSignal}>
       <View style={[styles.seeAllHeader, { width: contentWidth }]}>
         <Pressable
           accessibilityRole="button"
