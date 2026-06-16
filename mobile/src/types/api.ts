@@ -190,6 +190,8 @@ export type GroceryListItem = {
   display_grams?: string;
   total_grams?: number;
   purchase_display?: string;
+  purchase_item_key?: string;
+  purchase_unit_type?: string;
   estimated_cost?: number | null;
   estimated_cost_display?: string;
   currency?: string;

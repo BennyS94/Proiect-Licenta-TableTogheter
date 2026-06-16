@@ -26,7 +26,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   legumes_beans: "Legumes & beans",
   meat_fish: "Meat & fish",
   oils_fats: "Oils & fats",
-  other_review: "Other / review",
+  other_review: "Other items",
   pantry_basics: "Pantry Basics",
   sauces_canned: "Sauces & canned",
   seasonings_spices: "Seasonings & spices",
@@ -183,7 +183,7 @@ function GroceryListContent({
                     <GroceryCategoryIconHolder categoryKey={group.categoryKey} />
                     <View style={styles.categoryTextBlock}>
                       <Text style={styles.category}>{group.category}</Text>
-                      <Text style={styles.categoryMeta}>{group.items.length} items</Text>
+                      <Text style={styles.categoryMeta}>{formatItemCount(group.items.length)}</Text>
                     </View>
                     <View
                       style={[
@@ -228,7 +228,19 @@ function groceryItems(groceryList: GroceryListResponse): GroceryListItem[] {
     : Array.isArray(groceryList.items)
       ? groceryList.items
       : [];
-  return items.filter(isRecord).map((item) => item as GroceryListItem);
+  return items
+    .filter(isRecord)
+    .map((item) => item as GroceryListItem)
+    .filter(isDisplayableGroceryItem);
+}
+
+function isDisplayableGroceryItem(item: GroceryListItem): boolean {
+  const names = [
+    item.display_name_clean,
+    item.display_name,
+    item.canonical_name,
+  ];
+  return !names.some((name) => normalizeText(stringValue(name) ?? "") === "or more");
 }
 
 function aggregateDuplicateItems(items: GroceryListItem[]): GroceryListItem[] {
@@ -308,15 +320,23 @@ function GroceryCategoryIconHolder({ categoryKey }: { categoryKey: string }) {
 }
 
 function duplicateGroupKey(item: GroceryListItem, category: string): string {
+  const displayName = normalizeDisplayName(
+    stringValue(item.display_name_clean ?? item.display_name ?? item.canonical_name),
+  );
   const name =
-    stringValue(item.canonical_name) ??
-    stringValue(item.display_name_clean) ??
-    stringValue(item.display_name) ??
+    stringValue(item.purchase_item_key) ??
+    displayName ??
     "grocery_item";
   return `${normalizeKey(category)}:${normalizeKey(name)}`;
 }
 
 function categoryLabel(item: GroceryListItem): string {
+  const displayName = normalizeText(
+    stringValue(item.display_name_clean ?? item.display_name ?? item.canonical_name) ?? "",
+  );
+  if (displayName.includes("green chile peppers") || displayName.includes("green onions")) {
+    return CATEGORY_LABELS.vegetables;
+  }
   const rawLabel =
     stringValue(item.category_label) ??
     stringValue(item.category) ??
@@ -325,6 +345,9 @@ function categoryLabel(item: GroceryListItem): string {
   const normalized = rawLabel.trim();
   if (normalizeKey(normalized).startsWith("pantry_basics")) {
     return CATEGORY_LABELS.pantry_basics;
+  }
+  if (normalizeKey(normalized) === "other_review") {
+    return CATEGORY_LABELS.other_review;
   }
   return CATEGORY_LABELS[normalized] ?? titleize(normalized);
 }
@@ -348,12 +371,12 @@ function aggregatePurchaseDisplay(item: GroceryListItem, neededGrams: number): s
   const original = stringValue(item.purchase_display) ?? "";
   const amount = formatAmountGrams(roundPurchaseAmount(neededGrams));
   if (original.toLowerCase().includes("check pantry")) {
-    return `check pantry; need about ${amount}`;
+    return "";
   }
   if (original.toLowerCase().includes("review item")) {
-    return `review item; need about ${amount}`;
+    return `review item; need ${amount}`;
   }
-  return `about ${amount}`;
+  return amount;
 }
 
 function roundPurchaseAmount(grams: number): number {
@@ -368,9 +391,13 @@ function roundPurchaseAmount(grams: number): number {
 
 function formatAmountGrams(grams: number): string {
   if (grams >= 1000) {
-    return `~${formatCompactNumber(grams / 1000)}kg`;
+    return `~${formatCompactNumber(grams / 1000)} kg`;
   }
-  return `~${Math.round(grams)}g`;
+  return `~${Math.round(grams)} g`;
+}
+
+function formatItemCount(count: number): string {
+  return `${count} ${count === 1 ? "item" : "items"}`;
 }
 
 function formatCompactNumber(value: number): string {
@@ -387,6 +414,37 @@ function roundNumber(value: number, digits: number): number {
 
 function normalizeKey(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function normalizeDisplayName(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const normalized = normalizeText(value);
+  if (
+    normalized.includes("milk fat content unknown") &&
+    normalized.includes("uht") &&
+    (normalized.includes("sterilized") || normalized.includes("sterilised"))
+  ) {
+    return "UHT milk";
+  }
+  if (
+    normalized.includes("bread french bread baguette") ||
+    normalized.includes("french bread baguette")
+  ) {
+    return "Baguette";
+  }
+  if (normalized.includes("wheat flour white all purpose enriched unbleached")) {
+    return "All-purpose flour";
+  }
+  if (normalized.includes("corn tortilla wrap to be filled")) {
+    return "Corn tortillas";
+  }
+  return value;
+}
+
+function normalizeText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function titleize(value: string): string {

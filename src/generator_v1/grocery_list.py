@@ -54,7 +54,7 @@ CATEGORY_LABELS = {
     "sweeteners": "Sweeteners",
     "seasonings_spices": "Seasonings & spices",
     "pantry_basics": "Pantry basics / check at home",
-    "other_review": "Other / review",
+    "other_review": "Other items",
 }
 
 SAFE_ALIAS_CATEGORIES = {
@@ -63,6 +63,32 @@ SAFE_ALIAS_CATEGORIES = {
     "Parmesan cheese": "dairy_eggs",
     "Black pepper": "pantry_basics",
     "Salt": "pantry_basics",
+    "Cooked ham": "meat_fish",
+    "Mozzarella cheese": "dairy_eggs",
+    "Semi-skimmed milk": "dairy_eggs",
+    "White sugar": "sweeteners",
+}
+
+INVALID_GROCERY_ITEM_NAMES = {
+    "or more",
+}
+
+CRITICAL_DESCRIPTOR_KEYWORDS = {
+    "raw",
+    "cooked",
+    "dry",
+    "dried",
+    "canned",
+    "drained",
+    "fresh",
+    "frozen",
+    "paste",
+    "puree",
+    "whole",
+    "sliced",
+    "plain",
+    "flavored",
+    "flavoured",
 }
 
 
@@ -310,6 +336,8 @@ def normalize_grocery_display_name(item: dict[str, Any]) -> str:
         return "Salt"
     if "low fat milk" in text or _normalise_name(raw_name).startswith("2 low fat milk"):
         return "Low-fat milk"
+    if "milk fat content unknown uht sterilized" in text:
+        return "UHT milk"
     if "white sugar" in text:
         return "White sugar"
     if "sugar brown" in text or "brown sugar" in text:
@@ -344,6 +372,12 @@ def normalize_grocery_display_name(item: dict[str, Any]) -> str:
         return "Greek yogurt"
     if "bread wholemeal" in text or "wholemeal bread" in text:
         return "Wholemeal bread"
+    if "bread french bread baguette or ball with yeast" in text or "french bread baguette" in text:
+        return "Baguette"
+    if "wheat flour white all purpose enriched unbleached" in text:
+        return "All-purpose flour"
+    if "corn tortilla wrap to be filled" in text or "corn tortillas" in text:
+        return "Corn tortillas"
     if "dried pasta raw" in text:
         return "Pasta (dry)"
     if "oat raw" in text or "rolled oats" in text:
@@ -433,9 +467,34 @@ def normalize_grocery_category(item: dict[str, Any]) -> str:
         ],
     ):
         return "meat_fish"
-    if _contains_any(text, ["rice", "pasta", "potato", "oat", "oats", "bread", "flour", "noodle", "quinoa"]):
+    if _contains_any(text, ["rice", "pasta", "potato", "oat", "oats", "bread", "flour", "noodle", "quinoa", "tortilla", "tortillas"]):
         return "carbs_grains"
-    if _contains_any(text, ["green beans", "broccoli", "onion", "pepper", "tomato", "lettuce", "spinach", "zucchini", "cabbage", "carrot", "garlic", "corn"]):
+    if _contains_any(
+        text,
+        [
+            "green beans",
+            "broccoli",
+            "onion",
+            "onions",
+            "green onion",
+            "green onions",
+            "pepper",
+            "peppers",
+            "chile pepper",
+            "chile peppers",
+            "chili pepper",
+            "chili peppers",
+            "tomato",
+            "tomatoes",
+            "lettuce",
+            "spinach",
+            "zucchini",
+            "cabbage",
+            "carrot",
+            "garlic",
+            "corn",
+        ],
+    ):
         if "garlic" in text and grams <= 50:
             return "seasonings_spices"
         return "vegetables"
@@ -473,21 +532,77 @@ def get_display_group_alias(item: dict[str, Any]) -> str | None:
     return None
 
 
+def _purchase_item_key(item: dict[str, Any], display_name: str, category: str) -> str:
+    descriptor_signature = _critical_descriptor_signature(item, display_name)
+    descriptor_part = descriptor_signature or "standard"
+    return "purchase_item:{category}:{name}:{descriptor}".format(
+        category=_key_part(category),
+        name=_key_part(display_name),
+        descriptor=_key_part(descriptor_part),
+    )
+
+
+def _critical_descriptor_signature(item: dict[str, Any], display_name: str) -> str:
+    text = _normalise_name(
+        " ".join(
+            [
+                display_name,
+                _clean_text(item.get("display_name")),
+                _clean_text(item.get("canonical_name")),
+                " ".join(str(value) for value in _text_values(item.get("source_item_names"))),
+                " ".join(str(value) for value in _text_values(item.get("ingredient_names_seen"))),
+            ]
+        )
+    )
+    descriptor_aliases = {
+        "dried": "dry",
+        "flavoured": "flavored",
+    }
+    descriptors: set[str] = set()
+    for keyword in CRITICAL_DESCRIPTOR_KEYWORDS:
+        if _contains_any(text, [keyword]):
+            descriptors.add(descriptor_aliases.get(keyword, keyword))
+    return "_".join(sorted(descriptors))
+
+
+def _is_invalid_grocery_item(item: dict[str, Any]) -> bool:
+    values = [
+        item.get("display_name_clean"),
+        item.get("display_name"),
+        item.get("canonical_name"),
+    ]
+    values.extend(_text_values(item.get("ingredient_names_seen")))
+    return any(_normalise_name(value) in INVALID_GROCERY_ITEM_NAMES for value in values)
+
+
+def _text_values(value: Any) -> list[Any]:
+    if isinstance(value, (list, tuple, set)):
+        return [item for item in value if _clean_text(item)]
+    if _clean_text(value):
+        return [value]
+    return []
+
+
+def _key_part(value: Any) -> str:
+    text = _normalise_name(value)
+    return text.replace(" ", "_") or "unknown"
+
+
 def round_grams_for_display(total_grams: Any) -> str:
     grams = _to_float(total_grams)
     if grams <= 0:
-        return "0g"
+        return "0 g"
     if grams < 1:
-        return "<1g"
+        return "<1 g"
     if grams < 10:
         rounded = round(grams * 2) / 2
         if abs(rounded - round(rounded)) < 0.05:
-            return f"{int(round(rounded))}g"
-        return f"{rounded:.1f}g"
+            return f"{int(round(rounded))} g"
+        return f"{rounded:.1f} g"
     if grams < 100:
-        return f"{int(round(grams))}g"
+        return f"{int(round(grams))} g"
     rounded = int(round(grams / 5.0) * 5)
-    return f"{rounded}g"
+    return f"{rounded} g"
 
 
 def grocery_list_rows(
@@ -1014,22 +1129,27 @@ def _materialise_display_items(
     display_groups: dict[str, dict[str, Any]] = {}
     for raw_item in raw_items:
         prepared = _prepare_display_source_item(raw_item, config_data)
+        if _is_invalid_grocery_item(prepared):
+            continue
         alias = get_display_group_alias(prepared)
         if alias:
-            group_key = f"safe_display_alias:{_normalise_name(alias)}"
             grouped_display_method = "safe_display_alias"
             display_name_clean = alias
             category = SAFE_ALIAS_CATEGORIES[alias]
+            purchase_item_key = _purchase_item_key(prepared, display_name_clean, category)
+            group_key = purchase_item_key
         elif prepared.get("grouping_method") == "mapped_food_id" and prepared.get("mapped_food_id"):
             group_key = f"exact_mapped_id:{prepared['mapped_food_id']}"
             grouped_display_method = "exact_mapped_id"
             display_name_clean = prepared["display_name_clean"]
             category = prepared["grocery_category"]
+            purchase_item_key = _purchase_item_key(prepared, display_name_clean, category)
         else:
             group_key = f"normalized_name_fallback:{_normalise_name(prepared['display_name_clean'])}"
             grouped_display_method = "normalized_name_fallback"
             display_name_clean = prepared["display_name_clean"]
             category = prepared["grocery_category"]
+            purchase_item_key = _purchase_item_key(prepared, display_name_clean, category)
 
         group = display_groups.setdefault(
             group_key,
@@ -1049,6 +1169,7 @@ def _materialise_display_items(
                 "grouping_method": grouped_display_method,
                 "grocery_category": category,
                 "category_label": CATEGORY_LABELS.get(category, category),
+                "purchase_item_key": purchase_item_key,
                 "warnings": set(),
                 "is_pantry_basic": False,
                 "is_low_priority": False,
@@ -1112,6 +1233,7 @@ def _materialise_display_items(
                 "grouping_method": group["grouped_display_method"],
                 "grocery_category": group["grocery_category"],
                 "category_label": group["category_label"],
+                "purchase_item_key": group["purchase_item_key"],
                 "warnings": sorted(group["warnings"]),
                 "is_pantry_basic": bool(group["is_pantry_basic"]),
                 "is_low_priority": bool(group["is_low_priority"]),
@@ -1324,6 +1446,7 @@ def _display_item_row(item: dict[str, Any]) -> dict[str, Any]:
         "source_item_names": _join_values(item.get("source_item_names", [])),
         "source_raw_item_ids": _join_values(item.get("source_raw_item_ids", [])),
         "canonical_name": item.get("canonical_name"),
+        "purchase_item_key": item.get("purchase_item_key"),
         "grouped_display_method": item.get("grouped_display_method"),
         "grouping_method": item.get("grouping_method"),
         "recipe_count": item.get("recipe_count"),
@@ -1701,8 +1824,8 @@ def _to_float(value: Any, fallback: float = 0.0) -> float:
 def _format_grams(value: Any) -> str:
     grams = _to_float(value)
     if abs(grams - round(grams)) < 0.05:
-        return f"{int(round(grams))}g"
-    return f"{grams:.1f}g"
+        return f"{int(round(grams))} g"
+    return f"{grams:.1f} g"
 
 
 def _format_cost(value: Any, currency: Any = "RON") -> str:

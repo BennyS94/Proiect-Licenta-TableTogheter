@@ -177,7 +177,7 @@ def build_purchase_suggestion(
                 item=item,
                 rule={"rule_id": "", "match_type": "", "rounding_strategy": "review"},
                 needed_grams=needed_grams,
-                purchase_display=f"review item; need about {_format_amount_grams(needed_grams)}",
+                purchase_display=f"review item; need ~{_format_amount_grams(needed_grams)}",
                 purchase_unit_type="review",
                 purchase_quantity=None,
                 purchase_amount_grams=None,
@@ -211,7 +211,7 @@ def build_purchase_suggestion(
             item=item,
             rule=rule,
             needed_grams=needed_grams,
-            purchase_display=f"check pantry; need about {_format_amount_grams(needed_grams)}",
+            purchase_display="",
             purchase_unit_type="pantry_check",
             purchase_quantity=None,
             purchase_amount_grams=None,
@@ -226,7 +226,7 @@ def build_purchase_suggestion(
         quantity = int(math.ceil(needed_grams / grams_per_unit)) if needed_grams > 0 else 0
         purchase_amount = quantity * grams_per_unit
         display_unit = _clean_text(rule.get("display_unit")) or "pieces"
-        purchase_display = _piece_purchase_display(quantity, display_unit, purchase_amount)
+        purchase_display = _piece_purchase_display(quantity, display_unit, purchase_amount, item)
         return _suggestion_result(
             item=item,
             rule=rule,
@@ -308,7 +308,7 @@ def build_purchase_suggestion(
 
     if confidence == "none":
         purchase_warnings.append("purchase_fallback_grams_only")
-    purchase_display = f"about {_format_amount_grams(purchase_amount)}"
+    purchase_display = f"~{_format_amount_grams(purchase_amount)}"
     return _suggestion_result(
         item=item,
         rule=rule,
@@ -562,7 +562,7 @@ def _apply_conversion_display_to_suggestion(
     updated["needed_grams_display"] = f"{_format_needed_grams(original_grams)} cooked"
     updated["purchase_basis_grams"] = round(raw_grams, 1)
     raw_display = _format_needed_grams(raw_grams).lstrip("~")
-    updated["purchase_display"] = f"about {raw_display} {raw_name}"
+    updated["purchase_display"] = f"~{raw_display} {raw_name}"
     updated["purchase_unit_type"] = "grams"
     updated["purchase_quantity"] = None
     updated["purchase_amount_grams"] = round(raw_grams, 1)
@@ -592,21 +592,43 @@ def _piece_purchase_display(
     quantity: int,
     display_unit: str,
     purchase_amount_grams: float,
+    item: dict[str, Any] | None = None,
 ) -> str:
     if quantity == 0:
         return "none"
+    display_unit = _piece_display_unit(display_unit, item)
     unit = _pluralise(display_unit, quantity)
     if display_unit in {"egg", "eggs", "piece", "pieces"}:
         return f"{quantity} {unit}"
-    return f"{quantity} {unit} / about {_format_amount_grams(purchase_amount_grams)}"
+    unit = _format_purchase_text(unit)
+    return f"{quantity} {unit} ~{_format_amount_grams(purchase_amount_grams)}"
+
+
+def _piece_display_unit(display_unit: str, item: dict[str, Any] | None) -> str:
+    if item is None:
+        return display_unit
+    item_text = _normalise_text(
+        " ".join(
+            _clean_text(value)
+            for value in [
+                item.get("display_name_clean"),
+                item.get("display_name"),
+                item.get("canonical_name"),
+            ]
+            if _clean_text(value)
+        )
+    )
+    if "green onion" in item_text and "onion" in _normalise_text(display_unit):
+        return "green onion"
+    return display_unit
 
 
 def _package_purchase_display(quantity: int, package_label: str) -> str:
     if quantity == 0:
         return "none"
-    label = package_label
+    label = _format_purchase_text(package_label)
     if quantity != 1:
-        label = _pluralise_label(package_label)
+        label = _format_purchase_text(_pluralise_label(package_label))
     return f"{quantity} x {label}"
 
 
@@ -617,8 +639,8 @@ def _liter_purchase_display(purchase_amount_grams: float, unit_type: str) -> str
     container = "carton" if unit_type == "carton" else unit_type
     if abs(liters - round(liters)) < 0.01:
         quantity = int(round(liters))
-        return f"{quantity} x 1L {_pluralise(container, quantity)}"
-    return f"1 x {liters:.1f}L {container}"
+        return f"{quantity} x 1 L {_pluralise(container, quantity)}"
+    return f"1 x {liters:.1f} L {container}"
 
 
 def _ceil_to_step(value: float, step: float) -> float:
@@ -631,28 +653,45 @@ def _format_needed_grams(value: float) -> str:
     if value >= 1000:
         kg = value / 1000.0
         if abs(kg - round(kg)) < 0.01:
-            return f"~{int(round(kg))}kg"
+            return f"~{int(round(kg))} kg"
         amount = f"{kg:.2f}".rstrip("0").rstrip(".")
-        return f"~{amount}kg"
+        return f"~{amount} kg"
     if value >= 100:
-        return f"~{int(round(value))}g"
+        return f"~{int(round(value))} g"
     if value >= 10:
-        return f"~{int(round(value))}g"
+        return f"~{int(round(value))} g"
     if value >= 1:
         amount = f"{value:.1f}".rstrip("0").rstrip(".")
-        return f"~{amount}g"
-    return "<1g"
+        return f"~{amount} g"
+    return "<1 g"
 
 
 def _format_amount_grams(value: float) -> str:
     if value >= 1000:
         kg = value / 1000.0
         if abs(kg - round(kg)) < 0.01:
-            return f"{int(round(kg))}kg"
-        return f"{kg:.2f}".rstrip("0").rstrip(".") + "kg"
+            return f"{int(round(kg))} kg"
+        return f"{kg:.2f}".rstrip("0").rstrip(".") + " kg"
     if abs(value - round(value)) < 0.05:
-        return f"{int(round(value))}g"
-    return f"{value:.1f}".rstrip("0").rstrip(".") + "g"
+        return f"{int(round(value))} g"
+    return f"{value:.1f}".rstrip("0").rstrip(".") + " g"
+
+
+def _format_purchase_text(value: str) -> str:
+    text = re.sub(r"\bmedium\b", "med.", value.strip(), flags=re.IGNORECASE)
+    return re.sub(
+        r"(\d+(?:\.\d+)?)(kg|g|ml|l)\b",
+        lambda match: f"{match.group(1)} {_normalised_unit(match.group(2))}",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+
+def _normalised_unit(value: str) -> str:
+    text = value.lower()
+    if text == "l":
+        return "L"
+    return text
 
 
 def _pluralise(value: str, quantity: int) -> str:

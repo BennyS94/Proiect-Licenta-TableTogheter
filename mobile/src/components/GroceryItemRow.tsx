@@ -19,6 +19,7 @@ export function GroceryItemRow({
   const priceText = formatCost(item);
   const missingPrice = !priceText;
   const muted = disabled || !checked;
+  const buyText = purchaseSuggestion(item);
 
   return (
     <Pressable
@@ -36,7 +37,7 @@ export function GroceryItemRow({
         <View style={styles.main}>
           <Text style={styles.name}>{displayName(item)}</Text>
           <Text style={styles.detail}>Need: {neededAmount(item)}</Text>
-          <Text style={styles.detail}>Buy: {purchaseSuggestion(item)}</Text>
+          {buyText ? <Text style={styles.detail}>Buy: {buyText}</Text> : null}
         </View>
         <View style={styles.side}>
           <Text style={[missingPrice || muted ? styles.missingPrice : styles.cost]}>
@@ -60,31 +61,34 @@ export function GroceryItemRow({
 }
 
 function displayName(item: GroceryListItem): string {
-  return stringValue(item.display_name_clean ?? item.display_name) ?? "Grocery item";
+  const name = stringValue(item.display_name_clean ?? item.display_name);
+  return normalizeDisplayName(name) ?? "Grocery item";
 }
 
 function neededAmount(item: GroceryListItem): string {
   const display = stringValue(item.needed_grams_display ?? item.display_grams);
   if (display) {
-    return display;
+    return cleanQuantityText(display);
   }
   const grams = numberValue(item.needed_grams_exact ?? item.needed_grams ?? item.total_grams);
   if (grams === null) {
     return "-";
   }
-  return `${Math.round(grams)}g`;
+  return `${Math.round(grams)} g`;
 }
 
-function purchaseSuggestion(item: GroceryListItem): string {
+function purchaseSuggestion(item: GroceryListItem): string | null {
+  if (stringValue(item.purchase_unit_type)?.toLowerCase() === "pantry_check") {
+    return null;
+  }
   const value = stringValue(item.purchase_display);
   if (!value) {
-    return "-";
+    return null;
   }
-  return value
-    .replace(/(^|[\s;/])about\s+~?/gi, "$1")
-    .replace(/(^|[\s;/])~(?=\d)/g, "$1")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  if (value.toLowerCase().includes("check pantry")) {
+    return null;
+  }
+  return cleanQuantityText(value.replace(/(^|[\s;/])about\s+~?/gi, "$1~"), item);
 }
 
 function formatCost(item: GroceryListItem): string | null {
@@ -112,6 +116,74 @@ function numberValue(value: unknown): number | null {
     return null;
   }
   return value;
+}
+
+function cleanQuantityText(value: string, item?: GroceryListItem): string {
+  let cleaned = value
+    .replace(/\bmedium\b/gi, "med.")
+    .replace(/\s+[\/·]\s+(~?\d)/g, " $1")
+    .replace(
+      /(\d+(?:\.\d+)?)(kg|g|ml|l)\b/gi,
+      (_match: string, amount: string, unit: string) => `${amount} ${normalizeUnit(unit)}`,
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (isGreenOnionItem(item)) {
+    cleaned = cleaned.replace(/\bmed\.\s+onions\b/gi, "green onions");
+  }
+  return cleaned;
+}
+
+function normalizeDisplayName(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const normalized = normalizeText(value);
+  if (
+    normalized.includes("milk fat content unknown") &&
+    normalized.includes("uht") &&
+    (normalized.includes("sterilized") || normalized.includes("sterilised"))
+  ) {
+    return "UHT milk";
+  }
+  if (
+    normalized.includes("bread french bread baguette") ||
+    normalized.includes("french bread baguette")
+  ) {
+    return "Baguette";
+  }
+  if (normalized.includes("wheat flour white all purpose enriched unbleached")) {
+    return "All-purpose flour";
+  }
+  if (normalized.includes("corn tortilla wrap to be filled")) {
+    return "Corn tortillas";
+  }
+  return value;
+}
+
+function normalizeText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function isGreenOnionItem(item: GroceryListItem | undefined): boolean {
+  if (!item) {
+    return false;
+  }
+  const text = normalizeText(
+    [
+      item.display_name_clean,
+      item.display_name,
+      item.canonical_name,
+    ]
+      .map((value) => stringValue(value))
+      .filter(Boolean)
+      .join(" "),
+  );
+  return text.includes("green onion");
+}
+
+function normalizeUnit(value: string): string {
+  return value.toLowerCase() === "l" ? "L" : value.toLowerCase();
 }
 
 const styles = StyleSheet.create({
@@ -143,7 +215,7 @@ const styles = StyleSheet.create({
   },
   detail: {
     color: colors.muted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
   },
   side: {
