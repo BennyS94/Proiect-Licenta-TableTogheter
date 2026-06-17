@@ -146,7 +146,7 @@ export function RecipeAlternativesPanel({
             member_profile_id: memberProfileId,
             member_profile: memberProfile,
             feedback_enabled: true,
-            approval_mode: "include_review",
+            approval_mode: "approved_only",
           }));
         if (isCurrent) {
           alternativesResponseCache.set(requestCacheKey, payload);
@@ -458,7 +458,7 @@ export async function prefetchRecipeAlternativePreviews({
       member_profile_id: memberProfileId,
       member_profile: memberProfile,
       feedback_enabled: true,
-      approval_mode: "include_review",
+      approval_mode: "approved_only",
     }));
   alternativesResponseCache.set(alternativesCacheKey, alternativesPayload);
 
@@ -630,7 +630,7 @@ function filterDisplayableAlternatives(
 ): RecipeAlternativeItem[] {
   return (alternatives ?? []).filter((alternative) => {
     const status = stringValue(alternative.approval_status);
-    return status === "approved" || status === "review";
+    return status === "approved";
   });
 }
 
@@ -707,10 +707,6 @@ function AlternativeCard({
         protein_g: getMacroNumber(preparedAlternativeMeal, "protein_g"),
       }
     : undefined;
-  const compactImpactLine = formatCompactImpactLine(
-    alternative.macro_delta,
-    alternative.time_delta_min,
-  );
   const currentName = formatRecipeDisplayName(
     getMealName(currentMeal) ?? stringValue(sourceRecipe?.display_name) ?? "Current meal",
   );
@@ -734,7 +730,6 @@ function AlternativeCard({
       </View>
 
       <MacroIconRow macros={alternativeMacros} />
-      {compactImpactLine ? <Text style={styles.alternativeDeltaLine}>{compactImpactLine}</Text> : null}
 
       {hasPreview ? (
         <View style={styles.comparisonBox}>
@@ -852,13 +847,13 @@ function MacroIconRow({
     <View style={styles.macroIconRow}>
       {items.map((item) => (
         <MacroMiniStat
-          iconSize={15}
+          iconSize={16}
           key={item.key}
           kind={item.kind}
           tone="soft"
           value={item.text}
           valueSize={12}
-          valueWeight="800"
+          valueWeight="700"
         />
       ))}
     </View>
@@ -868,7 +863,7 @@ function MacroIconRow({
 function TimeMiniStat({ value }: { value: string }) {
   return (
     <View style={styles.timeMiniStat}>
-      <ClockMiniIcon color={colors.mutedSoft} size={16} />
+      <ClockMiniIcon color={colors.mutedSoft} size={17} />
       <Text numberOfLines={1} style={styles.timeMiniStatText}>
         {value}
       </Text>
@@ -885,15 +880,6 @@ function ClockMiniIcon({ color, size }: { color: string; size: number }) {
       />
     </Svg>
   );
-}
-
-function formatCompactImpactLine(
-  delta: Record<string, unknown> | undefined,
-  timeDelta: unknown,
-): string {
-  const kcal = formatSignedMetric(delta?.kcal, { decimals: 0, suffix: "kcal" });
-  const time = formatCookingDelta(timeDelta);
-  return [kcal, time].filter(Boolean).join(" · ");
 }
 
 function formatScore(value: unknown): string {
@@ -1021,26 +1007,21 @@ function stringValue(value: unknown): string | null {
 
 const styles = StyleSheet.create({
   alternativesList: {
-    gap: 9,
+    gap: 8,
   },
   alternativeCard: {
     backgroundColor: colors.card,
     borderColor: "#DDEAD3",
     borderRadius: 8,
     borderWidth: 1,
-    gap: 8,
-    padding: 11,
+    gap: 7,
+    padding: 10,
   },
   alternativeHeader: {
     alignItems: "flex-start",
     flexDirection: "row",
     gap: 10,
     justifyContent: "space-between",
-  },
-  alternativeDeltaLine: {
-    color: colors.mutedSoft,
-    fontSize: 12,
-    fontWeight: "700",
   },
   alternativeName: {
     color: colors.text,
@@ -1070,8 +1051,8 @@ const styles = StyleSheet.create({
     borderColor: "#E3EAD8",
     borderRadius: 8,
     borderWidth: 1,
-    gap: 8,
-    padding: 8,
+    gap: 7,
+    padding: 7,
   },
   comparisonLabel: {
     color: colors.mutedSoft,
@@ -1112,7 +1093,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 36,
+    minHeight: 34,
     paddingHorizontal: 10,
   },
   previewButtonText: {
@@ -1140,7 +1121,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
-    columnGap: 10,
+    columnGap: 8,
     rowGap: 4,
   },
   similarityBadge: {
@@ -1151,8 +1132,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexShrink: 0,
     justifyContent: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
   },
   similarityBadgeText: {
     color: colors.accentDark,
