@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
   },
   summaryVisual: {
     alignItems: "center",
-    backgroundColor: "#EEF7E8",
+    backgroundColor: "#FFFFFF",
     borderColor: "#DDEAD3",
     borderRadius: 20,
     borderWidth: 1,

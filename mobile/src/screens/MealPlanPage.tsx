@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import type { LayoutChangeEvent } from "react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 import { AppScreen } from "../components/ui/AppScreen";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -7,6 +9,12 @@ import { SectionHeader } from "../components/ui/SectionHeader";
 import { colors } from "../theme/colors";
 
 export type MealPlanTab = "mealPlan" | "groceryList";
+
+const TAB_CONNECTOR_OVERHANG = 42;
+const TAB_CONNECTOR_END_EXTENSION = 20;
+const TAB_CONNECTOR_RADIUS = 14;
+const TAB_CONNECTOR_SHIFT_X = 0;
+const TAB_GAP = 15;
 
 type MealPlanPageProps = {
   daySelector?: ReactNode;
@@ -41,6 +49,13 @@ export function MealPlanPage({
   scrollToTopSignal,
   selectedTab,
 }: MealPlanPageProps) {
+  const [tabsWidth, setTabsWidth] = useState(0);
+
+  const handleTabsLayout = (event: LayoutChangeEvent) => {
+    const nextWidth = event.nativeEvent.layout.width;
+    setTabsWidth((currentWidth) => (Math.abs(currentWidth - nextWidth) > 0.5 ? nextWidth : currentWidth));
+  };
+
   if (!isSetupComplete) {
     return (
       <AppScreen scrollToTopSignal={scrollToTopSignal}>
@@ -78,17 +93,20 @@ export function MealPlanPage({
 
           {hasPlan ? (
             <>
-              <View style={styles.tabs}>
-                <TabButton
-                  active={selectedTab === "mealPlan"}
-                  label="Meal Plan"
-                  onPress={() => onSelectTab("mealPlan")}
-                />
-                <TabButton
-                  active={selectedTab === "groceryList"}
-                  label="Grocery List"
-                  onPress={() => onSelectTab("groceryList")}
-                />
+              <View onLayout={handleTabsLayout} style={styles.tabsFrame}>
+                <TabConnector selectedTab={selectedTab} width={tabsWidth} />
+                <View style={styles.tabs}>
+                  <TabButton
+                    active={selectedTab === "mealPlan"}
+                    label="Meal Plan"
+                    onPress={() => onSelectTab("mealPlan")}
+                  />
+                  <TabButton
+                    active={selectedTab === "groceryList"}
+                    label="Grocery List"
+                    onPress={() => onSelectTab("groceryList")}
+                  />
+                </View>
               </View>
 
               {selectedTab === "mealPlan" ? (
@@ -115,6 +133,71 @@ export function MealPlanPage({
         </>
       )}
     </AppScreen>
+  );
+}
+
+function TabConnector({ selectedTab, width }: { selectedTab: MealPlanTab; width: number }) {
+  const path = useMemo(() => {
+    if (width <= 0) {
+      return "";
+    }
+
+    const tabWidth = (width - TAB_GAP) / 2;
+    const svgWidth = width + TAB_CONNECTOR_OVERHANG * 2 + TAB_CONNECTOR_END_EXTENSION * 2;
+    const leftTabRight = TAB_CONNECTOR_END_EXTENSION + TAB_CONNECTOR_OVERHANG + tabWidth;
+    const gapCenter = leftTabRight + TAB_GAP / 2;
+    const startX = 0;
+    const endX = svgWidth;
+    const topY = 7;
+    const bottomY = 63;
+
+    if (selectedTab === "mealPlan") {
+      const turnX = gapCenter;
+      return [
+        `M ${startX} ${topY}`,
+        `H ${turnX - TAB_CONNECTOR_RADIUS}`,
+        `Q ${turnX} ${topY} ${turnX} ${topY + TAB_CONNECTOR_RADIUS}`,
+        `V ${bottomY - TAB_CONNECTOR_RADIUS}`,
+        `Q ${turnX} ${bottomY} ${turnX + TAB_CONNECTOR_RADIUS} ${bottomY}`,
+        `H ${endX}`,
+      ].join(" ");
+    }
+
+    const turnX = gapCenter;
+    return [
+      `M ${startX} ${bottomY}`,
+      `H ${turnX - TAB_CONNECTOR_RADIUS}`,
+      `Q ${turnX} ${bottomY} ${turnX} ${bottomY - TAB_CONNECTOR_RADIUS}`,
+      `V ${topY + TAB_CONNECTOR_RADIUS}`,
+      `Q ${turnX} ${topY} ${turnX + TAB_CONNECTOR_RADIUS} ${topY}`,
+      `H ${endX}`,
+    ].join(" ");
+  }, [selectedTab, width]);
+
+  if (!path) {
+    return null;
+  }
+
+  const svgWidth = width + TAB_CONNECTOR_OVERHANG * 2 + TAB_CONNECTOR_END_EXTENSION * 2;
+  const connectorLeft = -TAB_CONNECTOR_OVERHANG + TAB_CONNECTOR_SHIFT_X - TAB_CONNECTOR_END_EXTENSION;
+
+  return (
+    <Svg
+      height={72}
+      pointerEvents="none"
+      style={[styles.tabConnector, { left: connectorLeft }]}
+      viewBox={`0 0 ${svgWidth} 72`}
+      width={svgWidth}
+    >
+      <Path
+        d={path}
+        fill="none"
+        stroke="#BFD8A8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={3}
+      />
+    </Svg>
   );
 }
 
@@ -186,9 +269,19 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: "#FFFFFF",
   },
+  tabConnector: {
+    position: "absolute",
+    top: -14,
+  },
+  tabsFrame: {
+    paddingBottom: 6,
+    position: "relative",
+  },
   tabs: {
     flexDirection: "row",
-    gap: 10,
+    gap: TAB_GAP,
+    position: "relative",
+    zIndex: 1,
   },
   viewerBlock: {
     gap: 0,
