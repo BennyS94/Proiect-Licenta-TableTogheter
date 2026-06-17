@@ -25,6 +25,7 @@ import { HomePage } from "./HomePage";
 import { HouseholdPage } from "./HouseholdPage";
 import {
   InsightsPage,
+  type DailyProgressSaveInput,
   type InsightsDaySelection,
   type InsightsTotals,
   type MealContribution,
@@ -33,9 +34,11 @@ import { MealPlanPage, type MealPlanTab } from "./MealPlanPage";
 import {
   clearFeedback,
   createProfile,
+  deleteDailyProgress,
   deleteProfile,
   generateHouseholdPlan,
   generateIndividualPlan,
+  getDailyProgress,
   getDemoHousehold,
   getFeedbackContext,
   getHealth,
@@ -43,12 +46,14 @@ import {
   loginAccount,
   logoutAccount,
   registerAccount,
+  saveDailyProgress,
   submitFeedback,
   updateHouseholdName,
 } from "../services/apiClient";
 import { colors } from "../theme/colors";
 import type {
   AuthAccount,
+  DailyProgressSnapshot,
   DemoHouseholdResponse,
   DemoMemberProfile,
   FeedbackContextResponse,
@@ -159,6 +164,15 @@ export function HomeScreen() {
   const [selectedInsightsDay, setSelectedInsightsDay] =
     useState<InsightsDaySelection>(1);
   const [planDays, setPlanDays] = useState(3);
+  const [dailyProgressByKey, setDailyProgressByKey] = useState<
+    Record<string, DailyProgressSnapshot>
+  >({});
+  const [dailyProgressLoadingProfileId, setDailyProgressLoadingProfileId] =
+    useState("");
+  const [isSavingDailyProgress, setIsSavingDailyProgress] = useState(false);
+  const [deletingDailyProgressId, setDeletingDailyProgressId] = useState("");
+  const [dailyProgressMessage, setDailyProgressMessage] = useState("");
+  const [dailyProgressError, setDailyProgressError] = useState("");
 
   const selectedMember = useMemo(
     () =>
@@ -291,6 +305,9 @@ export function HomeScreen() {
     setGeneratedPlan(null);
     setGeneratedHouseholdPlan(null);
     setFeedbackContext(null);
+    setDailyProgressByKey({});
+    setDailyProgressMessage("");
+    setDailyProgressError("");
     setFeedbackError("");
 
     try {
@@ -490,6 +507,8 @@ export function HomeScreen() {
     setErrorMessage("");
     setGeneratedPlan(null);
     setFeedbackError("");
+    setDailyProgressMessage("");
+    setDailyProgressError("");
 
     try {
       const request = selectedSavedProfile
@@ -528,6 +547,8 @@ export function HomeScreen() {
     setHouseholdErrorMessage("");
     setGeneratedHouseholdPlan(null);
     setFeedbackError("");
+    setDailyProgressMessage("");
+    setDailyProgressError("");
 
     try {
       const request =
@@ -567,6 +588,8 @@ export function HomeScreen() {
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
+    setDailyProgressMessage("");
+    setDailyProgressError("");
 
     if (orderedProfiles.length === 1) {
       setGenerationMode("individual");
@@ -1041,6 +1064,12 @@ export function HomeScreen() {
     setGeneratedPlan(null);
     setGeneratedHouseholdPlan(null);
     setFeedbackContext(null);
+    setDailyProgressByKey({});
+    setDailyProgressLoadingProfileId("");
+    setIsSavingDailyProgress(false);
+    setDeletingDailyProgressId("");
+    setDailyProgressMessage("");
+    setDailyProgressError("");
     setPendingFeedbackKey("");
     setFeedbackError("");
     setErrorMessage("");
@@ -1077,6 +1106,125 @@ export function HomeScreen() {
 
   function handleInsightsDaySelect(value: InsightsDaySelection) {
     setSelectedInsightsDay(value);
+    setDailyProgressMessage("");
+    setDailyProgressError("");
+  }
+
+  async function refreshDailyProgressForProfile(memberProfileId: string, quiet = false) {
+    if (!authSessionToken || !memberProfileId) {
+      return;
+    }
+    setDailyProgressLoadingProfileId(memberProfileId);
+    if (!quiet) {
+      setDailyProgressMessage("");
+      setDailyProgressError("");
+    }
+
+    try {
+      const response = await getDailyProgress(memberProfileId, authSessionToken);
+      setDailyProgressByKey((current) => {
+        const next = { ...current };
+        for (const snapshot of response.snapshots ?? []) {
+          next[buildDailyProgressKey(
+            snapshot.member_profile_id,
+            snapshot.plan_id,
+            snapshot.day_index,
+          )] = snapshot;
+        }
+        return next;
+      });
+    } catch (error) {
+      if (!quiet) {
+        setDailyProgressError(
+          error instanceof Error ? error.message : "Progress history fetch failed",
+        );
+      }
+    } finally {
+      setDailyProgressLoadingProfileId((current) =>
+        current === memberProfileId ? "" : current,
+      );
+    }
+  }
+
+  async function saveInsightsDailyProgress(input: DailyProgressSaveInput) {
+    if (!authSessionToken) {
+      setDailyProgressError("Log in to save progress.");
+      return;
+    }
+    if (safeInsightsDay === "average") {
+      setDailyProgressError("Average mode cannot be saved as a day.");
+      return;
+    }
+    if (!insightsMemberProfileId || !insightsPlanId || !insightsHouseholdId) {
+      setDailyProgressError("Generate a plan for a saved profile before saving progress.");
+      return;
+    }
+
+    setIsSavingDailyProgress(true);
+    setDailyProgressError("");
+    setDailyProgressMessage("");
+
+    try {
+      const response = await saveDailyProgress(
+        {
+          consumed: input.consumed,
+          day_index: safeInsightsDay,
+          day_snapshot: input.day_snapshot,
+          household_id: insightsHouseholdId,
+          meal_completion: input.meal_completion,
+          member_profile_id: insightsMemberProfileId,
+          plan_id: insightsPlanId,
+          planned: input.planned,
+        },
+        authSessionToken,
+      );
+      const snapshot = response.snapshot;
+      setDailyProgressByKey((current) => ({
+        ...current,
+        [buildDailyProgressKey(
+          snapshot.member_profile_id,
+          snapshot.plan_id,
+          snapshot.day_index,
+        )]: snapshot,
+      }));
+      setDailyProgressMessage(
+        response.already_saved || response.status === "already_saved"
+          ? "This day is already saved."
+          : "Day saved.",
+      );
+    } catch (error) {
+      setDailyProgressError(error instanceof Error ? error.message : "Progress save failed");
+    } finally {
+      setIsSavingDailyProgress(false);
+    }
+  }
+
+  async function deleteInsightsDailyProgress(progressId: string) {
+    if (!authSessionToken || !progressId) {
+      return;
+    }
+
+    setDeletingDailyProgressId(progressId);
+    setDailyProgressError("");
+    setDailyProgressMessage("");
+
+    try {
+      const response = await deleteDailyProgress(progressId, authSessionToken);
+      setDailyProgressByKey((current) => {
+        const next = { ...current };
+        for (const [key, snapshot] of Object.entries(next)) {
+          if (snapshot.progress_id === progressId || snapshot.progress_id === response.progress_id) {
+            delete next[key];
+          }
+        }
+        return next;
+      });
+      setDailyProgressMessage("Saved day deleted.");
+    } catch (error) {
+      setDailyProgressError(error instanceof Error ? error.message : "Progress delete failed");
+    } finally {
+      setDeletingDailyProgressId("");
+    }
   }
 
   const isSetupComplete = Boolean(authAccount);
@@ -1139,6 +1287,43 @@ export function HomeScreen() {
           safeInsightsDay,
         )
       : getIndividualMealContributions(generatedPlan, safeInsightsDay);
+  const insightsPlanId =
+    generationMode === "household" && generatedHouseholdPlan
+      ? getHouseholdPlanId(generatedHouseholdPlan)
+      : generatedPlan
+        ? getPlanIdFromResponse(generatedPlan)
+        : undefined;
+  const insightsMemberProfileId =
+    generationMode === "household" ? householdInsightsMemberId : activeMemberProfileId;
+  const insightsHouseholdId =
+    generationMode === "household"
+      ? String(generatedHouseholdPlan?.household_id || activeHouseholdId || "").trim()
+      : activeHouseholdId;
+  const selectedDailyProgressKey =
+    safeInsightsDay === "average" || !insightsMemberProfileId || !insightsPlanId
+      ? ""
+      : buildDailyProgressKey(insightsMemberProfileId, insightsPlanId, safeInsightsDay);
+  const selectedDailyProgress =
+    selectedDailyProgressKey ? dailyProgressByKey[selectedDailyProgressKey] ?? null : null;
+  const dailyProgressUnavailableReason = !authSessionToken
+    ? "Log in to save progress."
+    : !insightsMemberProfileId
+      ? "Select a saved profile to save progress."
+      : !insightsPlanId
+        ? "Generate a meal plan before saving progress."
+        : !insightsHouseholdId
+          ? "Household context is missing."
+          : "";
+  const isLoadingSelectedDailyProgress =
+    Boolean(insightsMemberProfileId) &&
+    dailyProgressLoadingProfileId === insightsMemberProfileId;
+
+  useEffect(() => {
+    if (!authSessionToken || !hasCurrentPlan || !insightsMemberProfileId) {
+      return;
+    }
+    void refreshDailyProgressForProfile(insightsMemberProfileId, true);
+  }, [authSessionToken, hasCurrentPlan, insightsMemberProfileId]);
 
   const profileSelectorNode = profileSelectorItems.length ? (
     <ProfileSelector
@@ -1511,12 +1696,21 @@ export function HomeScreen() {
         hasPlan={hasCurrentPlan}
         householdName={householdName}
         isSetupComplete={isSetupComplete}
+        isDeletingProgress={deletingDailyProgressId === selectedDailyProgress?.progress_id}
+        isLoadingProgress={isLoadingSelectedDailyProgress}
+        isSavingProgress={isSavingDailyProgress}
         mealContributions={insightMealContributions}
+        onDeleteProgress={deleteInsightsDailyProgress}
         onGoToHousehold={() => setActivePage("household")}
         onGoToMealPlan={() => setActivePage("mealPlan")}
+        onSaveProgress={saveInsightsDailyProgress}
         onSelectDay={handleInsightsDaySelect}
         profileSelector={mealPlanProfileSelectorNode}
+        progressError={dailyProgressError}
+        progressMessage={dailyProgressMessage}
+        progressUnavailableReason={dailyProgressUnavailableReason}
         scrollToTopSignal={scrollToTopRequests.insights}
+        savedProgress={selectedDailyProgress}
         selectedDay={safeInsightsDay}
         targetTotals={insightsTargetTotals}
         totals={insightsTotals}
@@ -2253,9 +2447,11 @@ function getMealSlotOrderIndex(slot: unknown): number {
 function mealToContribution(meal: GeneratedMeal): MealContribution {
   return {
     carbs_g: numberValue(meal.carbs_g) ?? undefined,
+    display_name: stringValue(meal.display_name) ?? undefined,
     fat_g: numberValue(meal.fat_g) ?? undefined,
     kcal: numberValue(meal.kcal) ?? undefined,
     protein_g: numberValue(meal.protein_g) ?? undefined,
+    recipe_id: stringValue(meal.recipe_id) ?? undefined,
     slot: String(meal.slot ?? "meal"),
   };
 }
@@ -2574,6 +2770,18 @@ function toFeedbackEventIdPart(value: string): string {
 
 function buildFeedbackKey(eventId: string, feedbackType: FeedbackType): string {
   return `${eventId}:${feedbackType}`;
+}
+
+function buildDailyProgressKey(
+  memberProfileId: string,
+  planId: string,
+  dayIndex: number,
+): string {
+  return [
+    String(memberProfileId || "").trim(),
+    String(planId || "").trim(),
+    String(dayIndex || 0),
+  ].join("::");
 }
 
 function getGroceryListFromPlanResponse(

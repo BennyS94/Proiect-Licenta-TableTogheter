@@ -4,7 +4,7 @@
 
 Acest document defineste contractul API pregatit pentru primul backend TableTogether. Scopul este sa existe o limita clara intre aplicatia Android si generatorul Python inainte de implementarea FastAPI.
 
-Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite. Auth-M1 adauga autentificare locala SQLite pentru conturi MVP si profile scoped pe household-ul contului.
+Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite. Auth-M1 adauga autentificare locala SQLite pentru conturi MVP si profile scoped pe household-ul contului. PROGRESS-1 adauga snapshoturi zilnice salvate pentru progres per profil prin `/progress/daily`.
 Backend KNN-2 adauga `POST /recipes/similar` pentru alternative de retete aprobate/review prin KNN-lite + generator approval gate. Backend KNN-4 adauga meal-level replacement explicit prin `POST /plans/{plan_id}/replace-meal`; acesta schimba o reteta/masa intreaga, nu ingrediente individuale.
 
 Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu schimba fisierele din `data/recipesdb/current` sau `data/fooddb/current`.
@@ -17,13 +17,13 @@ Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu 
 - `days` accepta valori `1..5`.
 - Mobile app nu citeste CSV-uri si nu ruleaza generatorul.
 - FastAPI backend apeleaza un wrapper Python peste Generator v1.
-- SQLite persista household-uri, profiluri, feedback, planuri generate si grocery lists.
+- SQLite persista household-uri, profiluri, feedback, planuri generate, grocery lists si saved daily progress snapshots.
 - Auth-M1 foloseste conturi locale SQLite, fara cloud auth, fara email verification si fara password reset.
 - Parolele sunt stocate ca `password_hash` + `password_salt`; parola plaintext nu se stocheaza.
 - Sesiunile folosesc token brut returnat clientului o singura data si hash de token stocat in SQLite.
 - Daca `Authorization: Bearer <session_token>` este prezent la profile API, profilurile sunt scoped pe household-ul contului.
 - In implementarea curenta, account ownership enforcement este complet pe auth/profile/household settings, dar nu este uniform pe toate endpointurile vechi de generatie, feedback, alternatives si replacement.
-- Saved daily progress snapshots nu sunt inca implementate. Nu exista inca `/progress/daily`, tabela `saved_daily_progress` sau istoric de progres zilnic pe profil.
+- Saved daily progress snapshots sunt implementate prin `saved_daily_progress` si `/progress/daily`. Endpointurile cer `Authorization: Bearer <session_token>` si sunt scoped pe household-ul contului.
 
 ## POST /auth/register
 
@@ -930,22 +930,138 @@ Non-goals:
 - Nu implementeaza audit log de productie.
 - Nu implementeaza soft delete obligatoriu in MVP.
 
-## PROGRESS-1 reserved: saved daily progress snapshots
+## POST /progress/daily
 
-Status:
-- Neimplementat in contractul activ.
+Purpose:
+- Salveaza un snapshot de progres zilnic pentru profilul curent, planul generat curent si ziua selectata.
 
-Intentie:
-- viitorul `POST /progress/daily` va salva un completed/saved daily progress snapshot pentru un profil, plan si zi;
-- viitorul `GET /progress/daily?profile_id=...` va lista snapshoturile salvate pentru profil;
-- viitorul `DELETE /progress/daily/{progress_id}` va sterge doar snapshotul de progres, nu planul generat.
+Request:
+- Cere `Authorization: Bearer <session_token>`.
+- `household_id` este optional in payload; daca este trimis, trebuie sa corespunda household-ului sesiunii.
 
-Reguli asteptate pentru implementarea viitoare:
-- unicitate pe `profile_id + plan_id + day_index`;
-- maximum 30 snapshoturi salvate per profil, enforcement backend-side;
-- datele salvate reprezinta progres/adherenta fata de plan, nu istoric de planuri generate;
-- scoping obligatoriu pe account/household, ca un utilizator sa nu poata citi sau sterge progresul altui household;
-- graficele istorice raman deferred pentru PROGRESS-2.
+Request schema example:
+
+```json
+{
+  "household_id": "household_abc123",
+  "member_profile_id": "member_profile_abc123",
+  "plan_id": "plan_abc123",
+  "day_index": 1,
+  "planned": {
+    "kcal": 2100,
+    "protein_g": 140,
+    "carbs_g": 240,
+    "fat_g": 70
+  },
+  "consumed": {
+    "kcal": 650,
+    "protein_g": 45,
+    "carbs_g": 70,
+    "fat_g": 22
+  },
+  "meal_completion": {
+    "completed_meal_keys": ["breakfast"],
+    "meals": [
+      {
+        "slot": "breakfast",
+        "recipe_id": "recipes_v1_2_round41_manual_001",
+        "eaten": true
+      }
+    ]
+  },
+  "day_snapshot": {
+    "selected_day": 1,
+    "active_profile_name": "Alice"
+  }
+}
+```
+
+Response schema example:
+
+```json
+{
+  "status": "saved",
+  "already_saved": false,
+  "snapshot": {
+    "progress_id": "daily_progress_abc123",
+    "household_id": "household_abc123",
+    "member_profile_id": "member_profile_abc123",
+    "plan_id": "plan_abc123",
+    "day_index": 1,
+    "saved_at": "2026-06-17T12:00:00+00:00",
+    "planned": {
+      "kcal": 2100,
+      "protein_g": 140,
+      "carbs_g": 240,
+      "fat_g": 70
+    },
+    "consumed": {
+      "kcal": 650,
+      "protein_g": 45,
+      "carbs_g": 70,
+      "fat_g": 22
+    },
+    "meal_completion": {},
+    "day_snapshot": {},
+    "created_at": "2026-06-17T12:00:00+00:00",
+    "updated_at": "2026-06-17T12:00:00+00:00"
+  }
+}
+```
+
+MVP notes:
+- Unicitatea este `member_profile_id + plan_id + day_index`.
+- Daca ziua este deja salvata, backend-ul intoarce `status=already_saved` si nu creeaza rand duplicat.
+- Backend-ul pastreaza maximum 30 snapshoturi per profil si sterge cele mai vechi peste limita.
+- Snapshotul reprezinta progres/adherenta fata de plan, nu un nou plan generat.
+
+## GET /progress/daily
+
+Purpose:
+- Listeaza snapshoturile zilnice salvate pentru un profil.
+
+Request:
+- Cere `Authorization: Bearer <session_token>`.
+- Query acceptat: `member_profile_id` sau aliasul `profile_id`.
+
+Response schema example:
+
+```json
+{
+  "status": "ok",
+  "household_id": "household_abc123",
+  "member_profile_id": "member_profile_abc123",
+  "snapshots": []
+}
+```
+
+MVP notes:
+- Returneaza cel mult 30 snapshoturi, ordonate descrescator dupa `saved_at`.
+- Un profil din alt household returneaza `404`.
+
+## DELETE /progress/daily/{progress_id}
+
+Purpose:
+- Sterge un snapshot salvat de progres zilnic.
+
+Request:
+- Cere `Authorization: Bearer <session_token>`.
+
+Response schema example:
+
+```json
+{
+  "status": "deleted",
+  "deleted": true,
+  "progress_id": "daily_progress_abc123",
+  "member_profile_id": "member_profile_abc123"
+}
+```
+
+MVP notes:
+- Sterge doar snapshotul de progres, nu planul generat.
+- Un snapshot din alt household returneaza `404`.
+- Graficele istorice peste aceste snapshoturi raman deferred pentru PROGRESS-2.
 
 ## GET /profiles
 

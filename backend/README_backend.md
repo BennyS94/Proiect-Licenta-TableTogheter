@@ -93,6 +93,17 @@ Nota de scoping curenta:
 - auth, profile si household settings folosesc sesiunea locala cand este trimis `Authorization: Bearer <session_token>`.
 - endpointurile istorice de generatie, feedback, alternatives si replacement raman MVP/local si nu au inca ownership enforcement uniform pe account.
 
+Implementat in PROGRESS-1:
+
+- `POST /progress/daily`
+- `GET /progress/daily?member_profile_id=...`
+- `DELETE /progress/daily/{progress_id}`
+- persistenta SQLite in `saved_daily_progress`
+- unicitate pe `member_profile_id + plan_id + day_index`
+- maximum 30 snapshoturi salvate per profil, enforced backend-side
+- scoping obligatoriu pe `Authorization: Bearer <session_token>` si household-ul contului
+- delete sterge doar snapshotul de progres, nu planul generat
+
 Implementat in PROFILE-WIZARD-1:
 
 - `POST /profiles`, `GET /profiles` si `GET /profiles/{member_profile_id}` accepta/returneaza `dietary_preferences.no_pork`
@@ -181,6 +192,16 @@ GET  http://127.0.0.1:8000/auth/me
 `/auth/register` creeaza cont local, household implicit si sesiune. `/auth/login` creeaza o sesiune noua. `/auth/logout` revoca tokenul daca este furnizat. `/auth/me` cere header `Authorization: Bearer <session_token>`.
 
 Profilele create/listate cu acelasi header sunt limitate la household-ul contului. Fara header, endpointurile de profile pastreaza calea dev/smoke existenta pentru compatibilitate.
+
+Progress endpoints:
+
+```text
+POST   http://127.0.0.1:8000/progress/daily
+GET    http://127.0.0.1:8000/progress/daily?member_profile_id={member_profile_id}
+DELETE http://127.0.0.1:8000/progress/daily/{progress_id}
+```
+
+Toate endpointurile PROGRESS-1 cer `Authorization: Bearer <session_token>`. Snapshoturile sunt per profil, plan si zi. Duplicatele returneaza `status=already_saved` si nu creeaza rand nou.
 
 Schema profilului suporta in plus:
 
@@ -288,6 +309,18 @@ Output sumar M3:
 
 ```text
 data/recipesdb/audit/backend_m3_generation_endpoints_summary.txt
+```
+
+Smoke pentru saved daily progress snapshots:
+
+```powershell
+python tools/extra/check_progress_daily_snapshots.py
+```
+
+Output sumar PROGRESS-1:
+
+```text
+data/recipesdb/audit/progress_daily_snapshots_summary.txt
 ```
 
 Mostre response M3:
@@ -403,7 +436,6 @@ DATA-QA-1 verifica faptul ca outputurile app-facing de grocery nu expun preturi 
 
 - cloud deployment
 - production DB
-- saved daily progress snapshots / `/progress/daily`
 - 7/14/30 day progress charts
 - live price scraping
 - advanced household optimizer

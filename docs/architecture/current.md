@@ -8,7 +8,7 @@ Starea curenta nu mai este doar un pipeline de generator izolat. Exista un MVP l
 
 - aplicatie mobila Android-first in React Native + Expo;
 - backend FastAPI;
-- SQLite local/demo pentru conturi, sesiuni, household-uri, profile, feedback, planuri si grocery lists;
+- SQLite local/demo pentru conturi, sesiuni, household-uri, profile, feedback, planuri, grocery lists si saved daily progress snapshots;
 - Generator v1 Python expus prin service wrapper;
 - Food_DB si Recipes_DB ca fisiere CSV pilot/draft;
 - flux real mobile -> backend -> generator -> persistenta.
@@ -53,8 +53,7 @@ Roluri:
   - selecteaza plan individual sau household v1 Lite;
   - construieste grocery list optionala.
 - SQLite:
-  - stocheaza conturi locale, sesiuni, household-uri, profile, feedback events, planuri generate si grocery lists.
-  - nu stocheaza inca istoric de progres zilnic salvat / saved daily progress snapshots.
+  - stocheaza conturi locale, sesiuni, household-uri, profile, feedback events, planuri generate, grocery lists si saved daily progress snapshots.
 
 Mobile-ul nu citeste CSV-uri si nu ruleaza generatorul.
 
@@ -200,16 +199,20 @@ Page 3 / Insights este o vizualizare nutritionala app-facing peste planul genera
 - Daily Balance cu macro donut dinamic;
 - meal contribution cards cu toggle eaten/not eaten local;
 - Macro Targets care se actualizeaza dupa mesele marcate eaten;
+- control `Save day` / `Saved` / `Delete saved day` pentru snapshotul zilei curente;
 - placeholder scurt pentru Micronutrients.
 
-Starea eaten/not eaten este in prezent React state local, scopata pe profil, zi si semnatura meselor. Nu exista inca:
+Starea eaten/not eaten ramane React state local pentru interactiunea curenta, scopata pe profil, zi si semnatura meselor. PROGRESS-1 salveaza un snapshot explicit al zilei cand utilizatorul apasa `Save day`.
 
-- endpointuri `/progress/daily`;
+Persistenta PROGRESS-1 include:
+
 - tabela SQLite `saved_daily_progress`;
-- istoric salvat de progres zilnic;
-- grafice 7/14/30 zile.
+- `POST /progress/daily`, `GET /progress/daily` si `DELETE /progress/daily/{progress_id}`;
+- unicitate pe `member_profile_id + plan_id + day_index`;
+- maximum 30 snapshoturi salvate per profil, enforced backend-side;
+- scoping pe `Authorization: Bearer <session_token>` si household-ul contului.
 
-PROGRESS-1 trebuie sa adauge persistenta backend-side pentru saved daily progress snapshots, nu sa trateze planurile generate drept istoric de progres.
+Nu exista inca grafice 7/14/30 zile peste aceste snapshoturi. PROGRESS-2 poate construi istoric vizual peste datele persistate.
 
 ## 9. Current data model reality
 
@@ -246,7 +249,7 @@ Directia ramane separarea curata:
 - Grocery list este integrata in outputul app-facing.
 - Feedback-ul explicit este functional si se aplica la generari viitoare.
 - Alternatives si replacement explicit exista end-to-end.
-- Insights este o pagina nutrition dashboard acceptata vizual, cu eaten-meals state local si macro-uri dinamice.
+- Insights este o pagina nutrition dashboard acceptata vizual, cu eaten-meals state local, macro-uri dinamice si saved daily progress snapshots persistate la cerere.
 - Datele demo au coverage verificat pentru price/time in scenariile normale.
 - Arhitectura este suficient de modulara pentru evolutie incrementala.
 
@@ -256,7 +259,7 @@ Directia ramane separarea curata:
 - SQLite este local/demo, nu production DB.
 - Auth-M1 este local si nu include email verification, password reset sau cloud sync.
 - Sesiunea mobila nu este persistata peste restart.
-- Nu exista inca saved daily progress snapshots persistate pe profil.
+- Nu exista inca grafice istorice peste saved daily progress snapshots.
 - Household Generation v1 Lite este euristic, nu optimizer global.
 - KNN nu este motor principal si nu face ingredient substitution.
 - Price estimates nu sunt live prices.
@@ -272,7 +275,7 @@ Pasi rezonabili:
 - polish UI si assets pentru mobile;
 - testare reala pe telefon/emulator;
 - stabilizarea flow-ului account -> add members -> generate -> grocery -> feedback -> alternatives -> replace -> insights;
-- adaugarea persistentei pentru saved daily progress snapshots inainte de grafice istorice;
+- construirea graficelor istorice peste saved daily progress snapshots doar dupa ce snapshoturile sunt validate in utilizare;
 - clarificarea documentatiei de licenta pe baza implementarii reale;
 - imbunatatirea treptata a Food_DB / Recipes_DB fara a rupe MVP-ul functional;
 - amanarea ML/optimizerilor pana cand datele si flow-urile de baza sunt stabile.

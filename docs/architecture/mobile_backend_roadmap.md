@@ -106,6 +106,7 @@ SQLite:
 - `generated_plan_meals`
 - `grocery_lists`
 - `grocery_list_items`
+- `saved_daily_progress`
 
 ## What mobile must not do
 
@@ -150,6 +151,9 @@ Minimum MVP:
 - `POST /feedback`
 - `GET /feedback/context`
 - `DELETE /feedback`
+- `POST /progress/daily`
+- `GET /progress/daily`
+- `DELETE /progress/daily/{progress_id}`
 
 Household endpoints:
 
@@ -171,6 +175,7 @@ Tabele minime:
 - `generated_plan_meals`
 - `grocery_lists`
 - `grocery_list_items`
+- `saved_daily_progress`
 
 Pentru MVP, `generated_plans` poate stoca initial raspunsul complet JSON al generatorului. Aceasta permite testarea rapida a fluxului backend/mobile fara normalizare prematura.
 
@@ -243,6 +248,7 @@ Mobile M1-M8, UI-1/UI-2 si polish-urile principale de produs sunt implementate:
 - M7: generatie household cu profiluri salvate; mobile selecteaza profiluri salvate multiple si apeleaza `POST /household-plans/generate` cu `selected_member_ids`.
 - M8: cleanup local/demo pentru profiluri si feedback; mobile poate soft-dezactiva profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true` si poate sterge feedback events prin `DELETE /feedback?confirm=true`.
 - UI-1: shell mobil cu 4 pagini (`Home`, `Meal Plan`, `Insights`, `Household / Account`), navigatie flotanta, guard states si flow-uri reale mobile/backend.
+- PROGRESS-1: saved daily progress snapshots persistate per profil prin SQLite si `/progress/daily`; Page 3 poate salva/sterge snapshotul zilei curente.
 
 Flow mobil validat:
 
@@ -327,9 +333,18 @@ Page 3 / Insights este acceptat ca nutrition dashboard:
 - Daily Balance cu macro donut custom si flame icon;
 - Meal contribution separat ca mini-carduri tappable;
 - eaten/not-eaten state local care actualizeaza Daily Balance si Macro Targets;
+- `Save day`, `Saved` si `Delete saved day` pentru snapshotul zilei curente;
 - Macro Targets dinamice si Micronutrients placeholder scurt.
 
-Nu exista inca persistenta pentru saved daily progress snapshots. PROGRESS-1 trebuie sa adauge backend SQLite + API + mobile Save day/Delete saved day fara sa transforme planurile generate in istoric de progres.
+PROGRESS-1 persista snapshoturi zilnice salvate per profil:
+
+- tabela SQLite `saved_daily_progress`;
+- API `POST /progress/daily`, `GET /progress/daily` si `DELETE /progress/daily/{progress_id}`;
+- maximum 30 snapshoturi per profil;
+- unicitate pe profil + plan + zi;
+- scoping pe cont/household prin `Authorization`.
+
+Graficele istorice peste snapshoturi raman pentru PROGRESS-2.
 
 ## Remaining mobile milestones
 
@@ -345,7 +360,6 @@ Later - Product/account work:
 
 - persistenta sigura a sesiunii peste restart de app
 - change email / change password daca devin necesare pentru prezentare
-- saved daily progress snapshots per profil in PROGRESS-1
 - grafice istorice peste progress snapshots in PROGRESS-2
 - cloud sync doar dupa ce fluxul local/demo este stabil
 - ecrane household dedicate si feedback household imbunatatit

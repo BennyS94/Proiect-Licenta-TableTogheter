@@ -20,6 +20,7 @@ SQLite este folosit pentru:
 - generated plan meals
 - grocery lists
 - grocery list items
+- saved daily progress snapshots
 
 SQLite nu este baza cloud de productie in aceasta etapa.
 
@@ -219,6 +220,40 @@ Columns:
 | `currency` | TEXT NULL | Ex: `RON` |
 | `item_json` | TEXT NOT NULL | Item complet serializat JSON |
 
+## Table: saved_daily_progress
+
+Rol:
+- Pastreaza snapshoturile zilnice de progres salvate explicit din Page 3 / Insights.
+
+Columns:
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `progress_id` | TEXT PRIMARY KEY | ID snapshot |
+| `household_id` | TEXT NOT NULL | Household-ul sesiunii care detine snapshotul |
+| `member_profile_id` | TEXT NOT NULL | Profilul pentru care a fost salvat progresul |
+| `plan_id` | TEXT NOT NULL | Planul generat din care provine ziua |
+| `day_index` | INTEGER NOT NULL | Zi 1-based in plan |
+| `saved_at` | TEXT NOT NULL | Momentul salvari snapshotului |
+| `planned_kcal` | REAL NULL | Kcal planificate pentru zi |
+| `planned_protein_g` | REAL NULL | Proteine planificate |
+| `planned_carbs_g` | REAL NULL | Carbohidrati planificati |
+| `planned_fat_g` | REAL NULL | Grasimi planificate |
+| `consumed_kcal` | REAL NULL | Kcal marcate ca mancate in UI |
+| `consumed_protein_g` | REAL NULL | Proteine marcate ca mancate |
+| `consumed_carbs_g` | REAL NULL | Carbohidrati marcati ca mancati |
+| `consumed_fat_g` | REAL NULL | Grasimi marcate ca mancate |
+| `meal_completion_json` | TEXT NOT NULL | Starea meselor eaten/not eaten si metadata de mese |
+| `day_snapshot_json` | TEXT NOT NULL DEFAULT '{}' | Snapshot flexibil pentru contextul UI |
+| `created_at` | TEXT NOT NULL | ISO timestamp |
+| `updated_at` | TEXT NOT NULL | ISO timestamp |
+
+Constrangeri si indexuri:
+
+- unique pe `member_profile_id + plan_id + day_index`;
+- index `idx_saved_daily_progress_profile_saved_at` pentru lista per profil;
+- index `idx_saved_daily_progress_household` pentru scoping household/profile.
+
 ## MVP notes
 
 - `response_json` si `grocery_json` pot stoca raspunsurile complete in MVP.
@@ -226,7 +261,7 @@ Columns:
 - Normalizarea completa poate fi amanata pana cand contractul API si UI-ul mobil se stabilizeaza.
 - Schema este pentru SQLite local MVP/preview, nu pentru cloud production DB.
 - Auth-M1 nu adauga email verification, password reset, email sending sau productie-grade auth claims.
-- Schema actuala nu include inca `saved_daily_progress`; saved daily progress snapshots sunt rezervate pentru PROGRESS-1.
+- `saved_daily_progress` este pentru PROGRESS-1 si nu inlocuieste `generated_plans`; stergerea unui snapshot nu sterge planul.
 
 ## Non-goals
 

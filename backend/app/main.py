@@ -7,6 +7,7 @@ from backend.app.api.routes.households import router as households_router
 from backend.app.api.routes.household_plans import router as household_plans_router
 from backend.app.api.routes.plan_replacements import router as plan_replacements_router
 from backend.app.api.routes.plans import router as plans_router
+from backend.app.api.routes.progress import router as progress_router
 from backend.app.api.routes.profiles import router as profiles_router
 from backend.app.api.routes.recipes import router as recipes_router
 from backend.app.core.config import API_VERSION, APP_NAME
@@ -21,6 +22,7 @@ app.include_router(plan_replacements_router)
 app.include_router(households_router)
 app.include_router(profiles_router)
 app.include_router(feedback_router)
+app.include_router(progress_router)
 app.include_router(recipes_router)
 
 

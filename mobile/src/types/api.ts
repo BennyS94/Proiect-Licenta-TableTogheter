@@ -429,6 +429,59 @@ export type FeedbackDeleteResponse = {
   member_profile_id?: string;
 };
 
+export type DailyProgressTotals = {
+  kcal?: number | null;
+  protein_g?: number | null;
+  carbs_g?: number | null;
+  fat_g?: number | null;
+};
+
+export type DailyProgressSaveRequest = {
+  household_id?: string;
+  member_profile_id: string;
+  plan_id: string;
+  day_index: number;
+  planned: DailyProgressTotals;
+  consumed: DailyProgressTotals;
+  meal_completion: Record<string, unknown>;
+  day_snapshot: Record<string, unknown>;
+};
+
+export type DailyProgressSnapshot = {
+  progress_id: string;
+  household_id: string;
+  member_profile_id: string;
+  plan_id: string;
+  day_index: number;
+  saved_at: string;
+  planned: DailyProgressTotals;
+  consumed: DailyProgressTotals;
+  meal_completion: Record<string, unknown>;
+  day_snapshot: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DailyProgressSaveResponse = {
+  status: "saved" | "already_saved" | string;
+  snapshot: DailyProgressSnapshot;
+  already_saved?: boolean;
+};
+
+export type DailyProgressListResponse = {
+  status: string;
+  household_id: string;
+  member_profile_id: string;
+  snapshots: DailyProgressSnapshot[];
+};
+
+export type DailyProgressDeleteResponse = {
+  status: string;
+  deleted: boolean;
+  progress_id: string;
+  member_profile_id: string;
+};
+
 export type RecipeAlternativesApprovalMode =
   | "approved_only"
   | "include_review"

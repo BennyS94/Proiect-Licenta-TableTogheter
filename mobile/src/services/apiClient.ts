@@ -1,6 +1,10 @@
 import { API_BASE_URL } from "../config/api";
 import type {
   AuthResponse,
+  DailyProgressDeleteResponse,
+  DailyProgressListResponse,
+  DailyProgressSaveRequest,
+  DailyProgressSaveResponse,
   DeleteProfileResponse,
   DemoHouseholdResponse,
   FeedbackContextResponse,
@@ -329,6 +333,48 @@ export async function clearFeedback(
   return requestJson<FeedbackDeleteResponse>(`/feedback?${params.toString()}`, {
     method: "DELETE",
   });
+}
+
+export async function saveDailyProgress(
+  request: DailyProgressSaveRequest,
+  sessionToken: string,
+): Promise<DailyProgressSaveResponse> {
+  return requestJson<DailyProgressSaveResponse>("/progress/daily", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(sessionToken),
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getDailyProgress(
+  memberProfileId: string,
+  sessionToken: string,
+): Promise<DailyProgressListResponse> {
+  const params = new URLSearchParams();
+  params.set("member_profile_id", memberProfileId);
+  return requestJson<DailyProgressListResponse>(
+    `/progress/daily?${params.toString()}`,
+    {
+      headers: authHeaders(sessionToken),
+    },
+  );
+}
+
+export async function deleteDailyProgress(
+  progressId: string,
+  sessionToken: string,
+): Promise<DailyProgressDeleteResponse> {
+  const encodedProgressId = encodeURIComponent(progressId);
+  return requestJson<DailyProgressDeleteResponse>(
+    `/progress/daily/${encodedProgressId}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(sessionToken),
+    },
+  );
 }
 
 async function requestJson<T>(

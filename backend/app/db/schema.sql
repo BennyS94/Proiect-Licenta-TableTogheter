@@ -123,3 +123,31 @@ CREATE TABLE IF NOT EXISTS grocery_list_items (
     currency TEXT,
     item_json TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS saved_daily_progress (
+    progress_id TEXT PRIMARY KEY,
+    household_id TEXT NOT NULL,
+    member_profile_id TEXT NOT NULL,
+    plan_id TEXT NOT NULL,
+    day_index INTEGER NOT NULL,
+    saved_at TEXT NOT NULL,
+    planned_kcal REAL,
+    planned_protein_g REAL,
+    planned_carbs_g REAL,
+    planned_fat_g REAL,
+    consumed_kcal REAL,
+    consumed_protein_g REAL,
+    consumed_carbs_g REAL,
+    consumed_fat_g REAL,
+    meal_completion_json TEXT NOT NULL,
+    day_snapshot_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(member_profile_id, plan_id, day_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_daily_progress_profile_saved_at
+ON saved_daily_progress(member_profile_id, saved_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_saved_daily_progress_household
+ON saved_daily_progress(household_id, member_profile_id);

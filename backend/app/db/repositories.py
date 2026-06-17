@@ -740,6 +740,256 @@ def build_feedback_context_from_db(
     }
 
 
+def save_daily_progress_snapshot(
+    conn: sqlite3.Connection,
+    snapshot_dict: dict[str, Any],
+    *,
+    max_snapshots_per_profile: int = 30,
+) -> tuple[dict[str, Any], bool]:
+    household_id = _clean_text(snapshot_dict.get("household_id"))
+    member_profile_id = _clean_text(snapshot_dict.get("member_profile_id"))
+    plan_id = _clean_text(snapshot_dict.get("plan_id"))
+    day_index = int(_to_float(snapshot_dict.get("day_index")) or 0)
+    existing = get_daily_progress_by_context(
+        conn,
+        member_profile_id=member_profile_id,
+        plan_id=plan_id,
+        day_index=day_index,
+    )
+    if existing is not None:
+        return existing, False
+
+    now = _utc_now_iso()
+    planned = snapshot_dict.get("planned")
+    if not isinstance(planned, dict):
+        planned = {}
+    consumed = snapshot_dict.get("consumed")
+    if not isinstance(consumed, dict):
+        consumed = {}
+    meal_completion = snapshot_dict.get("meal_completion")
+    if not isinstance(meal_completion, dict):
+        meal_completion = {}
+    day_snapshot = snapshot_dict.get("day_snapshot")
+    if not isinstance(day_snapshot, dict):
+        day_snapshot = {}
+
+    progress_id = _clean_text(snapshot_dict.get("progress_id")) or _new_id(
+        "daily_progress"
+    )
+    saved_at = _clean_text(snapshot_dict.get("saved_at")) or now
+    conn.execute(
+        """
+        INSERT INTO saved_daily_progress (
+            progress_id,
+            household_id,
+            member_profile_id,
+            plan_id,
+            day_index,
+            saved_at,
+            planned_kcal,
+            planned_protein_g,
+            planned_carbs_g,
+            planned_fat_g,
+            consumed_kcal,
+            consumed_protein_g,
+            consumed_carbs_g,
+            consumed_fat_g,
+            meal_completion_json,
+            day_snapshot_json,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            progress_id,
+            household_id,
+            member_profile_id,
+            plan_id,
+            day_index,
+            saved_at,
+            _to_float(planned.get("kcal")),
+            _to_float(planned.get("protein_g")),
+            _to_float(planned.get("carbs_g")),
+            _to_float(planned.get("fat_g")),
+            _to_float(consumed.get("kcal")),
+            _to_float(consumed.get("protein_g")),
+            _to_float(consumed.get("carbs_g")),
+            _to_float(consumed.get("fat_g")),
+            _json_dumps(meal_completion),
+            _json_dumps(day_snapshot),
+            now,
+            now,
+        ),
+    )
+    _enforce_daily_progress_profile_limit(
+        conn,
+        member_profile_id=member_profile_id,
+        max_snapshots=max_snapshots_per_profile,
+    )
+    saved = get_daily_progress_snapshot(conn, progress_id)
+    if saved is None:
+        raise RuntimeError("daily_progress_insert_failed")
+    return saved, True
+
+
+def get_daily_progress_by_context(
+    conn: sqlite3.Connection,
+    *,
+    member_profile_id: str,
+    plan_id: str,
+    day_index: int,
+) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+        SELECT
+            progress_id,
+            household_id,
+            member_profile_id,
+            plan_id,
+            day_index,
+            saved_at,
+            planned_kcal,
+            planned_protein_g,
+            planned_carbs_g,
+            planned_fat_g,
+            consumed_kcal,
+            consumed_protein_g,
+            consumed_carbs_g,
+            consumed_fat_g,
+            meal_completion_json,
+            day_snapshot_json,
+            created_at,
+            updated_at
+        FROM saved_daily_progress
+        WHERE member_profile_id = ?
+          AND plan_id = ?
+          AND day_index = ?
+        LIMIT 1
+        """,
+        (_clean_text(member_profile_id), _clean_text(plan_id), int(day_index or 0)),
+    ).fetchone()
+    return _daily_progress_row_to_dict(row) if row else None
+
+
+def get_daily_progress_snapshot(
+    conn: sqlite3.Connection,
+    progress_id: str,
+) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+        SELECT
+            progress_id,
+            household_id,
+            member_profile_id,
+            plan_id,
+            day_index,
+            saved_at,
+            planned_kcal,
+            planned_protein_g,
+            planned_carbs_g,
+            planned_fat_g,
+            consumed_kcal,
+            consumed_protein_g,
+            consumed_carbs_g,
+            consumed_fat_g,
+            meal_completion_json,
+            day_snapshot_json,
+            created_at,
+            updated_at
+        FROM saved_daily_progress
+        WHERE progress_id = ?
+        LIMIT 1
+        """,
+        (_clean_text(progress_id),),
+    ).fetchone()
+    return _daily_progress_row_to_dict(row) if row else None
+
+
+def list_daily_progress_snapshots(
+    conn: sqlite3.Connection,
+    *,
+    household_id: str,
+    member_profile_id: str,
+    limit: int = 30,
+) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+        SELECT
+            progress_id,
+            household_id,
+            member_profile_id,
+            plan_id,
+            day_index,
+            saved_at,
+            planned_kcal,
+            planned_protein_g,
+            planned_carbs_g,
+            planned_fat_g,
+            consumed_kcal,
+            consumed_protein_g,
+            consumed_carbs_g,
+            consumed_fat_g,
+            meal_completion_json,
+            day_snapshot_json,
+            created_at,
+            updated_at
+        FROM saved_daily_progress
+        WHERE household_id = ?
+          AND member_profile_id = ?
+        ORDER BY saved_at DESC, created_at DESC
+        LIMIT ?
+        """,
+        (
+            _clean_text(household_id),
+            _clean_text(member_profile_id),
+            int(limit or 30),
+        ),
+    ).fetchall()
+    return [_daily_progress_row_to_dict(row) for row in rows]
+
+
+def delete_daily_progress_snapshot(
+    conn: sqlite3.Connection,
+    progress_id: str,
+) -> dict[str, Any] | None:
+    existing = get_daily_progress_snapshot(conn, progress_id)
+    if existing is None:
+        return None
+    conn.execute(
+        "DELETE FROM saved_daily_progress WHERE progress_id = ?",
+        (_clean_text(progress_id),),
+    )
+    return existing
+
+
+def _enforce_daily_progress_profile_limit(
+    conn: sqlite3.Connection,
+    *,
+    member_profile_id: str,
+    max_snapshots: int,
+) -> None:
+    if max_snapshots <= 0:
+        return
+    rows = conn.execute(
+        """
+        SELECT progress_id
+        FROM saved_daily_progress
+        WHERE member_profile_id = ?
+        ORDER BY saved_at DESC, created_at DESC, rowid DESC
+        """,
+        (_clean_text(member_profile_id),),
+    ).fetchall()
+    stale_ids = [row[0] for row in rows[max_snapshots:]]
+    if not stale_ids:
+        return
+    placeholders = ",".join("?" for _ in stale_ids)
+    conn.execute(
+        f"DELETE FROM saved_daily_progress WHERE progress_id IN ({placeholders})",
+        stale_ids,
+    )
+
+
 def _daily_plan_rows(response_json: dict[str, Any]) -> list[dict[str, Any]]:
     rows = response_json.get("daily_plan")
     if isinstance(rows, list) and rows:
@@ -821,6 +1071,33 @@ def _feedback_row_to_dict(row: Any) -> dict[str, Any]:
         "notes": row[7] or "",
         "source": row[8],
         "created_at": row[9],
+    }
+
+
+def _daily_progress_row_to_dict(row: Any) -> dict[str, Any]:
+    return {
+        "progress_id": row[0],
+        "household_id": row[1],
+        "member_profile_id": row[2],
+        "plan_id": row[3],
+        "day_index": int(row[4]),
+        "saved_at": row[5],
+        "planned": {
+            "kcal": row[6],
+            "protein_g": row[7],
+            "carbs_g": row[8],
+            "fat_g": row[9],
+        },
+        "consumed": {
+            "kcal": row[10],
+            "protein_g": row[11],
+            "carbs_g": row[12],
+            "fat_g": row[13],
+        },
+        "meal_completion": _json_loads(row[14]),
+        "day_snapshot": _json_loads(row[15]),
+        "created_at": row[16],
+        "updated_at": row[17],
     }
 
 

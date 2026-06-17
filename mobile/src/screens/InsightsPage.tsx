@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { MacroDonutRing } from "../components/insights/MacroDonutRing";
 import {
@@ -18,6 +18,7 @@ import {
 import { AppScreen } from "../components/ui/AppScreen";
 import { EmptyState } from "../components/ui/EmptyState";
 import { colors } from "../theme/colors";
+import type { DailyProgressSnapshot } from "../types/api";
 
 export type InsightsDaySelection = number | "average";
 
@@ -30,10 +31,19 @@ export type InsightsTotals = {
 
 export type MealContribution = {
   carbs_g?: number;
+  display_name?: string;
   fat_g?: number;
   kcal?: number;
   protein_g?: number;
+  recipe_id?: string;
   slot: string;
+};
+
+export type DailyProgressSaveInput = {
+  consumed: InsightsTotals;
+  day_snapshot: Record<string, unknown>;
+  meal_completion: Record<string, unknown>;
+  planned: InsightsTotals;
 };
 
 type InsightsPageProps = {
@@ -48,10 +58,19 @@ type InsightsPageProps = {
   mealContributions: MealContribution[];
   onGoToHousehold: () => void;
   onGoToMealPlan: () => void;
+  onDeleteProgress?: (progressId: string) => void;
+  onSaveProgress?: (input: DailyProgressSaveInput) => void;
   onSelectDay: (value: InsightsDaySelection) => void;
   profileSelector?: ReactNode;
+  progressError?: string;
+  progressMessage?: string;
+  progressUnavailableReason?: string;
   scrollToTopSignal?: number;
   selectedDay: InsightsDaySelection;
+  savedProgress?: DailyProgressSnapshot | null;
+  isDeletingProgress?: boolean;
+  isLoadingProgress?: boolean;
+  isSavingProgress?: boolean;
   targetTotals?: InsightsTotals;
   totals?: InsightsTotals;
 };
@@ -86,10 +105,19 @@ export function InsightsPage({
   mealContributions,
   onGoToHousehold,
   onGoToMealPlan,
+  onDeleteProgress,
+  onSaveProgress,
   onSelectDay,
   profileSelector,
+  progressError,
+  progressMessage,
+  progressUnavailableReason,
   scrollToTopSignal,
   selectedDay,
+  savedProgress,
+  isDeletingProgress,
+  isLoadingProgress,
+  isSavingProgress,
   targetTotals,
   totals,
 }: InsightsPageProps) {
@@ -155,6 +183,24 @@ export function InsightsPage({
     });
   }
 
+  function saveCurrentDayProgress() {
+    if (!onSaveProgress || isAverageMode) {
+      return;
+    }
+    onSaveProgress(
+      buildDailyProgressSaveInput({
+        activeProfileKey,
+        activeProfileMeta,
+        activeProfileName,
+        completionState: completionForContext,
+        consumedTotals,
+        mealRows,
+        plannedTotals: totals,
+        selectedDay,
+      }),
+    );
+  }
+
   if (!isSetupComplete) {
     return (
       <AppScreen scrollToTopSignal={scrollToTopSignal}>
@@ -215,6 +261,26 @@ export function InsightsPage({
         dayIndexes={dayIndexes}
         onSelect={onSelectDay}
         selected={selectedDay}
+      />
+
+      <DailyProgressControl
+        disabledReason={
+          isAverageMode
+            ? "Average mode cannot be saved as a day."
+            : progressUnavailableReason
+        }
+        isDeleting={Boolean(isDeletingProgress)}
+        isLoading={Boolean(isLoadingProgress)}
+        isSaving={Boolean(isSavingProgress)}
+        onDelete={
+          savedProgress && onDeleteProgress
+            ? () => onDeleteProgress(savedProgress.progress_id)
+            : undefined
+        }
+        onSave={saveCurrentDayProgress}
+        progressError={progressError}
+        progressMessage={progressMessage}
+        savedProgress={savedProgress ?? null}
       />
 
       <View style={styles.dashboardCard}>
@@ -344,6 +410,96 @@ export function InsightsPage({
         </Text>
       </View>
     </AppScreen>
+  );
+}
+
+function DailyProgressControl({
+  disabledReason,
+  isDeleting,
+  isLoading,
+  isSaving,
+  onDelete,
+  onSave,
+  progressError,
+  progressMessage,
+  savedProgress,
+}: {
+  disabledReason?: string;
+  isDeleting: boolean;
+  isLoading: boolean;
+  isSaving: boolean;
+  onDelete?: () => void;
+  onSave: () => void;
+  progressError?: string;
+  progressMessage?: string;
+  savedProgress: DailyProgressSnapshot | null;
+}) {
+  const hasSavedProgress = Boolean(savedProgress);
+  const statusText = isLoading
+    ? "Checking saved progress..."
+    : hasSavedProgress
+      ? "Saved to progress history"
+      : disabledReason || "Progress not saved yet";
+  const canSave = !disabledReason && !hasSavedProgress && !isLoading && !isSaving;
+
+  return (
+    <View style={styles.progressControlCard}>
+      <View style={styles.progressStatusRow}>
+        <View style={styles.progressStatusTextBlock}>
+          <Text style={styles.progressStatusLabel}>Daily progress</Text>
+          <Text style={styles.progressStatusText}>{statusText}</Text>
+          {progressMessage ? (
+            <Text style={styles.progressSuccessText}>{progressMessage}</Text>
+          ) : null}
+          {progressError ? (
+            <Text style={styles.progressErrorText}>{progressError}</Text>
+          ) : null}
+        </View>
+        {isLoading ? <ActivityIndicator color={colors.accent} size="small" /> : null}
+      </View>
+      <View style={styles.progressActionRow}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={!canSave}
+          onPress={onSave}
+          style={({ pressed }) => [
+            styles.progressPrimaryButton,
+            !canSave ? styles.progressButtonDisabled : null,
+            pressed && canSave ? styles.pressed : null,
+          ]}
+        >
+          <Text
+            style={[
+              styles.progressPrimaryText,
+              !canSave ? styles.progressButtonTextDisabled : null,
+            ]}
+          >
+            {hasSavedProgress ? "Saved" : isSaving ? "Saving..." : "Save day"}
+          </Text>
+        </Pressable>
+        {hasSavedProgress && onDelete ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={isDeleting}
+            onPress={onDelete}
+            style={({ pressed }) => [
+              styles.progressSecondaryButton,
+              isDeleting ? styles.progressButtonDisabled : null,
+              pressed && !isDeleting ? styles.pressed : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.progressSecondaryText,
+                isDeleting ? styles.progressButtonTextDisabled : null,
+              ]}
+            >
+              {isDeleting ? "Deleting..." : "Delete saved day"}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -640,6 +796,67 @@ function sumCompletedMealTotals(
     },
     { carbs_g: 0, fat_g: 0, kcal: 0, protein_g: 0 },
   );
+}
+
+function buildDailyProgressSaveInput({
+  activeProfileKey,
+  activeProfileMeta,
+  activeProfileName,
+  completionState,
+  consumedTotals,
+  mealRows,
+  plannedTotals,
+  selectedDay,
+}: {
+  activeProfileKey: string;
+  activeProfileMeta: string;
+  activeProfileName: string;
+  completionState: MealCompletionState;
+  consumedTotals: InsightsTotals;
+  mealRows: MealContribution[];
+  plannedTotals?: InsightsTotals;
+  selectedDay: InsightsDaySelection;
+}): DailyProgressSaveInput {
+  const meals = mealRows.map((meal) => {
+    const mealKey = getMealContributionKey(meal);
+    return {
+      carbs_g: numberValue(meal.carbs_g),
+      display_name: meal.display_name || formatMealSlot(normalizeSlot(meal.slot)),
+      eaten: Boolean(completionState[mealKey]),
+      fat_g: numberValue(meal.fat_g),
+      kcal: numberValue(meal.kcal),
+      meal_key: mealKey,
+      protein_g: numberValue(meal.protein_g),
+      recipe_id: meal.recipe_id || "",
+      slot: normalizeSlot(meal.slot),
+    };
+  });
+  return {
+    consumed: normalizedTotals(consumedTotals),
+    planned: normalizedTotals(plannedTotals),
+    meal_completion: {
+      completed_meal_keys: meals
+        .filter((meal) => meal.eaten)
+        .map((meal) => String(meal.meal_key)),
+      meals,
+    },
+    day_snapshot: {
+      active_profile_key: activeProfileKey,
+      active_profile_meta: activeProfileMeta,
+      active_profile_name: activeProfileName,
+      meals,
+      selected_day: selectedDay,
+    },
+  };
+}
+
+function normalizedTotals(totals?: InsightsTotals): Required<InsightsTotals> {
+  return {
+    carbs_g: numberValue(totals?.carbs_g),
+    fat_g: numberValue(totals?.fat_g),
+    kcal: numberValue(totals?.kcal),
+    protein_g: numberValue(totals?.protein_g),
+  };
 }
 
 function macroCompletionRatios(consumed: InsightsTotals, planned?: InsightsTotals): MacroProgress {
@@ -1020,6 +1237,93 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.82,
+  },
+  progressActionRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  progressButtonDisabled: {
+    opacity: 0.58,
+  },
+  progressButtonTextDisabled: {
+    color: "#8B9A82",
+  },
+  progressControlCard: {
+    backgroundColor: "#F7FBF2",
+    borderColor: "#DDEAD3",
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  progressErrorText: {
+    color: "#B45309",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
+  },
+  progressPrimaryButton: {
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+    borderRadius: 13,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: 12,
+  },
+  progressPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  progressSecondaryButton: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.accent,
+    borderRadius: 13,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: 12,
+  },
+  progressSecondaryText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  progressStatusLabel: {
+    color: "#1B2430",
+    fontSize: 13,
+    fontWeight: "900",
+    lineHeight: 17,
+  },
+  progressStatusRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  progressStatusText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
+  },
+  progressStatusTextBlock: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  progressSuccessText: {
+    color: colors.accentDark,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
   },
   profileFallback: {
     alignItems: "center",
