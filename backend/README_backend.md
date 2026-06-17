@@ -96,13 +96,14 @@ Nota de scoping curenta:
 Implementat in PROGRESS-1:
 
 - `POST /progress/daily`
-- `GET /progress/daily?member_profile_id=...`
+- `GET /progress/daily?member_profile_id=...&limit=30`
 - `DELETE /progress/daily/{progress_id}`
 - persistenta SQLite in `saved_daily_progress`
 - unicitate pe `member_profile_id + plan_id + day_index`
 - maximum 30 snapshoturi salvate per profil, enforced backend-side
 - scoping obligatoriu pe `Authorization: Bearer <session_token>` si household-ul contului
 - delete sterge doar snapshotul de progres, nu planul generat
+- PROGRESS-2: snapshoturile includ target totals pentru Trends; randurile vechi fara target explicit folosesc planned totals ca fallback documentat
 
 Implementat in PROFILE-WIZARD-1:
 
@@ -197,11 +198,11 @@ Progress endpoints:
 
 ```text
 POST   http://127.0.0.1:8000/progress/daily
-GET    http://127.0.0.1:8000/progress/daily?member_profile_id={member_profile_id}
+GET    http://127.0.0.1:8000/progress/daily?member_profile_id={member_profile_id}&limit=30
 DELETE http://127.0.0.1:8000/progress/daily/{progress_id}
 ```
 
-Toate endpointurile PROGRESS-1 cer `Authorization: Bearer <session_token>`. Snapshoturile sunt per profil, plan si zi. Duplicatele returneaza `status=already_saved` si nu creeaza rand nou.
+Toate endpointurile PROGRESS-1/PROGRESS-2 cer `Authorization: Bearer <session_token>`. Snapshoturile sunt per profil, plan si zi. Duplicatele returneaza `status=already_saved` si nu creeaza rand nou. `GET /progress/daily` returneaza maximum 30 snapshoturi si include planned/target/consumed totals pentru Page 3 Trends.
 
 Schema profilului suporta in plus:
 
@@ -315,12 +316,14 @@ Smoke pentru saved daily progress snapshots:
 
 ```powershell
 python tools/extra/check_progress_daily_snapshots.py
+python tools/extra/check_progress_trends_backend.py
 ```
 
-Output sumar PROGRESS-1:
+Output sumar PROGRESS-1/PROGRESS-2:
 
 ```text
 data/recipesdb/audit/progress_daily_snapshots_summary.txt
+data/recipesdb/audit/progress_trends_backend_summary.txt
 ```
 
 Mostre response M3:

@@ -239,6 +239,10 @@ Columns:
 | `planned_protein_g` | REAL NULL | Proteine planificate |
 | `planned_carbs_g` | REAL NULL | Carbohidrati planificati |
 | `planned_fat_g` | REAL NULL | Grasimi planificate |
+| `target_kcal` | REAL NULL | Kcal target pentru trend/adherenta |
+| `target_protein_g` | REAL NULL | Proteine target pentru trend/adherenta |
+| `target_carbs_g` | REAL NULL | Carbohidrati target pentru trend/adherenta |
+| `target_fat_g` | REAL NULL | Grasimi target pentru trend/adherenta |
 | `consumed_kcal` | REAL NULL | Kcal marcate ca mancate in UI |
 | `consumed_protein_g` | REAL NULL | Proteine marcate ca mancate |
 | `consumed_carbs_g` | REAL NULL | Carbohidrati marcati ca mancati |
@@ -261,7 +265,8 @@ Constrangeri si indexuri:
 - Normalizarea completa poate fi amanata pana cand contractul API si UI-ul mobil se stabilizeaza.
 - Schema este pentru SQLite local MVP/preview, nu pentru cloud production DB.
 - Auth-M1 nu adauga email verification, password reset, email sending sau productie-grade auth claims.
-- `saved_daily_progress` este pentru PROGRESS-1 si nu inlocuieste `generated_plans`; stergerea unui snapshot nu sterge planul.
+- `saved_daily_progress` este pentru PROGRESS-1/PROGRESS-2 si nu inlocuieste `generated_plans`; stergerea unui snapshot nu sterge planul.
+- Coloanele `target_*` sunt folosite de Page 3 Trends. Pentru randurile istorice fara target explicit, migratia locala foloseste `planned_*` ca fallback documentat.
 
 ## Non-goals
 

@@ -249,6 +249,7 @@ Mobile M1-M8, UI-1/UI-2 si polish-urile principale de produs sunt implementate:
 - M8: cleanup local/demo pentru profiluri si feedback; mobile poate soft-dezactiva profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true` si poate sterge feedback events prin `DELETE /feedback?confirm=true`.
 - UI-1: shell mobil cu 4 pagini (`Home`, `Meal Plan`, `Insights`, `Household / Account`), navigatie flotanta, guard states si flow-uri reale mobile/backend.
 - PROGRESS-1: saved daily progress snapshots persistate per profil prin SQLite si `/progress/daily`; Page 3 poate salva/sterge snapshotul zilei curente.
+- PROGRESS-2: Page 3 Trends foloseste istoricul salvat real pentru Target adherence, Consistency si Macro pattern pe range 1..30 zile disponibile.
 
 Flow mobil validat:
 
@@ -344,7 +345,16 @@ PROGRESS-1 persista snapshoturi zilnice salvate per profil:
 - unicitate pe profil + plan + zi;
 - scoping pe cont/household prin `Authorization`.
 
-Graficele istorice peste snapshoturi raman pentru PROGRESS-2.
+PROGRESS-2 adauga:
+
+- campuri `target_*` in `saved_daily_progress`, cu backfill planned-as-target pentru randurile istorice;
+- `GET /progress/daily` cu `limit` optional 1..30;
+- sectiune `Trends` in Page 3 sub Macro Targets si peste Micronutrients;
+- range selector `Last X days`, default la maximum disponibil pentru profil;
+- Target adherence cu metric selector Calories / Protein / Carbs / Fats;
+- Consistency bazat pe calories si protein in target sau close;
+- Macro pattern 4-row heatmap, maximum 5 zile vizibile per bloc;
+- Top foods / Top contributors raman deferate.
 
 ## Remaining mobile milestones
 
@@ -360,7 +370,7 @@ Later - Product/account work:
 
 - persistenta sigura a sesiunii peste restart de app
 - change email / change password daca devin necesare pentru prezentare
-- grafice istorice peste progress snapshots in PROGRESS-2
+- rafinare vizuala pentru Trends dupa testare reala pe telefon
 - cloud sync doar dupa ce fluxul local/demo este stabil
 - ecrane household dedicate si feedback household imbunatatit
 
@@ -377,7 +387,7 @@ Later - Product/account work:
 - Fara live price scraping.
 - Fara advanced household optimizer.
 - Fara full household mobile screen de productie inca.
-- Fara charts istorice de progres pana dupa persistenta PROGRESS-1.
+- Fara Top foods / Top contributors in PROGRESS-2.
 
 ## Implementation guardrails
 

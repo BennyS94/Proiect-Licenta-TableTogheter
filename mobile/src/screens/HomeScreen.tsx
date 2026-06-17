@@ -1124,6 +1124,11 @@ export function HomeScreen() {
       const response = await getDailyProgress(memberProfileId, authSessionToken);
       setDailyProgressByKey((current) => {
         const next = { ...current };
+        for (const [key, snapshot] of Object.entries(next)) {
+          if (snapshot.member_profile_id === memberProfileId) {
+            delete next[key];
+          }
+        }
         for (const snapshot of response.snapshots ?? []) {
           next[buildDailyProgressKey(
             snapshot.member_profile_id,
@@ -1175,6 +1180,7 @@ export function HomeScreen() {
           member_profile_id: insightsMemberProfileId,
           plan_id: insightsPlanId,
           planned: input.planned,
+          target: input.target,
         },
         authSessionToken,
       );
@@ -1192,6 +1198,7 @@ export function HomeScreen() {
           ? "This day is already saved."
           : "Day saved.",
       );
+      void refreshDailyProgressForProfile(insightsMemberProfileId, true);
     } catch (error) {
       setDailyProgressError(error instanceof Error ? error.message : "Progress save failed");
     } finally {
@@ -1278,7 +1285,7 @@ export function HomeScreen() {
   const insightsTargetTotals =
     generationMode === "household"
       ? getHouseholdTargetTotals(generatedHouseholdPlan, householdInsightsMemberId)
-      : undefined;
+      : getIndividualTargetTotals(generatedPlan);
   const insightMealContributions =
     generationMode === "household"
       ? getHouseholdMealContributions(
@@ -1305,6 +1312,9 @@ export function HomeScreen() {
       : buildDailyProgressKey(insightsMemberProfileId, insightsPlanId, safeInsightsDay);
   const selectedDailyProgress =
     selectedDailyProgressKey ? dailyProgressByKey[selectedDailyProgressKey] ?? null : null;
+  const selectedProgressHistory = Object.values(dailyProgressByKey)
+    .filter((snapshot) => snapshot.member_profile_id === insightsMemberProfileId)
+    .sort(compareDailyProgressSnapshotsAscending);
   const dailyProgressUnavailableReason = !authSessionToken
     ? "Log in to save progress."
     : !insightsMemberProfileId
@@ -1707,6 +1717,7 @@ export function HomeScreen() {
         onSelectDay={handleInsightsDaySelect}
         profileSelector={mealPlanProfileSelectorNode}
         progressError={dailyProgressError}
+        progressHistory={selectedProgressHistory}
         progressMessage={dailyProgressMessage}
         progressUnavailableReason={dailyProgressUnavailableReason}
         scrollToTopSignal={scrollToTopRequests.insights}
@@ -2135,6 +2146,45 @@ function getIndividualInsightsTotals(
     return averageTotals(days.map((day) => asRecord(day.totals)));
   }
   return extractTotals(asRecord(getIndividualDay(response, selectedDay)?.totals));
+}
+
+function getIndividualTargetTotals(
+  response: IndividualPlanGenerateResponse | null,
+): InsightsTotals | undefined {
+  if (!response) {
+    return undefined;
+  }
+  const generatorPlan = asRecord(response.generator_plan);
+  const directTarget = asRecord(response.target);
+  const generatorTarget = asRecord(generatorPlan.target);
+  const fallbackTotals = getIndividualInsightsTotals(response, "average");
+  const totals = {
+    carbs_g:
+      numberValue(directTarget.carbs_g) ??
+      numberValue(directTarget.target_carbs_g) ??
+      numberValue(generatorTarget.carbs_g) ??
+      numberValue(generatorTarget.target_carbs_g) ??
+      fallbackTotals.carbs_g,
+    fat_g:
+      numberValue(directTarget.fat_g) ??
+      numberValue(directTarget.target_fat_g) ??
+      numberValue(generatorTarget.fat_g) ??
+      numberValue(generatorTarget.target_fat_g) ??
+      fallbackTotals.fat_g,
+    kcal:
+      numberValue(directTarget.kcal) ??
+      numberValue(directTarget.target_kcal) ??
+      numberValue(generatorTarget.kcal) ??
+      numberValue(generatorTarget.target_kcal) ??
+      fallbackTotals.kcal,
+    protein_g:
+      numberValue(directTarget.protein_g) ??
+      numberValue(directTarget.target_protein_g) ??
+      numberValue(generatorTarget.protein_g) ??
+      numberValue(generatorTarget.target_protein_g) ??
+      fallbackTotals.protein_g,
+  };
+  return Object.values(totals).some((value) => value !== undefined) ? totals : undefined;
 }
 
 function getIndividualMealContributions(
@@ -2782,6 +2832,21 @@ function buildDailyProgressKey(
     String(planId || "").trim(),
     String(dayIndex || 0),
   ].join("::");
+}
+
+function compareDailyProgressSnapshotsAscending(
+  left: DailyProgressSnapshot,
+  right: DailyProgressSnapshot,
+): number {
+  const leftTime = Date.parse(left.saved_at || left.created_at || "");
+  const rightTime = Date.parse(right.saved_at || right.created_at || "");
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+  if (left.plan_id !== right.plan_id) {
+    return left.plan_id.localeCompare(right.plan_id);
+  }
+  return left.day_index - right.day_index;
 }
 
 function getGroceryListFromPlanResponse(

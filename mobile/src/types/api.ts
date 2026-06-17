@@ -442,6 +442,7 @@ export type DailyProgressSaveRequest = {
   plan_id: string;
   day_index: number;
   planned: DailyProgressTotals;
+  target: DailyProgressTotals;
   consumed: DailyProgressTotals;
   meal_completion: Record<string, unknown>;
   day_snapshot: Record<string, unknown>;
@@ -455,6 +456,7 @@ export type DailyProgressSnapshot = {
   day_index: number;
   saved_at: string;
   planned: DailyProgressTotals;
+  target?: DailyProgressTotals;
   consumed: DailyProgressTotals;
   meal_completion: Record<string, unknown>;
   day_snapshot: Record<string, unknown>;

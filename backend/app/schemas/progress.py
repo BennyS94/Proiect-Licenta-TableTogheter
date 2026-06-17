@@ -18,6 +18,7 @@ class DailyProgressSaveRequest(BaseModel):
     plan_id: str
     day_index: int
     planned: DailyProgressTotals = Field(default_factory=DailyProgressTotals)
+    target: DailyProgressTotals = Field(default_factory=DailyProgressTotals)
     consumed: DailyProgressTotals = Field(default_factory=DailyProgressTotals)
     meal_completion: dict[str, Any] = Field(default_factory=dict)
     day_snapshot: dict[str, Any] = Field(default_factory=dict)
@@ -31,6 +32,7 @@ class DailyProgressSnapshot(BaseModel):
     day_index: int
     saved_at: str
     planned: DailyProgressTotals
+    target: DailyProgressTotals
     consumed: DailyProgressTotals
     meal_completion: dict[str, Any] = Field(default_factory=dict)
     day_snapshot: dict[str, Any] = Field(default_factory=dict)

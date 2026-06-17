@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -44,6 +44,7 @@ export type DailyProgressSaveInput = {
   day_snapshot: Record<string, unknown>;
   meal_completion: Record<string, unknown>;
   planned: InsightsTotals;
+  target: InsightsTotals;
 };
 
 type InsightsPageProps = {
@@ -64,6 +65,7 @@ type InsightsPageProps = {
   profileSelector?: ReactNode;
   progressError?: string;
   progressMessage?: string;
+  progressHistory?: DailyProgressSnapshot[];
   progressUnavailableReason?: string;
   scrollToTopSignal?: number;
   selectedDay: InsightsDaySelection;
@@ -82,6 +84,8 @@ type MacroProgress = {
   fat: number;
   protein: number;
 };
+type TrendMetricKey = "calories" | "protein" | "carbs" | "fats";
+type TrendStatus = "in_target" | "close" | "off";
 
 const MACRO_COLORS = {
   calories: colors.accent,
@@ -93,6 +97,23 @@ const MACRO_COLORS = {
 const MEAL_DASHBOARD_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 const EMPTY_COMPLETION_STATE: MealCompletionState = {};
 const FULL_MACRO_PROGRESS: MacroProgress = { carbs: 1, fat: 1, protein: 1 };
+const TREND_BLOCK_SIZE = 5;
+const TREND_METRICS: Array<{ key: TrendMetricKey; label: string; unit: string }> = [
+  { key: "calories", label: "Calories", unit: "kcal" },
+  { key: "protein", label: "Protein", unit: "g" },
+  { key: "carbs", label: "Carbs", unit: "g" },
+  { key: "fats", label: "Fats", unit: "g" },
+];
+const TREND_STATUS_COLORS: Record<TrendStatus, string> = {
+  close: "#E8B931",
+  in_target: colors.accent,
+  off: "#D96B5F",
+};
+const TREND_STATUS_BACKGROUNDS: Record<TrendStatus, string> = {
+  close: "#FFF6D9",
+  in_target: "#EEF8E6",
+  off: "#FCECEA",
+};
 
 export function InsightsPage({
   activeProfileKey,
@@ -111,6 +132,7 @@ export function InsightsPage({
   profileSelector,
   progressError,
   progressMessage,
+  progressHistory,
   progressUnavailableReason,
   scrollToTopSignal,
   selectedDay,
@@ -197,6 +219,7 @@ export function InsightsPage({
         mealRows,
         plannedTotals: totals,
         selectedDay,
+        targetTotals,
       }),
     );
   }
@@ -400,6 +423,8 @@ export function InsightsPage({
           />
         </View>
       </View>
+
+      <TrendsSection snapshots={progressHistory ?? []} />
 
       <View style={styles.dashboardCard}>
         <View style={styles.cardHeader}>
@@ -708,6 +733,483 @@ function MealContributionItem({
   );
 }
 
+function TrendsSection({ snapshots }: { snapshots: DailyProgressSnapshot[] }) {
+  const orderedSnapshots = useMemo(() => normalizeTrendSnapshots(snapshots), [snapshots]);
+  const maxRange = Math.min(30, orderedSnapshots.length);
+  const [selectedRange, setSelectedRange] = useState(maxRange);
+  const [selectedMetric, setSelectedMetric] = useState<TrendMetricKey>("calories");
+  const [blockIndex, setBlockIndex] = useState(0);
+  const historySignature = orderedSnapshots
+    .map((snapshot) => snapshot.progress_id)
+    .join("|");
+
+  useEffect(() => {
+    setSelectedRange(maxRange);
+    setBlockIndex(0);
+  }, [historySignature, maxRange]);
+
+  const safeRange = maxRange > 0 ? Math.min(Math.max(selectedRange || maxRange, 1), maxRange) : 0;
+  const visibleSnapshots = safeRange > 0 ? orderedSnapshots.slice(-safeRange) : [];
+  const blockCount = Math.max(1, Math.ceil(visibleSnapshots.length / TREND_BLOCK_SIZE));
+
+  useEffect(() => {
+    setBlockIndex((current) => Math.min(current, blockCount - 1));
+  }, [blockCount]);
+
+  if (!orderedSnapshots.length) {
+    return (
+      <View style={[styles.dashboardCard, styles.trendsEmptyCard]}>
+        <Text style={styles.cardTitle}>Trends</Text>
+        <View style={styles.trendsEmptyState}>
+          <Text style={styles.trendsEmptyTitle}>No saved progress yet</Text>
+          <Text style={styles.trendsEmptyText}>
+            Save a day from Insights to start seeing trends.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.trendsSection}>
+      <View style={styles.trendsHeader}>
+        <Text style={styles.cardTitle}>Trends</Text>
+        <RangeSelector
+          maxRange={maxRange}
+          onChange={(nextRange) => {
+            setSelectedRange(nextRange);
+            setBlockIndex(0);
+          }}
+          value={safeRange}
+        />
+      </View>
+      <TargetAdherenceCard
+        metric={selectedMetric}
+        onSelectMetric={setSelectedMetric}
+        snapshots={visibleSnapshots}
+      />
+      <ConsistencyCard snapshots={visibleSnapshots} />
+      <MacroPatternHeatmap
+        blockIndex={blockIndex}
+        onChangeBlock={setBlockIndex}
+        snapshots={visibleSnapshots}
+      />
+    </View>
+  );
+}
+
+function RangeSelector({
+  maxRange,
+  onChange,
+  value,
+}: {
+  maxRange: number;
+  onChange: (value: number) => void;
+  value: number;
+}) {
+  const canDecrease = value > 1;
+  const canIncrease = value < maxRange;
+  return (
+    <View style={styles.rangeSelector}>
+      <Pressable
+        accessibilityRole="button"
+        disabled={!canDecrease}
+        onPress={() => onChange(Math.max(1, value - 1))}
+        style={({ pressed }) => [
+          styles.rangeButton,
+          !canDecrease ? styles.rangeButtonDisabled : null,
+          pressed && canDecrease ? styles.pressed : null,
+        ]}
+      >
+        <Text style={[styles.rangeButtonText, !canDecrease ? styles.rangeButtonTextDisabled : null]}>
+          -
+        </Text>
+      </Pressable>
+      <Text numberOfLines={1} style={styles.rangeLabel}>
+        Last {value} {value === 1 ? "day" : "days"}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={!canIncrease}
+        onPress={() => onChange(Math.min(maxRange, value + 1))}
+        style={({ pressed }) => [
+          styles.rangeButton,
+          !canIncrease ? styles.rangeButtonDisabled : null,
+          pressed && canIncrease ? styles.pressed : null,
+        ]}
+      >
+        <Text style={[styles.rangeButtonText, !canIncrease ? styles.rangeButtonTextDisabled : null]}>
+          +
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function MetricSelector({
+  onSelect,
+  selected,
+}: {
+  onSelect: (metric: TrendMetricKey) => void;
+  selected: TrendMetricKey;
+}) {
+  return (
+    <View style={styles.metricSelector}>
+      {TREND_METRICS.map((metric) => {
+        const active = metric.key === selected;
+        return (
+          <Pressable
+            accessibilityRole="button"
+            key={metric.key}
+            onPress={() => onSelect(metric.key)}
+            style={({ pressed }) => [
+              styles.metricChip,
+              active ? styles.metricChipActive : null,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <Text
+              numberOfLines={1}
+              style={[styles.metricChipText, active ? styles.metricChipTextActive : null]}
+            >
+              {metric.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function TargetAdherenceCard({
+  metric,
+  onSelectMetric,
+  snapshots,
+}: {
+  metric: TrendMetricKey;
+  onSelectMetric: (metric: TrendMetricKey) => void;
+  snapshots: DailyProgressSnapshot[];
+}) {
+  const metricConfig = TREND_METRICS.find((item) => item.key === metric) ?? TREND_METRICS[0];
+  const points = snapshots.map((snapshot, index) => {
+    const actual = getTrendActual(snapshot, metric);
+    const target = getTrendTarget(snapshot, metric);
+    return {
+      actual,
+      index,
+      status: getTrendStatus(metric, actual, target),
+      target,
+    };
+  });
+  const maxValue = Math.max(
+    1,
+    ...points.flatMap((point) => [point.actual, point.target]).map(numberValue),
+  );
+
+  return (
+    <View style={[styles.dashboardCard, styles.trendCard]}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardSubheading}>Target adherence</Text>
+      </View>
+      <MetricSelector onSelect={onSelectMetric} selected={metric} />
+      <View style={styles.trendChart}>
+        {points.map((point) => {
+          const actualPercent = Math.min(100, Math.max(4, (point.actual / maxValue) * 100));
+          const targetPercent = Math.min(100, Math.max(4, (point.target / maxValue) * 100));
+          return (
+            <View key={`${metric}-${point.index}`} style={styles.trendBarColumn}>
+              <View style={styles.trendBarTrack}>
+                <View
+                  style={[
+                    styles.trendTargetMarker,
+                    { bottom: `${targetPercent}%` as `${number}%` },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.trendBarFill,
+                    {
+                      backgroundColor: TREND_STATUS_COLORS[point.status],
+                      height: `${actualPercent}%` as `${number}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.trendChartFooter}>
+        <Text style={styles.trendTinyText}>Oldest</Text>
+        <Text style={styles.trendTinyText}>
+          Target: {formatTrendValue(latestTrendTarget(points), metricConfig.unit)}
+        </Text>
+        <Text style={styles.trendTinyText}>Newest</Text>
+      </View>
+      <View style={styles.trendLegend}>
+        <TrendLegendItem label="In target" status="in_target" />
+        <TrendLegendItem label="Close" status="close" />
+        <TrendLegendItem label="Off target" status="off" />
+      </View>
+    </View>
+  );
+}
+
+function TrendLegendItem({ label, status }: { label: string; status: TrendStatus }) {
+  return (
+    <View style={styles.trendLegendItem}>
+      <View style={[styles.trendLegendDot, { backgroundColor: TREND_STATUS_COLORS[status] }]} />
+      <Text style={styles.trendTinyText}>{label}</Text>
+    </View>
+  );
+}
+
+function ConsistencyCard({ snapshots }: { snapshots: DailyProgressSnapshot[] }) {
+  const dayStatuses = snapshots.map(isSnapshotInConsistencyRange);
+  const daysInRange = dayStatuses.filter(Boolean).length;
+  const totalDays = snapshots.length;
+  const consistencyPercent = totalDays > 0 ? Math.round((daysInRange / totalDays) * 100) : 0;
+  const currentStreak = countCurrentConsistencyStreak(dayStatuses);
+  const progressWidth = `${Math.min(100, Math.max(0, consistencyPercent))}%` as `${number}%`;
+
+  return (
+    <View style={[styles.dashboardCard, styles.trendCard]}>
+      <Text style={styles.cardSubheading}>Consistency</Text>
+      <View style={styles.consistencyMetrics}>
+        <View style={styles.consistencyMetricBlock}>
+          <Text style={styles.consistencyValue}>
+            {daysInRange} / {totalDays}
+          </Text>
+          <Text style={styles.consistencyLabel}>days in range</Text>
+        </View>
+        <View style={styles.consistencyMetricBlock}>
+          <Text style={styles.consistencyValue}>{consistencyPercent}%</Text>
+          <Text style={styles.consistencyLabel}>consistency</Text>
+        </View>
+        <View style={styles.consistencyMetricBlock}>
+          <Text style={styles.consistencyValue}>{currentStreak}</Text>
+          <Text style={styles.consistencyLabel}>Current streak</Text>
+        </View>
+      </View>
+      <View style={styles.consistencyProgressTrack}>
+        <View style={[styles.consistencyProgressFill, { width: progressWidth }]} />
+      </View>
+      <Text style={styles.trendHelperText}>Based on calories and protein targets.</Text>
+    </View>
+  );
+}
+
+function MacroPatternHeatmap({
+  blockIndex,
+  onChangeBlock,
+  snapshots,
+}: {
+  blockIndex: number;
+  onChangeBlock: (index: number) => void;
+  snapshots: DailyProgressSnapshot[];
+}) {
+  const blockCount = Math.max(1, Math.ceil(snapshots.length / TREND_BLOCK_SIZE));
+  const safeBlockIndex = Math.min(blockIndex, blockCount - 1);
+  const blockStart = safeBlockIndex * TREND_BLOCK_SIZE;
+  const blockSnapshots = snapshots.slice(blockStart, blockStart + TREND_BLOCK_SIZE);
+  const blockEnd = blockStart + blockSnapshots.length;
+  const canGoBack = safeBlockIndex > 0;
+  const canGoForward = safeBlockIndex < blockCount - 1;
+
+  return (
+    <View style={[styles.dashboardCard, styles.trendCard]}>
+      <View style={styles.patternHeader}>
+        <Text style={styles.cardSubheading}>Macro pattern</Text>
+        <View style={styles.patternNav}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!canGoBack}
+            onPress={() => onChangeBlock(Math.max(0, safeBlockIndex - 1))}
+            style={({ pressed }) => [
+              styles.patternArrowButton,
+              !canGoBack ? styles.patternArrowButtonDisabled : null,
+              pressed && canGoBack ? styles.pressed : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.patternArrowText,
+                !canGoBack ? styles.patternArrowTextDisabled : null,
+              ]}
+            >
+              {"<"}
+            </Text>
+          </Pressable>
+          <Text numberOfLines={1} style={styles.patternRangeText}>
+            Days {blockStart + 1}-{blockEnd}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!canGoForward}
+            onPress={() => onChangeBlock(Math.min(blockCount - 1, safeBlockIndex + 1))}
+            style={({ pressed }) => [
+              styles.patternArrowButton,
+              !canGoForward ? styles.patternArrowButtonDisabled : null,
+              pressed && canGoForward ? styles.pressed : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.patternArrowText,
+                !canGoForward ? styles.patternArrowTextDisabled : null,
+              ]}
+            >
+              {">"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+      <View style={styles.patternRows}>
+        {TREND_METRICS.map((metric) => (
+          <View key={metric.key} style={styles.patternRow}>
+            <Text numberOfLines={1} style={styles.patternMetricLabel}>
+              {metric.label}
+            </Text>
+            <View style={styles.patternCells}>
+              {blockSnapshots.map((snapshot, index) => {
+                const actual = getTrendActual(snapshot, metric.key);
+                const target = getTrendTarget(snapshot, metric.key);
+                const status = getTrendStatus(metric.key, actual, target);
+                return (
+                  <View
+                    key={`${metric.key}-${snapshot.progress_id}`}
+                    style={[
+                      styles.patternCell,
+                      {
+                        backgroundColor: TREND_STATUS_BACKGROUNDS[status],
+                        borderColor: TREND_STATUS_COLORS[status],
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.patternCellText, { color: TREND_STATUS_COLORS[status] }]}>
+                      {blockStart + index + 1}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function normalizeTrendSnapshots(snapshots: DailyProgressSnapshot[]): DailyProgressSnapshot[] {
+  return [...snapshots]
+    .sort(compareTrendSnapshotsAscending)
+    .slice(-30);
+}
+
+function compareTrendSnapshotsAscending(
+  left: DailyProgressSnapshot,
+  right: DailyProgressSnapshot,
+): number {
+  const leftTime = Date.parse(left.saved_at || left.created_at || "");
+  const rightTime = Date.parse(right.saved_at || right.created_at || "");
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+  if (left.plan_id !== right.plan_id) {
+    return left.plan_id.localeCompare(right.plan_id);
+  }
+  return left.day_index - right.day_index;
+}
+
+function getTrendActual(snapshot: DailyProgressSnapshot, metric: TrendMetricKey): number {
+  if (metric === "protein") {
+    return numberValue(snapshot.consumed?.protein_g);
+  }
+  if (metric === "carbs") {
+    return numberValue(snapshot.consumed?.carbs_g);
+  }
+  if (metric === "fats") {
+    return numberValue(snapshot.consumed?.fat_g);
+  }
+  return numberValue(snapshot.consumed?.kcal);
+}
+
+function getTrendTarget(snapshot: DailyProgressSnapshot, metric: TrendMetricKey): number {
+  const target = snapshot.target ?? snapshot.planned;
+  const planned = snapshot.planned;
+  if (metric === "protein") {
+    return numberValue(target?.protein_g || planned?.protein_g);
+  }
+  if (metric === "carbs") {
+    return numberValue(target?.carbs_g || planned?.carbs_g);
+  }
+  if (metric === "fats") {
+    return numberValue(target?.fat_g || planned?.fat_g);
+  }
+  return numberValue(target?.kcal || planned?.kcal);
+}
+
+function getTrendStatus(
+  metric: TrendMetricKey,
+  actual: number,
+  target: number,
+): TrendStatus {
+  if (target <= 0) {
+    return "off";
+  }
+  const ratio = actual / target;
+  // Praguri MVP pentru aderenta la target, nu interpretare medicala.
+  if (metric === "protein") {
+    if (ratio >= 0.9 && ratio <= 1.3) {
+      return "in_target";
+    }
+    if ((ratio >= 0.75 && ratio < 0.9) || (ratio > 1.3 && ratio <= 1.5)) {
+      return "close";
+    }
+    return "off";
+  }
+  if (ratio >= 0.9 && ratio <= 1.1) {
+    return "in_target";
+  }
+  if ((ratio >= 0.8 && ratio < 0.9) || (ratio > 1.1 && ratio <= 1.2)) {
+    return "close";
+  }
+  return "off";
+}
+
+function isSnapshotInConsistencyRange(snapshot: DailyProgressSnapshot): boolean {
+  const caloriesStatus = getTrendStatus(
+    "calories",
+    getTrendActual(snapshot, "calories"),
+    getTrendTarget(snapshot, "calories"),
+  );
+  const proteinStatus = getTrendStatus(
+    "protein",
+    getTrendActual(snapshot, "protein"),
+    getTrendTarget(snapshot, "protein"),
+  );
+  return caloriesStatus !== "off" && proteinStatus !== "off";
+}
+
+function countCurrentConsistencyStreak(dayStatuses: boolean[]): number {
+  let streak = 0;
+  for (let index = dayStatuses.length - 1; index >= 0; index -= 1) {
+    if (!dayStatuses[index]) {
+      break;
+    }
+    streak += 1;
+  }
+  return streak;
+}
+
+function latestTrendTarget(points: Array<{ target: number }>): number {
+  return points.length ? points[points.length - 1].target : 0;
+}
+
+function formatTrendValue(value: number, unit: string): string {
+  return `${formatNumber(value)} ${unit}`;
+}
+
 function getMealIcon(slot: string): IconComponent {
   if (slot === "breakfast") {
     return BreakfastCoffeeCupIcon;
@@ -807,6 +1309,7 @@ function buildDailyProgressSaveInput({
   mealRows,
   plannedTotals,
   selectedDay,
+  targetTotals,
 }: {
   activeProfileKey: string;
   activeProfileMeta: string;
@@ -816,6 +1319,7 @@ function buildDailyProgressSaveInput({
   mealRows: MealContribution[];
   plannedTotals?: InsightsTotals;
   selectedDay: InsightsDaySelection;
+  targetTotals?: InsightsTotals;
 }): DailyProgressSaveInput {
   const meals = mealRows.map((meal) => {
     const mealKey = getMealContributionKey(meal);
@@ -834,6 +1338,7 @@ function buildDailyProgressSaveInput({
   return {
     consumed: normalizedTotals(consumedTotals),
     planned: normalizedTotals(plannedTotals),
+    target: normalizedTotals(targetTotals ?? plannedTotals),
     meal_completion: {
       completed_meal_keys: meals
         .filter((meal) => meal.eaten)
@@ -1094,6 +1599,41 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     lineHeight: 23,
   },
+  consistencyLabel: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: "800",
+    lineHeight: 13,
+    textAlign: "center",
+  },
+  consistencyMetricBlock: {
+    alignItems: "center",
+    flex: 1,
+    gap: 2,
+  },
+  consistencyMetrics: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 8,
+  },
+  consistencyProgressFill: {
+    backgroundColor: colors.accent,
+    borderRadius: 999,
+    height: "100%",
+  },
+  consistencyProgressTrack: {
+    backgroundColor: "#EEF2E9",
+    borderRadius: 999,
+    height: 9,
+    overflow: "hidden",
+  },
+  consistencyValue: {
+    color: "#1B2430",
+    fontSize: 18,
+    fontWeight: "900",
+    lineHeight: 22,
+    textAlign: "center",
+  },
   legendDot: {
     borderRadius: 999,
     height: 9,
@@ -1235,6 +1775,112 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     textAlign: "center",
   },
+  metricChip: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#DDEAD3",
+    borderRadius: 999,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 31,
+    minWidth: 0,
+    paddingHorizontal: 5,
+  },
+  metricChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  metricChipText: {
+    color: colors.accent,
+    fontSize: 10,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  metricChipTextActive: {
+    color: "#FFFFFF",
+  },
+  metricSelector: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  patternArrowButton: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.accent,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 26,
+    justifyContent: "center",
+    width: 26,
+  },
+  patternArrowButtonDisabled: {
+    borderColor: "#DDEAD3",
+  },
+  patternArrowText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "900",
+    lineHeight: 16,
+  },
+  patternArrowTextDisabled: {
+    color: "#A7B79D",
+  },
+  patternCell: {
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1,
+    flex: 1,
+    height: 30,
+    justifyContent: "center",
+    minWidth: 0,
+  },
+  patternCells: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 6,
+    minWidth: 0,
+  },
+  patternCellText: {
+    fontSize: 10,
+    fontWeight: "900",
+    lineHeight: 13,
+  },
+  patternHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  patternMetricLabel: {
+    color: "#1B2430",
+    flexShrink: 0,
+    fontSize: 11,
+    fontWeight: "900",
+    lineHeight: 15,
+    width: 57,
+  },
+  patternNav: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  patternRangeText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "900",
+    lineHeight: 15,
+    minWidth: 58,
+    textAlign: "center",
+  },
+  patternRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 9,
+  },
+  patternRows: {
+    gap: 8,
+  },
   pressed: {
     opacity: 0.82,
   },
@@ -1346,6 +1992,48 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     gap: 0,
   },
+  rangeButton: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.accent,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 30,
+    justifyContent: "center",
+    width: 30,
+  },
+  rangeButtonDisabled: {
+    borderColor: "#DDEAD3",
+  },
+  rangeButtonText: {
+    color: colors.accent,
+    fontSize: 17,
+    fontWeight: "900",
+    lineHeight: 20,
+  },
+  rangeButtonTextDisabled: {
+    color: "#A7B79D",
+  },
+  rangeLabel: {
+    color: "#1B2430",
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: "900",
+    lineHeight: 16,
+    minWidth: 78,
+    textAlign: "center",
+  },
+  rangeSelector: {
+    alignItems: "center",
+    backgroundColor: "#F7FBF2",
+    borderColor: "#DDEAD3",
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 4,
+  },
   progressFill: {
     borderRadius: 999,
     height: "100%",
@@ -1404,5 +2092,112 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     textAlign: "right",
+  },
+  trendBarColumn: {
+    alignItems: "center",
+    flex: 1,
+    minWidth: 0,
+  },
+  trendBarFill: {
+    borderRadius: 999,
+    minHeight: 5,
+    width: "100%",
+  },
+  trendBarTrack: {
+    backgroundColor: "#F3F6EF",
+    borderRadius: 999,
+    height: 86,
+    justifyContent: "flex-end",
+    overflow: "hidden",
+    position: "relative",
+    width: "100%",
+  },
+  trendCard: {
+    borderRadius: 20,
+    elevation: 1,
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    shadowOpacity: 0.05,
+  },
+  trendChart: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    gap: 3,
+    minHeight: 86,
+  },
+  trendChartFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  trendHelperText: {
+    color: colors.mutedSoft,
+    fontSize: 11,
+    fontWeight: "700",
+    lineHeight: 15,
+  },
+  trendLegend: {
+    alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  trendLegendDot: {
+    borderRadius: 999,
+    height: 8,
+    width: 8,
+  },
+  trendLegendItem: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
+  },
+  trendTargetMarker: {
+    backgroundColor: "#D6E6CA",
+    borderRadius: 999,
+    height: 2,
+    left: -1,
+    position: "absolute",
+    right: -1,
+  },
+  trendTinyText: {
+    color: colors.mutedSoft,
+    fontSize: 10,
+    fontWeight: "800",
+    lineHeight: 13,
+  },
+  trendsEmptyCard: {
+    gap: 12,
+  },
+  trendsEmptyState: {
+    backgroundColor: "#F7FBF2",
+    borderColor: "#DDEAD3",
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 3,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  trendsEmptyText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  trendsEmptyTitle: {
+    color: "#1B2430",
+    fontSize: 14,
+    fontWeight: "900",
+    lineHeight: 18,
+  },
+  trendsHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  trendsSection: {
+    gap: 12,
   },
 });

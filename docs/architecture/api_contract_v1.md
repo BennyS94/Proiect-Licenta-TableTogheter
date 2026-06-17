@@ -4,7 +4,7 @@
 
 Acest document defineste contractul API pregatit pentru primul backend TableTogether. Scopul este sa existe o limita clara intre aplicatia Android si generatorul Python inainte de implementarea FastAPI.
 
-Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite. Auth-M1 adauga autentificare locala SQLite pentru conturi MVP si profile scoped pe household-ul contului. PROGRESS-1 adauga snapshoturi zilnice salvate pentru progres per profil prin `/progress/daily`.
+Contractul a pornit ca planificare pentru Backend Prep 1. Backend M3 implementeaza primele endpointuri de generare si retrieval prin FastAPI, folosind `src/generator_v1/service.py` si SQLite local/demo. Backend M4 adauga demo household, profile API si feedback API cu persistenta SQLite. Backend M5 face endpointurile de generatie persistence-aware prin `member_profile_id`, `selected_member_ids` si context feedback SQLite. Auth-M1 adauga autentificare locala SQLite pentru conturi MVP si profile scoped pe household-ul contului. PROGRESS-1 adauga snapshoturi zilnice salvate pentru progres per profil prin `/progress/daily`, iar PROGRESS-2 foloseste acel istoric pentru Trends in Page 3.
 Backend KNN-2 adauga `POST /recipes/similar` pentru alternative de retete aprobate/review prin KNN-lite + generator approval gate. Backend KNN-4 adauga meal-level replacement explicit prin `POST /plans/{plan_id}/replace-meal`; acesta schimba o reteta/masa intreaga, nu ingrediente individuale.
 
 Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu schimba fisierele din `data/recipesdb/current` sau `data/fooddb/current`.
@@ -23,7 +23,7 @@ Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu 
 - Sesiunile folosesc token brut returnat clientului o singura data si hash de token stocat in SQLite.
 - Daca `Authorization: Bearer <session_token>` este prezent la profile API, profilurile sunt scoped pe household-ul contului.
 - In implementarea curenta, account ownership enforcement este complet pe auth/profile/household settings, dar nu este uniform pe toate endpointurile vechi de generatie, feedback, alternatives si replacement.
-- Saved daily progress snapshots sunt implementate prin `saved_daily_progress` si `/progress/daily`. Endpointurile cer `Authorization: Bearer <session_token>` si sunt scoped pe household-ul contului.
+- Saved daily progress snapshots sunt implementate prin `saved_daily_progress` si `/progress/daily`. Endpointurile cer `Authorization: Bearer <session_token>` si sunt scoped pe household-ul contului. Snapshoturile includ planned/target/consumed totals pentru Trends.
 
 ## POST /auth/register
 
@@ -953,6 +953,12 @@ Request schema example:
     "carbs_g": 240,
     "fat_g": 70
   },
+  "target": {
+    "kcal": 2050,
+    "protein_g": 135,
+    "carbs_g": 235,
+    "fat_g": 68
+  },
   "consumed": {
     "kcal": 650,
     "protein_g": 45,
@@ -995,6 +1001,12 @@ Response schema example:
       "carbs_g": 240,
       "fat_g": 70
     },
+    "target": {
+      "kcal": 2050,
+      "protein_g": 135,
+      "carbs_g": 235,
+      "fat_g": 68
+    },
     "consumed": {
       "kcal": 650,
       "protein_g": 45,
@@ -1013,6 +1025,7 @@ MVP notes:
 - Unicitatea este `member_profile_id + plan_id + day_index`.
 - Daca ziua este deja salvata, backend-ul intoarce `status=already_saved` si nu creeaza rand duplicat.
 - Backend-ul pastreaza maximum 30 snapshoturi per profil si sterge cele mai vechi peste limita.
+- `target` este folosit de Page 3 Trends pentru aderenta la obiective. Daca snapshoturile istorice nu au target explicit, migratia/backfill-ul foloseste `planned` ca fallback documentat.
 - Snapshotul reprezinta progres/adherenta fata de plan, nu un nou plan generat.
 
 ## GET /progress/daily
@@ -1023,6 +1036,7 @@ Purpose:
 Request:
 - Cere `Authorization: Bearer <session_token>`.
 - Query acceptat: `member_profile_id` sau aliasul `profile_id`.
+- Query optional: `limit`, intre 1 si 30. Default si maximum absolut: 30.
 
 Response schema example:
 
@@ -1037,6 +1051,7 @@ Response schema example:
 
 MVP notes:
 - Returneaza cel mult 30 snapshoturi, ordonate descrescator dupa `saved_at`.
+- Snapshoturile returneaza `planned`, `target`, `consumed`, `meal_completion` si `day_snapshot`, suficiente pentru Page 3 Trends.
 - Un profil din alt household returneaza `404`.
 
 ## DELETE /progress/daily/{progress_id}
@@ -1061,7 +1076,7 @@ Response schema example:
 MVP notes:
 - Sterge doar snapshotul de progres, nu planul generat.
 - Un snapshot din alt household returneaza `404`.
-- Graficele istorice peste aceste snapshoturi raman deferred pentru PROGRESS-2.
+- Page 3 Trends se actualizeaza din istoricul ramas dupa stergere.
 
 ## GET /profiles
 

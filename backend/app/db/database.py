@@ -29,6 +29,7 @@ def init_db() -> Path:
         connection.executescript(schema_sql)
         _ensure_household_auth_columns(connection)
         _ensure_member_profile_preference_columns(connection)
+        _ensure_saved_daily_progress_target_columns(connection)
     return get_sqlite_path()
 
 
@@ -77,3 +78,34 @@ def _ensure_member_profile_preference_columns(connection: sqlite3.Connection) ->
     for column_name, statement in column_sql.items():
         if column_name not in existing_columns:
             connection.execute(statement)
+
+
+def _ensure_saved_daily_progress_target_columns(connection: sqlite3.Connection) -> None:
+    existing_columns = {
+        row[1]
+        for row in connection.execute("PRAGMA table_info(saved_daily_progress)").fetchall()
+    }
+    column_sql = {
+        "target_kcal": "ALTER TABLE saved_daily_progress ADD COLUMN target_kcal REAL",
+        "target_protein_g": (
+            "ALTER TABLE saved_daily_progress ADD COLUMN target_protein_g REAL"
+        ),
+        "target_carbs_g": "ALTER TABLE saved_daily_progress ADD COLUMN target_carbs_g REAL",
+        "target_fat_g": "ALTER TABLE saved_daily_progress ADD COLUMN target_fat_g REAL",
+    }
+    added_columns = False
+    for column_name, statement in column_sql.items():
+        if column_name not in existing_columns:
+            connection.execute(statement)
+            added_columns = True
+    if added_columns:
+        connection.execute(
+            """
+            UPDATE saved_daily_progress
+            SET
+                target_kcal = COALESCE(target_kcal, planned_kcal),
+                target_protein_g = COALESCE(target_protein_g, planned_protein_g),
+                target_carbs_g = COALESCE(target_carbs_g, planned_carbs_g),
+                target_fat_g = COALESCE(target_fat_g, planned_fat_g)
+            """
+        )

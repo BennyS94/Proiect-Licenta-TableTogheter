@@ -68,6 +68,11 @@ def save_daily_progress(
 def list_daily_progress(
     member_profile_id: str | None = None,
     profile_id: str | None = Query(default=None),
+    limit: int = Query(
+        default=MAX_DAILY_PROGRESS_SNAPSHOTS_PER_PROFILE,
+        ge=1,
+        le=MAX_DAILY_PROGRESS_SNAPSHOTS_PER_PROFILE,
+    ),
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
     session_context = _session_context_from_authorization(authorization)
@@ -87,7 +92,10 @@ def list_daily_progress(
             conn,
             household_id=household_id,
             member_profile_id=scoped_profile_id,
-            limit=MAX_DAILY_PROGRESS_SNAPSHOTS_PER_PROFILE,
+            limit=min(
+                int(limit or MAX_DAILY_PROGRESS_SNAPSHOTS_PER_PROFILE),
+                MAX_DAILY_PROGRESS_SNAPSHOTS_PER_PROFILE,
+            ),
         )
     return {
         "status": "ok",

@@ -118,7 +118,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - UI-1 adauga shell mobil cu 4-page navigation: Home, Meal Plan, Insights si Household / Account.
 - Home este hardcoded pentru MVP si nu apeleaza backend-ul.
 - Meal Plan pastreaza fluxurile reale de generare, feedback, KNN alternatives, replacement si grocery list.
-- Insights este un nutrition dashboard peste planul generat, cu Daily Balance, Meal contribution, Macro Targets, Save day/Delete saved day si Micronutrients placeholder, fara claims complete de micronutrienti.
+- Insights este un nutrition dashboard peste planul generat, cu Daily Balance, Meal contribution, Macro Targets, Save day/Delete saved day, Trends peste istoricul salvat si Micronutrients placeholder, fara claims complete de micronutrienti.
 - Household / Account gazduieste setup demo, profiluri salvate, default viewer, status backend si tool-uri demo.
 - Auth-M1 adauga Create Account, Log In, Log Out si account-scoped profile calls.
 - Add Profile nu mai expune `Household ID`; backend-ul il asigneaza automat din sesiunea contului cand exista token.
@@ -156,6 +156,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - Backend-ul trimite `cooking_steps` pentru mesele generate din retetele active. Dupa COOKING-STEPS-1, fallback-ul `Cooking steps are not available for this recipe yet.` ar trebui sa ramana doar pentru date viitoare incomplete sau payload-uri neasteptate.
 - Page 3 / Insights pastreaza eaten/not-eaten state local pentru interactiunea curenta, iar `Save day` trimite snapshotul zilei la backend prin `/progress/daily`.
 - Snapshoturile salvate sunt per profil + plan + zi, au limita backend de 30 per profil si pot fi sterse cu `Delete saved day` fara sa stearga planul generat.
+- Trends citeste doar snapshoturile salvate ale profilului selectat si afiseaza `Last X days`, Target adherence, Consistency si Macro pattern. Nu foloseste date fake cand exista istoric salvat.
 - Average mode nu permite `Save day`; ramane o vizualizare statica pentru planul curent.
 
 ## Screen idle / keep-awake investigation
@@ -385,9 +386,9 @@ Structura UI-1 este verificata cu:
 python tools/extra/check_mobile_ui_shell_structure.py
 ```
 
-## Mobile PROGRESS-1 Flow
+## Mobile PROGRESS-1 / PROGRESS-2 Flow
 
-PROGRESS-1 adauga persistenta pentru saved daily progress snapshots fara grafice istorice:
+PROGRESS-1 adauga persistenta pentru saved daily progress snapshots, iar PROGRESS-2 adauga Trends peste acel istoric:
 
 1. Utilizatorul este logat si are cel putin un profil salvat.
 2. Genereaza un plan individual sau household.
@@ -399,11 +400,18 @@ PROGRESS-1 adauga persistenta pentru saved daily progress snapshots fara grafice
 8. Daca ziua era deja salvata pentru acel profil + plan + zi, backend-ul intoarce `already_saved` si nu creeaza duplicat.
 9. `Delete saved day` sterge doar snapshotul prin `DELETE /progress/daily/{progress_id}`.
 10. Average mode afiseaza motivul pentru care nu poate fi salvat.
+11. Sub `Macro Targets`, `Trends` afiseaza istoricul salvat al profilului selectat.
+12. `Last X days` are range 1..maximum disponibil, capped la 30.
+13. `Target adherence` compara consumed vs target pentru Calories / Protein / Carbs / Fats.
+14. `Consistency` foloseste calories si protein in target sau close.
+15. `Macro pattern` arata maximum 5 zile per bloc pentru Calories / Protein / Carbs / Fats.
+16. Top foods / Top contributors raman deferate.
 
-Structura PROGRESS-1 este verificata cu:
+Structura PROGRESS-1/PROGRESS-2 este verificata cu:
 
 ```powershell
 python tools/extra/check_mobile_progress_daily_structure.py
+python tools/extra/check_mobile_progress_trends_structure.py
 ```
 
 ## Mobile HOME-1 Flow
@@ -463,4 +471,4 @@ python tools/extra/check_mobile_assets_structure.py
 
 ## Next Step
 
-Urmatorul pas functional major pe zona de progres este PROGRESS-2: grafice/istoric peste saved daily progress snapshots. Ingredient-level substitution ramane in afara MVP-ului curent.
+Urmatorul pas functional major pe zona de progres este rafinarea vizuala a Trends dupa testare reala si, doar daca devine necesar, Top foods / Top contributors. Ingredient-level substitution ramane in afara MVP-ului curent.

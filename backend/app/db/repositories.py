@@ -763,6 +763,9 @@ def save_daily_progress_snapshot(
     planned = snapshot_dict.get("planned")
     if not isinstance(planned, dict):
         planned = {}
+    target = snapshot_dict.get("target")
+    if not isinstance(target, dict):
+        target = planned
     consumed = snapshot_dict.get("consumed")
     if not isinstance(consumed, dict):
         consumed = {}
@@ -790,6 +793,10 @@ def save_daily_progress_snapshot(
             planned_protein_g,
             planned_carbs_g,
             planned_fat_g,
+            target_kcal,
+            target_protein_g,
+            target_carbs_g,
+            target_fat_g,
             consumed_kcal,
             consumed_protein_g,
             consumed_carbs_g,
@@ -799,7 +806,7 @@ def save_daily_progress_snapshot(
             created_at,
             updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             progress_id,
@@ -812,6 +819,10 @@ def save_daily_progress_snapshot(
             _to_float(planned.get("protein_g")),
             _to_float(planned.get("carbs_g")),
             _to_float(planned.get("fat_g")),
+            _to_float(target.get("kcal") or planned.get("kcal")),
+            _to_float(target.get("protein_g") or planned.get("protein_g")),
+            _to_float(target.get("carbs_g") or planned.get("carbs_g")),
+            _to_float(target.get("fat_g") or planned.get("fat_g")),
             _to_float(consumed.get("kcal")),
             _to_float(consumed.get("protein_g")),
             _to_float(consumed.get("carbs_g")),
@@ -853,6 +864,10 @@ def get_daily_progress_by_context(
             planned_protein_g,
             planned_carbs_g,
             planned_fat_g,
+            target_kcal,
+            target_protein_g,
+            target_carbs_g,
+            target_fat_g,
             consumed_kcal,
             consumed_protein_g,
             consumed_carbs_g,
@@ -889,6 +904,10 @@ def get_daily_progress_snapshot(
             planned_protein_g,
             planned_carbs_g,
             planned_fat_g,
+            target_kcal,
+            target_protein_g,
+            target_carbs_g,
+            target_fat_g,
             consumed_kcal,
             consumed_protein_g,
             consumed_carbs_g,
@@ -926,6 +945,10 @@ def list_daily_progress_snapshots(
             planned_protein_g,
             planned_carbs_g,
             planned_fat_g,
+            target_kcal,
+            target_protein_g,
+            target_carbs_g,
+            target_fat_g,
             consumed_kcal,
             consumed_protein_g,
             consumed_carbs_g,
@@ -1088,16 +1111,22 @@ def _daily_progress_row_to_dict(row: Any) -> dict[str, Any]:
             "carbs_g": row[8],
             "fat_g": row[9],
         },
-        "consumed": {
-            "kcal": row[10],
-            "protein_g": row[11],
-            "carbs_g": row[12],
-            "fat_g": row[13],
+        "target": {
+            "kcal": row[10] if row[10] is not None else row[6],
+            "protein_g": row[11] if row[11] is not None else row[7],
+            "carbs_g": row[12] if row[12] is not None else row[8],
+            "fat_g": row[13] if row[13] is not None else row[9],
         },
-        "meal_completion": _json_loads(row[14]),
-        "day_snapshot": _json_loads(row[15]),
-        "created_at": row[16],
-        "updated_at": row[17],
+        "consumed": {
+            "kcal": row[14],
+            "protein_g": row[15],
+            "carbs_g": row[16],
+            "fat_g": row[17],
+        },
+        "meal_completion": _json_loads(row[18]),
+        "day_snapshot": _json_loads(row[19]),
+        "created_at": row[20],
+        "updated_at": row[21],
     }
 
 
