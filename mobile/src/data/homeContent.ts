@@ -6,6 +6,7 @@ export type HomeResourceItem = {
   description: string;
   id: string;
   image: string;
+  imageAsset?: ImageSourcePropType;
   imageTone: string;
   kind: HomeResourceKind;
   title: string;
@@ -25,6 +26,18 @@ const tipFruitChoice = require("../../assets/home/tips/tip_fruit_choice.png") as
 const tipArrangedPlate = require("../../assets/home/tips/tip_arranged_plate.png") as ImageSourcePropType;
 const tipBackupMeal = require("../../assets/home/tips/tip_backup_meal.png") as ImageSourcePropType;
 const tipKidsTastes = require("../../assets/home/tips/tip_kids_tastes.png") as ImageSourcePropType;
+const highlightWeeklyMealPrep = require("../../assets/home/highlights/highlight_weekly_meal_prep.png") as ImageSourcePropType;
+const highlightBalancedPlateBasics = require("../../assets/home/highlights/highlight_balanced_plate_basics.png") as ImageSourcePropType;
+const highlightPracticalCookingTips = require("../../assets/home/highlights/highlight_practical_cooking_tips.png") as ImageSourcePropType;
+const highlightEasyDinnerIdeas = require("../../assets/home/highlights/highlight_easy_dinner_ideas.png") as ImageSourcePropType;
+const familyMakeVegetablesAppealing = require("../../assets/home/family_kids/family_make_vegetables_appealing.png") as ImageSourcePropType;
+const familyHelpKidsEnjoyVegetables = require("../../assets/home/family_kids/family_help_kids_enjoy_vegetables.png") as ImageSourcePropType;
+const familyFunFruitVeggieShapes = require("../../assets/home/family_kids/family_fun_fruit_veggie_shapes.png") as ImageSourcePropType;
+const familyPickyEatersNewFoods = require("../../assets/home/family_kids/family_picky_eaters_new_foods.png") as ImageSourcePropType;
+const habitBasicNutrition = require("../../assets/home/healthy_habits/habit_basic_nutrition.png") as ImageSourcePropType;
+const habitSimpleMealPlanning = require("../../assets/home/healthy_habits/habit_simple_meal_planning.png") as ImageSourcePropType;
+const habitReduceFoodWaste = require("../../assets/home/healthy_habits/habit_reduce_food_waste.png") as ImageSourcePropType;
+const habitBalancedEatingSimple = require("../../assets/home/healthy_habits/habit_balanced_eating_simple.png") as ImageSourcePropType;
 
 export const dailyFoodTips: DailyFoodTip[] = [
   {
@@ -59,119 +72,141 @@ export const dailyFoodTips: DailyFoodTip[] = [
 
 export const weeklyHighlights: HomeResourceItem[] = [
   {
-    description: "Simple prep blocks that make weeknight plates faster for the whole household.",
-    id: "meal-prep-basics",
-    image: "mobile/assets/home/highlights/highlight_meal_prep.png",
-    imageTone: "#F7C948",
-    kind: "video",
-    title: "Healthy meal prep basics",
-    typeLabel: "Short video · 8 min",
-    url: "https://www.youtube.com/results?search_query=healthy+meal+prep+basics",
-  },
-  {
-    description: "A quick guide to combining protein, grains, vegetables, and healthy fats.",
-    id: "balanced-plate",
-    image: "mobile/assets/home/highlights/highlight_balanced_plate.png",
-    imageTone: "#74B72E",
-    kind: "article",
-    title: "How to build a balanced plate",
-    typeLabel: "Article · Nutrition basics",
-    url: "https://www.myplate.gov/eat-healthy/what-is-myplate",
-  },
-  {
-    description: "Practical dinner ideas that can work for adults, kids, and different goals.",
-    id: "family-dinner",
-    image: "mobile/assets/home/highlights/highlight_family_dinner.png",
+    description: "Useful healthy cooking ideas you can apply in everyday meals.",
+    id: "practical-cooking-tips",
+    image: "mobile/assets/home/highlights/highlight_practical_cooking_tips.png",
+    imageAsset: highlightPracticalCookingTips,
     imageTone: "#F97316",
     kind: "video",
-    title: "Family-friendly dinner ideas",
-    typeLabel: "Video · Practical cooking",
-    url: "https://www.youtube.com/results?search_query=family+friendly+dinner+ideas",
+    title: "Practical cooking tips",
+    typeLabel: "Video \u00B7 Healthy cooking",
+    url: "https://www.youtube.com/watch?v=agSdpgxgG54&t=60s",
+  },
+  {
+    description: "Simple prep ideas for practical healthy meals during the week.",
+    id: "weekly-healthy-meal-prep",
+    image: "mobile/assets/home/highlights/highlight_weekly_meal_prep.png",
+    imageAsset: highlightWeeklyMealPrep,
+    imageTone: "#F7C948",
+    kind: "video",
+    title: "Weekly healthy meal prep",
+    typeLabel: "Video \u00B7 Meal prep",
+    url: "https://www.youtube.com/watch?v=AYXfaVD5o40",
+  },
+  {
+    description: "Easy balanced meal ideas built around simple food groups.",
+    id: "balanced-plate-basics",
+    image: "mobile/assets/home/highlights/highlight_balanced_plate_basics.png",
+    imageAsset: highlightBalancedPlateBasics,
+    imageTone: "#74B72E",
+    kind: "video",
+    title: "Balanced plate basics",
+    typeLabel: "Video \u00B7 Nutrition basics",
+    url: "https://www.youtube.com/watch?v=R66PnZoAjQg",
+  },
+  {
+    description: "Practical dinner inspiration for simple family-friendly meals.",
+    id: "easy-dinner-ideas",
+    image: "mobile/assets/home/highlights/highlight_easy_dinner_ideas.png",
+    imageAsset: highlightEasyDinnerIdeas,
+    imageTone: "#38BDF8",
+    kind: "video",
+    title: "Easy dinner ideas",
+    typeLabel: "Video \u00B7 Dinner ideas",
+    url: "https://www.youtube.com/watch?v=FOvHpMkC_XI",
   },
 ];
 
 export const familyKidsIdeas: HomeResourceItem[] = [
   {
-    description: "Small presentation changes that can make vegetables feel more approachable.",
-    id: "kids-vegetables",
-    image: "mobile/assets/home/family_kids/kids_vegetables.png",
-    imageTone: "#74B72E",
+    description: "Gentle ways to introduce healthy foods without pressure.",
+    id: "help-picky-eaters-try-new-foods",
+    image: "mobile/assets/home/family_kids/family_picky_eaters_new_foods.png",
+    imageAsset: familyPickyEatersNewFoods,
+    imageTone: "#F7C948",
     kind: "article",
-    title: "How to make vegetables more appealing for kids",
-    typeLabel: "Article · Family meals",
-    url: "https://www.myplate.gov/tip-sheet/kid-friendly-veggies-and-fruits",
+    title: "Help picky eaters try new foods",
+    typeLabel: "Article \u00B7 Picky eating",
+    url: "https://www.healthychildren.org/English/tips-tools/ask-the-pediatrician/Pages/How-Do-I-Help-My-Picky-Eater-Try-More-Foods.aspx",
   },
   {
-    description: "Use color and simple shapes to make everyday plates easier to enjoy.",
-    id: "kids-colorful-plate",
-    image: "mobile/assets/home/family_kids/kids_colorful_plate.png",
+    description: "Small presentation changes that can help vegetables feel more inviting for kids.",
+    id: "make-vegetables-more-appealing",
+    image: "mobile/assets/home/family_kids/family_make_vegetables_appealing.png",
+    imageAsset: familyMakeVegetablesAppealing,
+    imageTone: "#74B72E",
+    kind: "video",
+    title: "Make vegetables more appealing",
+    typeLabel: "Video \u00B7 Family meals",
+    url: "https://www.youtube.com/watch?v=MZDA2pdTnqE",
+  },
+  {
+    description: "Practical ideas for helping children accept and enjoy more vegetables.",
+    id: "help-kids-enjoy-vegetables",
+    image: "mobile/assets/home/family_kids/family_help_kids_enjoy_vegetables.png",
+    imageAsset: familyHelpKidsEnjoyVegetables,
     imageTone: "#38BDF8",
-    kind: "tip",
-    title: "Simple colorful plate ideas",
-    typeLabel: "Tip · Plate ideas",
-    url: "https://www.myplate.gov/eat-healthy",
+    kind: "article",
+    title: "Help kids enjoy vegetables",
+    typeLabel: "Article \u00B7 Family meals",
+    url: "https://www.lizshealthytable.com/2018/04/02/19-ways-get-kids-eat-love-vegetables/",
   },
   {
-    description: "Gentle ways to offer unfamiliar foods without turning dinner into a battle.",
-    id: "kids-new-foods",
-    image: "mobile/assets/home/family_kids/kids_new_foods.png",
+    description: "Playful lunchbox ideas using fruit and vegetable shapes kids may enjoy.",
+    id: "fun-fruit-veggie-shapes",
+    image: "mobile/assets/home/family_kids/family_fun_fruit_veggie_shapes.png",
+    imageAsset: familyFunFruitVeggieShapes,
     imageTone: "#F97316",
     kind: "article",
-    title: "Introducing new foods without pressure",
-    typeLabel: "Article · Kids",
-    url: "https://www.youtube.com/results?search_query=introducing+new+foods+to+kids",
-  },
-  {
-    description: "Fast snack ideas that are easy to adapt for different ages and appetites.",
-    id: "kids-snacks",
-    image: "mobile/assets/home/family_kids/kids_snacks.png",
-    imageTone: "#F7C948",
-    kind: "tip",
-    title: "Easy snacks for busy family days",
-    typeLabel: "Tip · Snacks",
-    url: "https://www.myplate.gov/eat-healthy/healthy-eating-budget",
+    title: "Fun fruit & veggie shapes",
+    typeLabel: "Article \u00B7 Kids lunch ideas",
+    url: "https://healthyfamilyproject.com/fun-fruit-veggie-shapes-lunchbox/",
   },
 ];
 
 export const healthyHabits: HomeResourceItem[] = [
   {
-    description: "Start with repeatable habits: regular meals, protein, plants, and hydration.",
+    description: "Plan meals ahead with simple food group variety.",
+    id: "simple-meal-planning-tips",
+    image: "mobile/assets/home/healthy_habits/habit_simple_meal_planning.png",
+    imageAsset: habitSimpleMealPlanning,
+    imageTone: "#38BDF8",
+    kind: "article",
+    title: "Simple meal planning tips",
+    typeLabel: "Article \u00B7 Meal planning",
+    url: "https://healthyfamilyproject.com/10-beginners-tips-meal-planning-like-pro/",
+  },
+  {
+    description: "Simple ideas for building balanced everyday meals.",
     id: "basic-nutrition",
     image: "mobile/assets/home/healthy_habits/habit_basic_nutrition.png",
+    imageAsset: habitBasicNutrition,
     imageTone: "#74B72E",
     kind: "article",
     title: "Basic nutrition habits",
-    typeLabel: "Article · Everyday basics",
-    url: "https://www.myplate.gov/eat-healthy",
+    typeLabel: "Article \u00B7 Everyday basics",
+    url: "https://nutritionsource.hsph.harvard.edu/healthy-eating-plate/",
   },
   {
-    description: "Build a short shopping list from meals you already know your household likes.",
-    id: "grocery-planning",
-    image: "mobile/assets/home/healthy_habits/habit_grocery_planning.png",
-    imageTone: "#38BDF8",
-    kind: "tip",
-    title: "Simple grocery planning tips",
-    typeLabel: "Tip · Shopping",
-    url: "https://www.myplate.gov/eat-healthy/healthy-eating-budget",
-  },
-  {
-    description: "Use leftovers, flexible sides, and freezer staples to waste less food.",
-    id: "reduce-waste",
-    image: "mobile/assets/home/healthy_habits/habit_reduce_waste.png",
+    description: "Small planning habits that help use food better.",
+    id: "reduce-food-waste-at-home",
+    image: "mobile/assets/home/healthy_habits/habit_reduce_food_waste.png",
+    imageAsset: habitReduceFoodWaste,
     imageTone: "#F97316",
     kind: "article",
-    title: "How to reduce food waste",
-    typeLabel: "Article · Kitchen habits",
-    url: "https://www.usda.gov/foodlossandwaste",
+    title: "Reduce food waste at home",
+    typeLabel: "Article \u00B7 Grocery habits",
+    url: "https://www.fda.gov/food/consumers/tips-reduce-food-waste",
   },
   {
-    description: "Keep a few quick meal templates ready for weeks when time is tight.",
-    id: "busy-day",
-    image: "mobile/assets/home/healthy_habits/habit_busy_day.png",
+    description: "Simple principles for everyday balanced meals.",
+    id: "balanced-eating-made-simple",
+    image: "mobile/assets/home/healthy_habits/habit_balanced_eating_simple.png",
+    imageAsset: habitBalancedEatingSimple,
     imageTone: "#F7C948",
-    kind: "tip",
-    title: "Planning meals when you are busy",
-    typeLabel: "Tip · Busy days",
-    url: "https://www.youtube.com/results?search_query=quick+healthy+family+meal+planning",
+    kind: "article",
+    title: "Balanced eating made simple",
+    typeLabel: "Article \u00B7 Healthy eating",
+    url: "https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/eating-a-balanced-diet/",
   },
 ];

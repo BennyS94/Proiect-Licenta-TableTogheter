@@ -1,8 +1,9 @@
 import { useState } from "react";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { HomeResourceItem } from "../../data/homeContent";
+import { VideoPlayBadge } from "./VideoPlayBadge";
 
 type ResourceCarouselSectionProps = {
   contentWidth: number;
@@ -104,14 +105,16 @@ function ResourceCard({
           },
         ]}
       >
-        <View style={styles.thumbnailPlate} />
-        <View style={styles.thumbnailLeaf} />
-        <View style={styles.thumbnailFork} />
-        {item.kind === "video" ? (
-          <View style={styles.playCircle}>
-            <Text style={styles.playIcon}>▶</Text>
-          </View>
-        ) : null}
+        {item.imageAsset ? (
+          <Image resizeMode="cover" source={item.imageAsset} style={styles.thumbnailImage} />
+        ) : (
+          <>
+            <View style={styles.thumbnailPlate} />
+            <View style={styles.thumbnailLeaf} />
+            <View style={styles.thumbnailFork} />
+          </>
+        )}
+        {item.kind === "video" ? <VideoPlayBadge /> : null}
       </View>
 
       <View style={styles.cardText}>
@@ -200,21 +203,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  playCircle: {
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 19,
-    height: 38,
-    justifyContent: "center",
-    position: "absolute",
-    width: 38,
-  },
-  playIcon: {
-    color: "#74B72E",
-    fontSize: 16,
-    fontWeight: "900",
-    marginLeft: 2,
-  },
   pressed: {
     opacity: 0.82,
   },
@@ -245,6 +233,10 @@ const styles = StyleSheet.create({
     height: 100,
     justifyContent: "center",
     overflow: "hidden",
+  },
+  thumbnailImage: {
+    height: "100%",
+    width: "100%",
   },
   thumbnailFork: {
     backgroundColor: "rgba(255,255,255,0.75)",

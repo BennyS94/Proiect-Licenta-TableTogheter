@@ -11,6 +11,7 @@ import {
 import LottieView from "lottie-react-native";
 
 import { ResourceCarouselSection } from "../components/home/ResourceCarouselSection";
+import { VideoPlayBadge } from "../components/home/VideoPlayBadge";
 import { DailyFoodTipIcon } from "../components/icons/DailyFoodTipIcon";
 import { HouseholdIcon } from "../components/icons/HouseholdIcon";
 import { AppScreen } from "../components/ui/AppScreen";
@@ -258,8 +259,12 @@ function HomeSeeAllPage({
             style={({ pressed }) => [styles.resourceRow, pressed ? styles.pressed : null]}
           >
             <View style={[styles.resourceThumb, { backgroundColor: item.imageTone }]}>
-              <View style={styles.resourceThumbPlate} />
-              {item.kind === "video" ? <Text style={styles.resourcePlayIcon}>▶</Text> : null}
+              {item.imageAsset ? (
+                <Image resizeMode="cover" source={item.imageAsset} style={styles.resourceThumbImage} />
+              ) : (
+                <View style={styles.resourceThumbPlate} />
+              )}
+              {item.kind === "video" ? <VideoPlayBadge /> : null}
             </View>
             <View style={styles.resourceRowText}>
               <Text numberOfLines={2} style={styles.resourceTitle}>
@@ -299,7 +304,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: "absolute",
     right: 0,
-    top: 8,
+    top: 20,
   },
   backButton: {
     alignItems: "center",
@@ -330,14 +335,19 @@ const styles = StyleSheet.create({
   },
   ctaChevron: {
     color: "#FFFFFF",
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: "800",
+    includeFontPadding: false,
+    lineHeight: 20,
     marginLeft: 5,
+    textAlignVertical: "center",
   },
   ctaText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+    includeFontPadding: false,
+    lineHeight: 20,
   },
   greeting: {
     color: "#1F2933",
@@ -422,12 +432,6 @@ const styles = StyleSheet.create({
   resourceList: {
     gap: 12,
   },
-  resourcePlayIcon: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "900",
-    position: "absolute",
-  },
   resourceRow: {
     backgroundColor: "#FFFFFF",
     borderColor: "#E5E7EB",
@@ -454,6 +458,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
     width: 112,
+  },
+  resourceThumbImage: {
+    height: "100%",
+    width: "100%",
   },
   resourceThumbPlate: {
     backgroundColor: "rgba(255,255,255,0.72)",
