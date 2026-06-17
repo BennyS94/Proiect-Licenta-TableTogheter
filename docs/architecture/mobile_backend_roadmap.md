@@ -331,6 +331,7 @@ Page 2 / Meal Plan si Grocery List au primit polish product-facing:
 - Generate card compact cu slider discret 1-5 zile.
 - Meal cards cu `Cook / Steps`, `Alternatives` si control `Rate meal`.
 - Meal Plan nu mai afiseaza bara separata de macro-uri zilnice sub selectorul Day 1-Day 5.
+- Alternatives pastreaza backend-ul neschimbat, dar pregateste in mobile preview-urile `dry_run=true` secvential si cache-uit; cardurile nu afiseaza macro-uri ajustate pana cand exista `alternative_meal` real pentru contextul profilului.
 - Grocery List are categorii restranse implicit, icon holders/category PNGs, checkbox row tappable si formatting compact pentru Need/Buy.
 - Estimated Total foloseste emblema grocery locala si include actiunile placeholder `Share` / `Copy` in acelasi card.
 

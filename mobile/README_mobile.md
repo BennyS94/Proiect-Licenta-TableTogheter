@@ -115,6 +115,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - Poate curata feedback-ul local/demo prin `DELETE /feedback?confirm=true`.
 - Poate afisa KNN alternatives read-only pentru mese cu `recipe_id`, prin `POST /recipes/similar`.
 - Poate face meal-level replacement explicit dintr-o alternativa `approved`, prin `POST /plans/{plan_id}/replace-meal`.
+- Panoul `Alternatives` pregateste silent preview-urile de replacement pe rand, cu cache local pe contextul plan/zi/masa/profil; cardurile nu afiseaza macro-uri ajustate pana cand exista preview real `dry_run=true`.
 - UI-1 adauga shell mobil cu 4-page navigation: Home, Meal Plan, Insights si Household / Account.
 - Home este hardcoded pentru MVP si nu apeleaza backend-ul.
 - Meal Plan pastreaza fluxurile reale de generare, feedback, KNN alternatives, replacement si grocery list.
@@ -358,16 +359,16 @@ Mobile KNN-4 adauga replacement explicit peste panoul `Alternatives`:
 
 1. Genereaza un plan individual sau household.
 2. Apasa `Alternatives` pe un rand de masa.
-3. Apasa `Preview replacement` pe o alternativa.
-4. Aplicatia apeleaza `POST /plans/{plan_id}/replace-meal?dry_run=true`.
-5. Preview-ul afiseaza masa curenta, alternativa, delta macro si avertizari.
+3. Aplicatia incarca lista prin `POST /recipes/similar`, apoi pregateste silent preview-urile `dry_run=true` secvential, cate o alternativa odata.
+4. Cardurile afiseaza macro-uri ajustate doar dupa ce exista `alternative_meal` real pentru contextul utilizatorului.
+5. Apasa preview pe o alternativa; daca preview-ul este deja in cache se deschide instant, iar daca este in curs reutilizeaza acel request.
 6. Apasa `Replace meal` pentru aplicare explicita.
 7. Aplicatia apeleaza `POST /plans/{plan_id}/replace-meal?dry_run=false`.
 8. Backend-ul returneaza plan nou derivat si grocery list recalculata, iar mobile actualizeaza state-ul local.
 
 `Replace meal` schimba reteta/masa intreaga. Ingredient substitutions, precum schimbarea unui ingredient in interiorul retetei, nu fac parte din MVP-ul curent.
 
-Alternativele `review` pot fi previzualizate, dar nu pot fi aplicate in MVP. Replacement-ul nu porneste automat cand se deschide panoul si nu face substitutii de ingrediente. Aplicatia consuma doar FastAPI prin HTTP/JSON; nu citeste CSV-uri si nu importa generatorul.
+Alternativele `review` pot fi previzualizate, dar nu pot fi aplicate in MVP. Inlocuirea efectiva nu porneste automat cand se deschide panoul; prefetch-ul mobil este doar preview `dry_run=true`, nu persista plan nou si nu face substitutii de ingrediente. Aplicatia consuma doar FastAPI prin HTTP/JSON; nu citeste CSV-uri si nu importa generatorul.
 
 ## Mobile UI-1 Flow
 

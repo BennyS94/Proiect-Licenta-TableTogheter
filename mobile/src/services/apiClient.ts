@@ -235,6 +235,7 @@ export async function getRecipeAlternatives(
 export async function previewMealReplacement(
   planId: string,
   request: MealReplacementRequest,
+  timeoutMs = RECIPE_ACTION_REQUEST_TIMEOUT_MS,
 ): Promise<MealReplacementResponse> {
   const encodedPlanId = encodeURIComponent(planId);
   return requestJson<MealReplacementResponse>(
@@ -246,7 +247,7 @@ export async function previewMealReplacement(
       },
       body: JSON.stringify(request),
     },
-    RECIPE_ACTION_REQUEST_TIMEOUT_MS,
+    timeoutMs,
   );
 }
 

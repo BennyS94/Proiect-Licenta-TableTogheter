@@ -183,12 +183,14 @@ Implementat:
 - preview cu `dry_run=true`;
 - apply cu `dry_run=false`;
 - plan derivat nou si grocery recalculata.
+- mobile pregateste preview-urile din panoul `Alternatives` secvential si local-cache-uit, fara request-uri paralele si fara schimbare de contract backend.
 
 Limitari:
 
 - nu exista inlocuire automata;
 - nu exista ingredient-level substitution;
 - alternativele `review` sunt preview-only.
+- macro-urile ajustate pentru alternative sunt afisate in mobile doar dupa un preview real `dry_run=true`, nu din estimari per-serving.
 
 ## 8. Insights and progress state
 
@@ -250,7 +252,7 @@ Directia ramane separarea curata:
 - Generatorul produce planuri individuale si household v1 Lite.
 - Grocery list este integrata in outputul app-facing.
 - Feedback-ul explicit este functional si se aplica la generari viitoare.
-- Alternatives si replacement explicit exista end-to-end.
+- Alternatives si replacement explicit exista end-to-end, cu preview mobil pregatit secvential si cache-uit pe contextul plan/zi/masa/profil.
 - Insights este o pagina nutrition dashboard acceptata vizual, cu eaten-meals state local, macro-uri dinamice, saved daily progress snapshots persistate la cerere si Trends peste istoricul salvat.
 - Datele demo au coverage verificat pentru price/time in scenariile normale.
 - Arhitectura este suficient de modulara pentru evolutie incrementala.

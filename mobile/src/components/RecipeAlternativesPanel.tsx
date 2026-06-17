@@ -33,8 +33,12 @@ type RecipeAlternativesPanelProps = {
 };
 
 const DEFAULT_DATASET_PROFILE = "v1_2_demo_final";
+const PREVIEW_PREFETCH_TIMEOUT_MS = 15000;
 const alternativesResponseCache = new Map<string, RecipeAlternativesResponse>();
 const alternativesRequestCache = new Map<string, Promise<RecipeAlternativesResponse>>();
+const previewResponseCache = new Map<string, MealReplacementResponse>();
+const previewRequestCache = new Map<string, Promise<MealReplacementResponse>>();
+const previewFailedCache = new Set<string>();
 
 export function RecipeAlternativesPanel({
   sourceRecipeId,
@@ -71,6 +75,7 @@ export function RecipeAlternativesPanel({
   const [previewedRecipeId, setPreviewedRecipeId] = useState("");
   const [previewingRecipeId, setPreviewingRecipeId] = useState("");
   const [applyingRecipeId, setApplyingRecipeId] = useState("");
+  const [previewCacheVersion, setPreviewCacheVersion] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
@@ -171,9 +176,118 @@ export function RecipeAlternativesPanel({
   );
   const canRequestReplacement = Boolean(planId && slot && sourceRecipeId);
 
+  useEffect(() => {
+    if (!shouldLoad || !isVisible || !canRequestReplacement || !planId || !slot || !alternatives.length) {
+      return;
+    }
+
+    let isCurrent = true;
+    const activePlanId = planId;
+
+    async function prefetchPreviews() {
+      for (const alternative of alternatives) {
+        if (!isCurrent) {
+          return;
+        }
+
+        const previewCacheKey = buildPreviewCacheKey({
+          alternativeRecipeId: alternative.recipe_id,
+          datasetProfile,
+          dayIndex,
+          generationType,
+          householdId,
+          memberId,
+          memberProfile,
+          memberProfileId,
+          planId,
+          replaceScope,
+          slot,
+          sourceRecipeId,
+        });
+
+        if (
+          previewResponseCache.has(previewCacheKey) ||
+          previewFailedCache.has(previewCacheKey)
+        ) {
+          continue;
+        }
+
+        try {
+          const payload = await getOrCreatePreviewRequest(previewCacheKey, () =>
+            previewMealReplacement(
+              activePlanId,
+              buildReplacementRequest(alternative.recipe_id),
+              PREVIEW_PREFETCH_TIMEOUT_MS,
+            ),
+          );
+          if (!isCurrent) {
+            return;
+          }
+          if (isUsablePreviewResponse(payload)) {
+            previewResponseCache.set(previewCacheKey, payload);
+            previewFailedCache.delete(previewCacheKey);
+            setPreviewCacheVersion((version) => version + 1);
+          } else {
+            previewFailedCache.add(previewCacheKey);
+          }
+        } catch {
+          if (isCurrent) {
+            previewFailedCache.add(previewCacheKey);
+          }
+        }
+      }
+    }
+
+    void prefetchPreviews();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    alternatives,
+    canRequestReplacement,
+    datasetProfile,
+    dayIndex,
+    generationType,
+    householdId,
+    isVisible,
+    memberId,
+    memberProfile,
+    memberProfileId,
+    planId,
+    replaceScope,
+    shouldLoad,
+    slot,
+    sourceRecipeId,
+  ]);
+
   async function previewReplacement(alternative: RecipeAlternativeItem) {
     if (!planId || !slot) {
       setErrorMessage("Generate and save a plan before previewing replacement.");
+      return;
+    }
+
+    const previewCacheKey = buildPreviewCacheKey({
+      alternativeRecipeId: alternative.recipe_id,
+      datasetProfile,
+      dayIndex,
+      generationType,
+      householdId,
+      memberId,
+      memberProfile,
+      memberProfileId,
+      planId,
+      replaceScope,
+      slot,
+      sourceRecipeId,
+    });
+    const cachedPreview = previewResponseCache.get(previewCacheKey);
+    if (cachedPreview) {
+      setPreviewResponse(cachedPreview);
+      setPreviewedRecipeId(alternative.recipe_id);
+      setPreviewingRecipeId("");
+      setSuccessMessage("");
+      setErrorMessage("");
       return;
     }
 
@@ -183,9 +297,16 @@ export function RecipeAlternativesPanel({
     setPreviewedRecipeId("");
     setSuccessMessage("");
     setErrorMessage("");
+    previewFailedCache.delete(previewCacheKey);
 
     try {
-      const payload = await previewMealReplacement(planId, request);
+      const payload = await getOrCreatePreviewRequest(previewCacheKey, () =>
+        previewMealReplacement(planId, request, PREVIEW_PREFETCH_TIMEOUT_MS),
+      );
+      if (isUsablePreviewResponse(payload)) {
+        previewResponseCache.set(previewCacheKey, payload);
+        setPreviewCacheVersion((version) => version + 1);
+      }
       setPreviewResponse(payload);
       setPreviewedRecipeId(alternative.recipe_id);
     } catch (error) {
@@ -269,22 +390,43 @@ export function RecipeAlternativesPanel({
 
       {alternatives.length ? (
         <View style={styles.alternativesList}>
-          {alternatives.map((alternative) => (
-            <AlternativeCard
-              alternative={alternative}
-              canRequestReplacement={canRequestReplacement}
-              isApplying={applyingRecipeId === alternative.recipe_id}
-              isPreviewing={previewingRecipeId === alternative.recipe_id}
-              key={alternative.recipe_id}
-              onApply={applyReplacement}
-              onPreview={() => previewReplacement(alternative)}
-              previewResponse={
-                previewResponse && previewedRecipeId === alternative.recipe_id
-                  ? previewResponse
-                  : null
-              }
-            />
-          ))}
+          {alternatives.map((alternative) => {
+            const previewCacheKey = buildPreviewCacheKey({
+              alternativeRecipeId: alternative.recipe_id,
+              datasetProfile,
+              dayIndex,
+              generationType,
+              householdId,
+              memberId,
+              memberProfile,
+              memberProfileId,
+              planId,
+              replaceScope,
+              slot,
+              sourceRecipeId,
+            });
+            const preparedPreviewResponse = previewCacheVersion >= 0
+              ? previewResponseCache.get(previewCacheKey) ?? null
+              : null;
+
+            return (
+              <AlternativeCard
+                alternative={alternative}
+                canRequestReplacement={canRequestReplacement}
+                isApplying={applyingRecipeId === alternative.recipe_id}
+                isPreviewing={previewingRecipeId === alternative.recipe_id}
+                key={alternative.recipe_id}
+                onApply={applyReplacement}
+                onPreview={() => previewReplacement(alternative)}
+                preparedPreviewResponse={preparedPreviewResponse}
+                previewResponse={
+                  previewResponse && previewedRecipeId === alternative.recipe_id
+                    ? previewResponse
+                    : null
+                }
+              />
+            );
+          })}
         </View>
       ) : null}
 
@@ -306,6 +448,27 @@ function getOrCreateAlternativesRequest(
     alternativesRequestCache.delete(cacheKey);
   });
   alternativesRequestCache.set(cacheKey, nextRequest);
+  return nextRequest;
+}
+
+function getOrCreatePreviewRequest(
+  cacheKey: string,
+  createRequest: () => Promise<MealReplacementResponse>,
+): Promise<MealReplacementResponse> {
+  const cached = previewResponseCache.get(cacheKey);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+
+  const existingRequest = previewRequestCache.get(cacheKey);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const nextRequest = createRequest().finally(() => {
+    previewRequestCache.delete(cacheKey);
+  });
+  previewRequestCache.set(cacheKey, nextRequest);
   return nextRequest;
 }
 
@@ -334,6 +497,53 @@ function buildAlternativesCacheKey({
   });
 }
 
+function buildPreviewCacheKey({
+  alternativeRecipeId,
+  datasetProfile,
+  dayIndex,
+  generationType,
+  householdId,
+  memberId,
+  memberProfile,
+  memberProfileId,
+  planId,
+  replaceScope,
+  slot,
+  sourceRecipeId,
+}: {
+  alternativeRecipeId?: string;
+  datasetProfile?: string;
+  dayIndex?: number;
+  generationType?: string;
+  householdId?: string;
+  memberId?: string;
+  memberProfile?: Record<string, unknown>;
+  memberProfileId?: string;
+  planId?: string;
+  replaceScope?: string;
+  slot?: string;
+  sourceRecipeId?: string;
+}): string {
+  return JSON.stringify({
+    alternativeRecipeId: alternativeRecipeId ?? "",
+    datasetProfile: datasetProfile ?? DEFAULT_DATASET_PROFILE,
+    dayIndex: dayIndex ?? 1,
+    generationType: generationType ?? "individual",
+    householdId: householdId ?? "",
+    memberId: memberId ?? "",
+    memberProfile: memberProfile ?? null,
+    memberProfileId: memberProfileId ?? "",
+    planId: planId ?? "",
+    replaceScope: replaceScope ?? "",
+    slot: slot ?? "",
+    sourceRecipeId: sourceRecipeId ?? "",
+  });
+}
+
+function isUsablePreviewResponse(response: MealReplacementResponse): boolean {
+  return Boolean(response.replacement?.alternative_meal);
+}
+
 function AlternativeCard({
   alternative,
   canRequestReplacement,
@@ -341,6 +551,7 @@ function AlternativeCard({
   isPreviewing,
   onApply,
   onPreview,
+  preparedPreviewResponse,
   previewResponse,
 }: {
   alternative: RecipeAlternativeItem;
@@ -349,6 +560,7 @@ function AlternativeCard({
   isPreviewing: boolean;
   onApply: () => void;
   onPreview: () => void;
+  preparedPreviewResponse: MealReplacementResponse | null;
   previewResponse: MealReplacementResponse | null;
 }) {
   const name = stringValue(alternative.display_name) ?? alternative.recipe_id;
@@ -357,6 +569,11 @@ function AlternativeCard({
   const alternativeMeal = replacement.alternative_meal ?? {};
   const impact = previewResponse?.impact ?? {};
   const hasPreview = Boolean(previewResponse);
+  const preparedAlternativeMeal =
+    (previewResponse ?? preparedPreviewResponse)?.replacement?.alternative_meal;
+  const preparedMacroLine = preparedAlternativeMeal
+    ? formatMealMacroLine(preparedAlternativeMeal)
+    : "";
   const replaceDisabled =
     isApplying ||
     isPreviewing ||
@@ -374,6 +591,7 @@ function AlternativeCard({
         </View>
       </View>
 
+      {preparedMacroLine ? <Text style={styles.deltaText}>{preparedMacroLine}</Text> : null}
       <Text style={styles.deltaText}>{formatMacroDelta(alternative.macro_delta)}</Text>
       <Text style={styles.deltaText}>
         Time delta {formatSignedNumber(alternative.time_delta_min)} min
@@ -481,6 +699,12 @@ function formatNumber(value: unknown): string {
     return "-";
   }
   return String(Math.round(value));
+}
+
+function formatMealMacroLine(meal: Record<string, unknown>): string {
+  return `${formatNumber(meal.kcal)} kcal | protein ${formatNumber(
+    meal.protein_g,
+  )}g | carbs ${formatNumber(meal.carbs_g)}g | fat ${formatNumber(meal.fat_g)}g`;
 }
 
 function normalizeTextList(value: unknown): string[] {
