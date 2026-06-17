@@ -2072,7 +2072,9 @@ function MealPlanProfileSelector({
           pressed ? styles.buttonPressed : null,
         ]}
       >
-        <Text style={styles.mealPlanProfileArrowText}>{"<"}</Text>
+        <View style={styles.chevronLeftSmall}>
+          <ChevronDownIcon color={colors.accent} size={18} />
+        </View>
       </Pressable>
 
       <View style={styles.mealPlanProfilePill}>
@@ -2102,7 +2104,9 @@ function MealPlanProfileSelector({
           pressed ? styles.buttonPressed : null,
         ]}
       >
-        <Text style={styles.mealPlanProfileArrowText}>{">"}</Text>
+        <View style={styles.chevronRightSmall}>
+          <ChevronDownIcon color={colors.accent} size={18} />
+        </View>
       </Pressable>
     </View>
   );
@@ -3758,12 +3762,6 @@ const styles = StyleSheet.create({
   },
   chevronRightSmall: {
     transform: [{ rotate: "-90deg" }],
-  },
-  mealPlanProfileArrowText: {
-    color: colors.accentDark,
-    fontSize: 20,
-    fontWeight: "900",
-    lineHeight: 22,
   },
   mealPlanProfileEye: {
     height: 22,

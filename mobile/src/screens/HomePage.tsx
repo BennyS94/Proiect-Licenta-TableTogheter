@@ -12,6 +12,7 @@ import LottieView from "lottie-react-native";
 
 import { ResourceCarouselSection } from "../components/home/ResourceCarouselSection";
 import { VideoPlayBadge } from "../components/home/VideoPlayBadge";
+import { ChevronDownIcon } from "../components/icons/ChevronDownIcon";
 import { DailyFoodTipIcon } from "../components/icons/DailyFoodTipIcon";
 import { HouseholdIcon } from "../components/icons/HouseholdIcon";
 import { AppScreen } from "../components/ui/AppScreen";
@@ -166,7 +167,9 @@ export function HomePage({
           style={({ pressed }) => [styles.ctaButton, pressed ? styles.pressed : null]}
         >
           <Text style={styles.ctaText}>{householdCtaLabel}</Text>
-          <Text style={styles.ctaChevron}>›</Text>
+          <View style={styles.ctaChevronIcon}>
+            <ChevronDownIcon color="#FFFFFF" size={16} />
+          </View>
         </Pressable>
       </View>
 
@@ -243,7 +246,9 @@ function HomeSeeAllPage({
           onPress={onBack}
           style={({ pressed }) => [styles.backButton, pressed ? styles.pressed : null]}
         >
-          <Text style={styles.backIcon}>‹</Text>
+          <View style={styles.backChevronIcon}>
+            <ChevronDownIcon color="#74B72E" size={17} />
+          </View>
           <Text style={styles.backText}>Back</Text>
         </Pressable>
         <Text style={styles.seeAllTitle}>{title}</Text>
@@ -313,11 +318,8 @@ const styles = StyleSheet.create({
     gap: 4,
     minHeight: 36,
   },
-  backIcon: {
-    color: "#74B72E",
-    fontSize: 26,
-    fontWeight: "800",
-    lineHeight: 30,
+  backChevronIcon: {
+    transform: [{ rotate: "90deg" }],
   },
   backText: {
     color: "#74B72E",
@@ -333,14 +335,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 12,
   },
-  ctaChevron: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "800",
-    includeFontPadding: false,
-    lineHeight: 20,
+  ctaChevronIcon: {
     marginLeft: 5,
-    textAlignVertical: "center",
+    transform: [{ rotate: "-90deg" }],
   },
   ctaText: {
     color: "#FFFFFF",

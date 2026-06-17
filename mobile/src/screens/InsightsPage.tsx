@@ -417,14 +417,6 @@ export function InsightsPage({
 
       <TrendsSection snapshots={progressHistory ?? []} />
 
-      <View style={styles.dashboardCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Micronutrients</Text>
-        </View>
-        <Text style={styles.bodyText}>
-          Limited micronutrient data available.
-        </Text>
-      </View>
     </AppScreen>
   );
 }

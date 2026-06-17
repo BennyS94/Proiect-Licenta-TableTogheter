@@ -16,6 +16,8 @@ type InfoSheetState = {
   title: string;
 } | null;
 
+const SHOW_DEVELOPER_DIAGNOSTICS = false;
+
 type HouseholdPageProps = {
   accountEmail?: string;
   appSettingsContent?: ReactNode;
@@ -185,20 +187,22 @@ export function HouseholdPage({
           <SettingStatusLine label="Appearance" value="Light" />
         </AppCard>
         {dataManagementContent}
-        <AppCard>
-          <SectionHeader title="Developer Diagnostics" />
-          <SettingNavLine
-            description="Backend, health check and feedback tools"
-            onPress={() => setSection("diagnostics")}
-            title="Open diagnostics"
-          />
-        </AppCard>
+        {SHOW_DEVELOPER_DIAGNOSTICS ? (
+          <AppCard>
+            <SectionHeader title="Developer Diagnostics" />
+            <SettingNavLine
+              description="Backend, health check and feedback tools"
+              onPress={() => setSection("diagnostics")}
+              title="Open diagnostics"
+            />
+          </AppCard>
+        ) : null}
         {messagesContent}
       </AppScreen>
     );
   }
 
-  if (section === "diagnostics") {
+  if (section === "diagnostics" && SHOW_DEVELOPER_DIAGNOSTICS) {
     return (
       <AppScreen contentContainerStyle={styles.screenContainer}>
         <SubpageHeader
@@ -226,7 +230,7 @@ export function HouseholdPage({
 
       <View style={styles.hubList}>
         <HubRow
-          description="Email, account type and logout"
+          description="Email and logout"
           onPress={() => setSection("account")}
           title="Account Settings"
         />
@@ -236,7 +240,7 @@ export function HouseholdPage({
           title="Household Management"
         />
         <HubRow
-          description="Language, appearance and diagnostics"
+          description="Language, appearance and data controls"
           onPress={() => setSection("app")}
           title="App Settings"
         />
@@ -297,7 +301,7 @@ function AuthSetupCard({
       <View style={styles.copy}>
         <Text style={styles.title}>Welcome to TableTogether</Text>
         <Text style={styles.bodyText}>
-          Create a local household account to save family profiles and generate meal plans.
+          Create an account to save household profiles and generate meal plans.
         </Text>
       </View>
 
@@ -612,11 +616,6 @@ const styles = StyleSheet.create({
   buttonStack: {
     gap: 10,
   },
-  chevron: {
-    color: colors.accent,
-    fontSize: 24,
-    fontWeight: "900",
-  },
   chevronLeft: {
     transform: [{ rotate: "90deg" }],
   },
@@ -785,11 +784,6 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: "space-between",
     padding: 12,
-  },
-  settingChevron: {
-    color: colors.accent,
-    fontSize: 18,
-    fontWeight: "900",
   },
   settingsStack: {
     gap: 10,

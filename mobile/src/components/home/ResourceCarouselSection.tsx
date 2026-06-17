@@ -3,6 +3,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { HomeResourceItem } from "../../data/homeContent";
+import { ChevronDownIcon } from "../icons/ChevronDownIcon";
 import { VideoPlayBadge } from "./VideoPlayBadge";
 
 type ResourceCarouselSectionProps = {
@@ -39,7 +40,9 @@ export function ResourceCarouselSection({
           style={({ pressed }) => [styles.seeAllButton, pressed ? styles.pressed : null]}
         >
           <Text style={styles.seeAllText}>See all</Text>
-          <Text style={styles.chevron}>›</Text>
+          <View style={styles.chevronRight}>
+            <ChevronDownIcon color="#74B72E" size={15} />
+          </View>
         </Pressable>
       </View>
 
@@ -165,11 +168,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 20,
   },
-  chevron: {
-    color: "#74B72E",
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 20,
+  chevronRight: {
+    transform: [{ rotate: "-90deg" }],
   },
   description: {
     color: "#6B7280",
@@ -192,22 +192,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 7,
-    height: 16,
+    height: 12,
     justifyContent: "center",
-    marginTop: 10,
+    marginTop: 6,
   },
   headerRow: {
     alignItems: "center",
     flexDirection: "row",
     height: 30,
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   pressed: {
     opacity: 0.82,
   },
   section: {
-    marginTop: 22,
+    marginTop: 14,
   },
   sectionTitle: {
     color: "#1F2933",
