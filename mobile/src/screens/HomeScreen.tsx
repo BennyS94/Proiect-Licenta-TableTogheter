@@ -171,7 +171,7 @@ export function HomeScreen() {
     useState("");
   const [isSavingDailyProgress, setIsSavingDailyProgress] = useState(false);
   const [deletingDailyProgressId, setDeletingDailyProgressId] = useState("");
-  const [dailyProgressMessage, setDailyProgressMessage] = useState("");
+  const [, setDailyProgressMessage] = useState("");
   const [dailyProgressError, setDailyProgressError] = useState("");
 
   const selectedMember = useMemo(
@@ -1732,7 +1732,6 @@ export function HomeScreen() {
         profileSelector={mealPlanProfileSelectorNode}
         progressError={dailyProgressError}
         progressHistory={selectedProgressHistory}
-        progressMessage={dailyProgressMessage}
         progressUnavailableReason={dailyProgressUnavailableReason}
         scrollToTopSignal={scrollToTopRequests.insights}
         savedProgress={selectedDailyProgress}

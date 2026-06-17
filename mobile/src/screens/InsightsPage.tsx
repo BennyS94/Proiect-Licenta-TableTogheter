@@ -64,7 +64,6 @@ type InsightsPageProps = {
   onSelectDay: (value: InsightsDaySelection) => void;
   profileSelector?: ReactNode;
   progressError?: string;
-  progressMessage?: string;
   progressHistory?: DailyProgressSnapshot[];
   progressUnavailableReason?: string;
   scrollToTopSignal?: number;
@@ -105,16 +104,10 @@ const TREND_METRICS: Array<{ key: TrendMetricKey; label: string; unit: string }>
   { key: "fats", label: "Fats", unit: "g" },
 ];
 const TREND_STATUS_COLORS: Record<TrendStatus, string> = {
-  close: "#E8B931",
-  in_target: colors.accent,
-  off: "#D96B5F",
+  close: "#D7A72B",
+  in_target: "#86B955",
+  off: "#D8786C",
 };
-const TREND_STATUS_BACKGROUNDS: Record<TrendStatus, string> = {
-  close: "#FFF6D9",
-  in_target: "#EEF8E6",
-  off: "#FCECEA",
-};
-
 export function InsightsPage({
   activeProfileKey,
   activeProfileMeta,
@@ -131,7 +124,6 @@ export function InsightsPage({
   onSelectDay,
   profileSelector,
   progressError,
-  progressMessage,
   progressHistory,
   progressUnavailableReason,
   scrollToTopSignal,
@@ -302,7 +294,6 @@ export function InsightsPage({
         }
         onSave={saveCurrentDayProgress}
         progressError={progressError}
-        progressMessage={progressMessage}
         savedProgress={savedProgress ?? null}
       />
 
@@ -446,7 +437,6 @@ function DailyProgressControl({
   onDelete,
   onSave,
   progressError,
-  progressMessage,
   savedProgress,
 }: {
   disabledReason?: string;
@@ -456,7 +446,6 @@ function DailyProgressControl({
   onDelete?: () => void;
   onSave: () => void;
   progressError?: string;
-  progressMessage?: string;
   savedProgress: DailyProgressSnapshot | null;
 }) {
   const hasSavedProgress = Boolean(savedProgress);
@@ -464,7 +453,7 @@ function DailyProgressControl({
     ? "Checking saved progress..."
     : hasSavedProgress
       ? "Saved to progress history"
-      : disabledReason || "Progress not saved yet";
+      : "Progress not saved yet";
   const canSave = !disabledReason && !hasSavedProgress && !isLoading && !isSaving;
 
   return (
@@ -473,9 +462,6 @@ function DailyProgressControl({
         <View style={styles.progressStatusTextBlock}>
           <Text style={styles.progressStatusLabel}>Daily progress</Text>
           <Text style={styles.progressStatusText}>{statusText}</Text>
-          {progressMessage ? (
-            <Text style={styles.progressSuccessText}>{progressMessage}</Text>
-          ) : null}
           {progressError ? (
             <Text style={styles.progressErrorText}>{progressError}</Text>
           ) : null}
@@ -489,14 +475,16 @@ function DailyProgressControl({
           onPress={onSave}
           style={({ pressed }) => [
             styles.progressPrimaryButton,
-            !canSave ? styles.progressButtonDisabled : null,
+            hasSavedProgress ? styles.progressSavedButtonDisabled : null,
+            !canSave && !hasSavedProgress ? styles.progressButtonDisabled : null,
             pressed && canSave ? styles.pressed : null,
           ]}
         >
           <Text
             style={[
               styles.progressPrimaryText,
-              !canSave ? styles.progressButtonTextDisabled : null,
+              hasSavedProgress ? styles.progressSavedButtonText : null,
+              !canSave && !hasSavedProgress ? styles.progressButtonTextDisabled : null,
             ]}
           >
             {hasSavedProgress ? "Saved" : isSaving ? "Saving..." : "Save day"}
@@ -539,8 +527,6 @@ function InsightsDaySelector({
 }) {
   const generatedDays = new Set(dayIndexes);
   const dayOptions = [1, 2, 3, 4, 5];
-  const averageEnabled = dayIndexes.length > 0;
-  const averageActive = selected === "average";
 
   return (
     <View style={styles.daySelector}>
@@ -576,29 +562,6 @@ function InsightsDaySelector({
           );
         })}
       </View>
-      <Pressable
-        accessibilityRole="button"
-        disabled={!averageEnabled}
-        onPress={() => onSelect("average")}
-        style={({ pressed }) => [
-          styles.averageChip,
-          averageActive ? styles.dayChipActive : null,
-          !averageActive && averageEnabled ? styles.dayChipEnabled : null,
-          !averageEnabled ? styles.dayChipDisabled : null,
-          pressed && averageEnabled ? styles.pressed : null,
-        ]}
-      >
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.dayChipText,
-            averageActive ? styles.dayChipTextActive : null,
-            !averageEnabled ? styles.dayChipTextDisabled : null,
-          ]}
-        >
-          Average
-        </Text>
-      </Pressable>
     </View>
   );
 }
@@ -772,20 +735,19 @@ function TrendsSection({ snapshots }: { snapshots: DailyProgressSnapshot[] }) {
 
   return (
     <View style={styles.trendsSection}>
-      <View style={styles.trendsHeader}>
-        <Text style={styles.cardTitle}>Trends</Text>
-        <RangeSelector
-          maxRange={maxRange}
-          onChange={(nextRange) => {
-            setSelectedRange(nextRange);
-            setBlockIndex(0);
-          }}
-          value={safeRange}
-        />
-      </View>
       <TargetAdherenceCard
         metric={selectedMetric}
         onSelectMetric={setSelectedMetric}
+        rangeSelector={
+          <RangeSelector
+            maxRange={maxRange}
+            onChange={(nextRange) => {
+              setSelectedRange(nextRange);
+              setBlockIndex(0);
+            }}
+            value={safeRange}
+          />
+        }
         snapshots={visibleSnapshots}
       />
       <ConsistencyCard snapshots={visibleSnapshots} />
@@ -884,10 +846,12 @@ function MetricSelector({
 function TargetAdherenceCard({
   metric,
   onSelectMetric,
+  rangeSelector,
   snapshots,
 }: {
   metric: TrendMetricKey;
   onSelectMetric: (metric: TrendMetricKey) => void;
+  rangeSelector: ReactNode;
   snapshots: DailyProgressSnapshot[];
 }) {
   const metricConfig = TREND_METRICS.find((item) => item.key === metric) ?? TREND_METRICS[0];
@@ -908,8 +872,9 @@ function TargetAdherenceCard({
 
   return (
     <View style={[styles.dashboardCard, styles.trendCard]}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardSubheading}>Target adherence</Text>
+      <View style={styles.trendCardHeader}>
+        <Text style={styles.trendCardTitle}>Target adherence</Text>
+        {rangeSelector}
       </View>
       <MetricSelector onSelect={onSelectMetric} selected={metric} />
       <View style={styles.trendChart}>
@@ -947,17 +912,31 @@ function TargetAdherenceCard({
         <Text style={styles.trendTinyText}>Newest</Text>
       </View>
       <View style={styles.trendLegend}>
-        <TrendLegendItem label="In target" status="in_target" />
-        <TrendLegendItem label="Close" status="close" />
-        <TrendLegendItem label="Off target" status="off" />
+        <TrendLegendItem align="left" label="In target" status="in_target" />
+        <TrendLegendItem align="center" label="Close" status="close" />
+        <TrendLegendItem align="right" label="Off target" status="off" />
       </View>
     </View>
   );
 }
 
-function TrendLegendItem({ label, status }: { label: string; status: TrendStatus }) {
+function TrendLegendItem({
+  align,
+  label,
+  status,
+}: {
+  align: "center" | "left" | "right";
+  label: string;
+  status: TrendStatus;
+}) {
   return (
-    <View style={styles.trendLegendItem}>
+    <View
+      style={[
+        styles.trendLegendItem,
+        align === "center" ? styles.trendLegendItemCenter : null,
+        align === "right" ? styles.trendLegendItemRight : null,
+      ]}
+    >
       <View style={[styles.trendLegendDot, { backgroundColor: TREND_STATUS_COLORS[status] }]} />
       <Text style={styles.trendTinyText}>{label}</Text>
     </View>
@@ -987,7 +966,9 @@ function ConsistencyCard({ snapshots }: { snapshots: DailyProgressSnapshot[] }) 
           <Text style={styles.consistencyLabel}>consistency</Text>
         </View>
         <View style={styles.consistencyMetricBlock}>
-          <Text style={styles.consistencyValue}>{currentStreak}</Text>
+          <Text style={styles.consistencyValue}>
+            {currentStreak} {currentStreak === 1 ? "day" : "days"}
+          </Text>
           <Text style={styles.consistencyLabel}>Current streak</Text>
         </View>
       </View>
@@ -1065,13 +1046,28 @@ function MacroPatternHeatmap({
         </View>
       </View>
       <View style={styles.patternRows}>
+        <View style={styles.patternRow}>
+          <Text numberOfLines={1} style={[styles.patternMetricLabel, styles.patternDayLabel]}>
+            Day
+          </Text>
+          <View style={styles.patternCells}>
+            {blockSnapshots.map((snapshot, index) => (
+              <View
+                key={`day-${snapshot.progress_id}`}
+                style={[styles.patternCell, styles.patternDayCell]}
+              >
+                <Text style={styles.patternDayText}>{blockStart + index + 1}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
         {TREND_METRICS.map((metric) => (
           <View key={metric.key} style={styles.patternRow}>
             <Text numberOfLines={1} style={styles.patternMetricLabel}>
               {metric.label}
             </Text>
             <View style={styles.patternCells}>
-              {blockSnapshots.map((snapshot, index) => {
+              {blockSnapshots.map((snapshot) => {
                 const actual = getTrendActual(snapshot, metric.key);
                 const target = getTrendTarget(snapshot, metric.key);
                 const status = getTrendStatus(metric.key, actual, target);
@@ -1081,15 +1077,11 @@ function MacroPatternHeatmap({
                     style={[
                       styles.patternCell,
                       {
-                        backgroundColor: TREND_STATUS_BACKGROUNDS[status],
+                        backgroundColor: TREND_STATUS_COLORS[status],
                         borderColor: TREND_STATUS_COLORS[status],
                       },
                     ]}
-                  >
-                    <Text style={[styles.patternCellText, { color: TREND_STATUS_COLORS[status] }]}>
-                      {blockStart + index + 1}
-                    </Text>
-                  </View>
+                  />
                 );
               })}
             </View>
@@ -1462,18 +1454,6 @@ function titleize(value: string): string {
 }
 
 const styles = StyleSheet.create({
-  averageChip: {
-    alignItems: "center",
-    borderColor: colors.accent,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 38,
-    minWidth: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    width: "100%",
-  },
   balanceContent: {
     alignItems: "center",
     flexDirection: "row",
@@ -1585,12 +1565,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: colors.accentDark,
     flexShrink: 0,
-    fontSize: 13,
-    fontWeight: "900",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 15,
     maxWidth: "48%",
     overflow: "hidden",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     textAlign: "center",
   },
   kcalValue: {
@@ -1617,14 +1598,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   consistencyProgressFill: {
-    backgroundColor: colors.accent,
-    borderRadius: 999,
+    backgroundColor: "#8FBE63",
+    borderRadius: 8,
     height: "100%",
   },
   consistencyProgressTrack: {
     backgroundColor: "#EEF2E9",
-    borderRadius: 999,
-    height: 9,
+    borderRadius: 8,
+    height: 7,
     overflow: "hidden",
   },
   consistencyValue: {
@@ -1779,13 +1760,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderColor: "#DDEAD3",
-    borderRadius: 999,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 31,
+    minHeight: 34,
     minWidth: 0,
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
   },
   metricChipActive: {
     backgroundColor: colors.accent,
@@ -1793,7 +1774,7 @@ const styles = StyleSheet.create({
   },
   metricChipText: {
     color: colors.accent,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "900",
     textAlign: "center",
   },
@@ -1808,11 +1789,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderColor: colors.accent,
-    borderRadius: 999,
+    borderRadius: 8,
     borderWidth: 1,
-    height: 26,
+    height: 28,
     justifyContent: "center",
-    width: 26,
+    width: 28,
   },
   patternArrowButtonDisabled: {
     borderColor: "#DDEAD3",
@@ -1828,23 +1809,31 @@ const styles = StyleSheet.create({
   },
   patternCell: {
     alignItems: "center",
-    borderRadius: 10,
+    borderRadius: 7,
     borderWidth: 1,
     flex: 1,
-    height: 30,
+    height: 24,
     justifyContent: "center",
     minWidth: 0,
   },
   patternCells: {
     flex: 1,
     flexDirection: "row",
-    gap: 6,
+    gap: 5,
     minWidth: 0,
   },
-  patternCellText: {
+  patternDayCell: {
+    backgroundColor: "#F7FBF2",
+    borderColor: "#DDEAD3",
+  },
+  patternDayLabel: {
+    color: colors.muted,
+  },
+  patternDayText: {
+    color: colors.muted,
     fontSize: 10,
     fontWeight: "900",
-    lineHeight: 13,
+    lineHeight: 12,
   },
   patternHeader: {
     alignItems: "center",
@@ -1858,7 +1847,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "900",
     lineHeight: 15,
-    width: 57,
+    width: 62,
   },
   patternNav: {
     alignItems: "center",
@@ -1879,7 +1868,7 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   patternRows: {
-    gap: 8,
+    gap: 7,
   },
   pressed: {
     opacity: 0.82,
@@ -1890,10 +1879,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   progressButtonDisabled: {
-    opacity: 0.58,
+    backgroundColor: "#F3F4F6",
+    borderColor: "#D1D5DB",
   },
   progressButtonTextDisabled: {
-    color: "#8B9A82",
+    color: "#9CA3AF",
   },
   progressControlCard: {
     backgroundColor: "#F7FBF2",
@@ -1914,11 +1904,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.accent,
     borderColor: colors.accent,
-    borderRadius: 13,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 12,
   },
   progressPrimaryText: {
@@ -1930,11 +1920,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderColor: colors.accent,
-    borderRadius: 13,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 12,
   },
   progressSecondaryText: {
@@ -1965,11 +1955,12 @@ const styles = StyleSheet.create({
     gap: 2,
     minWidth: 0,
   },
-  progressSuccessText: {
-    color: colors.accentDark,
-    fontSize: 12,
-    fontWeight: "800",
-    lineHeight: 16,
+  progressSavedButtonDisabled: {
+    backgroundColor: "#F3F4F6",
+    borderColor: "#D1D5DB",
+  },
+  progressSavedButtonText: {
+    color: "#9CA3AF",
   },
   profileFallback: {
     alignItems: "center",
@@ -1996,11 +1987,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderColor: colors.accent,
-    borderRadius: 999,
+    borderRadius: 8,
     borderWidth: 1,
-    height: 30,
+    height: 28,
     justifyContent: "center",
-    width: 30,
+    width: 28,
   },
   rangeButtonDisabled: {
     borderColor: "#DDEAD3",
@@ -2017,21 +2008,21 @@ const styles = StyleSheet.create({
   rangeLabel: {
     color: "#1B2430",
     flexShrink: 1,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
-    lineHeight: 16,
-    minWidth: 78,
+    lineHeight: 14,
+    minWidth: 76,
     textAlign: "center",
   },
   rangeSelector: {
     alignItems: "center",
     backgroundColor: "#F7FBF2",
     borderColor: "#DDEAD3",
-    borderRadius: 999,
+    borderRadius: 10,
     borderWidth: 1,
     flexDirection: "row",
-    gap: 5,
-    paddingHorizontal: 5,
+    gap: 4,
+    paddingHorizontal: 4,
     paddingVertical: 4,
   },
   progressFill: {
@@ -2099,13 +2090,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   trendBarFill: {
-    borderRadius: 999,
+    borderRadius: 8,
     minHeight: 5,
     width: "100%",
   },
   trendBarTrack: {
     backgroundColor: "#F3F6EF",
-    borderRadius: 999,
+    borderRadius: 8,
     height: 86,
     justifyContent: "flex-end",
     overflow: "hidden",
@@ -2123,7 +2114,7 @@ const styles = StyleSheet.create({
   trendChart: {
     alignItems: "flex-end",
     flexDirection: "row",
-    gap: 3,
+    gap: 4,
     minHeight: 86,
   },
   trendChartFooter: {
@@ -2140,8 +2131,8 @@ const styles = StyleSheet.create({
   trendLegend: {
     alignItems: "center",
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+    justifyContent: "space-between",
+    width: "100%",
   },
   trendLegendDot: {
     borderRadius: 999,
@@ -2150,12 +2141,20 @@ const styles = StyleSheet.create({
   },
   trendLegendItem: {
     alignItems: "center",
+    flex: 1,
     flexDirection: "row",
     gap: 5,
+    justifyContent: "flex-start",
+  },
+  trendLegendItemCenter: {
+    justifyContent: "center",
+  },
+  trendLegendItemRight: {
+    justifyContent: "flex-end",
   },
   trendTargetMarker: {
     backgroundColor: "#D6E6CA",
-    borderRadius: 999,
+    borderRadius: 2,
     height: 2,
     left: -1,
     position: "absolute",
@@ -2191,11 +2190,19 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     lineHeight: 18,
   },
-  trendsHeader: {
+  trendCardHeader: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
     justifyContent: "space-between",
+  },
+  trendCardTitle: {
+    color: "#1B2430",
+    flex: 1,
+    fontSize: 17,
+    fontWeight: "900",
+    lineHeight: 22,
+    minWidth: 0,
   },
   trendsSection: {
     gap: 12,
