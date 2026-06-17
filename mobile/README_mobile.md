@@ -119,7 +119,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - Home este hardcoded pentru MVP si nu apeleaza backend-ul.
 - Meal Plan pastreaza fluxurile reale de generare, feedback, KNN alternatives, replacement si grocery list.
 - Insights este un nutrition dashboard peste planul generat, cu Daily Balance, Meal contribution, Macro Targets, Save day/Delete saved day, Trends peste istoricul salvat si Micronutrients placeholder, fara claims complete de micronutrienti.
-- Household / Account gazduieste setup demo, profiluri salvate, default viewer, status backend si tool-uri demo.
+- Household / Account este Page 4 final polish: hub cu Account Settings, Household Management, App Settings si Developer Diagnostics separat.
 - Auth-M1 adauga Create Account, Log In, Log Out si account-scoped profile calls.
 - Add Profile nu mai expune `Household ID`; backend-ul il asigneaza automat din sesiunea contului cand exista token.
 - PROFILE-WIZARD-1 inlocuieste formularul lung Add Profile cu Add Member wizard in 3 pasi: General Info, Food Preferences, Activity & Goal.
@@ -132,7 +132,8 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - `Avoid` este hard filter pentru cheile suportate si pentru custom avoided ingredients; `Dislike` este soft preference persistata, nu hard ban.
 - PROFILE-WIZARD-1 summary: Add Member este un 3-step wizard; Neutral = no selection; Avoid = hard filter; Dislike = soft preference only.
 - Soft scoring pentru `Like`/`Dislike` la nivel de aliment/familie este deferat; edit wizard ramane polish viitor.
-- Page 4 este hub cu Account Settings, Household Management si App Settings.
+- Page 4 este hub cu Account Settings, Household Management si App Settings; Developer Diagnostics ramane separat, iar Feedback context / Saved data sunt disponibile si in App Settings.
+- Page 4 Household Management permite editarea numelui household-ului, afiseaza carduri de membri cu goal badge compact, pastreaza Add/Edit/Delete member si selectorul `Who's using this device?`.
 - Safe area/status bar spacing este reparat global in `AppScreen`, iar empty states sunt centrate.
 - UI-2B: Meal Plan are un singur buton `Generate meal plan`, selector 1-5 zile, selector de zi cu zile negenerate gri/inactive si afisare mese in ordinea Breakfast, Lunch, Snack, Dinner.
 - UI-2C: Meal Plan are header curat doar cu titlul `Meal Plan`; selectorul de membru/profil apare o singura data in zona rezultatului, dupa taburile `Meal Plan` / `Grocery List`.
@@ -149,7 +150,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - HOME-Lottie: hero-ul Home foloseste acum `mobile/assets/home/welcome/cooking_lottie.json` prin `lottie-react-native`.
 - UI-2B: Sample/Demo wording este ascuns din flow-ul principal; metadata tehnica de generator precum `plan_id`, `status`, `quality` si accept/review/reject nu mai este afisata in Meal Plan.
 - UI-2B: Tema foloseste white/off-white plus accent pear green `#74B72E` prin componentele mobile comune.
-- UI-2B: Login 401 afiseaza `Invalid email or password`; Change Email, Change Password, Language si Appearance sunt read-only/Coming soon unde nu exista implementare reala.
+- UI-2B: Login 401 afiseaza `Invalid email or password`; Change Email si Change Password sunt butoane user-facing cu info sheet, dar raman fara backend de update; Language si Appearance sunt read-only.
 - UI-2B: Add Profile ramane in Household Management dupa salvare, selecteaza profilul nou si afiseaza CTA catre Meal Plan.
 - UI-2B: Validarile profilului acopera nume fara cifre, age 4-120, weight 15-300 kg, height 80-230 cm, sessions/week 0-7 si meals/day 1-5; Goal Speed este inactiv pentru Maintain.
 - Backend-ul trimite estimari de pret si cooking time in outputurile generate. Dupa DATA-QA-1, `Price unavailable` sau missing time nu ar trebui sa apara in fluxurile normale generate; daca apar, ruleaza checker-ul DATA-QA.

@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { ChevronDownIcon } from "../components/icons/ChevronDownIcon";
 import { AppButton, SecondaryButton } from "../components/ui/AppButton";
 import { AppCard } from "../components/ui/AppCard";
 import { AppScreen } from "../components/ui/AppScreen";
@@ -10,6 +11,10 @@ import { colors } from "../theme/colors";
 
 type HouseholdSection = "hub" | "account" | "household" | "app" | "diagnostics";
 type AuthMode = "register" | "login";
+type InfoSheetState = {
+  body: string;
+  title: string;
+} | null;
 
 type HouseholdPageProps = {
   accountEmail?: string;
@@ -17,6 +22,7 @@ type HouseholdPageProps = {
   authError?: string;
   authMessage?: string;
   backendStatusText: string;
+  dataManagementContent?: ReactNode;
   defaultViewerContent?: ReactNode;
   developerDiagnosticsContent?: ReactNode;
   feedbackToolsContent?: ReactNode;
@@ -42,6 +48,7 @@ export function HouseholdPage({
   authError,
   authMessage,
   backendStatusText,
+  dataManagementContent,
   defaultViewerContent,
   developerDiagnosticsContent,
   feedbackToolsContent,
@@ -57,6 +64,7 @@ export function HouseholdPage({
   onRegister,
 }: HouseholdPageProps) {
   const [section, setSection] = useState<HouseholdSection>("hub");
+  const [infoSheet, setInfoSheet] = useState<InfoSheetState>(null);
 
   if (!isSetupComplete) {
     return (
@@ -97,16 +105,29 @@ export function HouseholdPage({
         />
         <AppCard>
           <DetailBlock label="Email" value={accountEmail || "Guest session"} />
-          <DetailBlock
-            label="Account type"
-            value={accountEmail ? "Local household account" : "Local session"}
-          />
           <View style={styles.settingsStack}>
-            <DisabledActionRow label="Change Email" />
-            <DisabledActionRow label="Change Password" />
+            <AccountActionRow
+              label="Change Email"
+              onPress={() =>
+                setInfoSheet({
+                  title: "Change Email",
+                  body: "Email changes need account update support before they can be saved.",
+                })
+              }
+            />
+            <AccountActionRow
+              label="Change Password"
+              onPress={() =>
+                setInfoSheet({
+                  title: "Change Password",
+                  body: "Password changes need account update support before they can be saved.",
+                })
+              }
+            />
           </View>
           <SecondaryButton label="Log Out" onPress={onLogout} />
         </AppCard>
+        <InfoSheet info={infoSheet} onClose={() => setInfoSheet(null)} />
         {messagesContent}
       </AppScreen>
     );
@@ -124,9 +145,28 @@ export function HouseholdPage({
           {householdManagementContent}
         </View>
         <AppCard>
-          <SectionHeader title="Default Viewer" meta="Current device user" />
+          <View style={styles.viewerHeaderRow}>
+            <Text style={styles.viewerHeaderTitle}>Who's using this device?</Text>
+            <Pressable
+              accessibilityLabel="Default Viewer information"
+              accessibilityRole="button"
+              onPress={() =>
+                setInfoSheet({
+                  title: "Who's using this device?",
+                  body: "This device opens Meal Plan and Insights with this member selected first. You can still switch profiles anytime.",
+                })
+              }
+              style={({ pressed }) => [
+                styles.infoButton,
+                pressed ? styles.pressed : null,
+              ]}
+            >
+              <Text style={styles.infoButtonText}>i</Text>
+            </Pressable>
+          </View>
           {defaultViewerContent}
         </AppCard>
+        <InfoSheet info={infoSheet} onClose={() => setInfoSheet(null)} />
         {messagesContent}
       </AppScreen>
     );
@@ -143,10 +183,14 @@ export function HouseholdPage({
         <AppCard>
           <SettingStatusLine label="Language" value="English" />
           <SettingStatusLine label="Appearance" value="Light" />
+        </AppCard>
+        {dataManagementContent}
+        <AppCard>
+          <SectionHeader title="Developer Diagnostics" />
           <SettingNavLine
             description="Backend, health check and feedback tools"
             onPress={() => setSection("diagnostics")}
-            title="Developer Diagnostics"
+            title="Open diagnostics"
           />
         </AppCard>
         {messagesContent}
@@ -178,7 +222,6 @@ export function HouseholdPage({
     <AppScreen contentContainerStyle={styles.screenContainer}>
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Household / Account</Text>
-        <Text style={styles.subtitle}>Manage account, members and app preferences.</Text>
       </View>
 
       <View style={styles.hubList}>
@@ -359,7 +402,9 @@ function HubRow({
         <Text style={styles.hubTitle}>{title}</Text>
         <Text style={styles.hubDescription}>{description}</Text>
       </View>
-      <Text style={styles.chevron}>{">"}</Text>
+      <View style={styles.chevronRight}>
+        <ChevronDownIcon color={colors.accent} size={18} />
+      </View>
     </Pressable>
   );
 }
@@ -376,7 +421,6 @@ function SubpageHeader({
   return (
     <View style={styles.subpageHeader}>
       <BackButton label={backLabel} onPress={onBack} />
-      {/* TODO: Adauga swipe-back dupa ce verificam interactiunea cu scroll-ul vertical. */}
       <Text style={styles.subpageTitle}>{title}</Text>
     </View>
   );
@@ -389,7 +433,10 @@ function BackButton({ label, onPress }: { label: string; onPress: () => void }) 
       onPress={onPress}
       style={({ pressed }) => [styles.backButton, pressed ? styles.pressed : null]}
     >
-      <Text style={styles.backText}>{"<"} {label}</Text>
+      <View style={styles.chevronLeft}>
+        <ChevronDownIcon color={colors.accent} size={16} />
+      </View>
+      <Text style={styles.backText}>{label}</Text>
     </Pressable>
   );
 }
@@ -449,11 +496,21 @@ function SettingStatusLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DisabledActionRow({ label }: { label: string }) {
+function AccountActionRow({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <View style={styles.disabledActionRow}>
-      <Text style={styles.disabledActionText}>{label}</Text>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.accountActionRow,
+        pressed ? styles.pressed : null,
+      ]}
+    >
+      <Text style={styles.accountActionText}>{label}</Text>
+      <View style={styles.chevronRightSmall}>
+        <ChevronDownIcon color={colors.accent} size={16} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -476,23 +533,75 @@ function SettingNavLine({
         <Text style={styles.settingLabel}>{title}</Text>
         <Text style={styles.settingValue}>{description}</Text>
       </View>
-      <Text style={styles.settingChevron}>{">"}</Text>
+      <View style={styles.chevronRightSmall}>
+        <ChevronDownIcon color={colors.accent} size={16} />
+      </View>
     </Pressable>
   );
 }
 
+function InfoSheet({
+  info,
+  onClose,
+}: {
+  info: InfoSheetState;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      transparent
+      visible={Boolean(info)}
+    >
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.infoSheet} onPress={() => undefined}>
+          <Text style={styles.infoSheetTitle}>{info?.title}</Text>
+          <Text style={styles.infoSheetBody}>{info?.body}</Text>
+          <AppButton label="Got it" onPress={onClose} />
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
+  accountActionRow: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  accountActionText: {
+    color: colors.accent,
+    fontSize: 15,
+    fontWeight: "900",
+  },
   authModeRow: {
     flexDirection: "row",
     gap: 10,
   },
   backButton: {
+    alignItems: "center",
     alignSelf: "flex-start",
-    paddingVertical: 4,
+    backgroundColor: "#F8FBF3",
+    borderColor: "#DDEAD3",
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 6,
+    minHeight: 34,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
   backText: {
     color: colors.accent,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "900",
   },
   bodyText: {
@@ -507,6 +616,15 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 24,
     fontWeight: "900",
+  },
+  chevronLeft: {
+    transform: [{ rotate: "90deg" }],
+  },
+  chevronRight: {
+    transform: [{ rotate: "-90deg" }],
+  },
+  chevronRightSmall: {
+    transform: [{ rotate: "-90deg" }],
   },
   copy: {
     gap: 8,
@@ -641,7 +759,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   screenContainer: {
-    paddingBottom: 128,
+    paddingBottom: 156,
     paddingTop: 14,
   },
   settingLabel: {
@@ -671,21 +789,6 @@ const styles = StyleSheet.create({
   settingChevron: {
     color: colors.accent,
     fontSize: 18,
-    fontWeight: "900",
-  },
-  disabledActionRow: {
-    alignItems: "center",
-    backgroundColor: "#F8FBF3",
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 12,
-  },
-  disabledActionText: {
-    color: colors.mutedSoft,
-    fontSize: 15,
     fontWeight: "900",
   },
   settingsStack: {
@@ -718,5 +821,58 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 28,
     fontWeight: "900",
+  },
+  infoButton: {
+    alignItems: "center",
+    backgroundColor: "#F1F8EA",
+    borderColor: "#DDEFCF",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 30,
+    justifyContent: "center",
+    width: 30,
+  },
+  infoButtonText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "900",
+    lineHeight: 16,
+  },
+  infoSheet: {
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    marginHorizontal: 22,
+    padding: 18,
+  },
+  infoSheetBody: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  infoSheetTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  modalOverlay: {
+    backgroundColor: "rgba(17, 24, 39, 0.32)",
+    flex: 1,
+    justifyContent: "center",
+  },
+  viewerHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  viewerHeaderTitle: {
+    color: "#111827",
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "800",
   },
 });

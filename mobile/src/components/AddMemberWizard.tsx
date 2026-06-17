@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -8,6 +9,7 @@ import {
   View,
 } from "react-native";
 
+import { ChevronDownIcon } from "./icons/ChevronDownIcon";
 import { colors } from "../theme/colors";
 import type {
   HealthAndDietPreferences,
@@ -29,7 +31,10 @@ type AddMemberWizardProps = {
 
 type WizardStep = 1 | 2 | 3;
 type PreferenceRating = "like" | "dislike" | "avoid";
-type CookingTimePreference = "quick" | "balanced" | "no_rush";
+type InfoSheetState = {
+  body: string;
+  title: string;
+} | null;
 type DietaryDraft = {
   vegetarian: boolean;
   vegan: boolean;
@@ -63,9 +68,9 @@ const GOAL_OPTIONS = [
 ];
 
 const GOAL_SPEED_OPTIONS = [
-  { label: "Slow", value: "slow" },
-  { label: "Normal", value: "normal" },
-  { label: "Fast", value: "fast" },
+  { label: "Slow pace", value: "slow" },
+  { label: "Normal pace", value: "normal" },
+  { label: "Aggressive pace", value: "fast" },
 ];
 
 const ACTIVITY_OPTIONS = [
@@ -82,22 +87,26 @@ const TRAINING_TYPE_OPTIONS = [
   { label: "Mixed", value: "mixed" },
 ];
 
-const COOKING_TIME_OPTIONS: Array<{ label: string; value: CookingTimePreference }> = [
-  { label: "Quick", value: "quick" },
-  { label: "Balanced", value: "balanced" },
-  { label: "No rush", value: "no_rush" },
-];
-
 const DIETARY_PATTERN_OPTIONS: Array<{ label: string; value: DietaryPatternKey }> = [
   { label: "Keto", value: "keto" },
   { label: "Paleo", value: "paleo" },
   { label: "Mediterranean", value: "mediterranean" },
 ];
 
+const DIETARY_PATTERN_SELECTOR_OPTIONS = [
+  { label: "None", value: "none" },
+  ...DIETARY_PATTERN_OPTIONS,
+];
+
 const HEALTH_MODE_OPTIONS: Array<{ label: string; value: HealthModeKey }> = [
   { label: "Diabetes-aware", value: "diabetes_aware" },
   { label: "Blood-pressure friendly", value: "hypertension_friendly" },
   { label: "Heart-friendly", value: "heart_friendly" },
+];
+
+const HEALTH_MODE_SELECTOR_OPTIONS = [
+  { label: "None", value: "none" },
+  ...HEALTH_MODE_OPTIONS,
 ];
 
 const FOOD_SECTIONS: FoodPreferenceSection[] = [
@@ -186,13 +195,12 @@ export function AddMemberWizard({
   const [goal, setGoal] = useState("maintain");
   const [goalSpeed, setGoalSpeed] = useState("normal");
   const [activityLevel, setActivityLevel] = useState("moderately_active");
-  const [trainingType, setTrainingType] = useState("mixed");
-  const [trainingSessions, setTrainingSessions] = useState("3");
+  const [trainingType, setTrainingType] = useState("none");
+  const [trainingSessions, setTrainingSessions] = useState("0");
   const [mealsPerDay, setMealsPerDay] = useState("3");
   const [includeSnacks, setIncludeSnacks] = useState(true);
-  const [cookingTimePreference, setCookingTimePreference] =
-    useState<CookingTimePreference>("balanced");
   const [validationError, setValidationError] = useState("");
+  const [infoSheet, setInfoSheet] = useState<InfoSheetState>(null);
   const isOpen = Boolean(forceOpen || isInternalOpen);
   const isEditMode = mode === "edit";
 
@@ -211,9 +219,9 @@ export function AddMemberWizard({
     setStep(1);
     setDisplayName("");
     setSex("male");
-    setAge("30");
-    setHeightCm("175");
-    setWeightKg("75");
+    setAge("");
+    setHeightCm("");
+    setWeightKg("");
     setDietary(DEFAULT_DIETARY);
     setDietaryPatterns(DEFAULT_DIETARY_PATTERNS);
     setHealthModes(DEFAULT_HEALTH_MODES);
@@ -223,11 +231,10 @@ export function AddMemberWizard({
     setGoal("maintain");
     setGoalSpeed("normal");
     setActivityLevel("moderately_active");
-    setTrainingType("mixed");
-    setTrainingSessions("3");
+    setTrainingType("none");
+    setTrainingSessions("0");
     setMealsPerDay("3");
     setIncludeSnacks(true);
-    setCookingTimePreference("balanced");
     setValidationError("");
   }
 
@@ -275,18 +282,16 @@ export function AddMemberWizard({
     setGoal(profile.goal || "maintain");
     setGoalSpeed(profile.goal_speed || "normal");
     setActivityLevel(profile.activity_level || "moderately_active");
-    setTrainingType(String(training.type || "mixed"));
-    setTrainingSessions(String(training.sessions_per_week ?? 3));
+    setTrainingType(String(training.type || "none"));
+    setTrainingSessions(String(training.sessions_per_week ?? 0));
     setMealsPerDay(String(mealConfig.meals_per_day ?? 3));
     setIncludeSnacks(Boolean(mealConfig.include_snacks ?? true));
-    setCookingTimePreference(
-      normalizeCookingTimePreference(foodPreferences?.cooking_time_preference),
-    );
     setValidationError("");
   }
 
   function closeWizard() {
     resetDraft();
+    setInfoSheet(null);
     setIsInternalOpen(false);
     onCancel?.();
   }
@@ -295,33 +300,45 @@ export function AddMemberWizard({
     const cleanName = displayName.trim();
     if (step === 1) {
       if (!cleanName) {
-        setValidationError("Name is required.");
+        setValidationError("Please enter a name for this member.");
         return false;
       }
       if (/\d/.test(cleanName)) {
-        setValidationError("Name cannot contain numbers.");
+        setValidationError("Please use letters only for the member name.");
+        return false;
+      }
+      if (!age.trim()) {
+        setValidationError("Please enter this member's age.");
+        return false;
+      }
+      if (!heightCm.trim()) {
+        setValidationError("Please enter this member's height.");
+        return false;
+      }
+      if (!weightKg.trim()) {
+        setValidationError("Please enter this member's weight.");
         return false;
       }
       if (!isNumberInRange(Number(age), 4, 120)) {
-        setValidationError("Age must be between 4 and 120.");
+        setValidationError("Please enter an age between 4 and 120.");
         return false;
       }
       if (!isNumberInRange(Number(heightCm), 80, 230)) {
-        setValidationError("Height must be between 80 and 230 cm.");
+        setValidationError("Please enter a height between 80 and 230 cm.");
         return false;
       }
       if (!isNumberInRange(Number(weightKg), 15, 300)) {
-        setValidationError("Weight must be between 15 and 300 kg.");
+        setValidationError("Please enter a weight between 15 and 300 kg.");
         return false;
       }
     }
     if (step === 3) {
       if (!isNumberInRange(Number(trainingSessions), 0, 7)) {
-        setValidationError("Training sessions must be between 0 and 7.");
+        setValidationError("Training sessions can be between 0 and 7 per week.");
         return false;
       }
       if (!isNumberInRange(Number(mealsPerDay), 1, 5)) {
-        setValidationError("Meals per day must be between 1 and 5.");
+        setValidationError("Meals per day can be between 1 and 5.");
         return false;
       }
     }
@@ -352,7 +369,7 @@ export function AddMemberWizard({
       setIsInternalOpen(false);
       onCancel?.();
     } catch (error) {
-      setValidationError(error instanceof Error ? error.message : "Member save failed.");
+      setValidationError(formatMemberSaveError(error));
     }
   }
 
@@ -384,7 +401,7 @@ export function AddMemberWizard({
       food_preferences: {
         ratings: cleanRatings,
         avoid_ingredients: avoidIngredients,
-        cooking_time_preference: cookingTimePreference,
+        cooking_time_preference: "balanced",
       },
       health_and_diet_preferences: {
         dietary_patterns: dietaryPatterns,
@@ -394,17 +411,32 @@ export function AddMemberWizard({
     };
   }
 
-  function toggleDietary(key: keyof DietaryDraft) {
+  function selectNoDietaryRestrictions() {
+    setDietary(DEFAULT_DIETARY);
+    setRatings((currentRatings) => removeAvoidRatings(currentRatings, VEGAN_AVOID_KEYS));
+  }
+
+  function toggleDietaryRestriction(key: keyof DietaryDraft) {
     setDietary((current) => {
-      const next = { ...current, [key]: !current[key] };
+      const next = {
+        ...current,
+        [key]: !current[key],
+      };
       if (key === "vegan" && next.vegan) {
-        next.vegetarian = true;
         setRatings((currentRatings) => forceAvoidRatings(currentRatings, VEGAN_AVOID_KEYS));
       } else if (key === "vegetarian" && next.vegetarian) {
         setRatings((currentRatings) => forceAvoidRatings(currentRatings, VEGETARIAN_AVOID_KEYS));
       }
       return next;
     });
+  }
+
+  function selectDietaryRestriction(value: string) {
+    if (value === "none") {
+      selectNoDietaryRestrictions();
+      return;
+    }
+    toggleDietaryRestriction(value as keyof DietaryDraft);
   }
 
   function toggleRating(foodKey: string, rating: PreferenceRating) {
@@ -418,18 +450,20 @@ export function AddMemberWizard({
     });
   }
 
-  function toggleDietaryPattern(key: DietaryPatternKey) {
-    setDietaryPatterns((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
+  function selectDietaryPattern(value: string) {
+    setDietaryPatterns({
+      keto: value === "keto",
+      paleo: value === "paleo",
+      mediterranean: value === "mediterranean",
+    });
   }
 
-  function toggleHealthMode(key: HealthModeKey) {
-    setHealthModes((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
+  function selectHealthMode(value: string) {
+    setHealthModes({
+      diabetes_aware: value === "diabetes_aware",
+      hypertension_friendly: value === "hypertension_friendly",
+      heart_friendly: value === "heart_friendly",
+    });
   }
 
   function addAvoidIngredient() {
@@ -470,20 +504,6 @@ export function AddMemberWizard({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>{isEditMode ? "Edit Member" : "Add Member"}</Text>
-          <Text style={styles.progress}>Step {step} of 3</Text>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={closeWizard}
-          style={({ pressed }) => [styles.closeButton, pressed ? styles.pressed : null]}
-        >
-          <Text style={styles.closeText}>Cancel</Text>
-        </Pressable>
-      </View>
-
       {step === 1 ? (
         <GeneralInfoStep
           age={age}
@@ -491,6 +511,7 @@ export function AddMemberWizard({
           heightCm={heightCm}
           sex={sex}
           weightKg={weightKg}
+          onCancel={closeWizard}
           onAgeChange={setAge}
           onDisplayNameChange={setDisplayName}
           onHeightChange={setHeightCm}
@@ -506,13 +527,15 @@ export function AddMemberWizard({
           dietary={dietary}
           dietaryPatterns={dietaryPatterns}
           healthModes={healthModes}
+          onCancel={closeWizard}
           ratings={ratings}
           onAddAvoidIngredient={addAvoidIngredient}
           onCustomAvoidInputChange={setCustomAvoidInput}
           onRemoveAvoidIngredient={removeAvoidIngredient}
-          onToggleDietary={toggleDietary}
-          onToggleDietaryPattern={toggleDietaryPattern}
-          onToggleHealthMode={toggleHealthMode}
+          onSelectDietaryRestriction={selectDietaryRestriction}
+          onSelectDietaryPattern={selectDietaryPattern}
+          onSelectHealthMode={selectHealthMode}
+          onShowInfo={setInfoSheet}
           onToggleRating={toggleRating}
         />
       ) : null}
@@ -520,15 +543,14 @@ export function AddMemberWizard({
       {step === 3 ? (
         <ActivityGoalStep
           activityLevel={activityLevel}
-          cookingTimePreference={cookingTimePreference}
           goal={goal}
           goalSpeed={goalSpeed}
           includeSnacks={includeSnacks}
           mealsPerDay={mealsPerDay}
+          onCancel={closeWizard}
           trainingSessions={trainingSessions}
           trainingType={trainingType}
           onActivityLevelChange={setActivityLevel}
-          onCookingTimePreferenceChange={setCookingTimePreference}
           onGoalChange={(value) => {
             setGoal(value);
             if (value === "maintain" || value === "balanced") {
@@ -611,6 +633,7 @@ export function AddMemberWizard({
           </Pressable>
         </View>
       ) : null}
+      <InfoSheet info={infoSheet} onClose={() => setInfoSheet(null)} />
     </View>
   );
 }
@@ -619,6 +642,7 @@ function GeneralInfoStep({
   age,
   displayName,
   heightCm,
+  onCancel,
   sex,
   weightKg,
   onAgeChange,
@@ -630,6 +654,7 @@ function GeneralInfoStep({
   age: string;
   displayName: string;
   heightCm: string;
+  onCancel: () => void;
   sex: string;
   weightKg: string;
   onAgeChange: (value: string) => void;
@@ -641,16 +666,18 @@ function GeneralInfoStep({
   return (
     <View style={styles.step}>
       <StepIntro
+        onCancel={onCancel}
+        stepLabel={formatStepLabel(1)}
         subtitle="Tell us about this household member."
         title="General Info"
       />
       <TextField
         label="Name"
         onChangeText={onDisplayNameChange}
-        placeholder="Alex"
+        placeholder="Enter name"
         value={displayName}
       />
-      <SegmentedControl
+      <ArrowSelector
         label="Sex"
         onSelect={onSexChange}
         options={SEX_OPTIONS}
@@ -661,12 +688,14 @@ function GeneralInfoStep({
           keyboardType="numeric"
           label="Age"
           onChangeText={onAgeChange}
+          placeholder="Age"
           value={age}
         />
         <TextField
           keyboardType="numeric"
           label="Weight"
           onChangeText={onWeightChange}
+          placeholder="Weight"
           suffix="kg"
           value={weightKg}
         />
@@ -675,6 +704,7 @@ function GeneralInfoStep({
         keyboardType="numeric"
         label="Height"
         onChangeText={onHeightChange}
+        placeholder="Height"
         suffix="cm"
         value={heightCm}
       />
@@ -688,13 +718,15 @@ function FoodPreferencesStep({
   dietary,
   dietaryPatterns,
   healthModes,
+  onCancel,
   ratings,
   onAddAvoidIngredient,
   onCustomAvoidInputChange,
   onRemoveAvoidIngredient,
-  onToggleDietary,
-  onToggleDietaryPattern,
-  onToggleHealthMode,
+  onSelectDietaryRestriction,
+  onSelectDietaryPattern,
+  onSelectHealthMode,
+  onShowInfo,
   onToggleRating,
 }: {
   avoidIngredients: string[];
@@ -702,89 +734,112 @@ function FoodPreferencesStep({
   dietary: DietaryDraft;
   dietaryPatterns: DietaryPatternDraft;
   healthModes: HealthModeDraft;
+  onCancel: () => void;
   ratings: Record<string, PreferenceRating>;
   onAddAvoidIngredient: () => void;
   onCustomAvoidInputChange: (value: string) => void;
   onRemoveAvoidIngredient: (value: string) => void;
-  onToggleDietary: (key: keyof DietaryDraft) => void;
-  onToggleDietaryPattern: (key: DietaryPatternKey) => void;
-  onToggleHealthMode: (key: HealthModeKey) => void;
+  onSelectDietaryRestriction: (value: string) => void;
+  onSelectDietaryPattern: (value: string) => void;
+  onSelectHealthMode: (value: string) => void;
+  onShowInfo: (info: InfoSheetState) => void;
   onToggleRating: (foodKey: string, rating: PreferenceRating) => void;
 }) {
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const dietaryRestrictionValue = selectedDietaryRestrictionValue(dietary);
+  const dietaryPatternValue = selectedDietaryPatternValue(dietaryPatterns);
+  const healthModeValue = selectedHealthModeValue(healthModes);
+
   return (
     <View style={styles.step}>
       <StepIntro
+        onCancel={onCancel}
+        stepLabel={formatStepLabel(2)}
         subtitle="Choose what this member likes, dislikes or wants to avoid. You can change this later."
         title="Food Preferences"
       />
       <View style={styles.subsection}>
-        <Text style={styles.subsectionTitle}>Dietary restrictions</Text>
-        <View style={styles.optionGrid}>
+        <Text style={styles.fieldLabel}>Dietary restrictions</Text>
+        <View style={styles.dietaryChipRow}>
           <TogglePill
+            compact
+            label="None"
+            onPress={() => onSelectDietaryRestriction("none")}
+            selected={dietaryRestrictionValue === "none"}
+          />
+          <TogglePill
+            compact
             label="Vegetarian"
-            onPress={() => onToggleDietary("vegetarian")}
+            onPress={() => onSelectDietaryRestriction("vegetarian")}
             selected={dietary.vegetarian}
           />
           <TogglePill
+            compact
             label="Vegan"
-            onPress={() => onToggleDietary("vegan")}
+            onPress={() => onSelectDietaryRestriction("vegan")}
             selected={dietary.vegan}
           />
           <TogglePill
+            compact
             label="Gluten free"
-            onPress={() => onToggleDietary("gluten_free")}
+            onPress={() => onSelectDietaryRestriction("gluten_free")}
             selected={dietary.gluten_free}
           />
         </View>
       </View>
 
       <View style={styles.subsection}>
-        <Text style={styles.subsectionTitle}>Dietary patterns</Text>
-        <Text style={styles.helperText}>
-          These options help TableTogether prioritize and filter meals. They are not
-          medical advice.
-        </Text>
-        <View style={styles.optionGrid}>
-          {DIETARY_PATTERN_OPTIONS.map((option) => (
-            <TogglePill
-              key={option.value}
-              label={option.label}
-              onPress={() => onToggleDietaryPattern(option.value)}
-              selected={dietaryPatterns[option.value]}
-            />
-          ))}
-        </View>
+        <SubsectionTitleWithInfo
+          onPress={() =>
+            onShowInfo({
+              title: "Dietary pattern",
+              body: "Dietary patterns help TableTogether prioritize meals that match a chosen eating style.",
+            })
+          }
+          title="Dietary pattern"
+        />
+        <ArrowSelector
+          hideLabel
+          label="Dietary pattern"
+          onSelect={onSelectDietaryPattern}
+          options={DIETARY_PATTERN_SELECTOR_OPTIONS}
+          selected={dietaryPatternValue}
+        />
       </View>
 
       <View style={styles.subsection}>
-        <Text style={styles.subsectionTitle}>Health-aware preferences</Text>
-        <View style={styles.optionGrid}>
-          {HEALTH_MODE_OPTIONS.map((option) => (
-            <TogglePill
-              key={option.value}
-              label={option.label}
-              onPress={() => onToggleHealthMode(option.value)}
-              selected={healthModes[option.value]}
-            />
-          ))}
-        </View>
+        <SubsectionTitleWithInfo
+          onPress={() =>
+            onShowInfo({
+              title: "Health-aware",
+              body: "Health-aware preferences help TableTogether prioritize meals. They are not medical advice.",
+            })
+          }
+          title="Health-aware"
+        />
+        <ArrowSelector
+          hideLabel
+          label="Health-aware"
+          onSelect={onSelectHealthMode}
+          options={HEALTH_MODE_SELECTOR_OPTIONS}
+          selected={healthModeValue}
+        />
       </View>
 
       {FOOD_SECTIONS.map((section) => (
-        <View key={section.title} style={styles.subsection}>
-          <Text style={styles.subsectionTitle}>{section.title}</Text>
-          <View style={styles.preferenceRows}>
-            {section.items.map((item) => (
-              <PreferenceRow
-                key={item.key}
-                foodKey={item.key}
-                label={item.label}
-                rating={ratings[item.key]}
-                onToggle={onToggleRating}
-              />
-            ))}
-          </View>
-        </View>
+        <FoodPreferenceGroup
+          expanded={Boolean(expandedSections[section.title])}
+          key={section.title}
+          ratings={ratings}
+          section={section}
+          onToggle={() =>
+            setExpandedSections((current) => ({
+              ...current,
+              [section.title]: !current[section.title],
+            }))
+          }
+          onToggleRating={onToggleRating}
+        />
       ))}
 
       <View style={styles.subsection}>
@@ -805,15 +860,22 @@ function FoodPreferencesStep({
           </Pressable>
         </View>
         {avoidIngredients.length ? (
-          <View style={styles.chipRow}>
+          <View style={styles.customAvoidList}>
+            <Text style={styles.customAvoidListTitle}>Custom avoids</Text>
             {avoidIngredients.map((ingredient) => (
               <Pressable
                 accessibilityRole="button"
                 key={ingredient}
                 onPress={() => onRemoveAvoidIngredient(ingredient)}
-                style={({ pressed }) => [styles.chip, pressed ? styles.pressed : null]}
+                style={({ pressed }) => [
+                  styles.customAvoidItem,
+                  pressed ? styles.pressed : null,
+                ]}
               >
-                <Text style={styles.chipText}>{ingredient}</Text>
+                <Text numberOfLines={1} style={styles.customAvoidItemText}>
+                  {ingredient}
+                </Text>
+                <Text style={styles.customAvoidRemove}>x</Text>
               </Pressable>
             ))}
           </View>
@@ -825,15 +887,14 @@ function FoodPreferencesStep({
 
 function ActivityGoalStep({
   activityLevel,
-  cookingTimePreference,
   goal,
   goalSpeed,
   includeSnacks,
   mealsPerDay,
+  onCancel,
   trainingSessions,
   trainingType,
   onActivityLevelChange,
-  onCookingTimePreferenceChange,
   onGoalChange,
   onGoalSpeedChange,
   onIncludeSnacksChange,
@@ -842,15 +903,14 @@ function ActivityGoalStep({
   onTrainingTypeChange,
 }: {
   activityLevel: string;
-  cookingTimePreference: CookingTimePreference;
   goal: string;
   goalSpeed: string;
   includeSnacks: boolean;
   mealsPerDay: string;
+  onCancel: () => void;
   trainingSessions: string;
   trainingType: string;
   onActivityLevelChange: (value: string) => void;
-  onCookingTimePreferenceChange: (value: CookingTimePreference) => void;
   onGoalChange: (value: string) => void;
   onGoalSpeedChange: (value: string) => void;
   onIncludeSnacksChange: (value: boolean) => void;
@@ -862,77 +922,89 @@ function ActivityGoalStep({
   return (
     <View style={styles.step}>
       <StepIntro
+        onCancel={onCancel}
+        stepLabel={formatStepLabel(3)}
         subtitle="Set the nutrition goal and daily routine for this member."
         title="Activity & Goal"
       />
-      <SegmentedControl
+      <ArrowSelector
         label="Goal"
         onSelect={onGoalChange}
         options={GOAL_OPTIONS}
         selected={goal}
       />
       {!goalSpeedDisabled ? (
-        <SegmentedControl
+        <ArrowSelector
           label="Goal speed"
           onSelect={onGoalSpeedChange}
           options={GOAL_SPEED_OPTIONS}
           selected={goalSpeed}
         />
       ) : null}
-      <SegmentedControl
+      <ArrowSelector
         label="Activity level"
         onSelect={onActivityLevelChange}
         options={ACTIVITY_OPTIONS}
         selected={activityLevel}
       />
-      <SegmentedControl
+      <ArrowSelector
         label="Training type"
         onSelect={onTrainingTypeChange}
         options={TRAINING_TYPE_OPTIONS}
         selected={trainingType}
       />
       <View style={styles.twoColumns}>
-        <TextField
-          keyboardType="numeric"
+        <StepperField
           label="Sessions/week"
-          onChangeText={onTrainingSessionsChange}
+          maximum={7}
+          minimum={0}
+          onChange={onTrainingSessionsChange}
           value={trainingSessions}
         />
-        <TextField
-          keyboardType="numeric"
+        <StepperField
           label="Meals/day"
-          onChangeText={onMealsPerDayChange}
+          maximum={5}
+          minimum={1}
+          onChange={onMealsPerDayChange}
           value={mealsPerDay}
         />
       </View>
       <View style={styles.subsection}>
         <Text style={styles.fieldLabel}>Include snack</Text>
-        <View style={styles.optionGrid}>
-          <TogglePill
-            label="Yes"
-            onPress={() => onIncludeSnacksChange(true)}
-            selected={includeSnacks}
-          />
-          <TogglePill
-            label="No"
-            onPress={() => onIncludeSnacksChange(false)}
-            selected={!includeSnacks}
-          />
-        </View>
+        <BinarySegment
+          falseLabel="No"
+          onChange={onIncludeSnacksChange}
+          trueLabel="Yes"
+          value={includeSnacks}
+        />
       </View>
-      <SegmentedControl
-        label="Cooking time preference"
-        onSelect={(value) => onCookingTimePreferenceChange(value as CookingTimePreference)}
-        options={COOKING_TIME_OPTIONS}
-        selected={cookingTimePreference}
-      />
     </View>
   );
 }
 
-function StepIntro({ subtitle, title }: { subtitle: string; title: string }) {
+function StepIntro({
+  onCancel,
+  stepLabel,
+  subtitle,
+  title,
+}: {
+  onCancel: () => void;
+  stepLabel: string;
+  subtitle: string;
+  title: string;
+}) {
   return (
     <View style={styles.stepIntro}>
+      <View style={styles.stepHeaderRow}>
+        <Text style={styles.stepLabel}>{stepLabel}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onCancel}
+          style={({ pressed }) => [styles.closeButton, pressed ? styles.pressed : null]}
+        >
+          <Text style={styles.closeText}>Cancel</Text>
+        </Pressable>
+      </View>
       <Text style={styles.stepTitle}>{title}</Text>
       <Text style={styles.stepSubtitle}>{subtitle}</Text>
     </View>
@@ -971,6 +1043,289 @@ function TextField({
   );
 }
 
+function ArrowSelector({
+  hideLabel,
+  label,
+  onSelect,
+  options,
+  selected,
+}: {
+  hideLabel?: boolean;
+  label: string;
+  onSelect: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  selected: string;
+}) {
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === selected),
+  );
+  const selectedOption = options[selectedIndex] ?? options[0];
+
+  function selectOffset(offset: number) {
+    if (!options.length) {
+      return;
+    }
+    const nextIndex = (selectedIndex + offset + options.length) % options.length;
+    onSelect(options[nextIndex].value);
+  }
+
+  return (
+    <View style={styles.field}>
+      {hideLabel ? null : <Text style={styles.fieldLabel}>{label}</Text>}
+      <View style={styles.arrowSelector}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => selectOffset(-1)}
+          style={({ pressed }) => [
+            styles.arrowButton,
+            pressed ? styles.pressed : null,
+          ]}
+        >
+          <View style={styles.chevronLeft}>
+            <ChevronDownIcon color={colors.accent} size={18} />
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => selectOffset(1)}
+          style={({ pressed }) => [
+            styles.arrowSelectorValue,
+            pressed ? styles.pressed : null,
+          ]}
+        >
+          <Text numberOfLines={1} style={styles.arrowSelectorText}>
+            {selectedOption?.label ?? "None"}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => selectOffset(1)}
+          style={({ pressed }) => [
+            styles.arrowButton,
+            pressed ? styles.pressed : null,
+          ]}
+        >
+          <View style={styles.chevronRight}>
+            <ChevronDownIcon color={colors.accent} size={18} />
+          </View>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function FoodPreferenceGroup({
+  expanded,
+  onToggle,
+  onToggleRating,
+  ratings,
+  section,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  onToggleRating: (foodKey: string, rating: PreferenceRating) => void;
+  ratings: Record<string, PreferenceRating>;
+  section: FoodPreferenceSection;
+}) {
+  const selectedItems = section.items.filter((item) => ratings[item.key]);
+  const avoidedItems = selectedItems.filter((item) => ratings[item.key] === "avoid");
+  const countLabel = avoidedItems.length
+    ? `${avoidedItems.length} avoided`
+    : `${selectedItems.length} selected`;
+
+  return (
+    <View style={styles.preferenceGroup}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onToggle}
+        style={({ pressed }) => [
+          styles.preferenceGroupHeader,
+          pressed ? styles.pressed : null,
+        ]}
+      >
+        <Text style={styles.preferenceGroupTitle}>{section.title}</Text>
+        <View style={styles.preferenceGroupMeta}>
+          <Text style={styles.preferenceGroupCount}>{countLabel}</Text>
+          <View style={expanded ? styles.chevronUp : undefined}>
+            <ChevronDownIcon color={colors.accent} size={16} />
+          </View>
+        </View>
+      </Pressable>
+      {expanded ? (
+        <View style={styles.preferenceRows}>
+          {section.items.map((item) => (
+            <PreferenceRow
+              key={item.key}
+              foodKey={item.key}
+              label={item.label}
+              rating={ratings[item.key]}
+              onToggle={onToggleRating}
+            />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function InfoSheet({
+  info,
+  onClose,
+}: {
+  info: InfoSheetState;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      transparent
+      visible={Boolean(info)}
+    >
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.infoSheet} onPress={() => undefined}>
+          <Text style={styles.infoSheetTitle}>{info?.title}</Text>
+          <Text style={styles.infoSheetBody}>{info?.body}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onClose}
+            style={({ pressed }) => [
+              styles.modalPrimaryButton,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <Text style={styles.primaryButtonText}>Got it</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function StepperField({
+  label,
+  maximum,
+  minimum,
+  onChange,
+  value,
+}: {
+  label: string;
+  maximum: number;
+  minimum: number;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const numericValue = Number.isFinite(Number(value)) ? Number(value) : minimum;
+  const safeValue = Math.min(maximum, Math.max(minimum, Math.round(numericValue)));
+
+  function update(delta: number) {
+    const next = Math.min(maximum, Math.max(minimum, safeValue + delta));
+    onChange(String(next));
+  }
+
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.stepper}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={safeValue <= minimum}
+          onPress={() => update(-1)}
+          style={({ pressed }) => [
+            styles.stepperButton,
+            safeValue <= minimum ? styles.disabled : null,
+            pressed && safeValue > minimum ? styles.pressed : null,
+          ]}
+        >
+          <Text style={styles.stepperButtonText}>-</Text>
+        </Pressable>
+        <Text style={styles.stepperValue}>{safeValue}</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={safeValue >= maximum}
+          onPress={() => update(1)}
+          style={({ pressed }) => [
+            styles.stepperButton,
+            safeValue >= maximum ? styles.disabled : null,
+            pressed && safeValue < maximum ? styles.pressed : null,
+          ]}
+        >
+          <Text style={styles.stepperButtonText}>+</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function BinarySegment({
+  falseLabel,
+  onChange,
+  trueLabel,
+  value,
+}: {
+  falseLabel: string;
+  onChange: (value: boolean) => void;
+  trueLabel: string;
+  value: boolean;
+}) {
+  return (
+    <View style={styles.binarySegment}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onChange(true)}
+        style={({ pressed }) => [
+          styles.binaryOption,
+          value ? styles.binaryOptionSelected : null,
+          pressed ? styles.pressed : null,
+        ]}
+      >
+        <Text style={[styles.binaryOptionText, value ? styles.binaryOptionTextSelected : null]}>
+          {trueLabel}
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onChange(false)}
+        style={({ pressed }) => [
+          styles.binaryOption,
+          !value ? styles.binaryOptionSelected : null,
+          pressed ? styles.pressed : null,
+        ]}
+      >
+        <Text style={[styles.binaryOptionText, !value ? styles.binaryOptionTextSelected : null]}>
+          {falseLabel}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function SubsectionTitleWithInfo({
+  onPress,
+  title,
+}: {
+  onPress: () => void;
+  title: string;
+}) {
+  return (
+    <View style={styles.subsectionTitleRow}>
+      <Text style={styles.subsectionTitle}>{title}</Text>
+      <Pressable
+        accessibilityLabel={`${title} information`}
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.infoButton,
+          pressed ? styles.pressed : null,
+        ]}
+      >
+        <Text style={styles.infoButtonText}>i</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function SegmentedControl({
   label,
   onSelect,
@@ -1000,10 +1355,12 @@ function SegmentedControl({
 }
 
 function TogglePill({
+  compact,
   label,
   onPress,
   selected,
 }: {
+  compact?: boolean;
   label: string;
   onPress: () => void;
   selected: boolean;
@@ -1014,11 +1371,18 @@ function TogglePill({
       onPress={onPress}
       style={({ pressed }) => [
         styles.pill,
+        compact ? styles.pillCompact : null,
         selected ? styles.pillSelected : null,
         pressed ? styles.pressed : null,
       ]}
     >
-      <Text style={[styles.pillText, selected ? styles.pillTextSelected : null]}>
+      <Text
+        style={[
+          styles.pillText,
+          compact ? styles.pillTextCompact : null,
+          selected ? styles.pillTextSelected : null,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -1128,6 +1492,64 @@ function buildDietaryPreferences(
   return result;
 }
 
+function selectedDietaryRestrictionValue(dietary: DietaryDraft): string {
+  if (dietary.vegan) {
+    return "vegan";
+  }
+  if (dietary.vegetarian) {
+    return "vegetarian";
+  }
+  if (dietary.gluten_free) {
+    return "gluten_free";
+  }
+  return "none";
+}
+
+function selectedDietaryPatternValue(patterns: DietaryPatternDraft): string {
+  if (patterns.keto) {
+    return "keto";
+  }
+  if (patterns.paleo) {
+    return "paleo";
+  }
+  if (patterns.mediterranean) {
+    return "mediterranean";
+  }
+  return "none";
+}
+
+function selectedHealthModeValue(modes: HealthModeDraft): string {
+  if (modes.diabetes_aware) {
+    return "diabetes_aware";
+  }
+  if (modes.hypertension_friendly) {
+    return "hypertension_friendly";
+  }
+  if (modes.heart_friendly) {
+    return "heart_friendly";
+  }
+  return "none";
+}
+
+function formatStepLabel(step: WizardStep): string {
+  return "Step {step} of 3".replace("{step}", String(step));
+}
+
+function formatMemberSaveError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (!message) {
+    return "Could not save this member. Please try again.";
+  }
+  if (
+    message.includes("HTTP ") ||
+    message.includes("Cannot reach backend") ||
+    message.includes("timed out")
+  ) {
+    return "Could not save this member. Check the connection and try again.";
+  }
+  return message;
+}
+
 function cleanRatingMap(
   ratings: Record<string, PreferenceRating>,
 ): Record<string, PreferenceRating> {
@@ -1148,18 +1570,23 @@ function forceAvoidRatings(
   };
 }
 
+function removeAvoidRatings(
+  ratings: Record<string, PreferenceRating>,
+  keys: string[],
+): Record<string, PreferenceRating> {
+  const next = { ...ratings };
+  for (const key of keys) {
+    if (next[key] === "avoid") {
+      delete next[key];
+    }
+  }
+  return next;
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
-}
-
-function normalizeCookingTimePreference(
-  value: unknown,
-): CookingTimePreference {
-  return value === "quick" || value === "no_rush" || value === "balanced"
-    ? value
-    : "balanced";
 }
 
 function isNumberInRange(value: number, minimum: number, maximum: number): boolean {
@@ -1167,6 +1594,35 @@ function isNumberInRange(value: number, minimum: number, maximum: number): boole
 }
 
 const styles = StyleSheet.create({
+  arrowButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 42,
+    width: 42,
+  },
+  arrowSelector: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    minHeight: 46,
+  },
+  arrowSelectorText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  arrowSelectorValue: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 0,
+    paddingHorizontal: 6,
+  },
   avoidButton: {
     borderColor: "#C2410C",
   },
@@ -1174,23 +1630,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#B42318",
     borderColor: "#B42318",
   },
-  chip: {
-    backgroundColor: "#F7FAF2",
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+  chevronLeft: {
+    transform: [{ rotate: "90deg" }],
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  chevronRight: {
+    transform: [{ rotate: "-90deg" }],
   },
-  chipText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: "800",
+  chevronUp: {
+    transform: [{ rotate: "180deg" }],
   },
   closeButton: {
     paddingHorizontal: 4,
@@ -1208,9 +1655,41 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
-    gap: 14,
+    gap: 12,
     padding: 14,
     paddingBottom: 18,
+  },
+  customAvoidItem: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    minHeight: 38,
+    paddingHorizontal: 10,
+  },
+  customAvoidItemText: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  customAvoidList: {
+    gap: 7,
+  },
+  customAvoidListTitle: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  customAvoidRemove: {
+    color: colors.danger,
+    fontSize: 16,
+    fontWeight: "900",
   },
   customAvoidRow: {
     alignItems: "center",
@@ -1229,6 +1708,11 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.55,
+  },
+  dietaryChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
   },
   dislikeButton: {
     borderColor: "#B7791F",
@@ -1257,16 +1741,69 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   header: {
-    alignItems: "flex-start",
+    alignItems: "flex-end",
     flexDirection: "row",
-    gap: 10,
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
   },
   helperText: {
     color: colors.muted,
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18,
+  },
+  infoButton: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 24,
+    justifyContent: "center",
+    width: 24,
+  },
+  infoButtonActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  infoButtonText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  infoButtonTextActive: {
+    color: "#FFFFFF",
+  },
+  infoNote: {
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  infoSheet: {
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    marginHorizontal: 22,
+    padding: 18,
+  },
+  infoSheetBody: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  infoSheetTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "900",
   },
   input: {
     color: colors.text,
@@ -1315,10 +1852,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderColor: colors.accent,
   },
+  pillCompact: {
+    minHeight: 34,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
   pillText: {
     color: colors.text,
     fontSize: 14,
     fontWeight: "800",
+  },
+  pillTextCompact: {
+    fontSize: 12,
+    fontWeight: "900",
   },
   pillTextSelected: {
     color: "#FFFFFF",
@@ -1326,7 +1872,38 @@ const styles = StyleSheet.create({
   preferenceActions: {
     flexDirection: "row",
     flexShrink: 0,
-    gap: 4,
+    gap: 3,
+  },
+  preferenceGroup: {
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  preferenceGroupCount: {
+    color: colors.mutedSoft,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  preferenceGroupHeader: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    minHeight: 46,
+    paddingHorizontal: 12,
+  },
+  preferenceGroupMeta: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  preferenceGroupTitle: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "900",
   },
   preferenceLabel: {
     color: colors.text,
@@ -1342,12 +1919,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: 10,
-    minHeight: 54,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    minHeight: 48,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   preferenceRows: {
     gap: 8,
+    padding: 10,
   },
   pressed: {
     opacity: 0.82,
@@ -1376,9 +1954,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 34,
-    minWidth: 54,
-    paddingHorizontal: 5,
+    minHeight: 31,
+    minWidth: 50,
+    paddingHorizontal: 4,
   },
   ratingButtonSelected: {
     borderWidth: 1,
@@ -1439,11 +2017,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900",
   },
+  binaryOption: {
+    alignItems: "center",
+    borderRadius: 7,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 36,
+  },
+  binaryOptionSelected: {
+    backgroundColor: colors.accent,
+  },
+  binaryOptionText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  binaryOptionTextSelected: {
+    color: "#FFFFFF",
+  },
+  binarySegment: {
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 4,
+    padding: 4,
+  },
   step: {
     gap: 14,
   },
+  stepLabel: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
   stepIntro: {
-    gap: 4,
+    gap: 5,
+  },
+  stepHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   stepSubtitle: {
     color: colors.muted,
@@ -1453,7 +2069,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: "900",
   },
   subsection: {
@@ -1463,6 +2079,58 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "900",
+  },
+  subsectionTitleRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "space-between",
+  },
+  modalOverlay: {
+    backgroundColor: "rgba(17, 24, 39, 0.32)",
+    flex: 1,
+    justifyContent: "center",
+  },
+  modalPrimaryButton: {
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: 14,
+  },
+  stepper: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    minHeight: 46,
+    padding: 4,
+  },
+  stepperButton: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    borderRadius: 7,
+    borderWidth: 1,
+    height: 34,
+    justifyContent: "center",
+    width: 34,
+  },
+  stepperButtonText: {
+    color: colors.accent,
+    fontSize: 20,
+    fontWeight: "900",
+    lineHeight: 22,
+  },
+  stepperValue: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "900",
+    textAlign: "center",
   },
   title: {
     color: colors.text,

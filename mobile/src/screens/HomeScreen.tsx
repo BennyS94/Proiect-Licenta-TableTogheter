@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  Modal,
   PanResponder,
   Pressable,
   StyleSheet,
@@ -17,6 +17,7 @@ import { GroceryListSection } from "../components/GroceryListSection";
 import { HouseholdMemberPlanView } from "../components/HouseholdMemberPlanView";
 import { PlanDayCard } from "../components/PlanDayCard";
 import { ProfileCard } from "../components/ProfileCard";
+import { ChevronDownIcon } from "../components/icons/ChevronDownIcon";
 import { AppCard } from "../components/ui/AppCard";
 import { DaySelector } from "../components/ui/DaySelector";
 import { ProfileSelector, type ProfileSelectorItem } from "../components/ui/ProfileSelector";
@@ -76,6 +77,13 @@ const profileEyeLottie = require("../../assets/home/eye_for_page_2.json");
 type HealthState = "idle" | "loading" | "connected" | "error";
 type GenerationMode = "individual" | "household";
 type HouseholdSource = "demo" | "saved";
+type ConfirmationDialogState = {
+  body: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  title: string;
+  variant?: "danger" | "primary";
+} | null;
 
 const GENERATION_OPTIONS = {
   selection_mode: "balanced_day",
@@ -100,6 +108,11 @@ const FEEDBACK_TYPES: FeedbackType[] = [
 
 const DEFAULT_HOUSEHOLD_ID = "household_demo_family_001";
 const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
+const HOUSEHOLD_COOKING_TIME_OPTIONS = [
+  { label: "Quick", value: "quick" },
+  { label: "Balanced", value: "balanced" },
+  { label: "No rush", value: "no_rush" },
+];
 
 export function HomeScreen() {
   const [healthStatus, setHealthStatus] = useState<HealthState>("idle");
@@ -137,6 +150,11 @@ export function HomeScreen() {
   const [householdMessage, setHouseholdMessage] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
   const [profileErrorMessage, setProfileErrorMessage] = useState("");
+  const [householdCookingTimePreference, setHouseholdCookingTimePreference] =
+    useState("balanced");
+  const [confirmationDialog, setConfirmationDialog] =
+    useState<ConfirmationDialogState>(null);
+  const [toastMessage, setToastMessage] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [authError, setAuthError] = useState("");
   const [authSessionToken, setAuthSessionToken] = useState("");
@@ -160,6 +178,16 @@ export function HomeScreen() {
   const [isContinuingDemo, setIsContinuingDemo] = useState(false);
   const [defaultViewerId, setDefaultViewerId] = useState("");
   const [mealPlanTab, setMealPlanTab] = useState<MealPlanTab>("mealPlan");
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      setToastMessage("");
+    }, 2600);
+    return () => clearTimeout(timeoutId);
+  }, [toastMessage]);
   const [selectedIndividualDayIndex, setSelectedIndividualDayIndex] = useState(1);
   const [selectedInsightsDay, setSelectedInsightsDay] =
     useState<InsightsDaySelection>(1);
@@ -256,16 +284,12 @@ export function HomeScreen() {
     : selectedMember
       ? getMemberProfileId(selectedMember)
       : "";
-  const selectedIndividualSource = selectedSavedProfile
-    ? "Saved profile"
-    : selectedMember
-      ? "Profile"
-      : "None";
   const feedbackStats = getFeedbackStats(feedbackContext);
+  const savedHistoryCount = Object.keys(dailyProgressByKey).length;
 
   useEffect(() => {
     setHouseholdNameDraft(
-      formatHouseholdDisplayName(authAccount?.household_display_name ?? "My Household"),
+      getHouseholdBaseName(authAccount?.household_display_name ?? "My Household"),
     );
   }, [authAccount?.household_display_name]);
 
@@ -382,12 +406,12 @@ export function HomeScreen() {
         ),
       };
       setAuthAccount(updatedAccount);
-      setHouseholdNameDraft(updatedAccount.household_display_name);
+      setHouseholdNameDraft(getHouseholdBaseName(updatedAccount.household_display_name));
       setIsEditingHouseholdName(false);
-      setHouseholdMessage("Household name updated.");
+      setToastMessage("Household name updated.");
     } catch (error) {
       setHouseholdErrorMessage(
-        error instanceof Error ? error.message : "Household name update failed",
+        formatLocalSaveError(error, "Household name update failed"),
       );
     } finally {
       setIsUpdatingHouseholdName(false);
@@ -412,11 +436,11 @@ export function HomeScreen() {
           ? current
           : [...current, createdProfile.member_profile_id],
       );
-      setProfileMessage(request.member_profile_id ? "Member updated" : "Member added");
+      setToastMessage(request.member_profile_id ? "Member updated." : "Member added.");
       setGeneratedPlan(null);
       setFeedbackContext(null);
     } catch (error) {
-      setProfileErrorMessage(error instanceof Error ? error.message : "Profile save failed");
+      setProfileErrorMessage(formatLocalSaveError(error, "Profile save failed"));
       throw error;
     } finally {
       setIsCreatingProfile(false);
@@ -434,24 +458,29 @@ export function HomeScreen() {
     setEditingMemberProfileId("");
   }
 
+  function confirmEditSavedProfile(profile: MemberProfileResponse) {
+    setConfirmationDialog({
+      title: "Edit this member?",
+      body: `You can update ${profile.display_name}'s profile details.`,
+      confirmLabel: "Edit",
+      variant: "primary",
+      onConfirm: () => {
+        setIsAddingMember(false);
+        setEditingMemberProfileId(profile.member_profile_id);
+      },
+    });
+  }
+
   function confirmDeleteSavedProfile(profile: MemberProfileResponse) {
-    Alert.alert(
-      "Remove this member?",
-      `${profile.display_name} will no longer be used in this household.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            void deleteSavedProfile(profile);
-          },
-        },
-      ],
-    );
+    setConfirmationDialog({
+      title: "Remove this member?",
+      body: `${profile.display_name} will no longer be used in this household.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+      onConfirm: () => {
+        void deleteSavedProfile(profile);
+      },
+    });
   }
 
   async function deleteSavedProfile(profile: MemberProfileResponse) {
@@ -489,9 +518,9 @@ export function HomeScreen() {
       if (editingMemberProfileId === memberProfileId) {
         setEditingMemberProfileId("");
       }
-      setProfileMessage(`Profile removed: ${profile.display_name}`);
+      setToastMessage(`Member deleted: ${profile.display_name}.`);
     } catch (error) {
-      setProfileErrorMessage(error instanceof Error ? error.message : "Profile remove failed");
+      setProfileErrorMessage(formatLocalSaveError(error, "Profile remove failed"));
     } finally {
       setDeletingProfileId("");
     }
@@ -788,23 +817,15 @@ export function HomeScreen() {
       return;
     }
 
-    Alert.alert(
-      "Clear feedback?",
-      "This removes local feedback events for the active household.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Clear",
-          style: "destructive",
-          onPress: () => {
-            void clearFeedbackForActiveHousehold();
-          },
-        },
-      ],
-    );
+    setConfirmationDialog({
+      title: "Clear feedback?",
+      body: "This removes saved feedback events for the active household.",
+      confirmLabel: "Clear",
+      variant: "danger",
+      onConfirm: () => {
+        void clearFeedbackForActiveHousehold();
+      },
+    });
   }
 
   async function clearFeedbackForActiveHousehold() {
@@ -819,10 +840,102 @@ export function HomeScreen() {
     try {
       await clearFeedback(activeHouseholdId, undefined, true);
       await refreshFeedbackContext(true);
+      setToastMessage("Feedback cleared.");
     } catch (error) {
       setFeedbackError(error instanceof Error ? error.message : "Feedback clear failed");
     } finally {
       setIsClearingFeedback(false);
+    }
+  }
+
+  function confirmResetFeedbackCategory(
+    label: string,
+    feedbackType: FeedbackType,
+  ) {
+    if (!activeHouseholdId) {
+      setFeedbackError("Load a household before resetting feedback.");
+      return;
+    }
+
+    setConfirmationDialog({
+      title: `Reset ${label.toLowerCase()} feedback?`,
+      body: `This will clear saved ${label.toLowerCase()} recipe feedback for the current context. This action cannot be undone.`,
+      confirmLabel: "Reset",
+      variant: "danger",
+      onConfirm: () => {
+        void resetFeedbackCategory(feedbackType);
+      },
+    });
+  }
+
+  async function resetFeedbackCategory(feedbackType: FeedbackType) {
+    if (!activeHouseholdId) {
+      setFeedbackError("Load a household before resetting feedback.");
+      return;
+    }
+
+    setIsClearingFeedback(true);
+    setFeedbackError("");
+
+    try {
+      await clearFeedback(
+        activeHouseholdId,
+        getFeedbackMemberProfileId() || undefined,
+        true,
+        { feedbackType },
+      );
+      await refreshFeedbackContext(true);
+      setToastMessage("Feedback reset.");
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : "Feedback reset failed");
+    } finally {
+      setIsClearingFeedback(false);
+    }
+  }
+
+  function confirmClearSavedHistory() {
+    if (!Object.keys(dailyProgressByKey).length) {
+      setToastMessage("No saved history loaded.");
+      return;
+    }
+
+    setConfirmationDialog({
+      title: "Clear saved history?",
+      body: "This will remove saved previous days currently loaded on this device.",
+      confirmLabel: "Clear",
+      variant: "danger",
+      onConfirm: () => {
+        void clearSavedProgressHistory();
+      },
+    });
+  }
+
+  async function clearSavedProgressHistory() {
+    const snapshots = Object.values(dailyProgressByKey);
+    if (!snapshots.length) {
+      setToastMessage("No saved history loaded.");
+      return;
+    }
+
+    setDailyProgressError("");
+    setDeletingDailyProgressId("history");
+
+    try {
+      if (authSessionToken) {
+        for (const snapshot of snapshots) {
+          if (snapshot.progress_id) {
+            await deleteDailyProgress(snapshot.progress_id, authSessionToken);
+          }
+        }
+      }
+      setDailyProgressByKey({});
+      setToastMessage("Saved history cleared.");
+    } catch (error) {
+      setDailyProgressError(
+        formatLocalSaveError(error, "Saved history clear failed"),
+      );
+    } finally {
+      setDeletingDailyProgressId("");
     }
   }
 
@@ -1077,13 +1190,14 @@ export function HomeScreen() {
     setHouseholdMessage("");
     setProfileMessage("");
     setProfileErrorMessage("");
+    setHouseholdCookingTimePreference("balanced");
     setIsDemoModeEnabled(false);
     setDefaultViewerId("");
     setMealPlanTab("mealPlan");
     setSelectedIndividualDayIndex(1);
     setSelectedInsightsDay(1);
     setActivePage("household");
-    Alert.alert("Log Out", "Local session cleared.");
+    setToastMessage("Logged out.");
   }
 
   function selectProfileFromSelector(profileId: string) {
@@ -1272,6 +1386,9 @@ export function HomeScreen() {
   const householdName = authAccount
     ? formatHouseholdDisplayName(authAccount.household_display_name)
     : "Your Household";
+  const householdBaseName = getHouseholdBaseName(householdName);
+  const householdNameDraftChanged =
+    householdNameDraft.trim() !== householdBaseName;
   const editingMemberProfile =
     savedProfiles.find((profile) => profile.member_profile_id === editingMemberProfileId) ??
     null;
@@ -1469,98 +1586,113 @@ export function HomeScreen() {
 
   const feedbackToolsContent = (
     <AppCard>
-      <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle}>Feedback context</Text>
-        <Text style={styles.panelMeta}>{feedbackStats.eventCount} events</Text>
+      <View
+        accessibilityHint="Refresh feedback context runs automatically."
+        style={styles.diagnosticsHeader}
+      >
+        <View style={styles.diagnosticsTitleBlock}>
+          <Text style={styles.panelTitle}>Feedback context</Text>
+        </View>
+      </View>
+      <View style={styles.feedbackRows}>
+        <FeedbackDiagnosticRow
+          count={feedbackStats.likedCount}
+          disabled={isClearingFeedback}
+          label="Liked"
+          onReset={() => confirmResetFeedbackCategory("Liked", "liked")}
+        />
+        <FeedbackDiagnosticRow
+          count={feedbackStats.dislikedCount}
+          disabled={isClearingFeedback}
+          label="Disliked"
+          onReset={() => confirmResetFeedbackCategory("Disliked", "disliked")}
+        />
+        <FeedbackDiagnosticRow
+          count={feedbackStats.tooLongCount}
+          disabled={isClearingFeedback}
+          label="Too long"
+          onReset={() => confirmResetFeedbackCategory("Too long", "too_long")}
+        />
+        <FeedbackDiagnosticRow
+          count={feedbackStats.avoidedCount}
+          disabled={isClearingFeedback}
+          label="Avoided"
+          onReset={() => confirmResetFeedbackCategory("Avoided", "explicit_avoid")}
+        />
+      </View>
+      <Text style={styles.mutedText}>
+        Clear feedback by category or all at once.
+      </Text>
+      <View style={styles.diagnosticsActions}>
+        <ActionButton
+          disabled={!activeHouseholdId || isClearingFeedback}
+          loading={isClearingFeedback}
+          label="Clear all feedback"
+          onPress={confirmClearFeedback}
+          variant="secondary"
+        />
+      </View>
+      <View style={styles.diagnosticsDivider} />
+      <View style={styles.diagnosticsHeader}>
+        <Text style={styles.panelTitle}>Saved data</Text>
+        <Text style={styles.panelMeta}>
+          {savedHistoryCount} saved {savedHistoryCount === 1 ? "day" : "days"}
+        </Text>
       </View>
       <ActionButton
-        disabled={!activeHouseholdId || isLoadingFeedbackContext}
-        loading={isLoadingFeedbackContext}
-        label="Refresh feedback context"
-        onPress={() => refreshFeedbackContext(false)}
+        disabled={!savedHistoryCount || deletingDailyProgressId === "history"}
+        loading={deletingDailyProgressId === "history"}
+        label="Clear saved previous days"
+        onPress={confirmClearSavedHistory}
         variant="secondary"
       />
-      <ActionButton
-        disabled={!activeHouseholdId || isClearingFeedback}
-        loading={isClearingFeedback}
-        label="Clear feedback"
-        onPress={confirmClearFeedback}
-        variant="secondary"
-      />
-      <View style={styles.statsGrid}>
-        <InfoRow label="Avoided" value={String(feedbackStats.avoidedCount)} />
-        <InfoRow label="Liked" value={String(feedbackStats.likedCount)} />
-        <InfoRow label="Disliked" value={String(feedbackStats.dislikedCount)} />
-        <InfoRow label="Too long" value={String(feedbackStats.tooLongCount)} />
-      </View>
-      <Text style={styles.mutedText}>Next generation uses saved feedback when available.</Text>
     </AppCard>
   );
 
   const householdManagementContent = (
     <View style={styles.stack}>
       <AppCard>
-        <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>Household</Text>
-          <Text numberOfLines={1} style={styles.panelMeta}>
-            {householdName}
-          </Text>
-        </View>
-        {isEditingHouseholdName ? (
+        <View style={styles.householdSettingsStack}>
+          <Text style={styles.panelTitle}>My Household</Text>
           <View style={styles.householdNameForm}>
             <Text style={styles.label}>Name</Text>
             <TextInput
               autoCapitalize="words"
-              editable={!isUpdatingHouseholdName}
+              editable={!isUpdatingHouseholdName && Boolean(authAccount)}
+              onFocus={() => setIsEditingHouseholdName(true)}
               onChangeText={setHouseholdNameDraft}
               onSubmitEditing={saveHouseholdDisplayName}
-              placeholder="My Household"
+              placeholder="Moraru"
               placeholderTextColor={colors.mutedSoft}
               returnKeyType="done"
               style={styles.textInput}
               value={householdNameDraft}
             />
+          </View>
+          {(isEditingHouseholdName || householdNameDraftChanged) ? (
             <View style={styles.inlineButtonRow}>
-              <ActionButton
-                disabled={!authAccount || isUpdatingHouseholdName}
+              <HouseholdNameActionButton
+                disabled={!authAccount || isUpdatingHouseholdName || !householdNameDraftChanged}
                 label="Save"
                 loading={isUpdatingHouseholdName}
                 onPress={saveHouseholdDisplayName}
-                variant="secondary"
               />
-              <ActionButton
+              <HouseholdNameActionButton
                 disabled={isUpdatingHouseholdName}
                 label="Cancel"
                 onPress={() => {
-                  setHouseholdNameDraft(householdName);
+                  setHouseholdNameDraft(householdBaseName);
                   setIsEditingHouseholdName(false);
                 }}
-                variant="secondary"
+                tone="danger"
               />
             </View>
-          </View>
-        ) : (
-          <View style={styles.householdNameReadRow}>
-            <Text numberOfLines={1} style={styles.householdName}>
-              {householdName}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              disabled={!authAccount}
-              onPress={() => {
-                setHouseholdNameDraft(householdName);
-                setIsEditingHouseholdName(true);
-              }}
-              style={({ pressed }) => [
-                styles.inlineEditButton,
-                pressed ? styles.buttonPressed : null,
-                !authAccount ? styles.buttonDisabled : null,
-              ]}
-            >
-              <Text style={styles.inlineEditButtonText}>Edit</Text>
-            </Pressable>
-          </View>
-        )}
+          ) : null}
+          <HouseholdCookingTimePreference
+            onChange={setHouseholdCookingTimePreference}
+            value={householdCookingTimePreference}
+          />
+        </View>
       </AppCard>
       <AppCard>
         <View style={styles.panelHeader}>
@@ -1569,16 +1701,6 @@ export function HomeScreen() {
             {savedProfiles.length ? `${savedProfiles.length}` : "0"}
           </Text>
         </View>
-        <ActionButton
-          disabled={isLoadingProfiles}
-          loading={isLoadingProfiles}
-          label="Refresh profiles"
-          onPress={() => loadSavedProfiles()}
-          variant="secondary"
-        />
-        <Text style={styles.mutedText}>
-          Profiles are saved for {householdName}.
-        </Text>
         <View style={styles.memberList}>
           {savedProfiles.length ? (
             savedProfiles.map((profile) => {
@@ -1587,11 +1709,10 @@ export function HomeScreen() {
                 selectedSavedHouseholdProfileIds.includes(profile.member_profile_id);
               return (
                 <ProfileCard
+                  deleteDisabled={deletingProfileId === profile.member_profile_id}
                   key={profile.member_profile_id}
-                  onPress={() => {
-                    setIsAddingMember(false);
-                    setEditingMemberProfileId(profile.member_profile_id);
-                  }}
+                  onDelete={() => confirmDeleteSavedProfile(profile)}
+                  onEdit={() => confirmEditSavedProfile(profile)}
                   profile={profile}
                   selected={selected}
                 />
@@ -1623,9 +1744,6 @@ export function HomeScreen() {
   const defaultViewerContent = profileSelectorItems.length ? (
     <View style={styles.stack}>
       {profileSelectorNode}
-      <Text style={styles.mutedText}>
-        Shown first in Meal Plan and Insights. You can still switch profiles.
-      </Text>
     </View>
   ) : (
     <Text style={styles.mutedText}>Add or load profiles to choose a default viewer.</Text>
@@ -1659,21 +1777,11 @@ export function HomeScreen() {
     isAddingMember || memberEditorProfile ? (
       <AddMemberWizard
         defaultHouseholdId={memberEditorProfile?.household_id || savedProfileHouseholdId}
-        deleteDisabled={
-          memberEditorProfile
-            ? deletingProfileId === memberEditorProfile.member_profile_id
-            : false
-        }
         disabled={isCreatingProfile}
         forceOpen
         initialProfile={memberEditorProfile}
         mode={memberEditorProfile ? "edit" : "add"}
         onCancel={closeMemberEditor}
-        onDelete={
-          memberEditorProfile
-            ? () => confirmDeleteSavedProfile(memberEditorProfile)
-            : undefined
-        }
         onSubmit={saveMemberFromEditor}
       />
     ) : null;
@@ -1747,6 +1855,7 @@ export function HomeScreen() {
         authError={authError}
         authMessage={authMessage}
         backendStatusText={backendStatusText}
+        dataManagementContent={feedbackToolsContent}
         defaultViewerContent={defaultViewerContent}
         developerDiagnosticsContent={developerDiagnosticsContent}
         feedbackToolsContent={feedbackToolsContent}
@@ -1768,6 +1877,15 @@ export function HomeScreen() {
     <View style={styles.shell}>
       <View style={styles.content}>{pageContent}</View>
       <FloatingNav activePage={activePage} onSelectPage={selectFloatingNavPage} />
+      <ConfirmationDialog
+        dialog={confirmationDialog}
+        onClose={() => setConfirmationDialog(null)}
+      />
+      {toastMessage ? (
+        <View pointerEvents="none" style={styles.toast}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1804,6 +1922,48 @@ function ActionButton({
           style={[
             styles.buttonText,
             variant === "secondary" ? styles.buttonTextSecondary : null,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+function HouseholdNameActionButton({
+  disabled,
+  label,
+  loading,
+  onPress,
+  tone = "accent",
+}: {
+  disabled?: boolean;
+  label: string;
+  loading?: boolean;
+  onPress: () => void;
+  tone?: "accent" | "danger";
+}) {
+  const isDanger = tone === "danger";
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.householdNameActionButton,
+        isDanger ? styles.householdNameActionButtonDanger : null,
+        disabled ? styles.buttonDisabled : null,
+        pressed && !disabled ? styles.buttonPressed : null,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={isDanger ? colors.danger : colors.accent} />
+      ) : (
+        <Text
+          style={[
+            styles.householdNameActionButtonText,
+            isDanger ? styles.householdNameActionButtonTextDanger : null,
           ]}
         >
           {label}
@@ -1907,6 +2067,172 @@ function MealPlanProfileSelector({
         <Text style={styles.mealPlanProfileArrowText}>{">"}</Text>
       </Pressable>
     </View>
+  );
+}
+
+function HouseholdCookingTimePreference({
+  onChange,
+  value,
+}: {
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const selectedIndex = Math.max(
+    0,
+    HOUSEHOLD_COOKING_TIME_OPTIONS.findIndex((option) => option.value === value),
+  );
+  const selected = HOUSEHOLD_COOKING_TIME_OPTIONS[selectedIndex];
+
+  function selectOffset(offset: number) {
+    const nextIndex =
+      (selectedIndex + offset + HOUSEHOLD_COOKING_TIME_OPTIONS.length) %
+      HOUSEHOLD_COOKING_TIME_OPTIONS.length;
+    onChange(HOUSEHOLD_COOKING_TIME_OPTIONS[nextIndex].value);
+  }
+
+  return (
+    <View style={styles.householdPreferenceField}>
+      <Text style={styles.label}>Cooking time preference</Text>
+      <View style={styles.householdPreferenceSelector}>
+        <Pressable
+          accessibilityLabel="Previous cooking time preference"
+          accessibilityRole="button"
+          onPress={() => selectOffset(-1)}
+          style={({ pressed }) => [
+            styles.householdPreferenceArrow,
+            pressed ? styles.buttonPressed : null,
+          ]}
+        >
+          <View style={styles.chevronLeftSmall}>
+            <ChevronDownIcon color={colors.accent} size={16} />
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => selectOffset(1)}
+          style={({ pressed }) => [
+            styles.householdPreferenceValueWrap,
+            pressed ? styles.buttonPressed : null,
+          ]}
+        >
+          <Text style={styles.householdPreferenceValue}>
+            {selected?.label ?? "Balanced"}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Next cooking time preference"
+          accessibilityRole="button"
+          onPress={() => selectOffset(1)}
+          style={({ pressed }) => [
+            styles.householdPreferenceArrow,
+            pressed ? styles.buttonPressed : null,
+          ]}
+        >
+          <View style={styles.chevronRightSmall}>
+            <ChevronDownIcon color={colors.accent} size={16} />
+          </View>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function FeedbackDiagnosticRow({
+  count,
+  disabled,
+  label,
+  onReset,
+}: {
+  count: number;
+  disabled?: boolean;
+  label: string;
+  onReset: () => void;
+}) {
+  return (
+    <View style={styles.feedbackDiagnosticRow}>
+      <Text style={styles.feedbackDiagnosticLabel}>{label}</Text>
+      <Text style={styles.feedbackDiagnosticCount}>{count}</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={disabled || count === 0}
+        onPress={onReset}
+        style={({ pressed }) => [
+          styles.feedbackResetButton,
+          disabled || count === 0 ? styles.buttonDisabled : null,
+          pressed && !disabled && count > 0 ? styles.buttonPressed : null,
+        ]}
+      >
+        <Text style={styles.feedbackResetButtonText}>Reset</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ConfirmationDialog({
+  dialog,
+  onClose,
+}: {
+  dialog: ConfirmationDialogState;
+  onClose: () => void;
+}) {
+  if (!dialog) {
+    return null;
+  }
+
+  function confirm() {
+    const action = dialog?.onConfirm;
+    onClose();
+    action?.();
+  }
+
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      transparent
+      visible={Boolean(dialog)}
+    >
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.confirmationCard} onPress={() => undefined}>
+          <Text style={styles.confirmationTitle}>{dialog.title}</Text>
+          <Text style={styles.confirmationBody}>{dialog.body}</Text>
+          <View style={styles.confirmationActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.confirmationButton,
+                pressed ? styles.buttonPressed : null,
+              ]}
+            >
+              <Text style={styles.confirmationCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={confirm}
+              style={({ pressed }) => [
+                styles.confirmationButton,
+                dialog.variant === "danger"
+                  ? styles.confirmationButtonDanger
+                  : styles.confirmationButtonPrimary,
+                pressed ? styles.buttonPressed : null,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.confirmationConfirmText,
+                  dialog.variant === "danger"
+                    ? styles.confirmationDangerText
+                    : styles.confirmationPrimaryText,
+                ]}
+              >
+                {dialog.confirmLabel}
+              </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -2107,6 +2433,27 @@ function formatHouseholdDisplayName(value?: string): string {
     return cleaned;
   }
   return `${cleaned} Household`;
+}
+
+function getHouseholdBaseName(value?: string): string {
+  const cleaned = String(value ?? "").replace(/\s+/g, " ").trim();
+  const withoutSuffix = cleaned.replace(/\s+household$/i, "").trim();
+  return withoutSuffix || "My";
+}
+
+function formatLocalSaveError(error: unknown, fallback: string): string {
+  const message = error instanceof Error ? error.message : "";
+  if (!message) {
+    return fallback;
+  }
+  if (
+    message.includes("HTTP ") ||
+    message.includes("Cannot reach backend") ||
+    message.includes("timed out")
+  ) {
+    return `${fallback}. Check the connection and try again.`;
+  }
+  return message;
 }
 
 function getIndividualDayIndexes(
@@ -3106,15 +3453,70 @@ const styles = StyleSheet.create({
   householdNameForm: {
     gap: 6,
   },
+  householdNameActionButton: {
+    alignItems: "center",
+    borderColor: colors.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 38,
+  },
+  householdNameActionButtonDanger: {
+    borderColor: colors.danger,
+  },
+  householdNameActionButtonText: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  householdNameActionButtonTextDanger: {
+    color: colors.danger,
+  },
   householdNameReadRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: 10,
     justifyContent: "space-between",
   },
+  householdPreferenceArrow: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 42,
+    width: 42,
+  },
+  householdPreferenceField: {
+    gap: 7,
+  },
+  householdPreferenceSelector: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    minHeight: 46,
+  },
+  householdPreferenceValue: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  householdPreferenceValueWrap: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    minWidth: 0,
+    minHeight: 44,
+    paddingHorizontal: 6,
+  },
+  householdSettingsStack: {
+    gap: 10,
+  },
   inlineButtonRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
   inlineEditButton: {
     alignItems: "center",
@@ -3140,6 +3542,142 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     minHeight: 46,
     paddingHorizontal: 12,
+  },
+  modalOverlay: {
+    backgroundColor: "rgba(17, 24, 39, 0.32)",
+    flex: 1,
+    justifyContent: "center",
+  },
+  confirmationActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  confirmationBody: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  confirmationButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
+  },
+  confirmationButtonDanger: {
+    borderColor: colors.danger,
+  },
+  confirmationButtonPrimary: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  confirmationCancelText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  confirmationCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 14,
+    marginHorizontal: 22,
+    padding: 18,
+  },
+  confirmationConfirmText: {
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  confirmationDangerText: {
+    color: colors.danger,
+  },
+  confirmationPrimaryText: {
+    color: "#FFFFFF",
+  },
+  confirmationTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  diagnosticsActions: {
+    gap: 10,
+  },
+  diagnosticsDivider: {
+    backgroundColor: colors.border,
+    height: 1,
+    opacity: 0.75,
+  },
+  diagnosticsHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  diagnosticsSmallButton: {
+    alignItems: "center",
+    borderColor: colors.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 36,
+    minWidth: 84,
+    paddingHorizontal: 12,
+  },
+  diagnosticsSmallButtonText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  diagnosticsTitleBlock: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  feedbackDiagnosticCount: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: "900",
+    minWidth: 28,
+    textAlign: "right",
+  },
+  feedbackDiagnosticLabel: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  feedbackDiagnosticRow: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  feedbackResetButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 30,
+    minWidth: 64,
+    paddingHorizontal: 10,
+  },
+  feedbackResetButtonText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  feedbackRows: {
+    gap: 8,
   },
   modeButton: {
     alignItems: "center",
@@ -3176,6 +3714,12 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: "center",
     width: 44,
+  },
+  chevronLeftSmall: {
+    transform: [{ rotate: "90deg" }],
+  },
+  chevronRightSmall: {
+    transform: [{ rotate: "-90deg" }],
   },
   mealPlanProfileArrowText: {
     color: colors.accentDark,
@@ -3368,6 +3912,22 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.55,
+  },
+  toast: {
+    alignSelf: "center",
+    backgroundColor: "#1B2430",
+    borderRadius: 999,
+    bottom: 108,
+    maxWidth: "86%",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    position: "absolute",
+  },
+  toastText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "900",
+    textAlign: "center",
   },
   buttonText: {
     color: "#FFFFFF",

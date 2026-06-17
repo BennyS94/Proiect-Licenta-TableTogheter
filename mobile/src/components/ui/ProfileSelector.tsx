@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { ChevronDownIcon } from "../icons/ChevronDownIcon";
 import { colors } from "../../theme/colors";
 
 export type ProfileSelectorItem = {
@@ -30,7 +31,7 @@ export function ProfileSelector({ items, onSelect, selectedId }: ProfileSelector
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.selector}>
       <Pressable
         accessibilityLabel="Previous profile"
         accessibilityRole="button"
@@ -38,7 +39,9 @@ export function ProfileSelector({ items, onSelect, selectedId }: ProfileSelector
         onPress={() => selectOffset(-1)}
         style={({ pressed }) => [styles.arrow, pressed ? styles.pressed : null]}
       >
-        <Text style={styles.arrowText}>{"<"}</Text>
+        <View style={styles.chevronLeft}>
+          <ChevronDownIcon color={colors.accent} size={18} />
+        </View>
       </Pressable>
 
       <View style={styles.center}>
@@ -53,7 +56,9 @@ export function ProfileSelector({ items, onSelect, selectedId }: ProfileSelector
         onPress={() => selectOffset(1)}
         style={({ pressed }) => [styles.arrow, pressed ? styles.pressed : null]}
       >
-        <Text style={styles.arrowText}>{">"}</Text>
+        <View style={styles.chevronRight}>
+          <ChevronDownIcon color={colors.accent} size={18} />
+        </View>
       </Pressable>
     </View>
   );
@@ -62,30 +67,36 @@ export function ProfileSelector({ items, onSelect, selectedId }: ProfileSelector
 const styles = StyleSheet.create({
   arrow: {
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 42,
+    width: 42,
+  },
+  chevronLeft: {
+    transform: [{ rotate: "90deg" }],
+  },
+  chevronRight: {
+    transform: [{ rotate: "-90deg" }],
+  },
+  center: {
+    alignItems: "center",
+    flex: 1,
+    gap: 2,
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 0,
+  },
+  selector: {
+    alignItems: "center",
+    backgroundColor: "#F8FBF3",
     borderColor: colors.border,
     borderRadius: 8,
     borderWidth: 1,
-    height: 42,
-    justifyContent: "center",
-    width: 42,
-  },
-  arrowText: {
-    color: colors.accent,
-    fontSize: 20,
-    fontWeight: "900",
-  },
-  center: {
-    flex: 1,
-    gap: 2,
-  },
-  container: {
-    alignItems: "center",
     flexDirection: "row",
-    gap: 10,
+    minHeight: 46,
   },
   label: {
     color: "#111827",
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "800",
     textAlign: "center",
   },

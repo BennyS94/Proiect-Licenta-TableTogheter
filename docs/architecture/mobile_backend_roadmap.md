@@ -275,7 +275,10 @@ Auth-M1 + UI-2A sunt implementate ca productization pass local:
 - Fiecare cont primeste un household implicit.
 - Profilele create cu `Authorization: Bearer <session_token>` sunt salvate automat sub household-ul contului.
 - Mobile pastreaza sesiunea in React state pentru acest MVP; persistenta peste restart de app ramane limitare/future work deoarece nu exista inca AsyncStorage.
-- Page 4 este reorganizata ca hub: Account Settings, Household Management si App Settings.
+- Page 4 este reorganizata ca hub: Account Settings, Household Management si App Settings; Developer Diagnostics este tinut separat.
+- Page 4 final polish pastreaza Change Email / Change Password ca actiuni vizibile cu info sheet, fara endpoint functional de schimbare email/parola.
+- Household Management permite setarea numelui household-ului, foloseste carduri de membri cu goal badge compact si pastreaza selectorul de default viewer `Who's using this device?`.
+- App Settings expune Feedback context si Saved data in afara Developer Diagnostics, iar diagnostics ramane pentru runtime/backend tooling.
 - `Create Account` si `Log In` sunt flow-uri reale locale; `Log Out` revoca sesiunea cand exista token si curata state-ul local.
 - `Household ID` nu mai este expus in formularul Add Profile.
 - Textele principale de demo/test/MVP au fost scoase din flow-ul user-facing; fallback-ul optional este denumit `Try Sample Household`.
@@ -296,7 +299,7 @@ UI-2B este implementat ca productization pass family-first:
 - Add Profile ramane pe Household Management dupa salvare si afiseaza CTA catre Meal Plan.
 - Validarile profilului acopera nume fara cifre, age 4-120, weight 15-300 kg, height 80-230 cm, sessions/week 0-7, meals/day 1-5 si Goal Speed inactiv pentru Maintain.
 - Auth UI mapeaza login 401 la `Invalid email or password`.
-- Change Email, Change Password, Language si Appearance sunt read-only/Coming soon cand nu exista implementare reala.
+- Change Email si Change Password sunt butoane vizibile cu info sheet, dar fara endpoint functional; Language si Appearance raman read-only.
 - Tema mobila foloseste white/off-white + accent pear green `#74B72E`.
 - Investigarea keep-awake nu a gasit cod de aplicatie care sa tina ecranul treaz; `expo-keep-awake` apare doar tranzitiv in Expo package lock. Comportamentul ramane cel mai probabil Expo Go/dev mode sau OS/device.
 - DATA-QA-1 este completat pentru price/time coverage. Rafinarea culinara a cooking steps ramane viitoare daca devine necesara.
