@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import type { TextStyle } from "react-native";
 
 import {
   CaloriesFlameIcon,
@@ -16,6 +17,9 @@ type MacroMiniStatProps = {
   kind: MacroKind;
   tone?: "strong" | "soft";
   value: string;
+  valueColor?: string;
+  valueSize?: number;
+  valueWeight?: TextStyle["fontWeight"];
 };
 
 const ICONS: Record<MacroKind, ComponentType<{ color?: string; size?: number }>> = {
@@ -37,6 +41,9 @@ export function MacroMiniStat({
   kind,
   tone = "strong",
   value,
+  valueColor = colors.text,
+  valueSize = 13,
+  valueWeight = "900",
 }: MacroMiniStatProps) {
   const Icon = ICONS[kind];
   const color = tone === "soft" ? SOFT_ICON_COLORS[kind] : undefined;
@@ -44,7 +51,17 @@ export function MacroMiniStat({
   return (
     <View style={styles.container}>
       <Icon color={color} size={iconSize} />
-      <Text numberOfLines={1} style={styles.value}>
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.value,
+          {
+            color: valueColor,
+            fontSize: valueSize,
+            fontWeight: valueWeight,
+          },
+        ]}
+      >
         {value}
       </Text>
     </View>
@@ -59,9 +76,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   value: {
-    color: colors.text,
     flexShrink: 1,
-    fontSize: 13,
-    fontWeight: "900",
   },
 });

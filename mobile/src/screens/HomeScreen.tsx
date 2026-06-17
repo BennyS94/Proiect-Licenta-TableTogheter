@@ -15,6 +15,7 @@ import { FloatingNav, type AppPageKey } from "../components/navigation/FloatingN
 import { AddMemberWizard } from "../components/AddMemberWizard";
 import { GroceryListSection } from "../components/GroceryListSection";
 import { HouseholdMemberPlanView } from "../components/HouseholdMemberPlanView";
+import { MealPlanAlternativesPrefetcher } from "../components/MealPlanAlternativesPrefetcher";
 import { PlanDayCard } from "../components/PlanDayCard";
 import { ProfileCard } from "../components/ProfileCard";
 import { ChevronDownIcon } from "../components/icons/ChevronDownIcon";
@@ -1584,6 +1585,40 @@ export function HomeScreen() {
       <GroceryListSection groceryList={groceryList} />
     );
 
+  const alternativesPrefetcherNode = hasCurrentPlan ? (
+    <MealPlanAlternativesPrefetcher
+      datasetProfile={
+        generationMode === "household"
+          ? generatedHouseholdPlan?.dataset_profile ?? "v1_2_demo_final"
+          : "v1_2_demo_final"
+      }
+      generationMode={generationMode}
+      householdId={
+        generationMode === "household"
+          ? generatedHouseholdPlan?.household_id || activeHouseholdId || undefined
+          : activeHouseholdId || undefined
+      }
+      householdMembers={selectedHouseholdDisplayMembers}
+      householdPlan={generatedHouseholdPlan}
+      individualMemberProfile={selectedSavedProfile ? undefined : selectedMember ?? undefined}
+      individualMemberProfileId={activeMemberProfileId || undefined}
+      individualPlan={generatedPlan}
+      planId={
+        generationMode === "household"
+          ? generatedHouseholdPlan
+            ? getHouseholdPlanId(generatedHouseholdPlan)
+            : undefined
+          : generatedPlan
+            ? getPlanIdFromResponse(generatedPlan)
+            : undefined
+      }
+      preferredDayIndex={
+        generationMode === "household" ? selectedHouseholdDayIndex : selectedIndividualDayIndex
+      }
+      preferredHouseholdMemberId={currentHouseholdMemberProfileId || undefined}
+    />
+  ) : null;
+
   const feedbackToolsContent = (
     <AppCard>
       <View
@@ -1801,21 +1836,24 @@ export function HomeScreen() {
     );
   } else if (activePage === "mealPlan") {
     pageContent = (
-      <MealPlanPage
-        daySelector={daySelectorNode}
-        generationControls={generationControls}
-        groceryContent={groceryContent}
-        hasMembers={hasMembers}
-        hasPlan={hasCurrentPlan}
-        isSetupComplete={isSetupComplete}
-        mealPlanContent={generationMode === "household" ? householdPlanContent : individualPlanContent}
-        messagesContent={messagesContent}
-        onGoToHousehold={() => setActivePage("household")}
-        onSelectTab={setMealPlanTab}
-        profileSelector={mealPlanProfileSelectorNode}
-        scrollToTopSignal={scrollToTopRequests.mealPlan}
-        selectedTab={mealPlanTab}
-      />
+      <>
+        {alternativesPrefetcherNode}
+        <MealPlanPage
+          daySelector={daySelectorNode}
+          generationControls={generationControls}
+          groceryContent={groceryContent}
+          hasMembers={hasMembers}
+          hasPlan={hasCurrentPlan}
+          isSetupComplete={isSetupComplete}
+          mealPlanContent={generationMode === "household" ? householdPlanContent : individualPlanContent}
+          messagesContent={messagesContent}
+          onGoToHousehold={() => setActivePage("household")}
+          onSelectTab={setMealPlanTab}
+          profileSelector={mealPlanProfileSelectorNode}
+          scrollToTopSignal={scrollToTopRequests.mealPlan}
+          selectedTab={mealPlanTab}
+        />
+      </>
     );
   } else if (activePage === "insights") {
     pageContent = (

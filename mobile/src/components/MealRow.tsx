@@ -8,6 +8,7 @@ import { MealFeedbackButtons } from "./MealFeedbackButtons";
 import { RecipeAlternativesPanel } from "./RecipeAlternativesPanel";
 import { BottomSheet } from "./ui/BottomSheet";
 import { MacroMiniStat } from "./ui/MacroMiniStat";
+import { formatRecipeDisplayName } from "../utils/formatRecipeDisplayName";
 
 type MealSheet = "cook" | "alternatives";
 
@@ -43,7 +44,9 @@ export function MealRow({
   const [activeSheet, setActiveSheet] = useState<MealSheet | null>(null);
   const recipeId = stringValue(meal.recipe_id);
   const slot = stringValue(meal.slot) ?? "meal";
-  const name = stringValue(meal.display_name) ?? stringValue(meal.recipe_id) ?? "Recipe";
+  const name = formatRecipeDisplayName(
+    stringValue(meal.display_name) ?? stringValue(meal.recipe_id) ?? "Recipe",
+  );
   const scope = stringValue(meal.meal_scope) ?? "individual";
   const portionMultiplier = numberValue(
     meal.portion_multiplier ?? meal.portion_multiplier_member ?? meal.household_portion_sum,
@@ -136,22 +139,6 @@ export function MealRow({
           />
         ) : null}
       </BottomSheet>
-      {recipeId ? (
-        <RecipeAlternativesPanel
-          dayIndex={dayIndex}
-          datasetProfile={datasetProfile}
-          generationType="individual"
-          householdId={householdId}
-          isVisible={false}
-          memberProfile={memberProfile}
-          memberProfileId={memberProfileId}
-          planId={planId}
-          replaceScope="individual_meal"
-          shouldLoad
-          slot={slot}
-          sourceRecipeId={recipeId}
-        />
-      ) : null}
       {onSubmitFeedback ? (
         <MealFeedbackButtons
           disabled={feedbackDisabled}

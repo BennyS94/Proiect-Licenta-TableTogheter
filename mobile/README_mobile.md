@@ -358,10 +358,10 @@ KNN propune candidati, dar backend-ul pastreaza generator approval gate pentru s
 Mobile KNN-4 adauga replacement explicit peste panoul `Alternatives`:
 
 1. Genereaza un plan individual sau household.
-2. Apasa `Alternatives` pe un rand de masa.
-3. Aplicatia incarca lista prin `POST /recipes/similar`, apoi pregateste silent preview-urile `dry_run=true` secvential, cate o alternativa odata.
-4. Cardurile afiseaza macro-uri ajustate doar dupa ce exista `alternative_meal` real pentru contextul utilizatorului.
-5. Apasa preview pe o alternativa; daca preview-ul este deja in cache se deschide instant, iar daca este in curs reutilizeaza acel request.
+2. Aplicatia porneste silent coada de prefetch pentru alternative imediat dupa ce exista `plan_id`.
+3. Pentru fiecare masa, incarca lista prin `POST /recipes/similar`, apoi pregateste preview-urile `dry_run=true` secvential, cate o alternativa odata.
+4. Cardurile afiseaza initial nume, Similar badge, impact kcal/timp si `Preview`; macro row apare doar dupa ce exista `alternative_meal` ajustat pentru contextul utilizatorului.
+5. Apasa `Preview` pe o alternativa; daca preview-ul este deja in cache se deschide instant, iar daca este in curs reutilizeaza acel request.
 6. Apasa `Replace meal` pentru aplicare explicita.
 7. Aplicatia apeleaza `POST /plans/{plan_id}/replace-meal?dry_run=false`.
 8. Backend-ul returneaza plan nou derivat si grocery list recalculata, iar mobile actualizeaza state-ul local.

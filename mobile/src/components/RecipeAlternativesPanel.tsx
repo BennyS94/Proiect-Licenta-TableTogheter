@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 import {
   applyMealReplacement,
@@ -14,6 +15,8 @@ import type {
   RecipeAlternativesResponse,
 } from "../types/api";
 import { colors } from "../theme/colors";
+import { formatRecipeDisplayName } from "../utils/formatRecipeDisplayName";
+import { MacroMiniStat } from "./ui/MacroMiniStat";
 
 type RecipeAlternativesPanelProps = {
   sourceRecipeId: string;
@@ -30,6 +33,21 @@ type RecipeAlternativesPanelProps = {
   isVisible?: boolean;
   shouldLoad?: boolean;
   onReplacementApplied?: (response: MealReplacementResponse) => void;
+};
+
+export type RecipeAlternativePreviewPrefetchInput = {
+  sourceRecipeId: string;
+  slot?: string;
+  dayIndex?: number;
+  datasetProfile?: string;
+  generationType?: "individual" | "household";
+  householdId?: string;
+  memberId?: string;
+  memberProfileId?: string;
+  memberProfile?: Record<string, unknown>;
+  planId?: string;
+  replaceScope?: MealReplacementScope;
+  onPreviewReady?: () => void;
 };
 
 const DEFAULT_DATASET_PROFILE = "v1_2_demo_final";
@@ -74,8 +92,8 @@ export function RecipeAlternativesPanel({
   const [previewResponse, setPreviewResponse] = useState<MealReplacementResponse | null>(null);
   const [previewedRecipeId, setPreviewedRecipeId] = useState("");
   const [previewingRecipeId, setPreviewingRecipeId] = useState("");
-  const [applyingRecipeId, setApplyingRecipeId] = useState("");
   const [previewCacheVersion, setPreviewCacheVersion] = useState(0);
+  const [applyingRecipeId, setApplyingRecipeId] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
@@ -167,11 +185,7 @@ export function RecipeAlternativesPanel({
   ]);
 
   const alternatives = useMemo(
-    () =>
-      (response?.alternatives ?? []).filter((alternative) => {
-        const status = stringValue(alternative.approval_status);
-        return status === "approved" || status === "review";
-      }),
+    () => filterDisplayableAlternatives(response?.alternatives),
     [response],
   );
   const canRequestReplacement = Boolean(planId && slot && sourceRecipeId);
@@ -182,59 +196,28 @@ export function RecipeAlternativesPanel({
     }
 
     let isCurrent = true;
-    const activePlanId = planId;
 
     async function prefetchPreviews() {
-      for (const alternative of alternatives) {
-        if (!isCurrent) {
-          return;
-        }
-
-        const previewCacheKey = buildPreviewCacheKey({
-          alternativeRecipeId: alternative.recipe_id,
-          datasetProfile,
-          dayIndex,
-          generationType,
-          householdId,
-          memberId,
-          memberProfile,
-          memberProfileId,
-          planId,
-          replaceScope,
-          slot,
-          sourceRecipeId,
-        });
-
-        if (
-          previewResponseCache.has(previewCacheKey) ||
-          previewFailedCache.has(previewCacheKey)
-        ) {
-          continue;
-        }
-
-        try {
-          const payload = await getOrCreatePreviewRequest(previewCacheKey, () =>
-            previewMealReplacement(
-              activePlanId,
-              buildReplacementRequest(alternative.recipe_id),
-              PREVIEW_PREFETCH_TIMEOUT_MS,
-            ),
-          );
-          if (!isCurrent) {
-            return;
-          }
-          if (isUsablePreviewResponse(payload)) {
-            previewResponseCache.set(previewCacheKey, payload);
-            previewFailedCache.delete(previewCacheKey);
-            setPreviewCacheVersion((version) => version + 1);
-          } else {
-            previewFailedCache.add(previewCacheKey);
-          }
-        } catch {
+      await prefetchRecipeAlternativePreviews({
+        datasetProfile,
+        dayIndex,
+        generationType,
+        householdId,
+        memberId,
+        memberProfile,
+        memberProfileId,
+        planId,
+        replaceScope,
+        slot,
+        sourceRecipeId,
+        onPreviewReady: () => {
           if (isCurrent) {
-            previewFailedCache.add(previewCacheKey);
+            setPreviewCacheVersion((version) => version + 1);
           }
-        }
+        },
+      });
+      if (isCurrent) {
+        setPreviewCacheVersion((version) => version + 1);
       }
     }
 
@@ -405,9 +388,10 @@ export function RecipeAlternativesPanel({
               slot,
               sourceRecipeId,
             });
-            const preparedPreviewResponse = previewCacheVersion >= 0
-              ? previewResponseCache.get(previewCacheKey) ?? null
-              : null;
+            const preparedPreviewResponse =
+              previewCacheVersion >= 0
+                ? previewResponseCache.get(previewCacheKey) ?? null
+                : null;
 
             return (
               <AlternativeCard
@@ -424,6 +408,7 @@ export function RecipeAlternativesPanel({
                     ? previewResponse
                     : null
                 }
+                sourceRecipe={response?.source_recipe}
               />
             );
           })}
@@ -433,6 +418,102 @@ export function RecipeAlternativesPanel({
       {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
     </View>
   );
+}
+
+export async function prefetchRecipeAlternativePreviews({
+  sourceRecipeId,
+  slot,
+  dayIndex = 1,
+  datasetProfile = DEFAULT_DATASET_PROFILE,
+  generationType = "individual",
+  householdId,
+  memberId,
+  memberProfile,
+  memberProfileId,
+  onPreviewReady,
+  planId,
+  replaceScope,
+}: RecipeAlternativePreviewPrefetchInput): Promise<void> {
+  if (!planId || !slot || !sourceRecipeId) {
+    return;
+  }
+
+  const alternativesCacheKey = buildAlternativesCacheKey({
+    datasetProfile,
+    householdId,
+    memberProfile,
+    memberProfileId,
+    slot,
+    sourceRecipeId,
+  });
+  const alternativesPayload =
+    alternativesResponseCache.get(alternativesCacheKey) ??
+    (await getOrCreateAlternativesRequest(alternativesCacheKey, {
+      recipe_id: sourceRecipeId,
+      slot,
+      top_k: 5,
+      candidate_pool_k: 20,
+      dataset_profile: datasetProfile,
+      household_id: householdId,
+      member_profile_id: memberProfileId,
+      member_profile: memberProfile,
+      feedback_enabled: true,
+      approval_mode: "include_review",
+    }));
+  alternativesResponseCache.set(alternativesCacheKey, alternativesPayload);
+
+  for (const alternative of filterDisplayableAlternatives(alternativesPayload.alternatives)) {
+    const previewCacheKey = buildPreviewCacheKey({
+      alternativeRecipeId: alternative.recipe_id,
+      datasetProfile,
+      dayIndex,
+      generationType,
+      householdId,
+      memberId,
+      memberProfile,
+      memberProfileId,
+      planId,
+      replaceScope,
+      slot,
+      sourceRecipeId,
+    });
+
+    if (
+      previewResponseCache.has(previewCacheKey) ||
+      previewFailedCache.has(previewCacheKey)
+    ) {
+      continue;
+    }
+
+    try {
+      const payload = await getOrCreatePreviewRequest(previewCacheKey, () =>
+        previewMealReplacement(
+          planId,
+          buildReplacementRequestPayload({
+            alternativeRecipeId: alternative.recipe_id,
+            datasetProfile,
+            dayIndex,
+            generationType,
+            memberId,
+            memberProfileId,
+            replaceScope,
+            slot,
+            sourceRecipeId,
+          }),
+          PREVIEW_PREFETCH_TIMEOUT_MS,
+        ),
+      );
+      if (isUsablePreviewResponse(payload)) {
+        previewResponseCache.set(previewCacheKey, payload);
+        previewFailedCache.delete(previewCacheKey);
+        onPreviewReady?.();
+      } else {
+        previewFailedCache.add(previewCacheKey);
+      }
+    } catch {
+      previewFailedCache.add(previewCacheKey);
+    }
+  }
 }
 
 function getOrCreateAlternativesRequest(
@@ -544,6 +625,50 @@ function isUsablePreviewResponse(response: MealReplacementResponse): boolean {
   return Boolean(response.replacement?.alternative_meal);
 }
 
+function filterDisplayableAlternatives(
+  alternatives: RecipeAlternativeItem[] | undefined,
+): RecipeAlternativeItem[] {
+  return (alternatives ?? []).filter((alternative) => {
+    const status = stringValue(alternative.approval_status);
+    return status === "approved" || status === "review";
+  });
+}
+
+function buildReplacementRequestPayload({
+  alternativeRecipeId,
+  datasetProfile,
+  dayIndex,
+  generationType,
+  memberId,
+  memberProfileId,
+  replaceScope,
+  slot,
+  sourceRecipeId,
+}: {
+  alternativeRecipeId: string;
+  datasetProfile: string;
+  dayIndex: number;
+  generationType: "individual" | "household";
+  memberId?: string;
+  memberProfileId?: string;
+  replaceScope?: MealReplacementScope;
+  slot: string;
+  sourceRecipeId: string;
+}): MealReplacementRequest {
+  return {
+    day_index: dayIndex,
+    slot,
+    current_recipe_id: sourceRecipeId,
+    alternative_recipe_id: alternativeRecipeId,
+    generation_type: generationType,
+    replace_scope: replaceScope,
+    member_id: memberId,
+    member_profile_id: memberProfileId,
+    dataset_profile: datasetProfile,
+    feedback_enabled: true,
+  };
+}
+
 function AlternativeCard({
   alternative,
   canRequestReplacement,
@@ -553,6 +678,7 @@ function AlternativeCard({
   onPreview,
   preparedPreviewResponse,
   previewResponse,
+  sourceRecipe,
 }: {
   alternative: RecipeAlternativeItem;
   canRequestReplacement: boolean;
@@ -562,18 +688,32 @@ function AlternativeCard({
   onPreview: () => void;
   preparedPreviewResponse: MealReplacementResponse | null;
   previewResponse: MealReplacementResponse | null;
+  sourceRecipe?: Record<string, unknown>;
 }) {
-  const name = stringValue(alternative.display_name) ?? alternative.recipe_id;
+  const name = formatRecipeDisplayName(
+    stringValue(alternative.display_name) ?? alternative.recipe_id,
+  );
   const replacement = previewResponse?.replacement ?? {};
   const currentMeal = replacement.current_meal ?? {};
-  const alternativeMeal = replacement.alternative_meal ?? {};
   const impact = previewResponse?.impact ?? {};
   const hasPreview = Boolean(previewResponse);
   const preparedAlternativeMeal =
-    (previewResponse ?? preparedPreviewResponse)?.replacement?.alternative_meal;
-  const preparedMacroLine = preparedAlternativeMeal
-    ? formatMealMacroLine(preparedAlternativeMeal)
-    : "";
+    (previewResponse ?? preparedPreviewResponse)?.replacement?.alternative_meal ?? {};
+  const alternativeMacros = previewResponse || preparedPreviewResponse
+    ? {
+        carbs_g: getMacroNumber(preparedAlternativeMeal, "carbs_g"),
+        fat_g: getMacroNumber(preparedAlternativeMeal, "fat_g"),
+        kcal: getMacroNumber(preparedAlternativeMeal, "kcal"),
+        protein_g: getMacroNumber(preparedAlternativeMeal, "protein_g"),
+      }
+    : undefined;
+  const compactImpactLine = formatCompactImpactLine(
+    alternative.macro_delta,
+    alternative.time_delta_min,
+  );
+  const currentName = formatRecipeDisplayName(
+    getMealName(currentMeal) ?? stringValue(sourceRecipe?.display_name) ?? "Current meal",
+  );
   const replaceDisabled =
     isApplying ||
     isPreviewing ||
@@ -583,30 +723,23 @@ function AlternativeCard({
   return (
     <View style={styles.alternativeCard}>
       <View style={styles.alternativeHeader}>
-        <View style={styles.alternativeNameBlock}>
-          <Text style={styles.alternativeName}>{name}</Text>
-          <Text style={styles.alternativeMeta}>
-            Similarity {formatScore(alternative.similarity_score)}
+        <Text numberOfLines={2} style={styles.alternativeName}>
+          {name}
+        </Text>
+        <View style={styles.similarityBadge}>
+          <Text style={styles.similarityBadgeText}>
+            Similar {formatScore(alternative.similarity_score)}
           </Text>
         </View>
       </View>
 
-      {preparedMacroLine ? <Text style={styles.deltaText}>{preparedMacroLine}</Text> : null}
-      <Text style={styles.deltaText}>{formatMacroDelta(alternative.macro_delta)}</Text>
-      <Text style={styles.deltaText}>
-        Time delta {formatSignedNumber(alternative.time_delta_min)} min
-      </Text>
+      <MacroIconRow macros={alternativeMacros} />
+      {compactImpactLine ? <Text style={styles.alternativeDeltaLine}>{compactImpactLine}</Text> : null}
 
       {hasPreview ? (
-        <View style={styles.previewBox}>
-          <MealSummary title="Current meal" meal={currentMeal} />
-          <MealSummary title="Alternative meal" meal={alternativeMeal} />
-          <Text style={styles.deltaText}>
-            Meal delta {formatMacroDelta(impact.meal_macro_delta)}
-          </Text>
-          <Text style={styles.deltaText}>
-            Day delta {formatMacroDelta(impact.day_totals_delta)}
-          </Text>
+        <View style={styles.comparisonBox}>
+          <MealComparisonBlock label="Current" meal={currentMeal} name={currentName} />
+          <ImpactSummary delta={asRecord(impact.meal_macro_delta)} timeDelta={alternative.time_delta_min} />
         </View>
       ) : null}
 
@@ -628,7 +761,7 @@ function AlternativeCard({
           <ActivityIndicator color={hasPreview ? "#FFFFFF" : colors.accent} />
         ) : (
           <Text style={hasPreview ? styles.replaceButtonText : styles.previewButtonText}>
-            {hasPreview ? "Replace meal" : "Preview changes"}
+            {hasPreview ? "Replace meal" : "Preview"}
           </Text>
         )}
       </Pressable>
@@ -636,47 +769,131 @@ function AlternativeCard({
   );
 }
 
-function MealSummary({
-  title,
+function MealComparisonBlock({
+  label,
   meal,
+  name,
 }: {
-  title: string;
+  label: string;
   meal: Record<string, unknown>;
+  name: string;
 }) {
-  const name =
-    stringValue(meal.display_name) ?? stringValue(meal.recipe) ?? stringValue(meal.recipe_id) ?? "-";
   return (
-    <View style={styles.mealSummary}>
-      <Text style={styles.mealSummaryTitle}>{title}</Text>
-      <Text style={styles.mealSummaryName}>{name}</Text>
-      <Text style={styles.deltaText}>
-        {formatNumber(meal.kcal)} kcal | {formatNumber(meal.protein_g)}g protein
+    <View style={styles.comparisonBlock}>
+      <Text style={styles.comparisonLabel}>{label}</Text>
+      <Text style={styles.comparisonName}>{name}</Text>
+      <MacroIconRow
+        macros={{
+          carbs_g: getMacroNumber(meal, "carbs_g"),
+          fat_g: getMacroNumber(meal, "fat_g"),
+          kcal: getMacroNumber(meal, "kcal"),
+          protein_g: getMacroNumber(meal, "protein_g"),
+        }}
+      />
+    </View>
+  );
+}
+
+function ImpactSummary({
+  delta,
+  label = "Impact",
+  timeDelta,
+}: {
+  delta: Record<string, unknown> | undefined;
+  label?: string;
+  timeDelta?: unknown;
+}) {
+  const time = formatCookingDelta(timeDelta);
+
+  if (!hasMeaningfulMacroDelta(delta) && !time) {
+    return null;
+  }
+
+  return (
+    <View style={styles.impactBlock}>
+      <Text style={styles.comparisonLabel}>{label}</Text>
+      <MacroIconRow macros={delta} signed />
+      {time ? <TimeMiniStat value={time} /> : null}
+    </View>
+  );
+}
+
+function MacroIconRow({
+  macros,
+  signed = false,
+}: {
+  macros: Record<string, unknown> | undefined;
+  signed?: boolean;
+}) {
+  const items = [
+    { decimals: 0, key: "kcal", kind: "calories" as const, suffix: "" },
+    { decimals: 1, key: "protein_g", kind: "protein" as const, suffix: "g" },
+    { decimals: 1, key: "carbs_g", kind: "carbs" as const, suffix: "g" },
+    { decimals: 1, key: "fat_g", kind: "fat" as const, suffix: "g" },
+  ]
+    .map((item) => {
+      const value = macros?.[item.key];
+      const numeric = numberValue(value);
+      if (signed && (numeric === null || Math.abs(numeric) < 0.05)) {
+        return null;
+      }
+      const text = signed
+        ? formatSignedMacroValue(value, item.decimals, item.suffix)
+        : formatMacroValue(value, item.decimals, item.suffix);
+      return text ? { ...item, text } : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <View style={styles.macroIconRow}>
+      {items.map((item) => (
+        <MacroMiniStat
+          iconSize={15}
+          key={item.key}
+          kind={item.kind}
+          tone="soft"
+          value={item.text}
+          valueSize={12}
+          valueWeight="800"
+        />
+      ))}
+    </View>
+  );
+}
+
+function TimeMiniStat({ value }: { value: string }) {
+  return (
+    <View style={styles.timeMiniStat}>
+      <ClockMiniIcon color={colors.mutedSoft} size={16} />
+      <Text numberOfLines={1} style={styles.timeMiniStatText}>
+        {value}
       </Text>
     </View>
   );
 }
 
-function formatSummaryNumber(summary: Record<string, unknown> | undefined, key: string): string {
-  const value = summary?.[key];
-  return typeof value === "number" && Number.isFinite(value) ? String(value) : "-";
+function ClockMiniIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <Svg height={size} viewBox="0 0 24 24" width={size}>
+      <Path
+        d="M12 5.1a6.9 6.9 0 1 0 0 13.8 6.9 6.9 0 0 0 0-13.8Zm0 1.8a5.1 5.1 0 1 1 0 10.2 5.1 5.1 0 0 1 0-10.2Zm.75 2.4h-1.5v3.55l3.1 1.85.76-1.25-2.36-1.4V9.3Z"
+        fill={color}
+      />
+    </Svg>
+  );
 }
 
-function formatMacroDelta(delta: Record<string, unknown> | undefined): string {
-  const parts = [
-    ["kcal", "kcal"],
-    ["protein_g", "protein"],
-    ["carbs_g", "carbs"],
-    ["fat_g", "fat"],
-  ]
-    .map(([key, label]) => {
-      const value = delta?.[key];
-      if (typeof value !== "number" || !Number.isFinite(value)) {
-        return "";
-      }
-      return `${label} ${formatSignedNumber(value)}`;
-    })
-    .filter(Boolean);
-  return parts.length ? parts.join(" | ") : "Macro delta unavailable";
+function formatCompactImpactLine(
+  delta: Record<string, unknown> | undefined,
+  timeDelta: unknown,
+): string {
+  const kcal = formatSignedMetric(delta?.kcal, { decimals: 0, suffix: "kcal" });
+  const time = formatCookingDelta(timeDelta);
+  return [kcal, time].filter(Boolean).join(" · ");
 }
 
 function formatScore(value: unknown): string {
@@ -686,39 +903,112 @@ function formatScore(value: unknown): string {
   return `${Math.round(value * 100)}%`;
 }
 
-function formatSignedNumber(value: unknown): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "-";
+function formatMacroValue(value: unknown, decimals: number, suffix: string): string {
+  const numeric = numberValue(value);
+  if (numeric === null) {
+    return "";
   }
-  const rounded = Math.round(value * 10) / 10;
-  return rounded > 0 ? `+${rounded}` : String(rounded);
+  return `${formatRoundedNumber(numeric, decimals)}${suffix}`;
 }
 
-function formatNumber(value: unknown): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "-";
+function formatSignedMacroValue(value: unknown, decimals: number, suffix: string): string {
+  const numeric = numberValue(value);
+  if (numeric === null) {
+    return "";
   }
-  return String(Math.round(value));
+  const rounded = roundTo(numeric, decimals);
+  const prefix = rounded > 0 ? "+" : "";
+  return `${prefix}${formatRoundedNumber(rounded, decimals)}${suffix}`;
 }
 
-function formatMealMacroLine(meal: Record<string, unknown>): string {
-  return `${formatNumber(meal.kcal)} kcal | protein ${formatNumber(
-    meal.protein_g,
-  )}g | carbs ${formatNumber(meal.carbs_g)}g | fat ${formatNumber(meal.fat_g)}g`;
+function formatSignedMetric(
+  value: unknown,
+  options: {
+    decimals: number;
+    suffix: string;
+  },
+): string {
+  const numeric = numberValue(value);
+  if (numeric === null) {
+    return "";
+  }
+  const rounded = roundTo(numeric, options.decimals);
+  const prefix = rounded > 0 ? "+" : "";
+  return `${prefix}${formatRoundedNumber(rounded, options.decimals)}${getMetricSuffixSeparator("", options.suffix)}${options.suffix}`;
 }
 
-function normalizeTextList(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item)).filter(Boolean);
+function formatCookingDelta(value: unknown): string {
+  const time = formatSignedMetric(value, { decimals: 0, suffix: "min" });
+  return time ? `Cooking ${time}` : "";
+}
+
+function getMetricSuffixSeparator(prefix: string, suffix: string): string {
+  if ((prefix && suffix === "g") || suffix.startsWith("g ")) {
+    return "";
   }
-  if (typeof value === "string") {
-    return value
-      .split(";")
-      .flatMap((item) => item.split(","))
-      .map((item) => item.trim())
-      .filter(Boolean);
+  return " ";
+}
+
+function getMacroNumber(record: Record<string, unknown> | undefined, key: string): number | null {
+  if (!record) {
+    return null;
   }
-  return [];
+  const candidateKeys =
+    key === "kcal"
+      ? ["kcal", "calories", "kcal_per_serving"]
+      : [key, key.replace("_g", ""), `${key}_per_serving`];
+
+  for (const candidateKey of candidateKeys) {
+    const value = numberValue(record[candidateKey]);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getMealName(meal: Record<string, unknown> | undefined): string | null {
+  return (
+    stringValue(meal?.display_name) ??
+    stringValue(meal?.recipe) ??
+    stringValue(meal?.recipe_name) ??
+    stringValue(meal?.recipe_id)
+  );
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function hasMeaningfulMacroDelta(delta: Record<string, unknown> | undefined): boolean {
+  if (!delta) {
+    return false;
+  }
+  return ["kcal", "protein_g", "carbs_g", "fat_g"].some((key) => {
+    const value = numberValue(delta[key]);
+    return value !== null && Math.abs(value) >= 0.05;
+  });
+}
+
+function numberValue(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function roundTo(value: number, decimals: number): number {
+  const multiplier = 10 ** decimals;
+  return Math.round(value * multiplier) / multiplier;
+}
+
+function formatRoundedNumber(value: number, decimals: number): string {
+  const rounded = roundTo(value, decimals);
+  if (Number.isInteger(rounded)) {
+    return String(rounded);
+  }
+  return rounded.toFixed(decimals);
 }
 
 function stringValue(value: unknown): string | null {
@@ -730,39 +1020,34 @@ function stringValue(value: unknown): string | null {
 }
 
 const styles = StyleSheet.create({
-  actionRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
   alternativesList: {
-    gap: 10,
+    gap: 9,
   },
   alternativeCard: {
     backgroundColor: colors.card,
-    borderColor: colors.border,
+    borderColor: "#DDEAD3",
     borderRadius: 8,
     borderWidth: 1,
     gap: 8,
-    padding: 10,
+    padding: 11,
   },
   alternativeHeader: {
+    alignItems: "flex-start",
     flexDirection: "row",
     gap: 10,
     justifyContent: "space-between",
   },
-  alternativeMeta: {
-    color: colors.muted,
+  alternativeDeltaLine: {
+    color: colors.mutedSoft,
     fontSize: 12,
     fontWeight: "700",
   },
   alternativeName: {
     color: colors.text,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  alternativeNameBlock: {
     flex: 1,
-    gap: 2,
+    fontSize: 15,
+    fontWeight: "800",
+    lineHeight: 19,
   },
   buttonDisabled: {
     opacity: 0.55,
@@ -770,33 +1055,34 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.82,
   },
-  cancelButton: {
-    alignItems: "center",
-    borderColor: colors.accent,
-    borderRadius: 8,
-    borderWidth: 1,
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 42,
-    paddingHorizontal: 10,
-  },
-  cancelButtonText: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "800",
-  },
   container: {
     backgroundColor: colors.background,
-    borderColor: colors.border,
+    borderColor: "transparent",
+    borderRadius: 8,
+    gap: 10,
+    paddingVertical: 4,
+  },
+  comparisonBlock: {
+    gap: 4,
+  },
+  comparisonBox: {
+    backgroundColor: "#FBFDF7",
+    borderColor: "#E3EAD8",
     borderRadius: 8,
     borderWidth: 1,
-    gap: 10,
-    padding: 10,
+    gap: 8,
+    padding: 8,
   },
-  deltaText: {
-    color: colors.muted,
+  comparisonLabel: {
+    color: colors.mutedSoft,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
+  },
+  comparisonName: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
   },
   errorBox: {
     backgroundColor: "#FFF1F1",
@@ -820,35 +1106,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-  mealSummary: {
-    gap: 3,
-  },
-  mealSummaryName: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  mealSummaryTitle: {
-    color: colors.mutedSoft,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
-  previewBox: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 8,
-    padding: 10,
-  },
   previewButton: {
     alignItems: "center",
     borderColor: colors.accent,
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 38,
+    minHeight: 36,
     paddingHorizontal: 10,
   },
   previewButtonText: {
@@ -856,16 +1120,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
-  previewTitle: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "800",
-  },
   replaceButton: {
     alignItems: "center",
     backgroundColor: colors.accent,
     borderRadius: 8,
-    flex: 1,
     justifyContent: "center",
     minHeight: 42,
     paddingHorizontal: 10,
@@ -875,30 +1133,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
-  statusApproved: {
-    backgroundColor: "#E8F5EE",
-    color: colors.success,
+  impactBlock: {
+    gap: 5,
   },
-  statusBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#FFF8ED",
-    borderRadius: 6,
-    color: "#7A4B00",
-    flexShrink: 0,
-    fontSize: 11,
-    fontWeight: "800",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    textTransform: "uppercase",
-  },
-  summaryRow: {
+  macroIconRow: {
+    alignItems: "center",
     flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    columnGap: 10,
+    rowGap: 4,
   },
-  summaryText: {
-    color: "#374151",
-    fontSize: 12,
+  similarityBadge: {
+    alignItems: "center",
+    backgroundColor: "#F1F8E9",
+    borderColor: "#DDEAD3",
+    borderRadius: 999,
+    borderWidth: 1,
+    flexShrink: 0,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  similarityBadgeText: {
+    color: colors.accentDark,
+    fontSize: 10,
     fontWeight: "800",
   },
   successText: {
@@ -906,17 +1164,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
-  warningBox: {
-    backgroundColor: "#FFF8ED",
-    borderColor: "#F4C790",
-    borderRadius: 8,
-    borderWidth: 1,
+  timeMiniStat: {
+    alignItems: "center",
+    flexDirection: "row",
     gap: 4,
-    padding: 8,
   },
-  warningText: {
-    color: "#7A4B00",
+  timeMiniStatText: {
+    color: colors.muted,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 });
