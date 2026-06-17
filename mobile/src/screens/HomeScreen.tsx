@@ -1228,7 +1228,21 @@ export function HomeScreen() {
       });
       setDailyProgressMessage("Saved day deleted.");
     } catch (error) {
-      setDailyProgressError(error instanceof Error ? error.message : "Progress delete failed");
+      const message = error instanceof Error ? error.message : "Progress delete failed";
+      if (message.includes("HTTP 404")) {
+        setDailyProgressByKey((current) => {
+          const next = { ...current };
+          for (const [key, snapshot] of Object.entries(next)) {
+            if (snapshot.progress_id === progressId) {
+              delete next[key];
+            }
+          }
+          return next;
+        });
+        setDailyProgressMessage("Saved day deleted.");
+        return;
+      }
+      setDailyProgressError(message);
     } finally {
       setDeletingDailyProgressId("");
     }

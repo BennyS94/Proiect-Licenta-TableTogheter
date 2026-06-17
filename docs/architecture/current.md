@@ -208,7 +208,7 @@ Starea eaten/not eaten ramane React state local pentru interactiunea curenta, sc
 Persistenta PROGRESS-1 include:
 
 - tabela SQLite `saved_daily_progress`;
-- `POST /progress/daily`, `GET /progress/daily` si `DELETE /progress/daily/{progress_id}`;
+- `POST /progress/daily`, `GET /progress/daily`, `DELETE /progress/daily/{progress_id}` si aliasul mobil `POST /progress/daily/{progress_id}/delete`;
 - unicitate pe `member_profile_id + plan_id + day_index`;
 - maximum 30 snapshoturi salvate per profil, enforced backend-side;
 - campuri planned/target/consumed pentru comparatii istorice; randurile vechi fara target explicit folosesc planned ca fallback documentat;

@@ -23,7 +23,7 @@ Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu 
 - Sesiunile folosesc token brut returnat clientului o singura data si hash de token stocat in SQLite.
 - Daca `Authorization: Bearer <session_token>` este prezent la profile API, profilurile sunt scoped pe household-ul contului.
 - In implementarea curenta, account ownership enforcement este complet pe auth/profile/household settings, dar nu este uniform pe toate endpointurile vechi de generatie, feedback, alternatives si replacement.
-- Saved daily progress snapshots sunt implementate prin `saved_daily_progress` si `/progress/daily`. Endpointurile cer `Authorization: Bearer <session_token>` si sunt scoped pe household-ul contului. Snapshoturile includ planned/target/consumed totals pentru Trends.
+- Saved daily progress snapshots sunt implementate prin `saved_daily_progress` si `/progress/daily`. Endpointurile cer `Authorization: Bearer <session_token>` si sunt scoped pe household-ul contului. Snapshoturile includ planned/target/consumed totals pentru Trends. Stergerea accepta atat `DELETE /progress/daily/{progress_id}`, cat si aliasul mobil `POST /progress/daily/{progress_id}/delete`.
 
 ## POST /auth/register
 
@@ -1056,11 +1056,15 @@ MVP notes:
 
 ## DELETE /progress/daily/{progress_id}
 
+Alias mobil:
+- `POST /progress/daily/{progress_id}/delete`
+
 Purpose:
 - Sterge un snapshot salvat de progres zilnic.
 
 Request:
 - Cere `Authorization: Bearer <session_token>`.
+- Aliasul `POST .../delete` accepta body JSON gol `{}` si exista pentru clientii mobili/dev unde metoda `DELETE` poate fi blocata sau sa nu ajunga reliably la backend.
 
 Response schema example:
 
@@ -1076,6 +1080,7 @@ Response schema example:
 MVP notes:
 - Sterge doar snapshotul de progres, nu planul generat.
 - Un snapshot din alt household returneaza `404`.
+- Clientul mobil foloseste aliasul `POST .../delete`; endpointul `DELETE` ramane disponibil pentru contractul REST si teste directe.
 - Page 3 Trends se actualizeaza din istoricul ramas dupa stergere.
 
 ## GET /profiles

@@ -155,7 +155,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - Backend-ul trimite estimari de pret si cooking time in outputurile generate. Dupa DATA-QA-1, `Price unavailable` sau missing time nu ar trebui sa apara in fluxurile normale generate; daca apar, ruleaza checker-ul DATA-QA.
 - Backend-ul trimite `cooking_steps` pentru mesele generate din retetele active. Dupa COOKING-STEPS-1, fallback-ul `Cooking steps are not available for this recipe yet.` ar trebui sa ramana doar pentru date viitoare incomplete sau payload-uri neasteptate.
 - Page 3 / Insights pastreaza eaten/not-eaten state local pentru interactiunea curenta, iar `Save day` trimite snapshotul zilei la backend prin `/progress/daily`.
-- Snapshoturile salvate sunt per profil + plan + zi, au limita backend de 30 per profil si pot fi sterse cu `Delete saved day` fara sa stearga planul generat.
+- Snapshoturile salvate sunt per profil + plan + zi, au limita backend de 30 per profil si pot fi sterse cu `Delete saved day` fara sa stearga planul generat. Clientul mobil foloseste aliasul `POST /progress/daily/{progress_id}/delete`.
 - Trends citeste doar snapshoturile salvate ale profilului selectat si afiseaza `Last X days`, Target adherence, Consistency si Macro pattern. Nu foloseste date fake cand exista istoric salvat.
 - Average mode nu permite `Save day`; ramane o vizualizare statica pentru planul curent.
 
@@ -398,7 +398,7 @@ PROGRESS-1 adauga persistenta pentru saved daily progress snapshots, iar PROGRES
 6. Apasa `Save day`.
 7. Aplicatia salveaza snapshotul prin `POST /progress/daily`.
 8. Daca ziua era deja salvata pentru acel profil + plan + zi, backend-ul intoarce `already_saved` si nu creeaza duplicat.
-9. `Delete saved day` sterge doar snapshotul prin `DELETE /progress/daily/{progress_id}`.
+9. `Delete saved day` sterge doar snapshotul prin aliasul mobil `POST /progress/daily/{progress_id}/delete`; backend-ul pastreaza si `DELETE /progress/daily/{progress_id}`.
 10. Average mode afiseaza motivul pentru care nu poate fi salvat.
 11. Sub `Macro Targets`, `Trends` afiseaza istoricul salvat al profilului selectat.
 12. `Last X days` are range 1..maximum disponibil, capped la 30.

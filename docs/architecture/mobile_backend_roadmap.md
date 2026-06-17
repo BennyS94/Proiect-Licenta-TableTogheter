@@ -154,6 +154,7 @@ Minimum MVP:
 - `POST /progress/daily`
 - `GET /progress/daily`
 - `DELETE /progress/daily/{progress_id}`
+- `POST /progress/daily/{progress_id}/delete` ca alias mobil pentru stergere
 
 Household endpoints:
 
@@ -340,7 +341,7 @@ Page 3 / Insights este acceptat ca nutrition dashboard:
 PROGRESS-1 persista snapshoturi zilnice salvate per profil:
 
 - tabela SQLite `saved_daily_progress`;
-- API `POST /progress/daily`, `GET /progress/daily` si `DELETE /progress/daily/{progress_id}`;
+- API `POST /progress/daily`, `GET /progress/daily`, `DELETE /progress/daily/{progress_id}` si alias mobil `POST /progress/daily/{progress_id}/delete`;
 - maximum 30 snapshoturi per profil;
 - unicitate pe profil + plan + zi;
 - scoping pe cont/household prin `Authorization`.

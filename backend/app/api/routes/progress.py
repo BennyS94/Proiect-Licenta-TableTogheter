@@ -106,6 +106,7 @@ def list_daily_progress(
 
 
 @router.delete("/daily/{progress_id}", response_model=DailyProgressDeleteResponse)
+@router.post("/daily/{progress_id}/delete", response_model=DailyProgressDeleteResponse)
 def delete_progress_snapshot(
     progress_id: str,
     authorization: str | None = Header(default=None),

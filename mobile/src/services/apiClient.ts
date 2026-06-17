@@ -369,10 +369,14 @@ export async function deleteDailyProgress(
 ): Promise<DailyProgressDeleteResponse> {
   const encodedProgressId = encodeURIComponent(progressId);
   return requestJson<DailyProgressDeleteResponse>(
-    `/progress/daily/${encodedProgressId}`,
+    `/progress/daily/${encodedProgressId}/delete`,
     {
-      method: "DELETE",
-      headers: authHeaders(sessionToken),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(sessionToken),
+      },
+      body: "{}",
     },
   );
 }
