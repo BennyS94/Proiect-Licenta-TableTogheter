@@ -1,5 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import type { ComponentType } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
+import {
+  HomeNavIcon,
+  HouseholdNavIcon,
+  InsightsNavIcon,
+  MealPlanNavIcon,
+} from "../icons/NavigationIcons";
 import { colors } from "../../theme/colors";
 
 export type AppPageKey = "home" | "mealPlan" | "insights" | "household";
@@ -16,14 +23,14 @@ type FloatingNavProps = {
 };
 
 const ITEMS: Array<{
-  icon: string;
+  Icon: ComponentType<{ color?: string; size?: number }>;
   key: AppPageKey;
   label: string;
 }> = [
-  { icon: "H", key: "home", label: "Home" },
-  { icon: "M", key: "mealPlan", label: "Meal Plan" },
-  { icon: "I", key: "insights", label: "Insights" },
-  { icon: "A", key: "household", label: "Household and Account" },
+  { Icon: HomeNavIcon, key: "home", label: "Home" },
+  { Icon: MealPlanNavIcon, key: "mealPlan", label: "Meal Plan" },
+  { Icon: InsightsNavIcon, key: "insights", label: "Insights" },
+  { Icon: HouseholdNavIcon, key: "household", label: "Household and Account" },
 ];
 
 export function FloatingNav({ activePage, onSelectPage }: FloatingNavProps) {
@@ -32,6 +39,7 @@ export function FloatingNav({ activePage, onSelectPage }: FloatingNavProps) {
       <View style={styles.bar}>
         {ITEMS.map((item) => {
           const active = item.key === activePage;
+          const Icon = item.Icon;
           return (
             <Pressable
               accessibilityLabel={item.label}
@@ -44,7 +52,7 @@ export function FloatingNav({ activePage, onSelectPage }: FloatingNavProps) {
                 pressed ? styles.pressed : null,
               ]}
             >
-              <Text style={[styles.icon, active ? styles.iconActive : null]}>{item.icon}</Text>
+              <Icon color={active ? "#FFFFFF" : "#4B5563"} size={26} />
             </Pressable>
           );
         })}
@@ -69,14 +77,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.16,
     shadowRadius: 16,
-  },
-  icon: {
-    color: "#4B5563",
-    fontSize: 17,
-    fontWeight: "900",
-  },
-  iconActive: {
-    color: "#FFFFFF",
   },
   item: {
     alignItems: "center",
