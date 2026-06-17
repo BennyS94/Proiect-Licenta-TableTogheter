@@ -54,6 +54,7 @@ Roluri:
   - construieste grocery list optionala.
 - SQLite:
   - stocheaza conturi locale, sesiuni, household-uri, profile, feedback events, planuri generate si grocery lists.
+  - nu stocheaza inca istoric de progres zilnic salvat / saved daily progress snapshots.
 
 Mobile-ul nu citeste CSV-uri si nu ruleaza generatorul.
 
@@ -168,6 +169,7 @@ Limitari:
 - nu exista ML;
 - nu exista propagare completa la ingrediente/familii;
 - `Like`/`Dislike` din profile sunt persistate, dar soft scoring ingredient/family ramane deferat.
+- endpointurile feedback/replacement sunt inca demo/local si nu au acelasi nivel de account ownership enforcement ca profilele auth-scoped.
 
 ## 7. KNN-lite and replacement
 
@@ -189,7 +191,27 @@ Limitari:
 - nu exista ingredient-level substitution;
 - alternativele `review` sunt preview-only.
 
-## 8. Current data model reality
+## 8. Insights and progress state
+
+Page 3 / Insights este o vizualizare nutritionala app-facing peste planul generat curent. Include:
+
+- selector profil / viewer;
+- Day 1-Day 5 si Average mode;
+- Daily Balance cu macro donut dinamic;
+- meal contribution cards cu toggle eaten/not eaten local;
+- Macro Targets care se actualizeaza dupa mesele marcate eaten;
+- placeholder scurt pentru Micronutrients.
+
+Starea eaten/not eaten este in prezent React state local, scopata pe profil, zi si semnatura meselor. Nu exista inca:
+
+- endpointuri `/progress/daily`;
+- tabela SQLite `saved_daily_progress`;
+- istoric salvat de progres zilnic;
+- grafice 7/14/30 zile.
+
+PROGRESS-1 trebuie sa adauge persistenta backend-side pentru saved daily progress snapshots, nu sa trateze planurile generate drept istoric de progres.
+
+## 9. Current data model reality
 
 Food_DB:
 
@@ -217,29 +239,31 @@ Directia ramane separarea curata:
 - Recipe Ingredients = legatura reteta-ingredient;
 - Recipe Nutrition Cache = macro/nutrition cache pentru retete.
 
-## 9. Current strengths
+## 10. Current strengths
 
 - Exista flux functional mobile -> backend -> generator -> SQLite -> mobile.
 - Generatorul produce planuri individuale si household v1 Lite.
 - Grocery list este integrata in outputul app-facing.
 - Feedback-ul explicit este functional si se aplica la generari viitoare.
 - Alternatives si replacement explicit exista end-to-end.
+- Insights este o pagina nutrition dashboard acceptata vizual, cu eaten-meals state local si macro-uri dinamice.
 - Datele demo au coverage verificat pentru price/time in scenariile normale.
 - Arhitectura este suficient de modulara pentru evolutie incrementala.
 
-## 10. Current limitations
+## 11. Current limitations
 
 - Nu exista productie QA completa.
 - SQLite este local/demo, nu production DB.
 - Auth-M1 este local si nu include email verification, password reset sau cloud sync.
 - Sesiunea mobila nu este persistata peste restart.
+- Nu exista inca saved daily progress snapshots persistate pe profil.
 - Household Generation v1 Lite este euristic, nu optimizer global.
 - KNN nu este motor principal si nu face ingredient substitution.
 - Price estimates nu sunt live prices.
 - Food_DB / Recipes_DB current sunt baseline-uri pilot si au nevoie de curatare treptata.
 - Unele documente vechi pot descrie stadii anterioare si nu trebuie tratate ca sursa curenta de adevar.
 
-## 11. Immediate next priority
+## 12. Immediate next priority
 
 Prioritatea imediata este consolidarea aplicatiei reale, nu adaugarea unui optimizer avansat.
 
@@ -248,10 +272,11 @@ Pasi rezonabili:
 - polish UI si assets pentru mobile;
 - testare reala pe telefon/emulator;
 - stabilizarea flow-ului account -> add members -> generate -> grocery -> feedback -> alternatives -> replace -> insights;
+- adaugarea persistentei pentru saved daily progress snapshots inainte de grafice istorice;
 - clarificarea documentatiei de licenta pe baza implementarii reale;
 - imbunatatirea treptata a Food_DB / Recipes_DB fara a rupe MVP-ul functional;
 - amanarea ML/optimizerilor pana cand datele si flow-urile de baza sunt stabile.
 
-## 12. Transitional note
+## 13. Transitional note
 
 Acest document descrie starea curenta a proiectului. Arhitectura tinta ramane documentata separat in `docs/architecture/restructure_target.md`, dar orice decizie noua trebuie verificata si fata de codul real, nu doar fata de documentele istorice.

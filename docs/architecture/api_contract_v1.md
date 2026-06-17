@@ -22,6 +22,8 @@ Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu 
 - Parolele sunt stocate ca `password_hash` + `password_salt`; parola plaintext nu se stocheaza.
 - Sesiunile folosesc token brut returnat clientului o singura data si hash de token stocat in SQLite.
 - Daca `Authorization: Bearer <session_token>` este prezent la profile API, profilurile sunt scoped pe household-ul contului.
+- In implementarea curenta, account ownership enforcement este complet pe auth/profile/household settings, dar nu este uniform pe toate endpointurile vechi de generatie, feedback, alternatives si replacement.
+- Saved daily progress snapshots nu sunt inca implementate. Nu exista inca `/progress/daily`, tabela `saved_daily_progress` sau istoric de progres zilnic pe profil.
 
 ## POST /auth/register
 
@@ -784,7 +786,7 @@ MVP notes:
 - Replacement-ul este meal-level / recipe-level: inlocuieste masa intreaga cu alta reteta aprobata.
 - Ingredient-level substitution nu este implementat in MVP si nu este expus prin acest endpoint.
 - Comportamentul este demo/local SQLite.
-- Nu exista auth/user ownership enforcement inca.
+- Auth/user ownership enforcement pentru replacement nu este inca aliniat cu profilele auth-scoped; endpointul foloseste in principal `plan_id` si payload-ul primit.
 
 Error cases:
 - `400` daca lipsesc `slot`, `current_recipe_id` sau `alternative_recipe_id`.
@@ -927,6 +929,23 @@ MVP notes:
 Non-goals:
 - Nu implementeaza audit log de productie.
 - Nu implementeaza soft delete obligatoriu in MVP.
+
+## PROGRESS-1 reserved: saved daily progress snapshots
+
+Status:
+- Neimplementat in contractul activ.
+
+Intentie:
+- viitorul `POST /progress/daily` va salva un completed/saved daily progress snapshot pentru un profil, plan si zi;
+- viitorul `GET /progress/daily?profile_id=...` va lista snapshoturile salvate pentru profil;
+- viitorul `DELETE /progress/daily/{progress_id}` va sterge doar snapshotul de progres, nu planul generat.
+
+Reguli asteptate pentru implementarea viitoare:
+- unicitate pe `profile_id + plan_id + day_index`;
+- maximum 30 snapshoturi salvate per profil, enforcement backend-side;
+- datele salvate reprezinta progres/adherenta fata de plan, nu istoric de planuri generate;
+- scoping obligatoriu pe account/household, ca un utilizator sa nu poata citi sau sterge progresul altui household;
+- graficele istorice raman deferred pentru PROGRESS-2.
 
 ## GET /profiles
 

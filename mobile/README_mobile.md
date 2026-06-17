@@ -115,10 +115,10 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - Poate curata feedback-ul local/demo prin `DELETE /feedback?confirm=true`.
 - Poate afisa KNN alternatives read-only pentru mese cu `recipe_id`, prin `POST /recipes/similar`.
 - Poate face meal-level replacement explicit dintr-o alternativa `approved`, prin `POST /plans/{plan_id}/replace-meal`.
-- UI-1 adauga shell mobil prefinal cu 4-page navigation: Home, Meal Plan, Insights si Household / Account.
+- UI-1 adauga shell mobil cu 4-page navigation: Home, Meal Plan, Insights si Household / Account.
 - Home este hardcoded pentru MVP si nu apeleaza backend-ul.
 - Meal Plan pastreaza fluxurile reale de generare, feedback, KNN alternatives, replacement si grocery list.
-- Insights are guard state si o vizualizare de baza peste planul generat, fara claims complete de micronutrienti.
+- Insights este un nutrition dashboard peste planul generat, cu Daily Balance, Meal contribution, Macro Targets si Micronutrients placeholder, fara claims complete de micronutrienti.
 - Household / Account gazduieste setup demo, profiluri salvate, default viewer, status backend si tool-uri demo.
 - Auth-M1 adauga Create Account, Log In, Log Out si account-scoped profile calls.
 - Add Profile nu mai expune `Household ID`; backend-ul il asigneaza automat din sesiunea contului cand exista token.
@@ -139,10 +139,10 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - UI-2C: controlul de generare 1-5 zile este slider-like custom, fara dependency noua, si afiseaza valoarea selectata ca `1 day` / `N days`.
 - UI-2C: selectorul de zile generate arata Day 1-Day 5 pe un singur rand, cu zilele negenerate disabled/gri.
 - PAGE2-POLISH-1: Page 2 are slider 1-5 zile centrat/compact, selector profil fara label `Viewing`, eye Lottie mic langa numele profilului, iar `Target summary` a fost scos din Meal Plan.
-- PAGE2-POLISH-1: Grocery List nu mai afiseaza `Missing prices` ca metric permanent; sumarul de sus foloseste card vizual pentru `Estimated total`, item count si actiuni `Send to` / `Copy` 50/50.
+- PAGE2-POLISH-1: Grocery List nu mai afiseaza `Missing prices` ca metric permanent; sumarul foloseste card vizual pentru `Estimated total`, item count si actiuni placeholder `Share` / `Copy` in acelasi card.
 - HOME-1: Home este acum Page 1 warm/family discovery, cu hero, household CTA, Daily Food Tip rotativ, carusele de resurse si subpagini interne See all.
 - HOME-1: continutul Home este hardcoded in `mobile/src/data/homeContent.ts`; pagina nu apeleaza backend-ul si nu afecteaza planurile generate.
-- HOME-1: asset-urile vizuale sunt placeholder-uri React Native usoare; Lottie si imaginile finale raman pending.
+- HOME-1: hero-ul foloseste Lottie local, iar Daily Food Tip foloseste 4 ilustratii PNG locale din `mobile/assets/home/tips/`.
 - HOME-1: linkurile externe sunt temporare si se deschid prin browser/YouTube cand utilizatorul apasa cardurile.
 - UI-ASSETS-1: `mobile/assets/` are structura pregatita pentru Home, brand, common, navigation, meal_plan, grocery, insights si household assets.
 - UI-ASSETS-1: regulile de naming si integrare sunt in `mobile/assets/README_assets.md`.
@@ -154,6 +154,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - UI-2B: Validarile profilului acopera nume fara cifre, age 4-120, weight 15-300 kg, height 80-230 cm, sessions/week 0-7 si meals/day 1-5; Goal Speed este inactiv pentru Maintain.
 - Backend-ul trimite estimari de pret si cooking time in outputurile generate. Dupa DATA-QA-1, `Price unavailable` sau missing time nu ar trebui sa apara in fluxurile normale generate; daca apar, ruleaza checker-ul DATA-QA.
 - Backend-ul trimite `cooking_steps` pentru mesele generate din retetele active. Dupa COOKING-STEPS-1, fallback-ul `Cooking steps are not available for this recipe yet.` ar trebui sa ramana doar pentru date viitoare incomplete sau payload-uri neasteptate.
+- Page 3 / Insights pastreaza eaten/not-eaten state local per profil/zi/plan afisat. Nu exista inca Save day, progress history sau persistenta backend pentru saved daily progress snapshots.
 
 ## Screen idle / keep-awake investigation
 
@@ -180,7 +181,7 @@ UI-2C pastreaza flow-ul UI-2B, dar face Page 2 / Meal Plan mai product-facing:
 4. Ziua generata se alege din Day 1-Day 5, toate pe un singur rand.
 5. Mesele raman ordonate Breakfast, Lunch, Snack, Dinner.
 6. Debug/status/generator metadata nu apar in main flow.
-7. Grocery List foloseste card vizual pentru estimarea totala si actiuni placeholder `Send to` / `Copy`.
+7. Grocery List foloseste card vizual pentru estimarea totala si actiuni placeholder `Share` / `Copy` in cardul Estimated Total.
 
 ## Mobile M2 Flow
 
@@ -371,7 +372,7 @@ Mobile UI-1 adauga structura prefinala de produs, fara polish final:
 3. Navigatia flotanta comuta intre Home, Meal Plan, Insights si Household.
 4. Home afiseaza continut hardcoded scurt, family-friendly.
 5. Meal Plan pastreaza generarea individuala si household, tab intern `Meal Plan` / `Grocery List`, feedback pe mese, KNN alternatives si replacement explicit.
-6. Insights afiseaza empty state inainte de plan si o vizualizare de baza dupa generare.
+6. Insights afiseaza empty state inainte de plan si dashboard-ul nutrition dupa generare.
 7. Household / Account este hub pentru Account Settings, Household Management si App Settings.
 
 UI-1 nu adauga cloud, payments, animatii finale sau chart dependency. Auth-M1 adauga auth local SQLite, nu production-grade cloud auth. Pentru emulator backend URL implicit ramane `http://10.0.2.2:8000`.
@@ -389,9 +390,10 @@ HOME-1 implementeaza Page 1 / Home ca ecran de descoperire, fara call-uri backen
 1. Hero-ul foloseste profilul selectat/default daca exista; altfel afiseaza fallback generic.
 2. Household CTA trimite la `Go to Account Setup` cand nu exista profiluri si la `Go to Meal Plan` cand household-ul are profiluri.
 3. `Daily Food Tip` se schimba local prin butonul de refresh.
-4. `Highlights of the Week`, `Family & Kids Food Ideas` si `Healthy Habits` folosesc acelasi carusel reutilizabil.
-5. `See all` deschide subpagini interne Home, nu pagini noi in bottom nav.
-6. Cardurile de resurse deschid URL-uri externe temporare prin `Linking`.
+4. Daily Food Tip foloseste cele 4 PNG-uri locale din `mobile/assets/home/tips/`.
+5. `Highlights of the Week`, `Family & Kids Food Ideas` si `Healthy Habits` folosesc acelasi carusel reutilizabil.
+6. `See all` deschide subpagini interne Home, nu pagini noi in bottom nav.
+7. Cardurile de resurse deschid URL-uri externe temporare prin `Linking`.
 
 Structura HOME-1 este verificata cu:
 
@@ -438,4 +440,4 @@ python tools/extra/check_mobile_assets_structure.py
 
 ## Next Step
 
-Urmatorul pas este sa pui asset-ul ales in folderul documentat si sa imi spui ce placeholder vrei sa inlocuiasca. Pentru hero-ul Home, pune Lottie/GIF/WebP in `mobile/assets/home/welcome/`. Ingredient-level substitution ramane in afara MVP-ului curent.
+Urmatorul pas functional major este PROGRESS-1: persistenta pentru saved daily progress snapshots per profil. Ingredient-level substitution ramane in afara MVP-ului curent.

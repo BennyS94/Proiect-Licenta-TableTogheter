@@ -31,11 +31,11 @@ Current behavior:
 Folder:
 - `mobile/assets/home/tips/`
 
-Expected later:
-- `tip_snack.png`
-- `tip_compromise.png`
-- `tip_colorful_plate.png`
-- `tip_planning.png`
+Current active files:
+- `tip_fruit_choice.png`
+- `tip_arranged_plate.png`
+- `tip_backup_meal.png`
+- `tip_kids_tastes.png`
 
 Recommended source size:
 - 512 x 512 PNG/WebP

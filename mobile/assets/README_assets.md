@@ -12,8 +12,8 @@ This folder is the canonical place for mobile UI assets.
 Examples:
 - `cooking_lottie.json`
 - `cooking_loop.gif`
-- `tip_snack.png`
-- `tip_colorful_plate.png`
+- `tip_fruit_choice.png`
+- `tip_arranged_plate.png`
 - `highlight_meal_prep.png`
 - `kids_vegetables.png`
 - `habit_grocery_planning.png`
@@ -46,4 +46,4 @@ Examples:
 
 ## Current state
 
-UI-ASSETS-1 created the folder structure and documentation. The Home hero now has a real Lottie asset wired in through `mobile/assets/home/welcome/cooking_lottie.json`.
+UI-ASSETS-1 created the folder structure and documentation. The Home hero now has a real Lottie asset wired in through `mobile/assets/home/welcome/cooking_lottie.json`, and Daily Food Tip uses four local PNG illustrations from `mobile/assets/home/tips/`.

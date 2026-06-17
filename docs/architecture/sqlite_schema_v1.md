@@ -98,6 +98,7 @@ Columns:
 | `meal_config_json` | TEXT NOT NULL | Config mese serializat JSON |
 | `dietary_preferences_json` | TEXT NOT NULL | Preferinte/restrictii serializate JSON |
 | `food_preferences_json` | TEXT NOT NULL DEFAULT '{}' | Rating-uri alimentare, ingrediente evitate si preferinta de timp |
+| `health_and_diet_preferences_json` | TEXT NOT NULL DEFAULT '{}' | Pattern-uri dietare si moduri health-aware non-clinice |
 | `is_active` | INTEGER NOT NULL | 0/1 |
 | `created_at` | TEXT NOT NULL | ISO timestamp |
 | `updated_at` | TEXT NOT NULL | ISO timestamp |
@@ -225,6 +226,7 @@ Columns:
 - Normalizarea completa poate fi amanata pana cand contractul API si UI-ul mobil se stabilizeaza.
 - Schema este pentru SQLite local MVP/preview, nu pentru cloud production DB.
 - Auth-M1 nu adauga email verification, password reset, email sending sau productie-grade auth claims.
+- Schema actuala nu include inca `saved_daily_progress`; saved daily progress snapshots sunt rezervate pentru PROGRESS-1.
 
 ## Non-goals
 

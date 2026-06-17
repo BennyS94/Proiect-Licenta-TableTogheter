@@ -88,6 +88,11 @@ Implementat in Auth-M1:
 - profile scoped pe household-ul contului cand requestul include `Authorization: Bearer <session_token>`
 - fara email verification, password reset, email sending, cloud auth sau production-grade auth claims
 
+Nota de scoping curenta:
+
+- auth, profile si household settings folosesc sesiunea locala cand este trimis `Authorization: Bearer <session_token>`.
+- endpointurile istorice de generatie, feedback, alternatives si replacement raman MVP/local si nu au inca ownership enforcement uniform pe account.
+
 Implementat in PROFILE-WIZARD-1:
 
 - `POST /profiles`, `GET /profiles` si `GET /profiles/{member_profile_id}` accepta/returneaza `dietary_preferences.no_pork`
@@ -398,6 +403,8 @@ DATA-QA-1 verifica faptul ca outputurile app-facing de grocery nu expun preturi 
 
 - cloud deployment
 - production DB
+- saved daily progress snapshots / `/progress/daily`
+- 7/14/30 day progress charts
 - live price scraping
 - advanced household optimizer
 - automatic meal replacement

@@ -232,7 +232,7 @@ Backend M1-M5 sunt implementate:
 - M4: demo household, profile endpoints si feedback endpoints.
 - M5: generatie persistence-aware cu profile SQLite si injectare de feedback context cand `feedback_enabled=true`.
 
-Mobile M1-M8 si UI-1 sunt implementate:
+Mobile M1-M8, UI-1/UI-2 si polish-urile principale de produs sunt implementate:
 
 - M1: Expo Android skeleton si `GET /health`.
 - M2: `GET /households/demo`, selectie membru demo, `POST /plans/generate` si afisare plan individual pe 3 zile.
@@ -242,7 +242,7 @@ Mobile M1-M8 si UI-1 sunt implementate:
 - M6: creare si listare profiluri salvate prin SQLite backend, plus generare individuala prin `member_profile_id`.
 - M7: generatie household cu profiluri salvate; mobile selecteaza profiluri salvate multiple si apeleaza `POST /household-plans/generate` cu `selected_member_ids`.
 - M8: cleanup local/demo pentru profiluri si feedback; mobile poate soft-dezactiva profiluri salvate prin `DELETE /profiles/{member_profile_id}?confirm=true` si poate sterge feedback events prin `DELETE /feedback?confirm=true`.
-- UI-1: shell mobil prefinal cu 4 pagini (`Home`, `Meal Plan`, `Insights`, `Household / Account`), navigatie flotanta, guard states, Home hardcoded, Insights de baza si Household/Account pentru setup demo/profiluri/status.
+- UI-1: shell mobil cu 4 pagini (`Home`, `Meal Plan`, `Insights`, `Household / Account`), navigatie flotanta, guard states si flow-uri reale mobile/backend.
 
 Flow mobil validat:
 
@@ -256,7 +256,7 @@ Flow-ul M7 reutilizeaza afisarea household din M5: selector de membru, selector 
 
 Flow-ul M8 nu adauga auth/login sau cloud sync. Profilurile salvate sunt soft-dezactivate in SQLite local/demo, nu hard-deleted. Cleanup pentru planuri generate ramane neimplementat in M8 si poate fi adaugat doar ca endpoint dev/demo separat daca devine necesar.
 
-UI-1 nu schimba backend/generator/grocery/pricing si nu modifica `data/recipesdb/current` sau `data/fooddb/current`. Meal Plan pastreaza fluxurile reale deja validate: generatie individuala, generatie household, grocery list, feedback, KNN alternatives si meal-level replacement explicit. Home foloseste continut hardcoded MVP, iar Insights ramane vizualizare de baza fara claims complete de micronutrienti.
+UI-1 nu schimba backend/generator/grocery/pricing si nu modifica `data/recipesdb/current` sau `data/fooddb/current`. Meal Plan pastreaza fluxurile reale deja validate: generatie individuala, generatie household, grocery list, feedback, KNN alternatives si meal-level replacement explicit. Home foloseste continut hardcoded MVP, iar Insights a evoluat intr-un nutrition dashboard acceptat vizual, fara claims complete de micronutrienti.
 
 Auth-M1 + UI-2A sunt implementate ca productization pass local:
 
@@ -309,16 +309,35 @@ HOME-1 este implementat ca Page 1 / Home discovery:
 - Home foloseste layout warm/family-oriented: hero, household CTA, Daily Food Tip, carusele de resurse si subpagini interne See all.
 - Continutul este hardcoded si centralizat in `mobile/src/data/homeContent.ts`.
 - Home nu face call-uri backend, nu modifica planuri generate si nu afecteaza generator/grocery/pricing/KNN.
-- Lottie si imaginile finale nu sunt inca integrate; UI-ul foloseste placeholder-uri React Native usoare si URL-uri externe temporare.
+- Hero-ul Home foloseste `mobile/assets/home/welcome/cooking_lottie.json`.
+- Daily Food Tip foloseste cele 4 ilustratii PNG locale din `mobile/assets/home/tips/`.
+- Linkurile externe din carusele raman continut static/hardcoded si pot fi rafinate ulterior.
 - Structura este verificata cu `tools/extra/check_mobile_home_page_structure.py`.
+
+Page 2 / Meal Plan si Grocery List au primit polish product-facing:
+
+- Generate card compact cu slider discret 1-5 zile.
+- Meal cards cu `Cook / Steps`, `Alternatives` si control `Rate meal`.
+- Grocery List are categorii restranse implicit, icon holders/category PNGs, checkbox row tappable si formatting compact pentru Need/Buy.
+- Estimated Total foloseste emblema grocery locala si include actiunile placeholder `Share` / `Copy` in acelasi card.
+
+Page 3 / Insights este acceptat ca nutrition dashboard:
+
+- selector profil si Day 1-Day 5 + Average;
+- Daily Balance cu macro donut custom si flame icon;
+- Meal contribution separat ca mini-carduri tappable;
+- eaten/not-eaten state local care actualizeaza Daily Balance si Macro Targets;
+- Macro Targets dinamice si Micronutrients placeholder scurt.
+
+Nu exista inca persistenta pentru saved daily progress snapshots. PROGRESS-1 trebuie sa adauge backend SQLite + API + mobile Save day/Delete saved day fara sa transforme planurile generate in istoric de progres.
 
 ## Remaining mobile milestones
 
 Later - UI polish after UI-1:
 
-- polish vizual final
-- iconuri finale in locul placeholderelor ASCII din navigatia flotanta
-- asset-uri finale Home: Lottie cooking, thumbnail-uri si linkuri externe finale
+- polish vizual incremental pe zone ramase neacceptate explicit
+- iconuri finale in locul placeholderelor ASCII din navigatia flotanta, daca mai devine prioritar
+- rafinare thumbnail-uri/linkuri Home pentru carusele
 - stari loading/error mai polishate
 - pregatire demo MVP mai apropiata de produs
 
@@ -326,6 +345,8 @@ Later - Product/account work:
 
 - persistenta sigura a sesiunii peste restart de app
 - change email / change password daca devin necesare pentru prezentare
+- saved daily progress snapshots per profil in PROGRESS-1
+- grafice istorice peste progress snapshots in PROGRESS-2
 - cloud sync doar dupa ce fluxul local/demo este stabil
 - ecrane household dedicate si feedback household imbunatatit
 
@@ -342,7 +363,7 @@ Later - Product/account work:
 - Fara live price scraping.
 - Fara advanced household optimizer.
 - Fara full household mobile screen de productie inca.
-- Fara polish final de produs; aplicatia ramane Android-first demo/MVP.
+- Fara charts istorice de progres pana dupa persistenta PROGRESS-1.
 
 ## Implementation guardrails
 
