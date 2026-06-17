@@ -140,6 +140,7 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - UI-2C: controlul de generare 1-5 zile este slider-like custom, fara dependency noua, si afiseaza valoarea selectata ca `1 day` / `N days`.
 - UI-2C: selectorul de zile generate arata Day 1-Day 5 pe un singur rand, cu zilele negenerate disabled/gri.
 - PAGE2-POLISH-1: Page 2 are slider 1-5 zile centrat/compact, selector profil fara label `Viewing`, eye Lottie mic langa numele profilului, iar `Target summary` a fost scos din Meal Plan.
+- PAGE2-POLISH-2: strip-ul macro zilnic de sub Day 1-Day 5 a fost eliminat; lista de mese incepe direct dupa selectorul de zi.
 - PAGE2-POLISH-1: Grocery List nu mai afiseaza `Missing prices` ca metric permanent; sumarul foloseste card vizual pentru `Estimated total`, item count si actiuni placeholder `Share` / `Copy` in acelasi card.
 - HOME-1: Home este acum Page 1 warm/family discovery, cu hero, household CTA, Daily Food Tip rotativ, carusele de resurse si subpagini interne See all.
 - HOME-1: continutul Home este hardcoded in `mobile/src/data/homeContent.ts`; pagina nu apeleaza backend-ul si nu afecteaza planurile generate.
@@ -183,9 +184,10 @@ UI-2C pastreaza flow-ul UI-2B, dar face Page 2 / Meal Plan mai product-facing:
 2. Generation card afiseaza doar intentia produsului, slider-ul 1-5 zile si `Generate meal plan`.
 3. Dupa generare, selectorul de profil apare o singura data sub taburi, ca pill central cu eye indicator si nume.
 4. Ziua generata se alege din Day 1-Day 5, toate pe un singur rand.
-5. Mesele raman ordonate Breakfast, Lunch, Snack, Dinner.
-6. Debug/status/generator metadata nu apar in main flow.
-7. Grocery List foloseste card vizual pentru estimarea totala si actiuni placeholder `Share` / `Copy` in cardul Estimated Total.
+5. Strip-ul macro zilnic de sub selectorul de zi nu mai este afisat; dupa Day 1-Day 5 urmeaza direct lista de mese.
+6. Mesele raman ordonate Breakfast, Lunch, Snack, Dinner.
+7. Debug/status/generator metadata nu apar in main flow.
+8. Grocery List foloseste card vizual pentru estimarea totala si actiuni placeholder `Share` / `Copy` in cardul Estimated Total.
 
 ## Mobile M2 Flow
 

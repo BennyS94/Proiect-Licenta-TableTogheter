@@ -311,6 +311,7 @@ UI-2C este implementat ca polish product-facing peste Meal Plan:
 - Generation card afiseaza copy scurt de produs, un control slider-like 1-5 zile si un singur buton `Generate meal plan`.
 - Selectorul de membru/profil de vizualizat apare o singura data, sub taburile interne `Meal Plan` / `Grocery List`.
 - Selectorul de zile generate pastreaza Day 1-Day 5 pe un singur rand, cu zilele negenerate disabled/gri.
+- Strip-ul macro zilnic de sub Day 1-Day 5 a fost eliminat, astfel incat lista de mese incepe direct dupa selectorul de zi.
 - Padding-ul global de jos din `AppScreen` a fost marit ca sa nu ascunda ultimul continut sub floating nav.
 - UI-2C nu adauga dependency noua, nu schimba endpointuri si nu modifica generator/backend generation logic.
 
@@ -329,6 +330,7 @@ Page 2 / Meal Plan si Grocery List au primit polish product-facing:
 
 - Generate card compact cu slider discret 1-5 zile.
 - Meal cards cu `Cook / Steps`, `Alternatives` si control `Rate meal`.
+- Meal Plan nu mai afiseaza bara separata de macro-uri zilnice sub selectorul Day 1-Day 5.
 - Grocery List are categorii restranse implicit, icon holders/category PNGs, checkbox row tappable si formatting compact pentru Need/Buy.
 - Estimated Total foloseste emblema grocery locala si include actiunile placeholder `Share` / `Copy` in acelasi card.
 

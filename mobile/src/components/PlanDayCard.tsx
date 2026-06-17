@@ -7,7 +7,6 @@ import type {
   MealReplacementResponse,
 } from "../types/api";
 import { MealRow } from "./MealRow";
-import { MacroMiniStat } from "./ui/MacroMiniStat";
 
 const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 
@@ -43,7 +42,6 @@ export function PlanDayCard({
 
   return (
     <View style={styles.container}>
-      <DaySummaryStrip totals={day.totals} />
       <View style={styles.meals}>
         {meals.map((meal, index) => (
           <MealRow
@@ -67,53 +65,11 @@ export function PlanDayCard({
   );
 }
 
-function DaySummaryStrip({
-  totals,
-}: {
-  totals?: GeneratedDay["totals"];
-}) {
-  return (
-    <View style={styles.summaryStrip}>
-      <MacroMiniStat
-        iconSize={18}
-        kind="calories"
-        tone="soft"
-        value={`${formatNumber(totals?.kcal)} kcal`}
-      />
-      <MacroMiniStat
-        iconSize={18}
-        kind="protein"
-        tone="soft"
-        value={`${formatNumber(totals?.protein_g)}g`}
-      />
-      <MacroMiniStat
-        iconSize={18}
-        kind="carbs"
-        tone="soft"
-        value={`${formatNumber(totals?.carbs_g)}g`}
-      />
-      <MacroMiniStat
-        iconSize={18}
-        kind="fat"
-        tone="soft"
-        value={`${formatNumber(totals?.fat_g)}g`}
-      />
-    </View>
-  );
-}
-
 function normalizeDayIndex(value: unknown): number {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return 1;
   }
   return value <= 0 ? value + 1 : value;
-}
-
-function formatNumber(value: unknown): string {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return "-";
-  }
-  return String(Math.round(value));
 }
 
 function getMealsFromGeneratedDay(day: GeneratedDay): GeneratedMeal[] {
@@ -153,17 +109,5 @@ const styles = StyleSheet.create({
   },
   meals: {
     gap: 10,
-  },
-  summaryStrip: {
-    alignItems: "center",
-    backgroundColor: "#F8FBF3",
-    borderColor: "#DDEAD3",
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
   },
 });

@@ -3,16 +3,13 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   DemoMemberProfile,
   FeedbackType,
-  HouseholdMacroTotals,
   HouseholdMeal,
-  HouseholdMemberMacroSummary,
   HouseholdMemberMenu,
   HouseholdPlanGenerateResponse,
   MealReplacementResponse,
 } from "../types/api";
 import { colors } from "../theme/colors";
 import { HouseholdMealRow } from "./HouseholdMealRow";
-import { MacroMiniStat } from "./ui/MacroMiniStat";
 
 const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 const DISPLAY_DAY_INDEXES = [1, 2, 3, 4, 5];
@@ -52,8 +49,6 @@ export function HouseholdMemberPlanView({
   const availableDayIndexes = new Set(dayIndexes);
   const menu = findMemberMenu(plan, memberId, selectedDayIndex);
   const meals = getMeals(menu);
-  const summary = findMacroSummary(plan, memberId, selectedDayIndex);
-  const totals = getTotals(menu, summary);
 
   return (
     <View style={styles.container}>
@@ -85,33 +80,6 @@ export function HouseholdMemberPlanView({
           </Pressable>
           );
         })}
-      </View>
-
-      <View style={styles.summaryStrip}>
-        <MacroMiniStat
-          iconSize={18}
-          kind="calories"
-          tone="soft"
-          value={`${formatOptionalNumber(totals.kcal, 0)} kcal`}
-        />
-        <MacroMiniStat
-          iconSize={18}
-          kind="protein"
-          tone="soft"
-          value={`${formatOptionalNumber(totals.protein_g, 0)}g`}
-        />
-        <MacroMiniStat
-          iconSize={18}
-          kind="carbs"
-          tone="soft"
-          value={`${formatOptionalNumber(totals.carbs_g, 0)}g`}
-        />
-        <MacroMiniStat
-          iconSize={18}
-          kind="fat"
-          tone="soft"
-          value={`${formatOptionalNumber(totals.fat_g, 0)}g`}
-        />
       </View>
 
       <View style={styles.mealList}>
@@ -171,53 +139,9 @@ function findMemberMenu(
   );
 }
 
-function findMacroSummary(
-  plan: HouseholdPlanGenerateResponse,
-  memberId: string,
-  selectedDayIndex: number,
-): HouseholdMemberMacroSummary | null {
-  return (
-    (plan.member_macro_summaries ?? []).find((summary) => {
-      const summaryMemberId = getMemberId(summary);
-      const summaryDayIndex = normalizeDayIndex(numberValue(summary.day_index ?? summary.day));
-      return summaryMemberId === memberId && summaryDayIndex === selectedDayIndex;
-    }) ?? null
-  );
-}
-
 function getMeals(menu: HouseholdMemberMenu | null): HouseholdMeal[] {
   const meals = Array.isArray(menu?.meals) ? menu?.meals : menu?.selected_meals;
   return sortMealsBySlot((meals ?? []).filter(isRecord) as HouseholdMeal[]);
-}
-
-function getTotals(
-  menu: HouseholdMemberMenu | null,
-  summary: HouseholdMemberMacroSummary | null,
-): HouseholdMacroTotals {
-  const menuTotals = firstRecord(menu?.totals, menu?.daily_totals, menu?.macro_totals);
-  const summaryTotals = asRecord(summary?.totals);
-  return {
-    kcal:
-      numberValue(menuTotals.kcal) ??
-      numberValue(summaryTotals.kcal) ??
-      numberValue(summary?.kcal) ??
-      undefined,
-    protein_g:
-      numberValue(menuTotals.protein_g) ??
-      numberValue(summaryTotals.protein_g) ??
-      numberValue(summary?.protein_g) ??
-      undefined,
-    carbs_g:
-      numberValue(menuTotals.carbs_g) ??
-      numberValue(summaryTotals.carbs_g) ??
-      numberValue(summary?.carbs_g) ??
-      undefined,
-    fat_g:
-      numberValue(menuTotals.fat_g) ??
-      numberValue(summaryTotals.fat_g) ??
-      numberValue(summary?.fat_g) ??
-      undefined,
-  };
 }
 
 function getMemberDisplayName(
@@ -248,17 +172,6 @@ function normalizeDayIndex(value: number | null): number | null {
   return value <= 0 ? value + 1 : value;
 }
 
-function formatOptionalNumber(value: unknown, digits: number): string {
-  const parsed = numberValue(value);
-  if (parsed === null) {
-    return "-";
-  }
-  return parsed.toLocaleString("en-US", {
-    maximumFractionDigits: digits,
-    minimumFractionDigits: digits > 0 ? 1 : 0,
-  });
-}
-
 function numberValue(value: unknown): number | null {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return null;
@@ -268,19 +181,6 @@ function numberValue(value: unknown): number | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : {};
-}
-
-function firstRecord(...values: unknown[]): Record<string, unknown> {
-  for (const value of values) {
-    if (isRecord(value) && Object.keys(value).length > 0) {
-      return value;
-    }
-  }
-  return {};
 }
 
 function sortMealsBySlot<T extends { slot?: unknown }>(meals: T[]): T[] {
@@ -359,18 +259,6 @@ const styles = StyleSheet.create({
   mutedText: {
     color: colors.mutedSoft,
     fontSize: 15,
-  },
-  summaryStrip: {
-    alignItems: "center",
-    backgroundColor: "#F8FBF3",
-    borderColor: "#DDEAD3",
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
   },
   title: {
     color: colors.text,
