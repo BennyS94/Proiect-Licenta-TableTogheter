@@ -67,12 +67,14 @@ def main() -> int:
     for row in day_quality_rows:
         print(
             "day={day} status={status} reasons={reasons} "
+            "base_validation={base_validation} "
             "max_abs_kcal_dev={kcal_dev}% min_protein_ratio={protein_ratio} "
             "min_carbs_ratio={carbs_ratio} max_fat_ratio={fat_ratio} "
             "max_grocery_factor={grocery_factor}".format(
                 day=row.get("day_index"),
                 status=row.get("household_quality_status"),
                 reasons=row.get("household_quality_reasons") or "ok",
+                base_validation=row.get("base_day_validation_status"),
                 kcal_dev=row.get("max_abs_kcal_deviation_pct"),
                 protein_ratio=row.get("min_protein_ratio"),
                 carbs_ratio=row.get("min_carbs_ratio"),
@@ -186,10 +188,6 @@ def _tuning_signals(
         )
     for row in day_quality_rows:
         reasons = str(row.get("household_quality_reasons") or "")
-        if "base_day_validation_review" in reasons:
-            signals.append(
-                "Base shared day is not valid before member-level household allocation."
-            )
         if "household_grocery_scaling_review" in reasons:
             signals.append("At least one shared meal has household quantity factor above review threshold.")
         if "member_carbs_ratio_review" in reasons:

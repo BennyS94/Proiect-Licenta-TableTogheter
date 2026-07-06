@@ -904,8 +904,8 @@ def _individual_meal_rows_from_candidates(
             if member_candidates.empty:
                 continue
             prepared = member_candidates.sort_values(
-                ["slot", "recipe_id", "score_preview", "macro_fit", "portion_multiplier"],
-                ascending=[True, True, False, False, True],
+                ["slot", "score_preview", "macro_fit", "recipe_id", "portion_multiplier"],
+                ascending=[True, False, False, True, True],
                 kind="mergesort",
                 na_position="last",
             ).copy()
@@ -1218,9 +1218,7 @@ def _household_day_quality_rows(
         day_index = int(day.get("day_index") or 1)
         day_rows = by_day.get(day_index, [])
         reasons: list[str] = []
-        base_day_valid = str(day.get("validation_status") or "") == "valid"
-        if not base_day_valid:
-            reasons.append("base_day_validation_review")
+        base_day_validation_status = str(day.get("validation_status") or "not_validated")
         max_abs_kcal = _max_abs(day_rows, "kcal_deviation_pct")
         min_protein_ratio = _min_numeric(day_rows, "protein_ratio")
         min_kcal_ratio = _min_numeric(day_rows, "kcal_ratio")
@@ -1283,6 +1281,7 @@ def _household_day_quality_rows(
                 "min_protein_ratio": _round_optional(min_protein_ratio, 4),
                 "min_carbs_ratio": _round_optional(min_carbs_ratio, 4),
                 "max_fat_ratio": _round_optional(max_fat_ratio, 4),
+                "base_day_validation_status": base_day_validation_status,
                 "portion_clamped_count": clamp_count,
                 "max_grocery_scaling_factor": _round_optional(max_grocery_factor, 3),
             }
