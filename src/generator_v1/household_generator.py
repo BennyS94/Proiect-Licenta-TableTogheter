@@ -56,6 +56,9 @@ TIME_FIELDS = (
 )
 PORTION_MIN_DEFAULT = 0.4
 PORTION_MAX_DEFAULT = 1.8
+HOUSEHOLD_GROCERY_FACTOR_REVIEW_THRESHOLD = 5.0
+HOUSEHOLD_MIN_CARBS_RATIO_REVIEW = 0.75
+HOUSEHOLD_MAX_FAT_RATIO_REVIEW = 1.25
 
 
 def build_member_targets(household_profile: dict[str, Any]) -> dict[str, Any]:
@@ -1184,7 +1187,10 @@ def _grocery_scaling_rows(days: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         "household_grocery_scaling_factor"
                     ),
                     "warning": "household_quantity_factor_large"
-                    if (_to_float(meal.get("household_grocery_scaling_factor")) or 0.0) > 4.0
+                    if (
+                        (_to_float(meal.get("household_grocery_scaling_factor")) or 0.0)
+                        > HOUSEHOLD_GROCERY_FACTOR_REVIEW_THRESHOLD
+                    )
                     else "",
                 }
             )
@@ -1212,17 +1218,29 @@ def _household_day_quality_rows(
         day_index = int(day.get("day_index") or 1)
         day_rows = by_day.get(day_index, [])
         reasons: list[str] = []
-        valid = str(day.get("validation_status") or "") == "valid"
-        if not valid:
-            reasons.append("day_not_valid")
+        base_day_valid = str(day.get("validation_status") or "") == "valid"
+        if not base_day_valid:
+            reasons.append("base_day_validation_review")
         max_abs_kcal = _max_abs(day_rows, "kcal_deviation_pct")
         min_protein_ratio = _min_numeric(day_rows, "protein_ratio")
         min_kcal_ratio = _min_numeric(day_rows, "kcal_ratio")
         max_kcal_ratio = _max_numeric(day_rows, "kcal_ratio")
+        min_carbs_ratio = _min_numeric(day_rows, "carbs_ratio")
+        max_fat_ratio = _max_numeric(day_rows, "fat_ratio")
         if max_abs_kcal > 20.0:
             reasons.append("member_kcal_ratio_review")
         if min_protein_ratio is not None and min_protein_ratio < 0.80:
             reasons.append("member_protein_ratio_review")
+        if (
+            min_carbs_ratio is not None
+            and min_carbs_ratio < HOUSEHOLD_MIN_CARBS_RATIO_REVIEW
+        ):
+            reasons.append("member_carbs_ratio_review")
+        if (
+            max_fat_ratio is not None
+            and max_fat_ratio > HOUSEHOLD_MAX_FAT_RATIO_REVIEW
+        ):
+            reasons.append("member_fat_ratio_review")
         clamp_count = sum(
             1
             for row in allocations_by_day.get(day_index, [])
@@ -1234,16 +1252,21 @@ def _household_day_quality_rows(
             grocery_by_day.get(day_index, []),
             "household_quantity_factor",
         )
-        if max_grocery_factor is not None and max_grocery_factor > 4.0:
+        if (
+            max_grocery_factor is not None
+            and max_grocery_factor > HOUSEHOLD_GROCERY_FACTOR_REVIEW_THRESHOLD
+        ):
             reasons.append("household_grocery_scaling_review")
         severe = (
+            not day_rows
+        ) or (
             min_kcal_ratio is not None and min_kcal_ratio < 0.65
         ) or (
             max_kcal_ratio is not None and max_kcal_ratio > 1.35
         ) or (
             min_protein_ratio is not None and min_protein_ratio < 0.65
         ) or clamp_count >= 6
-        if not valid or severe:
+        if severe:
             status = "reject"
         elif reasons:
             status = "review"
@@ -1258,6 +1281,8 @@ def _household_day_quality_rows(
                 "min_kcal_ratio": _round_optional(min_kcal_ratio, 4),
                 "max_kcal_ratio": _round_optional(max_kcal_ratio, 4),
                 "min_protein_ratio": _round_optional(min_protein_ratio, 4),
+                "min_carbs_ratio": _round_optional(min_carbs_ratio, 4),
+                "max_fat_ratio": _round_optional(max_fat_ratio, 4),
                 "portion_clamped_count": clamp_count,
                 "max_grocery_scaling_factor": _round_optional(max_grocery_factor, 3),
             }

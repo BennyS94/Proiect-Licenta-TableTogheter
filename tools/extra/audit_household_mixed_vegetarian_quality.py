@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.generator_v1.household_generator import HOUSEHOLD_GROCERY_FACTOR_REVIEW_THRESHOLD
 from src.generator_v1.service import generate_household_plan_from_request
 from tools.extra.check_household_mixed_vegetarian_generation import (
     _contains_any_meat,
@@ -67,12 +68,15 @@ def main() -> int:
         print(
             "day={day} status={status} reasons={reasons} "
             "max_abs_kcal_dev={kcal_dev}% min_protein_ratio={protein_ratio} "
+            "min_carbs_ratio={carbs_ratio} max_fat_ratio={fat_ratio} "
             "max_grocery_factor={grocery_factor}".format(
                 day=row.get("day_index"),
                 status=row.get("household_quality_status"),
                 reasons=row.get("household_quality_reasons") or "ok",
                 kcal_dev=row.get("max_abs_kcal_deviation_pct"),
                 protein_ratio=row.get("min_protein_ratio"),
+                carbs_ratio=row.get("min_carbs_ratio"),
+                fat_ratio=row.get("max_fat_ratio"),
                 grocery_factor=row.get("max_grocery_scaling_factor"),
             )
         )
@@ -182,10 +186,16 @@ def _tuning_signals(
         )
     for row in day_quality_rows:
         reasons = str(row.get("household_quality_reasons") or "")
-        if "day_not_valid" in reasons:
-            signals.append("Base day is invalid_nutrition before household allocation.")
+        if "base_day_validation_review" in reasons:
+            signals.append(
+                "Base shared day is not valid before member-level household allocation."
+            )
         if "household_grocery_scaling_review" in reasons:
-            signals.append("At least one shared meal has household quantity factor above 4.0.")
+            signals.append("At least one shared meal has household quantity factor above review threshold.")
+        if "member_carbs_ratio_review" in reasons:
+            signals.append("At least one member has carbs below the household review target.")
+        if "member_fat_ratio_review" in reasons:
+            signals.append("At least one member has fat above the household review target.")
     for row in member_rows:
         kcal_dev = abs(_to_float(row.get("kcal_deviation_pct")) or 0.0)
         protein_ratio = _to_float(row.get("protein_ratio"))
@@ -202,7 +212,7 @@ def _tuning_signals(
             signals.append(f"{member} fat is high versus target.")
     for row in grocery_scaling_rows:
         factor = _to_float(row.get("household_quantity_factor"))
-        if factor is not None and factor > 4.0:
+        if factor is not None and factor > HOUSEHOLD_GROCERY_FACTOR_REVIEW_THRESHOLD:
             signals.append(
                 f"Shared recipe '{row.get('display_name')}' has grocery factor {factor}."
             )
