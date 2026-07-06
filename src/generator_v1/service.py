@@ -56,11 +56,10 @@ from src.generator_v1.recipe_similarity import (
 )
 from src.generator_v1.reroll_policy import select_quality_gated_reroll
 from src.generator_v1.slot_candidates import build_slot_candidates
-from src.generator_v1.target_builder import build_nutrition_target
+from src.generator_v1.target_builder import NutritionTarget, build_nutrition_target
 from src.generator_v1_cli import (
     _apply_multi_day_defaults,
     _balanced_selector_config,
-    _household_context_profile,
     _household_generation_config,
     _multi_day_selector_config,
     _pool_summary,
@@ -267,8 +266,11 @@ def generate_household_plan_from_request(request: dict[str, Any]) -> dict[str, A
     member_targets = build_member_targets(household_profile)
     household_target = build_household_aggregate_target(member_targets)
     primary_member = _primary_household_member(household_profile)
-    primary_context_profile = _household_context_profile(household_profile, primary_member)
-    preference_context = build_profile_preference_context(primary_context_profile)
+    shared_context_profile = _household_shared_context_profile(
+        household_profile,
+        primary_member,
+    )
+    preference_context = build_profile_preference_context(shared_context_profile)
     feedback_context = _feedback_context_for_household(args, household_profile, request)
     pool = load_recipe_candidate_pool(
         recipes_path=args.recipes,
@@ -293,8 +295,23 @@ def generate_household_plan_from_request(request: dict[str, Any]) -> dict[str, A
         feedback_preference_context=feedback_context,
         health_and_diet_preferences=preference_context.health_and_diet_preferences,
     )
+    member_slot_candidates = _member_slot_candidate_map(
+        household_profile=household_profile,
+        member_targets=member_targets,
+        pool=pool,
+        fooddb=fooddb,
+        feedback_context=feedback_context,
+    )
     household_config = _household_generation_config(args)
     household_config["recipe_ingredients_df"] = pool.ingredients
+    household_config["member_allowed_recipe_ids_by_member_id"] = {
+        member_id: sorted(
+            set(frame["recipe_id"].astype(str))
+            if isinstance(frame, pd.DataFrame) and "recipe_id" in frame.columns
+            else set()
+        )
+        for member_id, frame in member_slot_candidates.items()
+    }
     household_candidates = build_household_slot_candidates(
         slot_candidates,
         member_targets,
@@ -307,7 +324,7 @@ def generate_household_plan_from_request(request: dict[str, Any]) -> dict[str, A
     plan = generate_household_plan(
         household_profile,
         slot_candidates=household_candidates,
-        individual_slot_candidates=slot_candidates,
+        individual_slot_candidates=member_slot_candidates,
         days=args.days,
         config=household_config,
         profile=primary_member,
@@ -361,6 +378,229 @@ def generate_household_plan_from_request(request: dict[str, Any]) -> dict[str, A
         ),
     }
     return to_json_safe(response)
+
+
+def _household_shared_context_profile(
+    household_profile: Mapping[str, Any],
+    primary_member: Mapping[str, Any],
+) -> dict[str, Any]:
+    profile = dict(primary_member)
+    preferences = household_profile.get("household_preferences") or {}
+    profile["banned_recipe_ids"] = preferences.get("banned_recipe_ids", [])
+    profile["banned_ingredient_names"] = preferences.get("banned_ingredient_names", [])
+    profile["dietary_preferences"] = _shared_dietary_preferences(
+        household_profile,
+        preferences,
+    )
+    profile["food_preferences"] = preferences.get("food_preferences", {})
+    profile["health_and_diet_preferences"] = _shared_health_and_diet_preferences(
+        household_profile,
+        preferences,
+    )
+    return profile
+
+
+def _member_context_profiles(
+    household_profile: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    preferences = household_profile.get("household_preferences") or {}
+    household_banned_recipes = _clean_list(preferences.get("banned_recipe_ids", []))
+    household_banned_ingredients = _clean_list(
+        preferences.get("banned_ingredient_names", [])
+    )
+    household_dietary = (
+        preferences.get("dietary_preferences")
+        if isinstance(preferences.get("dietary_preferences"), Mapping)
+        else {}
+    )
+    result: dict[str, dict[str, Any]] = {}
+    for member in _active_household_members_for_service(household_profile):
+        member_id = _clean_text(member.get("member_id"))
+        if not member_id:
+            continue
+        profile = dict(member)
+        profile["banned_recipe_ids"] = sorted(
+            set(household_banned_recipes)
+            | set(_clean_list(member.get("banned_recipe_ids", [])))
+        )
+        profile["banned_ingredient_names"] = sorted(
+            set(household_banned_ingredients)
+            | set(_clean_list(member.get("banned_ingredient_names", [])))
+        )
+        member_dietary = (
+            member.get("dietary_preferences")
+            if isinstance(member.get("dietary_preferences"), Mapping)
+            else {}
+        )
+        profile["dietary_preferences"] = {
+            key: bool(household_dietary.get(key, False) or member_dietary.get(key, False))
+            for key in _DIETARY_CONTEXT_KEYS
+        }
+        profile["food_preferences"] = member.get("food_preferences") or {}
+        profile["health_and_diet_preferences"] = (
+            member.get("health_and_diet_preferences") or {}
+        )
+        result[member_id] = profile
+    return result
+
+
+def _member_slot_candidate_map(
+    *,
+    household_profile: Mapping[str, Any],
+    member_targets: Mapping[str, Any],
+    pool: Any,
+    fooddb: pd.DataFrame,
+    feedback_context: Mapping[str, Any],
+) -> dict[str, pd.DataFrame]:
+    targets_by_member = member_targets.get("targets_by_member_id") or {}
+    result: dict[str, pd.DataFrame] = {}
+    for member_id, member_profile in _member_context_profiles(household_profile).items():
+        target = _nutrition_target_from_member_target(targets_by_member.get(member_id, {}))
+        if target is None:
+            continue
+        preference_context = build_profile_preference_context(member_profile)
+        filtered_candidates = filter_recipe_candidates(
+            eligible_candidates=pool.eligible_candidates,
+            ingredients=pool.ingredients,
+            context=preference_context,
+            feedback_preference_context=feedback_context,
+        )
+        result[member_id] = build_slot_candidates(
+            target=target,
+            filtered_candidates=filtered_candidates,
+            time_sensitivity=preference_context.time_sensitivity,
+            ingredients=pool.ingredients,
+            fooddb=fooddb,
+            portion_policy_mode="target_aware",
+            feedback_preference_context=feedback_context,
+            health_and_diet_preferences=preference_context.health_and_diet_preferences,
+        )
+    return result
+
+
+def _nutrition_target_from_member_target(value: Any) -> NutritionTarget | None:
+    if not isinstance(value, Mapping):
+        return None
+    slot_targets = value.get("slot_targets")
+    if not isinstance(slot_targets, Mapping) or not slot_targets:
+        return None
+    return NutritionTarget(
+        kcal=float(value.get("kcal") or 0.0),
+        protein_g=float(value.get("protein_g") or 0.0),
+        carbs_g=float(value.get("carbs_g") or 0.0),
+        fat_g=float(value.get("fat_g") or 0.0),
+        slot_targets={
+            str(slot): dict(target)
+            for slot, target in slot_targets.items()
+            if isinstance(target, Mapping)
+        },
+    )
+
+
+_DIETARY_CONTEXT_KEYS = (
+    "vegetarian",
+    "vegan",
+    "gluten_free",
+    "no_beef",
+    "no_pork",
+    "no_chicken",
+    "no_fish",
+    "no_dairy",
+)
+
+
+def _shared_dietary_preferences(
+    household_profile: Mapping[str, Any],
+    preferences: Mapping[str, Any],
+) -> dict[str, bool]:
+    household_dietary = (
+        preferences.get("dietary_preferences")
+        if isinstance(preferences.get("dietary_preferences"), Mapping)
+        else {}
+    )
+    active_members = _active_household_members_for_service(household_profile)
+    result: dict[str, bool] = {}
+    for key in _DIETARY_CONTEXT_KEYS:
+        if bool(household_dietary.get(key, False)):
+            result[key] = True
+            continue
+        result[key] = bool(
+            active_members
+            and all(
+                bool((member.get("dietary_preferences") or {}).get(key, False))
+                for member in active_members
+            )
+        )
+    return result
+
+
+def _shared_health_and_diet_preferences(
+    household_profile: Mapping[str, Any],
+    preferences: Mapping[str, Any],
+) -> dict[str, dict[str, bool]]:
+    household_health = (
+        preferences.get("health_and_diet_preferences")
+        if isinstance(preferences.get("health_and_diet_preferences"), Mapping)
+        else {}
+    )
+    active_members = _active_household_members_for_service(household_profile)
+    return {
+        "dietary_patterns": {
+            key: bool(
+                _nested_bool(household_health, "dietary_patterns", key)
+                or (
+                    active_members
+                    and all(
+                        _nested_bool(
+                            member.get("health_and_diet_preferences") or {},
+                            "dietary_patterns",
+                            key,
+                        )
+                        for member in active_members
+                    )
+                )
+            )
+            for key in ("keto", "paleo", "mediterranean")
+        },
+        "health_modes": {
+            key: bool(
+                _nested_bool(household_health, "health_modes", key)
+                or any(
+                    _nested_bool(
+                        member.get("health_and_diet_preferences") or {},
+                        "health_modes",
+                        key,
+                    )
+                    for member in active_members
+                )
+            )
+            for key in ("diabetes_aware", "hypertension_friendly", "heart_friendly")
+        },
+    }
+
+
+def _nested_bool(value: Any, group: str, key: str) -> bool:
+    if not isinstance(value, Mapping):
+        return False
+    nested = value.get(group)
+    return bool(isinstance(nested, Mapping) and nested.get(key, False))
+
+
+def _active_household_members_for_service(
+    household_profile: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    active_ids = {
+        _clean_text(member_id)
+        for member_id in household_profile.get("active_member_ids", []) or []
+        if _clean_text(member_id)
+    }
+    members = [
+        dict(member)
+        for member in household_profile.get("members", []) or []
+        if isinstance(member, Mapping)
+        and (not active_ids or _clean_text(member.get("member_id")) in active_ids)
+    ]
+    return members
 
 
 def build_grocery_list_for_plan(

@@ -166,6 +166,14 @@ FOOD_PREFERENCE_AVOID_KEYWORDS = {
     "spicy_food": {"cayenne", "chili", "chilli", "hot sauce", "jalapeno", "spicy"},
 }
 
+DIETARY_KEYWORDS["vegetarian"] = (
+    DIETARY_KEYWORDS["vegetarian"]
+    | DIETARY_KEYWORDS["no_beef"]
+    | DIETARY_KEYWORDS["no_pork"]
+    | DIETARY_KEYWORDS["no_chicken"]
+    | DIETARY_KEYWORDS["no_fish"]
+)
+
 DIETARY_PATTERN_HARD_KEYWORDS = {
     "keto": {
         "bread",

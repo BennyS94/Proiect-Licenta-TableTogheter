@@ -555,7 +555,7 @@ def _decorate_household_plan(
     config: Mapping[str, Any],
 ) -> dict[str, Any]:
     days = _normalized_days(base_plan)
-    shared_allocations = _allocation_rows_from_days(days)
+    shared_allocations = _allocation_rows_from_days(days, config=config)
     individual_meals = _individual_meal_rows_from_candidates(
         days=days,
         slot_candidates=individual_slot_candidates,
@@ -751,13 +751,49 @@ def _member_daily_rows(
     return rows
 
 
-def _allocation_rows_from_days(days: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _allocation_rows_from_days(
+    days: list[dict[str, Any]],
+    *,
+    config: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    allowed_by_member = _allowed_recipe_ids_by_member(config)
     for day in days:
         day_index = int(day.get("day_index") or 1)
         for meal in day.get("selected_meals", []):
             allocations = _parse_allocations(meal.get("member_portion_summary_json"))
+            kept_allocations = []
+            excluded_member_ids = []
             for row in allocations:
+                member_id = str(row.get("member_id") or "")
+                recipe_id = str(meal.get("recipe_id") or "").strip()
+                allowed_ids = allowed_by_member.get(member_id)
+                if allowed_ids is not None and recipe_id and recipe_id not in allowed_ids:
+                    excluded_member_ids.append(member_id)
+                    continue
+                kept_allocations.append(row)
+            if excluded_member_ids:
+                meal["member_allocations"] = kept_allocations
+                meal["member_portion_summary_json"] = json.dumps(
+                    kept_allocations,
+                    ensure_ascii=True,
+                )
+                meal["household_dietary_excluded_member_ids"] = sorted(
+                    member_id for member_id in excluded_member_ids if member_id
+                )
+                meal["household_dietary_partial_shared"] = True
+                portion_sum = round(
+                    sum(
+                        _to_float(row.get("portion_multiplier_member")) or 0.0
+                        for row in kept_allocations
+                    ),
+                    3,
+                )
+                meal["household_portion_sum"] = portion_sum
+                meal["household_grocery_scaling_factor"] = portion_sum
+            else:
+                meal["member_allocations"] = allocations
+            for row in kept_allocations:
                 enriched = dict(row)
                 enriched.update(
                     {
@@ -779,7 +815,6 @@ def _allocation_rows_from_days(days: list[dict[str, Any]]) -> list[dict[str, Any
                     }
                 )
                 rows.append(enriched)
-            meal["member_allocations"] = allocations
     return rows
 
 
@@ -813,8 +848,6 @@ def _individual_meal_rows_from_candidates(
     shared_allocations: list[dict[str, Any]],
     config: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    if str(config.get("household_mode")) == HOUSEHOLD_MODE_SHARED_ALL_SLOTS:
-        return []
     candidates = _candidate_frame(slot_candidates) if slot_candidates is not None else pd.DataFrame()
     if candidates.empty or "slot" not in candidates.columns:
         return []
@@ -827,13 +860,11 @@ def _individual_meal_rows_from_candidates(
 
     rows: list[dict[str, Any]] = []
     shared_slots = set(_shared_slots(member_targets, config))
-    individual_slots = [
+    base_individual_slots = [
         slot
         for slot in build_household_aggregate_target(member_targets).slot_targets.keys()
         if str(slot) not in shared_slots
     ]
-    if not individual_slots:
-        return []
 
     shared_by_member_day: dict[tuple[int, str], dict[str, float]] = {}
     for row in shared_allocations:
@@ -849,17 +880,32 @@ def _individual_meal_rows_from_candidates(
         if recipe_id:
             used_by_member_day.setdefault(key, set()).add(recipe_id)
 
-    prepared = candidates.sort_values(
-        ["slot", "recipe_id", "score_preview", "macro_fit", "portion_multiplier"],
-        ascending=[True, True, False, False, True],
-        kind="mergesort",
-        na_position="last",
-    ).copy()
     targets_by_member_id = member_targets.get("targets_by_member_id") or {}
     for day in days:
         day_index = int(day.get("day_index") or 1)
         for member in member_targets.get("members", []):
             member_id = str(member.get("member_id") or "")
+            member_candidates = _candidate_frame_for_member(
+                slot_candidates,
+                member_id,
+            )
+            if member_candidates.empty or "slot" not in member_candidates.columns:
+                continue
+            if "household_generation_shared_slot" in member_candidates.columns:
+                member_candidates = member_candidates.loc[
+                    member_candidates["household_generation_shared_slot"]
+                    .astype(str)
+                    .str.lower()
+                    != "true"
+                ].copy()
+            if member_candidates.empty:
+                continue
+            prepared = member_candidates.sort_values(
+                ["slot", "recipe_id", "score_preview", "macro_fit", "portion_multiplier"],
+                ascending=[True, True, False, False, True],
+                kind="mergesort",
+                na_position="last",
+            ).copy()
             target = targets_by_member_id.get(member_id) or {}
             member_total_protein = _to_float(target.get("protein_g")) or 0.0
             shared_protein = (
@@ -869,7 +915,19 @@ def _individual_meal_rows_from_candidates(
                 member_total_protein > 0
                 and (shared_protein / member_total_protein) < float(config.get("protein_correction_threshold", 0.85) or 0.85)
             )
-            for slot in individual_slots:
+            member_slots = list(base_individual_slots)
+            shared_keys = {
+                (
+                    int(row.get("day_index") or 0),
+                    str(row.get("slot") or ""),
+                    str(row.get("member_id") or ""),
+                )
+                for row in shared_allocations
+            }
+            for slot in shared_slots:
+                if (day_index, str(slot), member_id) not in shared_keys:
+                    member_slots.append(str(slot))
+            for slot in dict.fromkeys(member_slots):
                 slot_target = (target.get("slot_targets") or {}).get(slot, {})
                 if (_to_float(slot_target.get("kcal")) or 0.0) <= 0:
                     continue
@@ -1249,6 +1307,13 @@ def _household_summary(
         "individual_meal_count": sum(
             1 for row in allocations if str(row.get("allocation_scope") or "") == "individual"
         ),
+        "dietary_partial_shared_meal_count": sum(
+            1
+            for day in days
+            for meal in day.get("selected_meals", [])
+            if isinstance(meal, Mapping)
+            and bool(meal.get("household_dietary_partial_shared"))
+        ),
         "allocation_count": len(allocations),
         "household_candidate_count": int(len(household_candidates)),
         "household_accept_day_count": status_counts.get("accept", 0),
@@ -1294,6 +1359,8 @@ def _household_warnings(config: Mapping[str, Any], summary: Mapping[str, Any]) -
         warnings.append("breakfast_snack_individual_selection_prototype")
     if config["household_mode"] == HOUSEHOLD_MODE_INDIVIDUAL_BREAKFAST_SHARED_MAIN:
         warnings.append("individual_breakfast_shared_main_recommended_demo_mode")
+    if int(summary.get("dietary_partial_shared_meal_count") or 0) > 0:
+        warnings.append("household_member_dietary_split_applied")
     if int(summary.get("clamped_portion_count") or 0) > 0:
         warnings.append("member_portion_clamps_present")
     if int(summary.get("protein_gap_count") or 0) > 0:
@@ -1338,6 +1405,43 @@ def _candidate_frame(value: pd.DataFrame | Mapping[str, pd.DataFrame]) -> pd.Dat
         return value.copy()
     pieces = [frame.copy() for frame in value.values() if isinstance(frame, pd.DataFrame)]
     return pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame()
+
+
+def _candidate_frame_for_member(
+    value: pd.DataFrame | Mapping[str, pd.DataFrame] | None,
+    member_id: str,
+) -> pd.DataFrame:
+    if isinstance(value, pd.DataFrame):
+        return value.copy()
+    if isinstance(value, Mapping):
+        direct = value.get(member_id)
+        if isinstance(direct, pd.DataFrame):
+            return direct.copy()
+        return _candidate_frame(value)
+    return pd.DataFrame()
+
+
+def _allowed_recipe_ids_by_member(config: Mapping[str, Any]) -> dict[str, set[str]]:
+    raw = config.get("member_allowed_recipe_ids_by_member_id")
+    if not isinstance(raw, Mapping):
+        return {}
+    result: dict[str, set[str]] = {}
+    for member_id, values in raw.items():
+        if values is None:
+            continue
+        if isinstance(values, str):
+            iterable = [values]
+        else:
+            try:
+                iterable = list(values)
+            except TypeError:
+                iterable = []
+        result[str(member_id)] = {
+            str(value).strip()
+            for value in iterable
+            if str(value).strip()
+        }
+    return result
 
 
 def _slot_candidates_by_slot(
