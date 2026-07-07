@@ -18,6 +18,8 @@ export function ProfileCard({
   profile,
   selected,
 }: ProfileCardProps) {
+  const dietaryBadges = getDietaryBadges(profile);
+
   return (
     <View style={[styles.card, selected ? styles.cardSelected : null]}>
       <View style={styles.cardBody}>
@@ -33,6 +35,15 @@ export function ProfileCard({
           {profile.age} years | {formatWeight(profile.weight_kg)} kg |{" "}
           {formatActivityLevel(profile.activity_level)}
         </Text>
+        {dietaryBadges.length ? (
+          <View style={styles.badgeRow}>
+            {dietaryBadges.map((badge) => (
+              <Text key={badge} numberOfLines={1} style={styles.dietaryBadge}>
+                {badge}
+              </Text>
+            ))}
+          </View>
+        ) : null}
       </View>
       <View style={styles.actionRow}>
         <Pressable
@@ -63,6 +74,20 @@ export function ProfileCard({
       </View>
     </View>
   );
+}
+
+function getDietaryBadges(profile: MemberProfileResponse): string[] {
+  const dietary = profile.dietary_preferences ?? {};
+  const badges: string[] = [];
+  if (dietary.vegan) {
+    badges.push("Vegan");
+  } else if (dietary.vegetarian) {
+    badges.push("Vegetarian");
+  }
+  if (dietary.gluten_free) {
+    badges.push("Gluten-free");
+  }
+  return badges;
 }
 
 function formatWeight(value: number): string {
@@ -139,6 +164,11 @@ const styles = StyleSheet.create({
   cardBody: {
     gap: 6,
   },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
   cardPressed: {
     opacity: 0.82,
   },
@@ -156,6 +186,18 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.55,
+  },
+  dietaryBadge: {
+    backgroundColor: "#F7FAF1",
+    borderColor: "#DDEAD3",
+    borderRadius: 999,
+    borderWidth: 1,
+    color: colors.accentDark,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 15,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   headerRow: {
     alignItems: "center",

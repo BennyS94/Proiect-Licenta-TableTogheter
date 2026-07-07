@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -23,6 +23,18 @@ import { AppCard } from "../components/ui/AppCard";
 import { DaySelector } from "../components/ui/DaySelector";
 import { ProfileSelector, type ProfileSelectorItem } from "../components/ui/ProfileSelector";
 import { API_BASE_URL } from "../config/api";
+import {
+  buildDimaPresentationFixturePlan,
+  buildDimaPresentationProgressSnapshots,
+  getDimaPresentationProfileIds,
+  isDimaPresentationFixtureAccount,
+} from "../data/presentation/dimaPresentationFixture";
+import {
+  useHomeScreenState,
+  type ConfirmationDialogState,
+  type GenerationMode,
+  type HouseholdSource,
+} from "../hooks/useHomeScreenState";
 import { HomePage } from "./HomePage";
 import { HouseholdPage } from "./HouseholdPage";
 import {
@@ -32,7 +44,7 @@ import {
   type InsightsTotals,
   type MealContribution,
 } from "./InsightsPage";
-import { MealPlanPage, type MealPlanTab } from "./MealPlanPage";
+import { MealPlanPage } from "./MealPlanPage";
 import {
   clearFeedback,
   createProfile,
@@ -62,7 +74,6 @@ import type {
   FeedbackType,
   GeneratedMeal,
   GroceryListResponse,
-  HealthResponse,
   HouseholdMeal,
   HouseholdPlanGenerateRequest,
   HouseholdPlanGenerateResponse,
@@ -74,17 +85,6 @@ import type {
 } from "../types/api";
 
 const profileEyeLottie = require("../../assets/home/eye_for_page_2.json");
-
-type HealthState = "idle" | "loading" | "connected" | "error";
-type GenerationMode = "individual" | "household";
-type HouseholdSource = "demo" | "saved";
-type ConfirmationDialogState = {
-  body: string;
-  confirmLabel: string;
-  onConfirm: () => void;
-  title: string;
-  variant?: "danger" | "primary";
-} | null;
 
 const GENERATION_OPTIONS = {
   selection_mode: "balanced_day",
@@ -116,92 +116,118 @@ const HOUSEHOLD_COOKING_TIME_OPTIONS = [
 ];
 
 export function HomeScreen() {
-  const [healthStatus, setHealthStatus] = useState<HealthState>("idle");
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [demoHousehold, setDemoHousehold] = useState<DemoHouseholdResponse | null>(null);
-  const [savedProfiles, setSavedProfiles] = useState<MemberProfileResponse[]>([]);
-  const [selectedMemberId, setSelectedMemberId] = useState("");
-  const [selectedSavedProfileId, setSelectedSavedProfileId] = useState("");
-  const [generationMode, setGenerationMode] = useState<GenerationMode>("individual");
-  const [householdSource, setHouseholdSource] = useState<HouseholdSource>("demo");
-  const [selectedHouseholdMemberIds, setSelectedHouseholdMemberIds] = useState<string[]>([]);
-  const [selectedSavedHouseholdProfileIds, setSelectedSavedHouseholdProfileIds] = useState<
-    string[]
-  >([]);
-  const [currentHouseholdMemberIndex, setCurrentHouseholdMemberIndex] = useState(0);
-  const [selectedHouseholdDayIndex, setSelectedHouseholdDayIndex] = useState(1);
-  const [isLoadingHousehold, setIsLoadingHousehold] = useState(false);
-  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
-  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
-  const [deletingProfileId, setDeletingProfileId] = useState("");
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-  const [isGeneratingHouseholdPlan, setIsGeneratingHouseholdPlan] = useState(false);
-  const [generatedPlan, setGeneratedPlan] = useState<IndividualPlanGenerateResponse | null>(
-    null,
-  );
-  const [generatedHouseholdPlan, setGeneratedHouseholdPlan] =
-    useState<HouseholdPlanGenerateResponse | null>(null);
-  const [feedbackContext, setFeedbackContext] = useState<FeedbackContextResponse | null>(null);
-  const [isLoadingFeedbackContext, setIsLoadingFeedbackContext] = useState(false);
-  const [isClearingFeedback, setIsClearingFeedback] = useState(false);
-  const [pendingFeedbackKey, setPendingFeedbackKey] = useState("");
-  const [, setFeedbackError] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [householdErrorMessage, setHouseholdErrorMessage] = useState("");
-  const [householdMessage, setHouseholdMessage] = useState("");
-  const [profileMessage, setProfileMessage] = useState("");
-  const [profileErrorMessage, setProfileErrorMessage] = useState("");
-  const [householdCookingTimePreference, setHouseholdCookingTimePreference] =
-    useState("balanced");
-  const [confirmationDialog, setConfirmationDialog] =
-    useState<ConfirmationDialogState>(null);
-  const [toastMessage, setToastMessage] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
-  const [authError, setAuthError] = useState("");
-  const [authSessionToken, setAuthSessionToken] = useState("");
-  const [authAccount, setAuthAccount] = useState<AuthAccount | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const [householdNameDraft, setHouseholdNameDraft] = useState("My Household");
-  const [isEditingHouseholdName, setIsEditingHouseholdName] = useState(false);
-  const [isUpdatingHouseholdName, setIsUpdatingHouseholdName] = useState(false);
-  const [isAddingMember, setIsAddingMember] = useState(false);
-  const [editingMemberProfileId, setEditingMemberProfileId] = useState("");
-  const [activePage, setActivePage] = useState<AppPageKey>("home");
-  const [scrollToTopRequests, setScrollToTopRequests] = useState<
-    Record<AppPageKey, number>
-  >({
-    home: 0,
-    household: 0,
-    insights: 0,
-    mealPlan: 0,
-  });
-  const [isDemoModeEnabled, setIsDemoModeEnabled] = useState(false);
-  const [isContinuingDemo, setIsContinuingDemo] = useState(false);
-  const [defaultViewerId, setDefaultViewerId] = useState("");
-  const [mealPlanTab, setMealPlanTab] = useState<MealPlanTab>("mealPlan");
-
-  useEffect(() => {
-    if (!toastMessage) {
-      return;
-    }
-    const timeoutId = setTimeout(() => {
-      setToastMessage("");
-    }, 2600);
-    return () => clearTimeout(timeoutId);
-  }, [toastMessage]);
-  const [selectedIndividualDayIndex, setSelectedIndividualDayIndex] = useState(1);
-  const [selectedInsightsDay, setSelectedInsightsDay] =
-    useState<InsightsDaySelection>(1);
-  const [planDays, setPlanDays] = useState(3);
-  const [dailyProgressByKey, setDailyProgressByKey] = useState<
-    Record<string, DailyProgressSnapshot>
-  >({});
-  const [dailyProgressLoadingProfileId, setDailyProgressLoadingProfileId] =
-    useState("");
-  const [isSavingDailyProgress, setIsSavingDailyProgress] = useState(false);
-  const [deletingDailyProgressId, setDeletingDailyProgressId] = useState("");
-  const [, setDailyProgressMessage] = useState("");
-  const [dailyProgressError, setDailyProgressError] = useState("");
+  const {
+    activePage,
+    authAccount,
+    authError,
+    authMessage,
+    authSessionToken,
+    confirmationDialog,
+    currentHouseholdMemberIndex,
+    dailyProgressByKey,
+    dailyProgressError,
+    dailyProgressLoadingProfileId,
+    defaultViewerId,
+    deletingDailyProgressId,
+    deletingProfileId,
+    demoHousehold,
+    editingMemberProfileId,
+    errorMessage,
+    feedbackContext,
+    generatedHouseholdPlan,
+    generatedPlan,
+    generationMode,
+    health,
+    healthStatus,
+    householdCookingTimePreference,
+    householdErrorMessage,
+    householdMessage,
+    householdNameDraft,
+    householdSource,
+    isAddingMember,
+    isAuthLoading,
+    isClearingFeedback,
+    isCreatingProfile,
+    isEditingHouseholdName,
+    isGeneratingHouseholdPlan,
+    isGeneratingPlan,
+    isLoadingProfiles,
+    isSavingDailyProgress,
+    isUpdatingHouseholdName,
+    mealPlanTab,
+    pendingFeedbackKey,
+    planDays,
+    profileErrorMessage,
+    profileMessage,
+    savedProfiles,
+    scrollToTopRequests,
+    selectedHouseholdDayIndex,
+    selectedHouseholdMemberIds,
+    selectedIndividualDayIndex,
+    selectedInsightsDay,
+    selectedMemberId,
+    selectedSavedHouseholdProfileIds,
+    selectedSavedProfileId,
+    setActivePage,
+    setAuthAccount,
+    setAuthError,
+    setAuthMessage,
+    setAuthSessionToken,
+    setConfirmationDialog,
+    setCurrentHouseholdMemberIndex,
+    setDailyProgressByKey,
+    setDailyProgressError,
+    setDailyProgressLoadingProfileId,
+    setDailyProgressMessage,
+    setDefaultViewerId,
+    setDeletingDailyProgressId,
+    setDeletingProfileId,
+    setDemoHousehold,
+    setEditingMemberProfileId,
+    setErrorMessage,
+    setFeedbackContext,
+    setFeedbackError,
+    setGeneratedHouseholdPlan,
+    setGeneratedPlan,
+    setGenerationMode,
+    setHealth,
+    setHealthStatus,
+    setHouseholdCookingTimePreference,
+    setHouseholdErrorMessage,
+    setHouseholdMessage,
+    setHouseholdNameDraft,
+    setHouseholdSource,
+    setIsAddingMember,
+    setIsAuthLoading,
+    setIsClearingFeedback,
+    setIsContinuingDemo,
+    setIsCreatingProfile,
+    setIsDemoModeEnabled,
+    setIsEditingHouseholdName,
+    setIsGeneratingHouseholdPlan,
+    setIsGeneratingPlan,
+    setIsLoadingFeedbackContext,
+    setIsLoadingHousehold,
+    setIsLoadingProfiles,
+    setIsSavingDailyProgress,
+    setIsUpdatingHouseholdName,
+    setMealPlanTab,
+    setPendingFeedbackKey,
+    setPlanDays,
+    setProfileErrorMessage,
+    setProfileMessage,
+    setSavedProfiles,
+    setScrollToTopRequests,
+    setSelectedHouseholdDayIndex,
+    setSelectedHouseholdMemberIds,
+    setSelectedIndividualDayIndex,
+    setSelectedInsightsDay,
+    setSelectedMemberId,
+    setSelectedSavedHouseholdProfileIds,
+    setSelectedSavedProfileId,
+    setToastMessage,
+    toastMessage,
+  } = useHomeScreenState();
 
   const selectedMember = useMemo(
     () =>
@@ -287,6 +313,7 @@ export function HomeScreen() {
       : "";
   const feedbackStats = getFeedbackStats(feedbackContext);
   const savedHistoryCount = Object.keys(dailyProgressByKey).length;
+  const dimaPresentationFixtureEnabled = isDimaPresentationFixtureAccount(authAccount);
 
   useEffect(() => {
     setHouseholdNameDraft(
@@ -615,6 +642,12 @@ export function HomeScreen() {
 
     const orderedProfiles = orderSavedProfilesForViewing(savedProfiles, defaultViewerId);
     const selectedProfile = orderedProfiles[0];
+    if (dimaPresentationFixtureEnabled) {
+      const activated = activateDimaPresentationFixture(orderedProfiles);
+      if (activated) {
+        return;
+      }
+    }
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
@@ -1125,15 +1158,25 @@ export function HomeScreen() {
     setDefaultViewerId("");
     setSelectedSavedHouseholdProfileIds([]);
     setActivePage("household");
-    void loadProfilesAfterAuth(account.household_id, sessionToken);
+    void loadProfilesAfterAuth(account.household_id, sessionToken, account);
   }
 
-  async function loadProfilesAfterAuth(householdId: string, sessionToken: string) {
+  async function loadProfilesAfterAuth(
+    householdId: string,
+    sessionToken: string,
+    account?: AuthAccount,
+  ) {
     setIsLoadingProfiles(true);
 
     try {
       const profiles = await getProfiles(householdId, sessionToken);
       setSavedProfiles(profiles);
+      if (isDimaPresentationFixtureAccount(account ?? null)) {
+        const activated = activateDimaPresentationFixture(profiles, "home");
+        if (activated) {
+          return;
+        }
+      }
       const firstProfile = profiles[0];
       if (firstProfile) {
         setSelectedSavedProfileId(firstProfile.member_profile_id);
@@ -1149,6 +1192,54 @@ export function HomeScreen() {
     } finally {
       setIsLoadingProfiles(false);
     }
+  }
+
+  function activateDimaPresentationFixture(
+    profiles: MemberProfileResponse[],
+    nextPage?: AppPageKey,
+  ): boolean {
+    const fixturePlan = buildDimaPresentationFixturePlan(profiles);
+    if (!fixturePlan) {
+      return false;
+    }
+    const profileIds = getDimaPresentationProfileIds(profiles);
+    const defaultProfileId = profileIds[0] ?? "";
+    const progressSnapshots = buildDimaPresentationProgressSnapshots(
+      profiles,
+      String(fixturePlan.household_id || activeHouseholdId || ""),
+    );
+    const progressByKey = Object.fromEntries(
+      progressSnapshots.map((snapshot) => [
+        buildDailyProgressKey(
+          snapshot.member_profile_id,
+          snapshot.plan_id,
+          snapshot.day_index,
+        ),
+        snapshot,
+      ]),
+    );
+    setPlanDays(3);
+    setGenerationMode("household");
+    setHouseholdSource("saved");
+    setSelectedMemberId("");
+    setSelectedSavedProfileId(defaultProfileId);
+    setDefaultViewerId(defaultProfileId ? `saved:${defaultProfileId}` : "");
+    setSelectedSavedHouseholdProfileIds(profileIds);
+    setCurrentHouseholdMemberIndex(0);
+    setSelectedHouseholdDayIndex(1);
+    setSelectedInsightsDay(1);
+    setMealPlanTab("mealPlan");
+    setGeneratedPlan(null);
+    setGeneratedHouseholdPlan(fixturePlan);
+    setDailyProgressByKey(progressByKey);
+    setErrorMessage("");
+    setHouseholdErrorMessage("");
+    setDailyProgressError("");
+    setDailyProgressMessage("");
+    if (nextPage) {
+      setActivePage(nextPage);
+    }
+    return true;
   }
 
   async function logOutLocalSession() {
@@ -1227,6 +1318,9 @@ export function HomeScreen() {
 
   async function refreshDailyProgressForProfile(memberProfileId: string, quiet = false) {
     if (!authSessionToken || !memberProfileId) {
+      return;
+    }
+    if (dimaPresentationFixtureEnabled) {
       return;
     }
     setDailyProgressLoadingProfileId(memberProfileId);
@@ -1585,7 +1679,7 @@ export function HomeScreen() {
       <GroceryListSection groceryList={groceryList} />
     );
 
-  const alternativesPrefetcherNode = hasCurrentPlan ? (
+  const alternativesPrefetcherNode = hasCurrentPlan && !dimaPresentationFixtureEnabled ? (
     <MealPlanAlternativesPrefetcher
       datasetProfile={
         generationMode === "household"
@@ -1882,6 +1976,7 @@ export function HomeScreen() {
         scrollToTopSignal={scrollToTopRequests.insights}
         savedProgress={selectedDailyProgress}
         selectedDay={safeInsightsDay}
+        startWithMealsCompleted={dimaPresentationFixtureEnabled}
         targetTotals={insightsTargetTotals}
         totals={insightsTotals}
       />

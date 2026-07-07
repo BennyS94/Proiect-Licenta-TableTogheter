@@ -72,6 +72,7 @@ type InsightsPageProps = {
   isDeletingProgress?: boolean;
   isLoadingProgress?: boolean;
   isSavingProgress?: boolean;
+  startWithMealsCompleted?: boolean;
   targetTotals?: InsightsTotals;
   totals?: InsightsTotals;
 };
@@ -132,6 +133,7 @@ export function InsightsPage({
   isDeletingProgress,
   isLoadingProgress,
   isSavingProgress,
+  startWithMealsCompleted = false,
   targetTotals,
   totals,
 }: InsightsPageProps) {
@@ -165,9 +167,14 @@ export function InsightsPage({
   const [completionByContext, setCompletionByContext] = useState<
     Record<string, MealCompletionState>
   >({});
+  const defaultCompletedMeals = useMemo(
+    () => buildDefaultCompletionState(mealRows),
+    [mealRows],
+  );
   const completionForContext = isAverageMode
     ? EMPTY_COMPLETION_STATE
-    : completionByContext[completionContextKey] ?? EMPTY_COMPLETION_STATE;
+    : completionByContext[completionContextKey] ??
+      (startWithMealsCompleted ? defaultCompletedMeals : EMPTY_COMPLETION_STATE);
   const consumedTotals = useMemo(
     () => sumCompletedMealTotals(mealRows, completionForContext),
     [completionForContext, mealRows],
@@ -184,7 +191,10 @@ export function InsightsPage({
       return;
     }
     setCompletionByContext((current) => {
-      const contextState = { ...(current[completionContextKey] ?? {}) };
+      const contextState = {
+        ...(current[completionContextKey] ??
+          (startWithMealsCompleted ? defaultCompletedMeals : EMPTY_COMPLETION_STATE)),
+      };
       if (contextState[mealKey]) {
         delete contextState[mealKey];
       } else {
@@ -1262,6 +1272,14 @@ function buildMealCompletionContextKey({
 
 function getMealContributionKey(meal: MealContribution): string {
   return normalizeSlot(meal.slot || "meal");
+}
+
+function buildDefaultCompletionState(mealRows: MealContribution[]): MealCompletionState {
+  const state: MealCompletionState = {};
+  for (const meal of mealRows) {
+    state[getMealContributionKey(meal)] = true;
+  }
+  return state;
 }
 
 function sumCompletedMealTotals(

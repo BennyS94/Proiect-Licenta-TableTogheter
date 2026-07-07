@@ -92,6 +92,20 @@ $env:EXPO_PUBLIC_API_BASE_URL='http://<PC_LAN_IP>:8000'
 npx expo start --go --host lan
 ```
 
+Pentru telefon fizic conectat prin USB, varianta cea mai stabila in testele
+curente este prin `adb reverse`, fara dependenta de reteaua Wi-Fi:
+
+```powershell
+adb reverse tcp:8000 tcp:8000
+adb reverse tcp:8081 tcp:8081
+$env:EXPO_PUBLIC_API_BASE_URL='http://127.0.0.1:8000'
+npx expo start --host lan --port 8081 --clear
+```
+
+`http://10.0.2.2:8000` ramane doar pentru emulator Android. Pe telefon fizic
+aceasta adresa produce timeout la login/generare, pentru ca telefonul nu vede
+host-ul emulatorului.
+
 ## Current Scope
 
 Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza istoricul checkpoint-urilor. Starea curenta a aplicatiei este cea din aceasta sectiune si include Auth-M1, UI-2B/UI-2C, HOME-1, PROFILE-WIZARD-1, KNN alternatives si meal-level replacement explicit.
@@ -161,6 +175,14 @@ Nota: sectiunile `Mobile M2 Flow`, `Mobile M3 Flow` etc. de mai jos pastreaza is
 - Snapshoturile salvate sunt per profil + plan + zi, au limita backend de 30 per profil si pot fi sterse cu `Delete saved day` fara sa stearga planul generat. Clientul mobil foloseste aliasul `POST /progress/daily/{progress_id}/delete`.
 - Trends citeste doar snapshoturile salvate ale profilului selectat si afiseaza `Last X days`, Target adherence, Consistency si Macro pattern. Nu foloseste date fake cand exista istoric salvat.
 - Average mode nu permite `Save day`; ramane o vizualizare statica pentru planul curent.
+- Pentru simularea de prezentare exista un fixture controlat Dima in
+  `mobile/src/data/presentation/dimaPresentationFixture.ts`. Cand contul curent
+  este `dima.household@tabletogether.app` sau household-ul este `Dima Household`,
+  aplicatia incarca un plan de 3 zile, grocery list si progress snapshots locale,
+  fara sa schimbe backend-ul sau generatorul.
+- Starea principala a `HomeScreen` este centralizata in hook-ul
+  `mobile/src/hooks/useHomeScreenState.ts`; `HomeScreen` ramane responsabil de
+  orchestrarea API/UI si de conectarea paginilor.
 
 ## Screen idle / keep-awake investigation
 

@@ -52,6 +52,7 @@ export function HouseholdMealRow({
   const scope = stringValue(meal.meal_scope) ?? "individual";
   const portionMultiplier = numberValue(meal.portion_multiplier);
   const recipeId = stringValue(meal.recipe_id);
+  const alternativesDisabled = Boolean(meal.alternatives_disabled);
   const replaceScope = replacementScopeFromMeal(scope);
   const ingredients = getTextList(
     meal.ingredients ??
@@ -100,7 +101,7 @@ export function HouseholdMealRow({
           label="Cook / Steps"
           onPress={() => setActiveSheet("cook")}
         />
-        {recipeId ? (
+        {recipeId && !alternativesDisabled ? (
           <SmallActionButton
             active={activeSheet === "alternatives"}
             label="Alternatives"
