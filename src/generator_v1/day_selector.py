@@ -111,6 +111,14 @@ SELECTED_MEAL_FIELDS = [
     "household_generation_shared_slot",
     "household_allocation_mode",
     "household_member_count",
+    "mixed_vegetarian_pairing_status",
+    "mixed_vegetarian_compatible_member_ids_json",
+    "mixed_vegetarian_excluded_member_ids_json",
+    "household_vegetarian_companion_recipe_id",
+    "household_vegetarian_companion_display_name",
+    "household_vegetarian_companion_score",
+    "household_vegetarian_companion_template",
+    "household_vegetarian_companion_recipe_ids_json",
 ]
 
 SORT_COLUMNS = [

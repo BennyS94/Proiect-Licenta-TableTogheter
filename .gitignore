@@ -24,6 +24,8 @@ Thumbs.db
 *.tmp
 /zzzzzz_mobile_testing_notes/
 /zzzzzz_documentatie/
+/_private_presentation_prep/
+/_PLAN_DE_FINALIZARE_ASAP/
 .codex_runtime_logs/
 
 # Stare locala/demo, nu se comite.

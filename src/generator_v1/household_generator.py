@@ -18,6 +18,11 @@ from src.generator_v1.household_ingredient_guard import (
     audit_household_ingredient_load,
     candidate_egg_load,
 )
+from src.generator_v1.household_pairing import (
+    annotate_mixed_vegetarian_pairing,
+    is_preferred_companion,
+    preferred_companion_recipe_ids,
+)
 from src.generator_v1.macro_fit import macro_fit
 from src.generator_v1.multi_day_selector import (
     MULTI_DAY_MODE_GLOBAL,
@@ -180,7 +185,13 @@ def build_household_slot_candidates(
         else:
             rows.append(_non_shared_candidate_row(row, config=resolved_config))
 
-    return pd.DataFrame(rows)
+    household_frame = pd.DataFrame(rows)
+    return annotate_mixed_vegetarian_pairing(
+        household_frame,
+        member_targets=member_targets,
+        config=resolved_config,
+        shared_slots=list(shared_slots),
+    )
 
 
 def allocate_member_portions_for_candidate(
@@ -883,6 +894,15 @@ def _individual_meal_rows_from_candidates(
         if recipe_id:
             used_by_member_day.setdefault(key, set()).add(recipe_id)
 
+    used_by_member_all_days: dict[str, set[str]] = {}
+    for row in shared_allocations:
+        member_id = str(row.get("member_id") or "")
+        recipe_id = str(row.get("recipe_id") or "").strip()
+        if member_id and recipe_id:
+            used_by_member_all_days.setdefault(member_id, set()).add(recipe_id)
+
+    preferred_by_member_day_slot = _vegetarian_companion_preferences(days)
+
     targets_by_member_id = member_targets.get("targets_by_member_id") or {}
     for day in days:
         day_index = int(day.get("day_index") or 1)
@@ -944,6 +964,14 @@ def _individual_meal_rows_from_candidates(
                         (day_index, member_id),
                         set(),
                     ),
+                    used_recipe_ids_global=used_by_member_all_days.setdefault(
+                        member_id,
+                        set(),
+                    ),
+                    preferred_recipe_ids=preferred_by_member_day_slot.get(
+                        (day_index, str(slot), member_id),
+                        [],
+                    ),
                     protein_priority=protein_priority,
                     config=config,
                 )
@@ -952,7 +980,32 @@ def _individual_meal_rows_from_candidates(
                     recipe_id = str(selected.get("recipe_id") or "").strip()
                     if recipe_id:
                         used_by_member_day[(day_index, member_id)].add(recipe_id)
+                        used_by_member_all_days.setdefault(member_id, set()).add(recipe_id)
     return rows
+
+
+def _vegetarian_companion_preferences(
+    days: Sequence[Mapping[str, Any]],
+) -> dict[tuple[int, str, str], list[str]]:
+    result: dict[tuple[int, str, str], list[str]] = {}
+    for day in days:
+        day_index = int(day.get("day_index") or 1)
+        for meal in day.get("selected_meals", []) or []:
+            if not isinstance(meal, Mapping):
+                continue
+            preferred_ids = preferred_companion_recipe_ids(meal)
+            if not preferred_ids:
+                continue
+            excluded_member_ids = meal.get("household_dietary_excluded_member_ids") or []
+            if isinstance(excluded_member_ids, str):
+                excluded_member_ids = [excluded_member_ids]
+            for member_id in excluded_member_ids:
+                cleaned_member_id = str(member_id or "").strip()
+                if cleaned_member_id:
+                    result[
+                        (day_index, str(meal.get("slot") or ""), cleaned_member_id)
+                    ] = preferred_ids
+    return result
 
 
 def _select_individual_candidate(
@@ -962,6 +1015,8 @@ def _select_individual_candidate(
     member: Mapping[str, Any],
     day_index: int,
     used_recipe_ids: set[str],
+    used_recipe_ids_global: set[str],
+    preferred_recipe_ids: Sequence[str],
     protein_priority: bool,
     config: Mapping[str, Any],
 ) -> dict[str, Any] | None:
@@ -1007,9 +1062,16 @@ def _select_individual_candidate(
         )
         if protein_priority:
             loss += protein_deficit * 0.55
+        preferred_companion = is_preferred_companion(recipe_id, preferred_recipe_ids)
+        if preferred_companion:
+            loss -= float(config.get("mixed_vegetarian_companion_bonus") or 0.22)
+            warnings.append("mixed_vegetarian_companion_preferred")
         if recipe_id in used_recipe_ids:
             loss += 0.18
             warnings.append("individual_recipe_repeat_pressure")
+        if recipe_id in used_recipe_ids_global:
+            loss += float(config.get("individual_global_repeat_penalty") or 0.22)
+            warnings.append("individual_multi_day_repeat_pressure")
         egg_guard = _individual_candidate_egg_guard(
             row=row,
             portion_multiplier=multiplier,
@@ -1074,6 +1136,7 @@ def _select_individual_candidate(
                 ),
                 "protein_density_g_per_100_kcal": round(protein_density, 2),
                 "protein_correction_applied": bool(protein_priority),
+                "mixed_vegetarian_companion_selected": bool(preferred_companion),
                 "individual_candidate_loss": round(loss, 6),
                 "egg_load_status": egg_guard.get("egg_load_status", "ok"),
                 "egg_source_type": egg_guard.get("egg_source_type", ""),
