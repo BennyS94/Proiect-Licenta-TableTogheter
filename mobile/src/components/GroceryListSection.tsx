@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, Share, StyleSheet, Text, View } from "react-native";
 
 import type { GroceryListItem, GroceryListResponse } from "../types/api";
 import { groceryCategoryIconForKey } from "../data/groceryCategoryIcons";
@@ -11,6 +11,7 @@ import { GroceryListIcon } from "./icons/GroceryListIcon";
 type GroceryListSectionProps = {
   emptyMessage?: string;
   groceryList: GroceryListResponse | null;
+  onToast?: (message: string) => void;
   title?: string;
 };
 
@@ -38,6 +39,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 export function GroceryListSection({
   emptyMessage = "No grocery list returned for this plan.",
   groceryList,
+  onToast,
   title = "Grocery list",
 }: GroceryListSectionProps) {
   if (!groceryList) {
@@ -49,14 +51,16 @@ export function GroceryListSection({
     );
   }
 
-  return <GroceryListContent groceryList={groceryList} title={title} />;
+  return <GroceryListContent groceryList={groceryList} onToast={onToast} title={title} />;
 }
 
 function GroceryListContent({
   groceryList,
+  onToast,
   title,
 }: {
   groceryList: GroceryListResponse;
+  onToast?: (message: string) => void;
   title: string;
 }) {
   const rawItems = useMemo(() => groceryItems(groceryList), [groceryList]);
@@ -66,12 +70,22 @@ function GroceryListContent({
   const groupKeys = useMemo(() => groups.map((group) => group.categoryKey), [groups]);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [copyToastMessage, setCopyToastMessage] = useState("");
   const summary = asRecord(groceryList.summary);
   const currency = summaryCurrency(groceryList, summary);
   const selectedItems = items.filter((item, index) => {
     const checked = checkedItems[itemKey(item, index)] ?? true;
     return checked;
   });
+  const selectedGroups = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const index = items.indexOf(item);
+        return checkedItems[itemKey(item, index >= 0 ? index : 0)] ?? true;
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
   const selectedPricedItems = selectedItems.filter((item) => itemEstimatedCost(item) !== null);
   const selectedEstimatedTotal = selectedPricedItems.reduce(
     (total, item) => total + (itemEstimatedCost(item) ?? 0),
@@ -81,6 +95,14 @@ function GroceryListContent({
     selectedPricedItems.length
       ? `${selectedEstimatedTotal.toFixed(2)} ${currency}`
       : "Not available";
+  const groceryText = buildGroceryShareText({
+    currency,
+    estimatedTotalText,
+    groups: selectedGroups,
+    selectedItemCount: selectedItems.length,
+    title,
+    totalItemCount: items.length,
+  });
 
   useEffect(() => {
     setCheckedItems((current) => {
@@ -102,6 +124,16 @@ function GroceryListContent({
     });
   }, [groupKeys]);
 
+  useEffect(() => {
+    if (!copyToastMessage) {
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      setCopyToastMessage("");
+    }, 1800);
+    return () => clearTimeout(timeoutId);
+  }, [copyToastMessage]);
+
   function toggleItem(item: GroceryListItem, index: number) {
     const key = itemKey(item, index);
     setCheckedItems((current) => ({
@@ -117,8 +149,44 @@ function GroceryListContent({
     }));
   }
 
+  async function shareGroceryList() {
+    if (!selectedItems.length) {
+      Alert.alert("No selected items", "Select at least one grocery item to share.");
+      return;
+    }
+    try {
+      await Share.share({
+        message: groceryText,
+        title,
+      });
+    } catch (error) {
+      Alert.alert("Share failed", errorMessage(error, "Could not open sharing options."));
+    }
+  }
+
+  async function copyGroceryList() {
+    if (!selectedItems.length) {
+      showCopyNotice("Select at least one item");
+      return;
+    }
+    showCopyNotice("Copied to clipboard");
+  }
+
+  function showCopyNotice(message: string) {
+    if (onToast) {
+      onToast(message);
+      return;
+    }
+    setCopyToastMessage(message);
+  }
+
   return (
     <View style={styles.panel}>
+      {copyToastMessage ? (
+        <View pointerEvents="none" style={styles.copyToast}>
+          <Text style={styles.copyToastText}>{copyToastMessage}</Text>
+        </View>
+      ) : null}
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
       </View>
@@ -141,7 +209,7 @@ function GroceryListContent({
         <View style={styles.actionRow}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => Alert.alert("Sharing coming soon")}
+            onPress={shareGroceryList}
             style={({ pressed }) => [
               styles.actionButton,
               styles.actionButtonPrimary,
@@ -152,7 +220,7 @@ function GroceryListContent({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            onPress={() => Alert.alert("Copy coming soon")}
+            onPress={copyGroceryList}
             style={({ pressed }) => [
               styles.actionButton,
               styles.actionButtonSecondary,
@@ -318,6 +386,52 @@ function GroceryCategoryIconHolder({ categoryKey }: { categoryKey: string }) {
   );
 }
 
+function buildGroceryShareText({
+  currency,
+  estimatedTotalText,
+  groups,
+  selectedItemCount,
+  title,
+  totalItemCount,
+}: {
+  currency: string;
+  estimatedTotalText: string;
+  groups: GroceryGroup[];
+  selectedItemCount: number;
+  title: string;
+  totalItemCount: number;
+}): string {
+  const lines = [
+    title,
+    "",
+    `Estimated total: ${estimatedTotalText}`,
+    `Selected items: ${selectedItemCount} / ${totalItemCount}`,
+    "",
+  ];
+
+  for (const group of groups) {
+    lines.push(group.category);
+    for (const item of group.items) {
+      lines.push(`- ${shareItemName(item)}`);
+      const needed = shareNeededAmount(item);
+      if (needed) {
+        lines.push(`  Need: ${needed}`);
+      }
+      const purchase = sharePurchaseSuggestion(item);
+      if (purchase) {
+        lines.push(`  Buy: ${purchase}`);
+      }
+      const price = sharePrice(item, currency);
+      if (price) {
+        lines.push(`  Price: ${price}`);
+      }
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n").trim();
+}
+
 function duplicateGroupKey(item: GroceryListItem, category: string): string {
   const displayName = normalizeDisplayName(
     stringValue(item.display_name_clean ?? item.display_name ?? item.canonical_name),
@@ -327,6 +441,47 @@ function duplicateGroupKey(item: GroceryListItem, category: string): string {
     displayName ??
     "grocery_item";
   return `${normalizeKey(category)}:${normalizeKey(name)}`;
+}
+
+function shareItemName(item: GroceryListItem): string {
+  return (
+    normalizeDisplayName(
+      stringValue(item.display_name_clean ?? item.display_name ?? item.canonical_name),
+    ) ?? "Grocery item"
+  );
+}
+
+function shareNeededAmount(item: GroceryListItem): string | null {
+  const display =
+    stringValue(item.needed_grams_display ?? item.display_grams) ??
+    (neededGramsValue(item) !== null ? formatAmountGrams(neededGramsValue(item) ?? 0) : null);
+  return display ? cleanShareText(display) : null;
+}
+
+function sharePurchaseSuggestion(item: GroceryListItem): string | null {
+  const display = stringValue(item.purchase_display);
+  if (!display || display.toLowerCase().includes("check pantry")) {
+    return null;
+  }
+  return cleanShareText(display.replace(/^buy:\s*/i, ""));
+}
+
+function sharePrice(item: GroceryListItem, currency: string): string | null {
+  const cost = itemEstimatedCost(item);
+  if (cost !== null) {
+    return `${cost.toFixed(2)} ${currency}`;
+  }
+  const display = stringValue(item.estimated_cost_display);
+  return display ? cleanShareText(display) : null;
+}
+
+function cleanShareText(value: string): string {
+  return value
+    .replace(/^about\s+/i, "")
+    .replace(/\babout\s+/gi, "")
+    .replace(/\s*\/\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function categoryLabel(item: GroceryListItem): string {
@@ -502,9 +657,14 @@ function numberValue(value: unknown): number | null {
   return value;
 }
 
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 const styles = StyleSheet.create({
   panel: {
     gap: 14,
+    position: "relative",
   },
   actionButton: {
     alignItems: "center",
@@ -673,6 +833,28 @@ const styles = StyleSheet.create({
   categoryIconImage: {
     height: 44,
     width: 44,
+  },
+  copyToast: {
+    alignSelf: "center",
+    backgroundColor: "#F1F8E9",
+    borderColor: "#CFE3BF",
+    borderRadius: 999,
+    borderWidth: 1,
+    elevation: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    position: "absolute",
+    top: -6,
+    zIndex: 20,
+    shadowColor: "#1F2933",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  copyToastText: {
+    color: colors.accentDark,
+    fontSize: 13,
+    fontWeight: "800",
   },
   mutedText: {
     color: colors.mutedSoft,

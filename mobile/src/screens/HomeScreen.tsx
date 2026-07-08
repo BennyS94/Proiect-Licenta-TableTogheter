@@ -1673,10 +1673,11 @@ export function HomeScreen() {
       <GroceryListSection
         emptyMessage="No household grocery list returned."
         groceryList={householdGroceryList}
+        onToast={setToastMessage}
         title="Household grocery list"
       />
     ) : (
-      <GroceryListSection groceryList={groceryList} />
+      <GroceryListSection groceryList={groceryList} onToast={setToastMessage} />
     );
 
   const alternativesPrefetcherNode = hasCurrentPlan && !dimaPresentationFixtureEnabled ? (
@@ -4046,18 +4047,25 @@ const styles = StyleSheet.create({
   },
   toast: {
     alignSelf: "center",
-    backgroundColor: "#1B2430",
+    backgroundColor: "#F8FBF4",
+    borderColor: "#DDEAD3",
     borderRadius: 999,
-    bottom: 108,
+    borderWidth: 1,
+    elevation: 3,
     maxWidth: "86%",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     position: "absolute",
+    shadowColor: "#1F2933",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    top: 34,
   },
   toastText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "900",
+    color: colors.accentDark,
+    fontSize: 12,
+    fontWeight: "800",
     textAlign: "center",
   },
   buttonText: {
