@@ -1,6 +1,7 @@
 import type {
   AuthAccount,
   DailyProgressSnapshot,
+  MealReplacementResponse,
   GroceryListItem,
   HouseholdMeal,
   HouseholdMemberMacroSummary,
@@ -8,12 +9,15 @@ import type {
   HouseholdMemberTarget,
   HouseholdPlanGenerateResponse,
   MemberProfileResponse,
+  RecipeAlternativesResponse,
 } from "../../types/api";
 
 // Fixture temporar pentru simularea TableTogether. Nu este logica de productie.
 const DIMA_EMAIL = "dima.household@tabletogether.app";
 const DIMA_HOUSEHOLD_NAME = "Dima Household";
 const PLAN_ID = "dima_household_presentation_plan";
+const PRESENTATION_PROGRESS_HISTORY_DAYS = 30;
+const PRESENTATION_PROGRESS_START_DATE_UTC = Date.UTC(2026, 5, 1, 20, 0, 0);
 
 const MEMBER_IDS = {
   adrian: "member_profile_dima_adrian",
@@ -111,20 +115,24 @@ export function buildDimaPresentationProgressSnapshots(
   householdId: string,
 ): DailyProgressSnapshot[] {
   return orderDimaProfiles(profiles).flatMap((profile) =>
-    getMemberDays(profile.member_profile_id).map((day) => {
-      const savedAt = `2026-06-${26 + day.day_index}T20:00:00+00:00`;
+    buildDimaPresentationProgressDays(profile.member_profile_id).map(({ day, historyDayIndex }) => {
+      const savedAt = buildPresentationProgressSavedAt(historyDayIndex);
       const completedMeals = getCompletedMealsForPresentationProgress(
         profile.member_profile_id,
         day,
+        historyDayIndex,
       );
-      const consumed = sumMealTotals(completedMeals);
+      const consumed = scaleTotals(
+        sumMealTotals(completedMeals),
+        getPresentationProgressMultiplier(profile.member_profile_id, historyDayIndex),
+      );
       return {
         consumed,
         created_at: savedAt,
-        day_index: day.day_index,
+        day_index: historyDayIndex,
         day_snapshot: {
           active_profile_name: cleanDimaName(profile.display_name),
-          selected_day: day.day_index,
+          selected_day: historyDayIndex,
         },
         household_id: householdId,
         meal_completion: {
@@ -135,7 +143,7 @@ export function buildDimaPresentationProgressSnapshots(
         member_profile_id: profile.member_profile_id,
         plan_id: PLAN_ID,
         planned: day.totals,
-        progress_id: `dima_progress_${profile.member_profile_id}_day_${day.day_index}`,
+        progress_id: `dima_progress_${profile.member_profile_id}_day_${historyDayIndex}`,
         saved_at: savedAt,
         target: TARGETS[profile.member_profile_id as keyof typeof TARGETS],
         updated_at: savedAt,
@@ -147,20 +155,52 @@ export function buildDimaPresentationProgressSnapshots(
 function getCompletedMealsForPresentationProgress(
   memberProfileId: string,
   day: MemberDayFixture,
+  historyDayIndex = day.day_index,
 ): MealFixture[] {
-  const skippedSlotsByDay: Record<string, Record<number, Array<MealFixture["slot"]>>> = {
+  const skippedSlotsByHistoryDay: Record<string, Record<number, Array<MealFixture["slot"]>>> = {
     [MEMBER_IDS.alice]: {
-      2: ["snack"],
+      8: ["snack"],
+      17: ["snack"],
+      26: ["snack"],
     },
     [MEMBER_IDS.adrian]: {
-      3: ["snack"],
+      10: ["snack"],
+      21: ["snack"],
     },
     [MEMBER_IDS.marius]: {
-      2: ["snack"],
+      6: ["snack"],
+      18: ["snack"],
+      28: ["snack"],
     },
   };
-  const skippedSlots = skippedSlotsByDay[memberProfileId]?.[day.day_index] ?? [];
+  const skippedSlots = skippedSlotsByHistoryDay[memberProfileId]?.[historyDayIndex] ?? [];
   return day.meals.filter((meal) => !skippedSlots.includes(meal.slot));
+}
+
+function buildDimaPresentationProgressDays(
+  memberProfileId: string,
+): Array<{ day: MemberDayFixture; historyDayIndex: number }> {
+  const days = getMemberDays(memberProfileId);
+  return Array.from({ length: PRESENTATION_PROGRESS_HISTORY_DAYS }, (_, index) => ({
+    day: days[index % days.length],
+    historyDayIndex: index + 1,
+  }));
+}
+
+function buildPresentationProgressSavedAt(historyDayIndex: number): string {
+  const date = new Date(PRESENTATION_PROGRESS_START_DATE_UTC);
+  date.setUTCDate(date.getUTCDate() + historyDayIndex - 1);
+  return date.toISOString().replace(".000Z", "+00:00");
+}
+
+function getPresentationProgressMultiplier(
+  memberProfileId: string,
+  historyDayIndex: number,
+): number {
+  const memberOffset =
+    memberProfileId === MEMBER_IDS.alice ? 0 : memberProfileId === MEMBER_IDS.adrian ? 1 : 2;
+  const pattern = [0.96, 1.01, 0.99, 1.04, 0.98, 1.02, 1];
+  return pattern[(historyDayIndex + memberOffset) % pattern.length];
 }
 
 function sumMealTotals(meals: MealFixture[]): MacroTotals {
@@ -173,6 +213,15 @@ function sumMealTotals(meals: MealFixture[]): MacroTotals {
     }),
     { carbs_g: 0, fat_g: 0, kcal: 0, protein_g: 0 },
   );
+}
+
+function scaleTotals(totals: MacroTotals, multiplier: number): MacroTotals {
+  return {
+    carbs_g: roundMacro(totals.carbs_g * multiplier),
+    fat_g: roundMacro(totals.fat_g * multiplier),
+    kcal: Math.round(totals.kcal * multiplier),
+    protein_g: roundMacro(totals.protein_g * multiplier),
+  };
 }
 
 function orderDimaProfiles(profiles: MemberProfileResponse[]): MemberProfileResponse[] {
@@ -200,17 +249,23 @@ function memberDayToMenu(
     daily_totals: day.totals,
     day: day.day_index,
     day_index: day.day_index,
-    meals: day.meals.map((meal) => ({
-      ...meal,
-      alternatives_disabled: true,
-      cooking_steps: cookingStepsFor(meal.slot, meal.display_name),
-      directions_step_count: cookingStepsFor(meal.slot, meal.display_name).length,
-      effective_time_min: meal.time_min,
-      meal_scope: meal.meal_scope,
-      member_profile_id: memberProfileId,
-      time_min: meal.time_min,
-      total_time_min: meal.time_min,
-    })) as HouseholdMeal[],
+    meals: day.meals.map((meal) => {
+      const presentationAlternatives = buildPresentationAlternatives(memberProfileId, meal);
+      const cookingSteps = cookingStepsFor(meal.slot, meal.display_name);
+
+      return {
+        ...meal,
+        cooking_steps: cookingSteps,
+        directions_step_count: cookingSteps.length,
+        effective_time_min: meal.time_min,
+        meal_scope: meal.meal_scope,
+        member_profile_id: memberProfileId,
+        presentation_alternatives_response: presentationAlternatives.response,
+        presentation_preview_responses: presentationAlternatives.previews,
+        time_min: meal.time_min,
+        total_time_min: meal.time_min,
+      };
+    }) as HouseholdMeal[],
     member_id: memberProfileId,
     member_profile_id: memberProfileId,
     selected_meals: day.meals as HouseholdMeal[],
@@ -308,6 +363,165 @@ function cookingStepsFor(slot: MealFixture["slot"], displayName: string): string
     "Combine with sauce and adjust the portion by member.",
     "Serve warm.",
   ];
+}
+
+function buildPresentationAlternatives(
+  memberProfileId: string,
+  meal: MealFixture,
+): {
+  response: RecipeAlternativesResponse;
+  previews: Record<string, MealReplacementResponse>;
+} {
+  const templates = presentationAlternativeTemplates(memberProfileId, meal.slot);
+  const alternatives = templates.map((template, index) => {
+    const alternativeRecipeId = `${meal.recipe_id}_alt_${index + 1}`;
+    return {
+      approval_status: "approved",
+      display_name: template.name,
+      recipe_id: alternativeRecipeId,
+      similarity_score: template.similarity,
+      time_delta_min: template.timeDeltaMin,
+      why_similar: ["same_slot", "presentation_fixture"],
+    };
+  });
+  const previews = Object.fromEntries(
+    templates.map((template, index) => {
+      const alternativeRecipeId = `${meal.recipe_id}_alt_${index + 1}`;
+      const alternativeMeal = presentationAlternativeMeal(meal, template, alternativeRecipeId);
+      const currentMeal = mealToGeneratedMeal(meal);
+      const delta = {
+        carbs_g: roundMacro((alternativeMeal.carbs_g ?? 0) - meal.carbs_g),
+        fat_g: roundMacro((alternativeMeal.fat_g ?? 0) - meal.fat_g),
+        kcal: Math.round((alternativeMeal.kcal ?? 0) - meal.kcal),
+        protein_g: roundMacro((alternativeMeal.protein_g ?? 0) - meal.protein_g),
+      };
+
+      return [
+        alternativeRecipeId,
+        {
+          approval_status: "approved",
+          dry_run: true,
+          generation_type: "household",
+          impact: {
+            grocery_rebuilt: true,
+            meal_macro_delta: delta,
+          },
+          plan_id: PLAN_ID,
+          replacement: {
+            alternative_meal: alternativeMeal,
+            current_meal: currentMeal,
+            replace_scope:
+              meal.meal_scope === "shared" ? "household_shared_meal" : "household_member_meal",
+          },
+          replacement_allowed: true,
+          source_plan_id: PLAN_ID,
+          status: "ok",
+        } satisfies MealReplacementResponse,
+      ];
+    }),
+  );
+
+  return {
+    previews,
+    response: {
+      alternatives,
+      approval_mode: "approved_only",
+      dataset_profile: "v1_2_demo_final",
+      recipe_id: meal.recipe_id,
+      slot: meal.slot,
+      source_recipe: {
+        display_name: meal.display_name,
+        recipe_id: meal.recipe_id,
+      },
+      status: "ok",
+      summary: {
+        returned_count: alternatives.length,
+      },
+    },
+  };
+}
+
+function presentationAlternativeTemplates(
+  memberProfileId: string,
+  slot: MealFixture["slot"],
+): Array<{
+  name: string;
+  kcalFactor: number;
+  proteinFactor: number;
+  carbFactor: number;
+  fatFactor: number;
+  similarity: number;
+  timeDeltaMin: number;
+}> {
+  const vegetarian = memberProfileId === MEMBER_IDS.alice;
+  const shared = vegetarian
+    ? {
+        breakfast: ["Cottage Cheese Fruit Bowl", "Vegetable Feta Toast"],
+        lunch: ["Lentil Rice Bowl", "Chickpea Pasta Bowl"],
+        snack: ["Greek Yogurt Fruit Cup", "Apple Peanut Butter Snack"],
+        dinner: ["Tofu Vegetable Stir Fry", "Lentil Tomato Rice Bowl"],
+      }
+    : {
+        breakfast: ["Greek Yogurt Oat Bowl", "Egg and Cottage Cheese Toast"],
+        lunch: ["Chicken Rice Bowl", "Turkey Bean Wrap"],
+        snack: ["Cottage Cheese Fruit Cup", "Yogurt and Peanut Butter Bowl"],
+        dinner: ["Chicken Broccoli Rice Bowl", "Turkey Vegetable Pasta Bowl"],
+      };
+  const names = shared[slot];
+
+  return names.map((name, index) => ({
+    carbFactor: index === 0 ? 0.96 : 1.04,
+    fatFactor: index === 0 ? 0.92 : 1.08,
+    kcalFactor: index === 0 ? 0.97 : 1.03,
+    name,
+    proteinFactor: index === 0 ? 1.02 : 0.96,
+    similarity: index === 0 ? 0.86 : 0.81,
+    timeDeltaMin: index === 0 ? -2 : 4,
+  }));
+}
+
+function presentationAlternativeMeal(
+  meal: MealFixture,
+  template: ReturnType<typeof presentationAlternativeTemplates>[number],
+  recipeId: string,
+): HouseholdMeal {
+  const timeMin = Math.max(5, meal.time_min + template.timeDeltaMin);
+
+  return {
+    carbs_g: roundMacro(meal.carbs_g * template.carbFactor),
+    display_name: template.name,
+    effective_time_min: timeMin,
+    fat_g: roundMacro(meal.fat_g * template.fatFactor),
+    kcal: Math.round(meal.kcal * template.kcalFactor),
+    meal_scope: meal.meal_scope,
+    portion_multiplier: meal.portion_multiplier,
+    protein_g: roundMacro(meal.protein_g * template.proteinFactor),
+    recipe_id: recipeId,
+    slot: meal.slot,
+    time_min: timeMin,
+    total_time_min: timeMin,
+  };
+}
+
+function mealToGeneratedMeal(meal: MealFixture): HouseholdMeal {
+  return {
+    carbs_g: meal.carbs_g,
+    display_name: meal.display_name,
+    effective_time_min: meal.time_min,
+    fat_g: meal.fat_g,
+    kcal: meal.kcal,
+    meal_scope: meal.meal_scope,
+    portion_multiplier: meal.portion_multiplier,
+    protein_g: meal.protein_g,
+    recipe_id: meal.recipe_id,
+    slot: meal.slot,
+    time_min: meal.time_min,
+    total_time_min: meal.time_min,
+  };
+}
+
+function roundMacro(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 function buildGroceryList() {

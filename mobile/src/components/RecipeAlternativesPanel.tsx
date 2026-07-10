@@ -32,6 +32,8 @@ type RecipeAlternativesPanelProps = {
   replaceScope?: MealReplacementScope;
   isVisible?: boolean;
   shouldLoad?: boolean;
+  initialResponse?: RecipeAlternativesResponse | null;
+  initialPreviewResponses?: Record<string, MealReplacementResponse> | null;
   onReplacementApplied?: (response: MealReplacementResponse) => void;
 };
 
@@ -72,6 +74,8 @@ export function RecipeAlternativesPanel({
   replaceScope,
   isVisible = true,
   shouldLoad = isVisible,
+  initialResponse = null,
+  initialPreviewResponses = null,
   onReplacementApplied,
 }: RecipeAlternativesPanelProps) {
   const requestCacheKey = buildAlternativesCacheKey({
@@ -83,8 +87,8 @@ export function RecipeAlternativesPanel({
     sourceRecipeId,
   });
   const cachedResponse = requestCacheKey
-    ? alternativesResponseCache.get(requestCacheKey) ?? null
-    : null;
+    ? alternativesResponseCache.get(requestCacheKey) ?? initialResponse ?? null
+    : initialResponse ?? null;
   const [response, setResponse] = useState<RecipeAlternativesResponse | null>(cachedResponse);
   const [errorMessage, setErrorMessage] = useState("");
   const [hasLoaded, setHasLoaded] = useState(Boolean(cachedResponse));
@@ -98,8 +102,8 @@ export function RecipeAlternativesPanel({
 
   useEffect(() => {
     const cached = requestCacheKey
-      ? alternativesResponseCache.get(requestCacheKey) ?? null
-      : null;
+      ? alternativesResponseCache.get(requestCacheKey) ?? initialResponse ?? null
+      : initialResponse ?? null;
     setErrorMessage("");
     setResponse(cached);
     setHasLoaded(Boolean(cached));
@@ -113,6 +117,7 @@ export function RecipeAlternativesPanel({
     dayIndex,
     generationType,
     householdId,
+    initialResponse,
     memberId,
     memberProfile,
     memberProfileId,
@@ -176,6 +181,7 @@ export function RecipeAlternativesPanel({
     datasetProfile,
     hasLoaded,
     householdId,
+    initialResponse,
     memberProfile,
     memberProfileId,
     requestCacheKey,
@@ -191,7 +197,15 @@ export function RecipeAlternativesPanel({
   const canRequestReplacement = Boolean(planId && slot && sourceRecipeId);
 
   useEffect(() => {
-    if (!shouldLoad || !isVisible || !canRequestReplacement || !planId || !slot || !alternatives.length) {
+    if (
+      !shouldLoad ||
+      !isVisible ||
+      initialPreviewResponses ||
+      !canRequestReplacement ||
+      !planId ||
+      !slot ||
+      !alternatives.length
+    ) {
       return;
     }
 
@@ -233,6 +247,7 @@ export function RecipeAlternativesPanel({
     dayIndex,
     generationType,
     householdId,
+    initialPreviewResponses,
     isVisible,
     memberId,
     memberProfile,
@@ -245,6 +260,16 @@ export function RecipeAlternativesPanel({
   ]);
 
   async function previewReplacement(alternative: RecipeAlternativeItem) {
+    const initialPreview = initialPreviewResponses?.[alternative.recipe_id];
+    if (initialPreview) {
+      setPreviewResponse(initialPreview);
+      setPreviewedRecipeId(alternative.recipe_id);
+      setPreviewingRecipeId("");
+      setSuccessMessage("");
+      setErrorMessage("");
+      return;
+    }
+
     if (!planId || !slot) {
       setErrorMessage("Generate and save a plan before previewing replacement.");
       return;
@@ -403,6 +428,7 @@ export function RecipeAlternativesPanel({
                 onApply={applyReplacement}
                 onPreview={() => previewReplacement(alternative)}
                 preparedPreviewResponse={preparedPreviewResponse}
+                previewOnly={Boolean(initialPreviewResponses?.[alternative.recipe_id])}
                 previewResponse={
                   previewResponse && previewedRecipeId === alternative.recipe_id
                     ? previewResponse
@@ -677,6 +703,7 @@ function AlternativeCard({
   onApply,
   onPreview,
   preparedPreviewResponse,
+  previewOnly = false,
   previewResponse,
   sourceRecipe,
 }: {
@@ -687,6 +714,7 @@ function AlternativeCard({
   onApply: () => void;
   onPreview: () => void;
   preparedPreviewResponse: MealReplacementResponse | null;
+  previewOnly?: boolean;
   previewResponse: MealReplacementResponse | null;
   sourceRecipe?: Record<string, unknown>;
 }) {
@@ -713,6 +741,7 @@ function AlternativeCard({
   const replaceDisabled =
     isApplying ||
     isPreviewing ||
+    (hasPreview && previewOnly) ||
     !canRequestReplacement ||
     (hasPreview && !previewResponse?.replacement_allowed);
 
@@ -738,7 +767,7 @@ function AlternativeCard({
         </View>
       ) : null}
 
-      {hasPreview && !previewResponse?.replacement_allowed ? (
+      {hasPreview && !previewOnly && !previewResponse?.replacement_allowed ? (
         <Text style={styles.mutedText}>This alternative cannot replace the meal yet.</Text>
       ) : null}
 
@@ -756,7 +785,7 @@ function AlternativeCard({
           <ActivityIndicator color={hasPreview ? "#FFFFFF" : colors.accent} />
         ) : (
           <Text style={hasPreview ? styles.replaceButtonText : styles.previewButtonText}>
-            {hasPreview ? "Replace meal" : "Preview"}
+            {hasPreview ? (previewOnly ? "Preview ready" : "Replace meal") : "Preview"}
           </Text>
         )}
       </Pressable>
