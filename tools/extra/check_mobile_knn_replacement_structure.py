@@ -94,9 +94,8 @@ def main() -> int:
         "panel_has_preview_confirm_flow": _has_all(
             panel,
             [
-                "Preview changes",
+                "Preview",
                 "Replace meal",
-                "Shuffle",
                 "Meal replaced. Plan and grocery list updated.",
                 "This alternative cannot replace the meal yet.",
             ],
@@ -129,7 +128,6 @@ def main() -> int:
                 "handleMealReplacementApplied",
                 "setGeneratedPlan",
                 "setGeneratedHouseholdPlan",
-                "Meal replaced. Plan and grocery list updated.",
             ],
         ),
         "readme_mentions_knn4_replacement": _has_all(

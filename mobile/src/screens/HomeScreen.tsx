@@ -24,12 +24,6 @@ import { DaySelector } from "../components/ui/DaySelector";
 import { ProfileSelector, type ProfileSelectorItem } from "../components/ui/ProfileSelector";
 import { API_BASE_URL } from "../config/api";
 import {
-  buildDimaPresentationFixturePlan,
-  buildDimaPresentationProgressSnapshots,
-  getDimaPresentationProfileIds,
-  isDimaPresentationFixtureAccount,
-} from "../data/presentation/dimaPresentationFixture";
-import {
   useHomeScreenState,
   type ConfirmationDialogState,
   type GenerationMode,
@@ -313,7 +307,6 @@ export function HomeScreen() {
       : "";
   const feedbackStats = getFeedbackStats(feedbackContext);
   const savedHistoryCount = Object.keys(dailyProgressByKey).length;
-  const dimaPresentationFixtureEnabled = isDimaPresentationFixtureAccount(authAccount);
 
   useEffect(() => {
     setHouseholdNameDraft(
@@ -642,12 +635,6 @@ export function HomeScreen() {
 
     const orderedProfiles = orderSavedProfilesForViewing(savedProfiles, defaultViewerId);
     const selectedProfile = orderedProfiles[0];
-    if (dimaPresentationFixtureEnabled) {
-      const activated = activateDimaPresentationFixture(orderedProfiles);
-      if (activated) {
-        return;
-      }
-    }
     setFeedbackError("");
     setErrorMessage("");
     setHouseholdErrorMessage("");
@@ -1171,12 +1158,6 @@ export function HomeScreen() {
     try {
       const profiles = await getProfiles(householdId, sessionToken);
       setSavedProfiles(profiles);
-      if (isDimaPresentationFixtureAccount(account ?? null)) {
-        const activated = activateDimaPresentationFixture(profiles, "home");
-        if (activated) {
-          return;
-        }
-      }
       const firstProfile = profiles[0];
       if (firstProfile) {
         setSelectedSavedProfileId(firstProfile.member_profile_id);
@@ -1192,54 +1173,6 @@ export function HomeScreen() {
     } finally {
       setIsLoadingProfiles(false);
     }
-  }
-
-  function activateDimaPresentationFixture(
-    profiles: MemberProfileResponse[],
-    nextPage?: AppPageKey,
-  ): boolean {
-    const fixturePlan = buildDimaPresentationFixturePlan(profiles);
-    if (!fixturePlan) {
-      return false;
-    }
-    const profileIds = getDimaPresentationProfileIds(profiles);
-    const defaultProfileId = profileIds[0] ?? "";
-    const progressSnapshots = buildDimaPresentationProgressSnapshots(
-      profiles,
-      String(fixturePlan.household_id || activeHouseholdId || ""),
-    );
-    const progressByKey = Object.fromEntries(
-      progressSnapshots.map((snapshot) => [
-        buildDailyProgressKey(
-          snapshot.member_profile_id,
-          snapshot.plan_id,
-          snapshot.day_index,
-        ),
-        snapshot,
-      ]),
-    );
-    setPlanDays(3);
-    setGenerationMode("household");
-    setHouseholdSource("saved");
-    setSelectedMemberId("");
-    setSelectedSavedProfileId(defaultProfileId);
-    setDefaultViewerId(defaultProfileId ? `saved:${defaultProfileId}` : "");
-    setSelectedSavedHouseholdProfileIds(profileIds);
-    setCurrentHouseholdMemberIndex(0);
-    setSelectedHouseholdDayIndex(1);
-    setSelectedInsightsDay(1);
-    setMealPlanTab("mealPlan");
-    setGeneratedPlan(null);
-    setGeneratedHouseholdPlan(fixturePlan);
-    setDailyProgressByKey(progressByKey);
-    setErrorMessage("");
-    setHouseholdErrorMessage("");
-    setDailyProgressError("");
-    setDailyProgressMessage("");
-    if (nextPage) {
-      setActivePage(nextPage);
-    }
-    return true;
   }
 
   async function logOutLocalSession() {
@@ -1318,9 +1251,6 @@ export function HomeScreen() {
 
   async function refreshDailyProgressForProfile(memberProfileId: string, quiet = false) {
     if (!authSessionToken || !memberProfileId) {
-      return;
-    }
-    if (dimaPresentationFixtureEnabled) {
       return;
     }
     setDailyProgressLoadingProfileId(memberProfileId);
@@ -1680,7 +1610,7 @@ export function HomeScreen() {
       <GroceryListSection groceryList={groceryList} onToast={setToastMessage} />
     );
 
-  const alternativesPrefetcherNode = hasCurrentPlan && !dimaPresentationFixtureEnabled ? (
+  const alternativesPrefetcherNode = hasCurrentPlan ? (
     <MealPlanAlternativesPrefetcher
       datasetProfile={
         generationMode === "household"
@@ -1977,7 +1907,6 @@ export function HomeScreen() {
         scrollToTopSignal={scrollToTopRequests.insights}
         savedProgress={selectedDailyProgress}
         selectedDay={safeInsightsDay}
-        startWithMealsCompleted={dimaPresentationFixtureEnabled}
         targetTotals={insightsTargetTotals}
         totals={insightsTotals}
       />

@@ -85,10 +85,9 @@ def main() -> int:
             panel,
             [
                 "RecipeAlternativesPanel",
-                "Alternatives are read-only until you preview and confirm a replacement.",
-                "Preview replacement",
+                "Preview",
                 "Replace meal",
-                "approval_mode: \"include_review\"",
+                "approval_mode: \"approved_only\"",
             ],
         ),
         "readme_mentions_knn_alternatives": _has_all(

@@ -6,7 +6,6 @@ import type {
   HouseholdMeal,
   MealReplacementResponse,
   MealReplacementScope,
-  RecipeAlternativesResponse,
 } from "../types/api";
 import { colors } from "../theme/colors";
 import { IngredientMeasurementRow } from "./IngredientMeasurementRow";
@@ -54,10 +53,6 @@ export function HouseholdMealRow({
   const portionMultiplier = numberValue(meal.portion_multiplier);
   const recipeId = stringValue(meal.recipe_id);
   const alternativesDisabled = Boolean(meal.alternatives_disabled);
-  const presentationAlternativesResponse =
-    asRecipeAlternativesResponse(meal.presentation_alternatives_response);
-  const presentationPreviewResponses =
-    asPresentationPreviewResponses(meal.presentation_preview_responses);
   const replaceScope = replacementScopeFromMeal(scope);
   const ingredients = getTextList(
     meal.ingredients ??
@@ -149,12 +144,13 @@ export function HouseholdMealRow({
             datasetProfile={datasetProfile}
             generationType="household"
             householdId={householdId}
-            initialPreviewResponses={presentationPreviewResponses}
-            initialResponse={presentationAlternativesResponse}
             isVisible={activeSheet === "alternatives"}
             memberId={memberId}
             memberProfileId={memberId}
-            onReplacementApplied={onReplacementApplied}
+            onReplacementApplied={(response) => {
+              onReplacementApplied?.(response);
+              setActiveSheet(null);
+            }}
             planId={planId}
             replaceScope={replaceScope}
             shouldLoad
@@ -209,22 +205,6 @@ function SmallActionButton({
       </Text>
     </Pressable>
   );
-}
-
-function asRecipeAlternativesResponse(value: unknown): RecipeAlternativesResponse | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  return value as RecipeAlternativesResponse;
-}
-
-function asPresentationPreviewResponses(
-  value: unknown,
-): Record<string, MealReplacementResponse> | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  return value as Record<string, MealReplacementResponse>;
 }
 
 function SheetSection({
