@@ -19,7 +19,7 @@ Generator v1 curent suporta:
 
 - un singur `member_profile` activ;
 - generare 1-5 zile pentru demo/debug;
-- `v1_2_demo_final` si `v1_2_demo_final_time_layer`;
+- `current` si `current`;
 - grocery list, purchase suggestions, cooked-to-raw helpers si price estimates demo.
 
 Round65 adauga:
@@ -156,7 +156,7 @@ Recomandare tehnica:
 
 Dataset folosit:
 
-- `v1_2_demo_final_time_layer`
+- `current`
 
 Plan baseline:
 
@@ -251,10 +251,10 @@ Streamlit behavior:
 
 Evaluator Round66:
 
-- `data/recipesdb/audit/generator_v1_round66_household_preview_summary.txt`
-- `data/recipesdb/audit/generator_v1_round66_household_preview_allocations.csv`
-- `data/recipesdb/audit/generator_v1_round66_household_preview_member_macros.csv`
-- `data/recipesdb/audit/generator_v1_round66_household_preview_grocery_scaling.csv`
+- `.codex_runtime_logs/checks/recipesdb/generator_v1_round66_household_preview_summary.txt`
+- `.codex_runtime_logs/checks/recipesdb/generator_v1_round66_household_preview_allocations.csv`
+- `.codex_runtime_logs/checks/recipesdb/generator_v1_round66_household_preview_member_macros.csv`
+- `.codex_runtime_logs/checks/recipesdb/generator_v1_round66_household_preview_grocery_scaling.csv`
 
 Rezultat Round66:
 
@@ -308,7 +308,7 @@ Comportament Round68:
 - calculeaza totaluri macro per membru;
 - calculeaza grocery scaling cantitativ.
 
-Rezultat evaluator Round68 pe `v1_2_demo_final`:
+Rezultat evaluator Round68 pe `current`:
 
 - `member_count=3`;
 - `days_generated=3`;
@@ -349,7 +349,7 @@ Protein correction v1:
 - nu foloseste suplimente, produse artificiale sau ingrediente noi;
 - raporteaza `protein_gap_before`, `protein_gap_after`, `protein_correction_applied` si mesele de corectie selectate.
 
-Rezultat evaluator Round69 pe `v1_2_demo_final`:
+Rezultat evaluator Round69 pe `current`:
 
 - `shared_all_slots`: `household_quality_status=review`, `min_protein_ratio=0.727`, worst member `Mara`.
 - `shared_main_meals`: `household_quality_status=accept`, `accept_day_count=3`, `min_protein_ratio=0.938`.

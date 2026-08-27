@@ -63,8 +63,8 @@ Generator v1 este recipe-based, deterministic, scoring-driven si modular.
 
 Dataset app-facing/demo:
 
-- `dataset_profile=v1_2_demo_final`
-- path: `data/recipesdb/draft/v1_2_demo_final/`
+- `dataset_profile=current`
+- path: `data/recipesdb/current/`
 - total recipes: `266`
 - active recipes: `261`
 - status: demo-final draft, nu productie/current
@@ -222,7 +222,7 @@ PROGRESS-2 adauga grafice compacte peste aceste snapshoturi salvate. Charts sunt
 
 Food_DB:
 
-- baseline activ: `data/fooddb/current/fooddb_v1_core_master_draft.csv`;
+- baseline activ: `data/fooddb/current/fooddb_current.csv`;
 - contine alimente canonice si valori nutritionale/taxonomice;
 - nu este baza production/cloud.
 
@@ -235,7 +235,7 @@ Recipes_DB current:
 
 Recipes_DB app-facing:
 
-- `data/recipesdb/draft/v1_2_demo_final/`;
+- `data/recipesdb/current/`;
 - folosit de Generator v1 in MVP;
 - nu este promovat automat in `current`.
 

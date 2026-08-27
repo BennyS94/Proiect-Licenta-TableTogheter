@@ -1,5 +1,5 @@
 {
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "days": 1,
   "household_id": "household_backend_m5_smoke",
   "selected_member_ids": [

@@ -11,9 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m4_profiles_feedback_summary.txt"
-FEEDBACK_CONTEXT_SAMPLE_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m4_feedback_context_sample.json"
-PROFILE_SAMPLE_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m4_profile_sample.json"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m4_profiles_feedback_summary.txt"
+FEEDBACK_CONTEXT_SAMPLE_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m4_feedback_context_sample.json"
+PROFILE_SAMPLE_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m4_profile_sample.json"
 API_EXAMPLES_DIR = PROJECT_ROOT / "docs/api_examples"
 
 

@@ -31,6 +31,13 @@ Thumbs.db
 # Stare locala/demo, nu se comite.
 data/runtime/
 
+# Historical/generated data workspaces are kept out of the public portfolio HEAD.
+data/**/audit/
+data/**/draft/
+data/**/source/
+data/**/triage/
+data/**/snapshot/
+
 # Artefacte locale vechi din rundele demo v1.2 care nu fac parte din commiturile active.
 data/fooddb/audit/fooddb_v1_2_manual_batch2_leftovers_summary.txt
 data/fooddb/audit/fooddb_v1_2_source_verification_batch3_candidates.csv

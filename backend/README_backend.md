@@ -289,7 +289,7 @@ python tools/extra/check_backend_m1.py
 Output sumar:
 
 ```text
-data/recipesdb/audit/backend_m1_smoke_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_m1_smoke_summary.txt
 ```
 
 Smoke-ul initializeaza SQLite, verifica tabelele cerute si, daca `fastapi` este instalat, testeaza `GET /health` prin `TestClient` fara server pornit.
@@ -309,7 +309,7 @@ python tools/extra/check_backend_m3_generation_endpoints.py
 Output sumar M3:
 
 ```text
-data/recipesdb/audit/backend_m3_generation_endpoints_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_m3_generation_endpoints_summary.txt
 ```
 
 Smoke pentru saved daily progress snapshots:
@@ -322,15 +322,15 @@ python tools/extra/check_progress_trends_backend.py
 Output sumar PROGRESS-1/PROGRESS-2:
 
 ```text
-data/recipesdb/audit/progress_daily_snapshots_summary.txt
-data/recipesdb/audit/progress_trends_backend_summary.txt
+.codex_runtime_logs/checks/recipesdb/progress_daily_snapshots_summary.txt
+.codex_runtime_logs/checks/recipesdb/progress_trends_backend_summary.txt
 ```
 
 Mostre response M3:
 
 ```text
-data/recipesdb/audit/backend_m3_individual_response_sample.json
-data/recipesdb/audit/backend_m3_household_response_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_m3_individual_response_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_m3_household_response_sample.json
 ```
 
 Smoke pentru profile si feedback M4:
@@ -342,14 +342,14 @@ python tools/extra/check_backend_m4_profiles_feedback.py
 Output sumar M4:
 
 ```text
-data/recipesdb/audit/backend_m4_profiles_feedback_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_m4_profiles_feedback_summary.txt
 ```
 
 Mostre M4:
 
 ```text
-data/recipesdb/audit/backend_m4_profile_sample.json
-data/recipesdb/audit/backend_m4_feedback_context_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_m4_profile_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_m4_feedback_context_sample.json
 ```
 
 Smoke pentru generatie persistence-aware M5:
@@ -361,15 +361,15 @@ python tools/extra/check_backend_m5_persistence_aware_generation.py
 Output sumar M5:
 
 ```text
-data/recipesdb/audit/backend_m5_persistence_generation_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_m5_persistence_generation_summary.txt
 ```
 
 Mostre M5:
 
 ```text
-data/recipesdb/audit/backend_m5_individual_response_sample.json
-data/recipesdb/audit/backend_m5_household_response_sample.json
-data/recipesdb/audit/backend_m5_feedback_context_used_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_m5_individual_response_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_m5_household_response_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_m5_feedback_context_used_sample.json
 ```
 
 Smoke pentru cleanup profile/feedback M8:
@@ -381,7 +381,7 @@ python tools/extra/check_backend_m8_profile_feedback_cleanup.py
 Output sumar M8:
 
 ```text
-data/recipesdb/audit/backend_m8_profile_feedback_cleanup_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_m8_profile_feedback_cleanup_summary.txt
 ```
 
 Smoke pentru Auth-M1:
@@ -393,8 +393,8 @@ python tools/extra/check_backend_auth_m1.py
 Output Auth-M1:
 
 ```text
-data/recipesdb/audit/backend_auth_m1_summary.txt
-data/recipesdb/audit/backend_auth_m1_response_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_auth_m1_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_auth_m1_response_sample.json
 ```
 
 Smoke pentru alternative retete KNN-2:
@@ -406,9 +406,9 @@ python tools/extra/check_backend_knn_recipe_alternatives.py
 Output KNN-2:
 
 ```text
-data/recipesdb/audit/backend_knn_recipe_alternatives_summary.txt
-data/recipesdb/audit/backend_knn_recipe_alternatives_response_sample.json
-data/recipesdb/audit/backend_knn_recipe_alternatives_candidates.csv
+.codex_runtime_logs/checks/recipesdb/backend_knn_recipe_alternatives_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_knn_recipe_alternatives_response_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_knn_recipe_alternatives_candidates.csv
 ```
 
 Smoke pentru replacement retete KNN-4:
@@ -420,9 +420,9 @@ python tools/extra/check_backend_knn_meal_replacement.py
 Output KNN-4:
 
 ```text
-data/recipesdb/audit/backend_knn_meal_replacement_summary.txt
-data/recipesdb/audit/backend_knn_meal_replacement_preview_sample.json
-data/recipesdb/audit/backend_knn_meal_replacement_apply_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_knn_meal_replacement_summary.txt
+.codex_runtime_logs/checks/recipesdb/backend_knn_meal_replacement_preview_sample.json
+.codex_runtime_logs/checks/recipesdb/backend_knn_meal_replacement_apply_sample.json
 ```
 
 DATA-QA-1 price/time coverage:

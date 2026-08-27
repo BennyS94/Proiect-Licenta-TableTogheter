@@ -9,165 +9,166 @@ import pandas as pd
 DEFAULT_RECIPES_PATH = Path("data/recipesdb/current/recipes.csv")
 DEFAULT_INGREDIENTS_PATH = Path("data/recipesdb/current/recipe_ingredients.csv")
 DEFAULT_NUTRITION_PATH = Path("data/recipesdb/current/recipe_nutrition_cache.csv")
-DEFAULT_FOODDB_PATH = Path("data/fooddb/current/fooddb_v1_core_master_draft.csv")
-V1_1_GENERATOR_READY_RECIPES_PATH = Path("data/recipesdb/draft/v1_1_generator_ready/recipes.csv")
-V1_1_GENERATOR_READY_INGREDIENTS_PATH = Path("data/recipesdb/draft/v1_1_generator_ready/recipe_ingredients.csv")
-V1_1_GENERATOR_READY_NUTRITION_PATH = Path("data/recipesdb/draft/v1_1_generator_ready/recipe_nutrition_cache.csv")
+DEFAULT_FOODDB_PATH = Path("data/fooddb/current/fooddb_current.csv")
+V1_1_GENERATOR_READY_RECIPES_PATH = Path("data/recipesdb/current/recipes.csv")
+V1_1_GENERATOR_READY_INGREDIENTS_PATH = Path("data/recipesdb/current/recipe_ingredients.csv")
+V1_1_GENERATOR_READY_NUTRITION_PATH = Path("data/recipesdb/current/recipe_nutrition_cache.csv")
 V1_1_GENERATOR_READY_SLOT_CHECKED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_SNACK_CURATED_PLUS10_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_1_generator_ready_slot_checked_time_enriched_snack_curated_plus10/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_PLUS15_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_PLUS15_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_PLUS15_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15_repaired/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15_repaired/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_GENERATOR_READY_PLUS30_PLUS15_REPAIRED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_plus30_plus15_repaired/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_GENERATOR_READY_ROUND37_EXPANDED_REPAIRED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round37_expanded_repaired/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round41_manual_curated/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round41_manual_curated/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_GENERATOR_READY_ROUND41_MANUAL_CURATED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round41_manual_curated/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_GENERATOR_READY_ROUND42_DATASET_EXPANDED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_generator_ready_round42_dataset_expanded/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_DEMO_CANDIDATE_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_DEMO_CANDIDATE_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_DEMO_CANDIDATE_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round46_qa/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round46_qa/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_DEMO_CANDIDATE_MANUAL_BATCH2_ROUND46_QA_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round46_qa/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round48_cleaned/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round48_cleaned/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_DEMO_CANDIDATE_ROUND48_CLEANED_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_candidate_manual_batch2_round48_cleaned/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_DEMO_FINAL_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_final/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_DEMO_FINAL_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_final/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_DEMO_FINAL_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_final/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 V1_2_DEMO_FINAL_TIME_LAYER_RECIPES_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_final_time_layer/recipes.csv"
+    "data/recipesdb/current/recipes.csv"
 )
 V1_2_DEMO_FINAL_TIME_LAYER_INGREDIENTS_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_final_time_layer/recipe_ingredients.csv"
+    "data/recipesdb/current/recipe_ingredients.csv"
 )
 V1_2_DEMO_FINAL_TIME_LAYER_NUTRITION_PATH = Path(
-    "data/recipesdb/draft/v1_2_demo_final_time_layer/recipe_nutrition_cache.csv"
+    "data/recipesdb/current/recipe_nutrition_cache.csv"
 )
 
-PILOT_CURRENT_PROFILE = "pilot_current"
+CURRENT_DATASET_PROFILE = "current"
+PILOT_CURRENT_PROFILE = CURRENT_DATASET_PROFILE
 V1_1_GENERATOR_READY_PROFILE = "v1_1_generator_ready"
 V1_1_GENERATOR_READY_SLOT_CHECKED_PROFILE = "v1_1_generator_ready_slot_checked"
 V1_1_GENERATOR_READY_SLOT_CHECKED_TIME_ENRICHED_PROFILE = (
@@ -428,6 +429,22 @@ DATASET_PROFILE_PRESETS = {
         "require_per_serving_macros": True,
     },
 }
+
+CURRENT_SCOPE_STATUSES = {
+    "v1_1_generator_ready_slot_checked_time_enriched_snack_curated_draft",
+    "v1_1_generator_ready_draft",
+    "v1_2_generator_ready_draft",
+}
+CURRENT_CACHE_STATUSES = {
+    "usable_from_mapped_ingredients",
+    "partial_from_mapped_ingredients",
+}
+for _preset in DATASET_PROFILE_PRESETS.values():
+    _preset["allowed_scope_statuses"] = CURRENT_SCOPE_STATUSES
+    _preset["allowed_cache_statuses"] = CURRENT_CACHE_STATUSES
+    _preset["min_mapped_weight_ratio"] = None
+    _preset["require_per_serving_macros"] = True
+DATASET_PROFILE_PRESETS[CURRENT_DATASET_PROFILE] = dict(DATASET_PROFILE_PRESETS[PILOT_CURRENT_PROFILE])
 
 
 @dataclass(frozen=True)

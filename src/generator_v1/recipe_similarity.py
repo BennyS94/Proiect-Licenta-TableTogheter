@@ -9,10 +9,11 @@ from typing import Any
 import pandas as pd
 
 
-DEFAULT_SIMILARITY_DATASET_PATH = Path("data/recipesdb/draft/v1_2_demo_final")
+DEFAULT_SIMILARITY_DATASET_PATH = Path("data/recipesdb/current")
 DATASET_PROFILE_PATHS = {
+    "current": DEFAULT_SIMILARITY_DATASET_PATH,
     "v1_2_demo_final": DEFAULT_SIMILARITY_DATASET_PATH,
-    "v1_2_demo_final_time_layer": Path("data/recipesdb/draft/v1_2_demo_final_time_layer"),
+    "v1_2_demo_final_time_layer": DEFAULT_SIMILARITY_DATASET_PATH,
 }
 
 NUMERIC_FEATURE_COLUMNS = [
@@ -273,7 +274,7 @@ def explain_recipe_similarity(
 
 
 def _resolve_dataset_path(dataset_profile_or_path: str) -> Path:
-    value = str(dataset_profile_or_path or "").strip() or "v1_2_demo_final"
+    value = str(dataset_profile_or_path or "").strip() or "current"
     if value in DATASET_PROFILE_PATHS:
         return DATASET_PROFILE_PATHS[value]
     path = Path(value)

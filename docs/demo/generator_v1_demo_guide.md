@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Acest ghid descrie rularea demo pentru Generator v1 folosind datasetul `v1_2_demo_final`.
+Acest ghid descrie rularea demo pentru Generator v1 folosind datasetul `current`.
 
 Demo-ul arata:
 - generare pentru 1 zi
@@ -20,8 +20,8 @@ Nota produs:
 ## Dataset si config recomandat
 
 Dataset:
-- `dataset_profile=v1_2_demo_final`
-- path: `data/recipesdb/draft/v1_2_demo_final/`
+- `dataset_profile=current`
+- path: `data/recipesdb/current/`
 - total recipes: `266`
 - active recipes: `261`
 - sursa: `v1_2_demo_candidate_round48_cleaned`
@@ -73,7 +73,7 @@ streamlit run streamlit_app/generator_v1_dashboard.py
 ```
 
 Config recomandat pentru demonstratia de feedback:
-- `dataset_profile=v1_2_demo_final`
+- `dataset_profile=current`
 - `selection_mode=balanced_day`
 - `portion_policy=target_aware`
 - `meal_realism_mode=practical`
@@ -112,11 +112,11 @@ Ce sa nu pretinzi despre Feedback v1:
 ## CLI 1-day
 
 ```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 1 --profile_guard demo
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 1 --profile_guard demo
 ```
 
 Output asteptat:
-- dataset profile: `v1_2_demo_final`
+- dataset profile: `current`
 - profile guard: `normal_demo_safe`
 - plan de o zi valid/accept pentru profilul demo
 - output files in `outputs/` daca nu este folosit `--no_write_outputs`
@@ -126,7 +126,7 @@ Output asteptat:
 Exemplu recomandat pentru 3 zile:
 
 ```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --profile_guard demo
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --profile_guard demo
 ```
 
 Output asteptat conform smoke Round54 pentru `--days 3`:
@@ -145,19 +145,19 @@ Generator v1 poate construi o lista de grocery draft din meniul generat. Lista f
 CLI basic grocery list:
 
 ```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list
 ```
 
 CLI grocery list cu purchase suggestions:
 
 ```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions
 ```
 
 CLI grocery list cu purchase suggestions si estimari cooked-to-raw:
 
 ```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile v1_2_demo_final --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions --grocery_cooked_to_raw
+python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions --grocery_cooked_to_raw
 ```
 
 Output:
@@ -245,7 +245,7 @@ Exemplu demonstrabil:
 
 ## Ce sa arati in prezentare
 
-- Selectia datasetului `v1_2_demo_final`
+- Selectia datasetului `current`
 - Generare 1 zi cu profilul demo
 - Generare multi-day 1-5 zile; pentru demo rapid, 3 zile cu no-repeat hard
 - Statusurile de validare si quality gate

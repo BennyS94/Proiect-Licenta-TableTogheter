@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-AUDIT_DIR = PROJECT_ROOT / "data/recipesdb/audit"
+AUDIT_DIR = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb"
 SUMMARY_PATH = AUDIT_DIR / "backend_knn_recipe_alternatives_summary.txt"
 RESPONSE_SAMPLE_PATH = AUDIT_DIR / "backend_knn_recipe_alternatives_response_sample.json"
 CANDIDATES_PATH = AUDIT_DIR / "backend_knn_recipe_alternatives_candidates.csv"
@@ -67,7 +67,7 @@ def _alternatives_request(
         "slot": SOURCE_SLOT,
         "top_k": top_k,
         "candidate_pool_k": 20,
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "household_id": HOUSEHOLD_ID,
         "member_profile_id": MEMBER_PROFILE_ID,
         "feedback_enabled": feedback_enabled,
@@ -84,7 +84,7 @@ def _alternatives_request(
 
 def _generation_request() -> dict[str, Any]:
     return {
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "days": 1,
         "household_id": HOUSEHOLD_ID,
         "member_profile_id": MEMBER_PROFILE_ID,

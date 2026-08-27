@@ -11,8 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/progress_daily_snapshots_summary.txt"
-SAMPLE_PATH = PROJECT_ROOT / "data/recipesdb/audit/progress_daily_snapshots_sample.json"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/progress_daily_snapshots_summary.txt"
+SAMPLE_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/progress_daily_snapshots_sample.json"
 
 EMAIL_ONE = "progress_daily_check_one@tabletogether.test"
 EMAIL_TWO = "progress_daily_check_two@tabletogether.test"
@@ -201,7 +201,7 @@ def _insert_fake_plan(
             household_id=household_id,
             member_profile_id=member_profile_id,
             generation_type="individual",
-            dataset_profile="v1_2_demo_final",
+            dataset_profile="current",
             days=1,
             request_json={"source": "check_progress_daily_snapshots"},
             response_json=response_json,

@@ -13,7 +13,7 @@ Implementarile M3/M4/M5 nu modifica formule nutritionale, grocery/pricing si nu 
 
 - API-ul foloseste HTTP/JSON.
 - Raspunsurile trebuie sa fie JSON-serializable.
-- `dataset_profile` recomandat pentru MVP demo este `v1_2_demo_final`.
+- `dataset_profile` recomandat pentru MVP demo este `current`.
 - `days` accepta valori `1..5`.
 - Mobile app nu citeste CSV-uri si nu ruleaza generatorul.
 - FastAPI backend apeleaza un wrapper Python peste Generator v1.
@@ -185,7 +185,7 @@ Request schema example:
 
 ```json
 {
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "days": 3,
   "member_profile": {
     "account_id": "account_demo_001",
@@ -309,7 +309,7 @@ Response schema example:
   },
   "warnings": [],
   "diagnostics_summary": {
-    "dataset_profile": "v1_2_demo_final",
+    "dataset_profile": "current",
     "profile_guard_status": "normal_demo_safe",
     "valid_days": 3,
     "accept_days": 3,
@@ -343,7 +343,7 @@ Request schema example:
 
 ```json
 {
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "days": 3,
   "household_profile": {
     "household_id": "household_demo_family_001",
@@ -508,7 +508,7 @@ Response schema example:
   "daily_plan": [],
   "warnings": [],
   "diagnostics_summary": {
-    "dataset_profile": "v1_2_demo_final"
+    "dataset_profile": "current"
   }
 }
 ```
@@ -628,7 +628,7 @@ Request schema example:
   "slot": "breakfast",
   "top_k": 5,
   "candidate_pool_k": 20,
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "household_id": "household_demo_family_001",
   "member_profile_id": "member_demo_adult_male_001",
   "feedback_enabled": true,
@@ -647,7 +647,7 @@ Response schema example:
     "display_name": "Smoked Salmon Toast Plate"
   },
   "slot": "breakfast",
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "alternatives": [
     {
       "recipe_id": "recipes_v1_2_round41_manual_007",
@@ -727,7 +727,7 @@ Request schema example:
   "generation_type": "individual",
   "replace_scope": "individual_meal",
   "member_profile_id": "member_demo_adult_male_001",
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "feedback_enabled": true
 }
 ```

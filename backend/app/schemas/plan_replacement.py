@@ -22,7 +22,7 @@ class MealReplacementRequest(FlexibleBaseModel):
     replace_scope: ReplacementScope | None = None
     member_id: str | None = None
     member_profile_id: str | None = None
-    dataset_profile: str = "v1_2_demo_final"
+    dataset_profile: str = "current"
     feedback_enabled: bool = True
     generation_options: dict[str, Any] = Field(default_factory=dict)
 

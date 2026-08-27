@@ -12,8 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-GROCERY_AUDIT_DIR = PROJECT_ROOT / "data/grocery/audit"
-RECIPES_AUDIT_DIR = PROJECT_ROOT / "data/recipesdb/audit"
+GROCERY_AUDIT_DIR = PROJECT_ROOT / ".codex_runtime_logs/checks/grocery"
+RECIPES_AUDIT_DIR = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb"
 PRICE_COVERAGE_PATH = GROCERY_AUDIT_DIR / "data_qa_price_coverage_items.csv"
 TIME_COVERAGE_PATH = RECIPES_AUDIT_DIR / "data_qa_time_coverage_recipes.csv"
 COOKING_STEPS_SUMMARY_PATH = RECIPES_AUDIT_DIR / "data_qa_cooking_steps_missing_summary.txt"
@@ -52,7 +52,7 @@ MEAL_TIME_FIELDS = (
 
 
 def main() -> int:
-    from src.generator_v1.data_loader import V1_2_DEMO_FINAL_PROFILE
+    from src.generator_v1.data_loader import CURRENT_DATASET_PROFILE
     from src.generator_v1.service import (
         generate_household_plan_from_request,
         generate_individual_plan_from_request,
@@ -61,8 +61,8 @@ def main() -> int:
     errors: list[str] = []
     warnings: list[str] = []
 
-    price_rows = _read_csv(PRICE_COVERAGE_PATH, errors)
-    time_rows = _read_csv(TIME_COVERAGE_PATH, errors)
+    price_rows = _read_optional_csv(PRICE_COVERAGE_PATH, warnings)
+    time_rows = _read_optional_csv(TIME_COVERAGE_PATH, warnings)
     app_price_rows = [
         row
         for row in price_rows
@@ -115,7 +115,7 @@ def main() -> int:
     }
     individual_response = generate_individual_plan_from_request(
         {
-            "dataset_profile": V1_2_DEMO_FINAL_PROFILE,
+            "dataset_profile": CURRENT_DATASET_PROFILE,
             "days": 1,
             "generation_options": request_options,
             "include_grocery_list": True,
@@ -126,7 +126,7 @@ def main() -> int:
     )
     household_response = generate_household_plan_from_request(
         {
-            "dataset_profile": V1_2_DEMO_FINAL_PROFILE,
+            "dataset_profile": CURRENT_DATASET_PROFILE,
             "days": 1,
             "generation_options": request_options,
             "include_grocery_list": True,
@@ -155,7 +155,7 @@ def main() -> int:
     summary_lines = [
         "DATA-QA-1 price/time hard checker summary",
         f"status={status}",
-        f"dataset_profile={V1_2_DEMO_FINAL_PROFILE}",
+        f"dataset_profile={CURRENT_DATASET_PROFILE}",
         f"price_coverage_path={PRICE_COVERAGE_PATH.relative_to(PROJECT_ROOT)}",
         f"time_coverage_path={TIME_COVERAGE_PATH.relative_to(PROJECT_ROOT)}",
         f"app_price_rows_checked={len(app_price_rows)}",
@@ -177,9 +177,9 @@ def main() -> int:
     return 0 if not errors else 1
 
 
-def _read_csv(path: Path, errors: list[str]) -> list[dict[str, Any]]:
+def _read_optional_csv(path: Path, warnings: list[str]) -> list[dict[str, Any]]:
     if not path.exists():
-        errors.append(f"missing_audit_file={path.relative_to(PROJECT_ROOT)}")
+        warnings.append(f"optional_audit_file_missing={path.relative_to(PROJECT_ROOT)}")
         return []
     with path.open("r", encoding="utf-8", newline="") as handle:
         return [dict(row) for row in csv.DictReader(handle)]

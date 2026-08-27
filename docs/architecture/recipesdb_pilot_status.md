@@ -9,7 +9,7 @@ Exista doua niveluri care nu trebuie confundate:
    - contine tabele materializate pilot pentru retete, ingrediente si cache nutritional;
    - nu este datasetul app-facing principal al Generator v1 demo.
 
-2. `data/recipesdb/draft/v1_2_demo_final`
+2. `data/recipesdb/current`
    - pachet demo-final draft folosit de fluxurile generator/mobile/backend;
    - are acoperire mai buna pentru demo: sloturi, time layer, grocery/price coverage si QA app-facing;
    - nu este productie si nu este promovat in `current`.
@@ -43,8 +43,8 @@ Acestea raman utile pentru audit si trasabilitate, dar tabelele care descriu str
 
 Datasetul folosit in fluxurile app-facing/demo:
 
-- `dataset_profile=v1_2_demo_final`
-- path: `data/recipesdb/draft/v1_2_demo_final/`
+- `dataset_profile=current`
+- path: `data/recipesdb/current/`
 - total recipes: `266`
 - active recipes: `261`
 - source: `v1_2_demo_candidate_round48_cleaned`
@@ -79,7 +79,7 @@ Pe baza acestor tabele/drafturi exista deja:
 
 ## Not Final Yet
 
-- `v1_2_demo_final` este demo-final draft, nu productie QA.
+- `current` este demo-final draft, nu productie QA.
 - `data/recipesdb/current` este baseline pilot, nu baza finala production.
 - `recipe_components.csv` ramane placeholder si nu sustine inca un model componentizat.
 - Ingredient mapping-ul este utilizabil pentru pilot/demo, dar nu complet production-grade.
@@ -100,7 +100,7 @@ Directia corecta nu este intoarcerea la modelul vechi de itemi amestecati. Urmat
 
 Pentru evolutie spre aplicatia finala:
 
-- mentine `v1_2_demo_final` ca pachet app-facing pana exista un pachet mai bun;
+- mentine `current` ca pachet app-facing pana exista un pachet mai bun;
 - imbunatateste `current` incremental, fara promovari automate;
 - foloseste audituri pentru mapping, nutrition cache, time coverage si price coverage;
 - pastreaza orice extindere KNN/ML ca strat auxiliar peste date curate, nu ca inlocuitor al baseline-ului rule/scoring-based.

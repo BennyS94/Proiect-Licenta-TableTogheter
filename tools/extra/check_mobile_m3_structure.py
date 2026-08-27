@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 MOBILE_DIR = PROJECT_ROOT / "mobile"
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/mobile_m3_structure_summary.txt"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/mobile_m3_structure_summary.txt"
 
 REQUIRED_FILES = [
     "src/components/GroceryListSection.tsx",

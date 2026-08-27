@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MOBILE_DIR = PROJECT_ROOT / "mobile"
 MOBILE_SRC = MOBILE_DIR / "src"
 ASSETS_DIR = MOBILE_DIR / "assets"
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/mobile_assets_structure_summary.txt"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/mobile_assets_structure_summary.txt"
 
 REQUIRED_PATHS = [
     "README_assets.md",

@@ -7,7 +7,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MOBILE_DIR = PROJECT_ROOT / "mobile"
 MOBILE_SRC = MOBILE_DIR / "src"
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/mobile_ui_shell_structure_summary.txt"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/mobile_ui_shell_structure_summary.txt"
 
 REQUIRED_FILES = [
     "src/screens/HomePage.tsx",

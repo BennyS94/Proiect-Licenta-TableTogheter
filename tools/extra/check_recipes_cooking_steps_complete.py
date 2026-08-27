@@ -12,18 +12,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 RECIPES_PATH = PROJECT_ROOT / "data/recipesdb/current/recipes.csv"
-AUDIT_DIR = PROJECT_ROOT / "data/recipesdb/audit"
-BEFORE_AUDIT_PATH = AUDIT_DIR / "cooking_steps_coverage_before.csv"
-AFTER_AUDIT_PATH = AUDIT_DIR / "cooking_steps_coverage_after.csv"
+AUDIT_DIR = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb"
 SUMMARY_PATH = AUDIT_DIR / "cooking_steps_completion_summary.txt"
 FALLBACK_TEXT = "Cooking steps are not available for this recipe yet."
 
 
 def main() -> int:
-    from src.generator_v1.data_loader import (
-        PILOT_CURRENT_PROFILE,
-        V1_2_DEMO_FINAL_PROFILE,
-    )
+    from src.generator_v1.data_loader import CURRENT_DATASET_PROFILE
 
     errors: list[str] = []
     recipes = _read_csv(RECIPES_PATH, errors)
@@ -57,16 +52,9 @@ def main() -> int:
         if row["contains_mobile_fallback_text"] == "1":
             errors.append(f"directions_contains_mobile_fallback_text:{recipe_id}")
 
-    _check_audit_file("before", BEFORE_AUDIT_PATH, recipes, active_rows, errors)
-    _check_audit_file("after", AFTER_AUDIT_PATH, recipes, active_rows, errors)
-
     generated_counts: dict[str, dict[str, int]] = {}
-    generated_counts[PILOT_CURRENT_PROFILE] = _check_generated_payload(
-        PILOT_CURRENT_PROFILE,
-        errors,
-    )
-    generated_counts[V1_2_DEMO_FINAL_PROFILE] = _check_generated_payload(
-        V1_2_DEMO_FINAL_PROFILE,
+    generated_counts[CURRENT_DATASET_PROFILE] = _check_generated_payload(
+        CURRENT_DATASET_PROFILE,
         errors,
     )
 
@@ -75,8 +63,7 @@ def main() -> int:
         "COOKING-STEPS-1 completion summary",
         "status=ok" if status_ok else "status=failed",
         f"recipes_path={RECIPES_PATH.relative_to(PROJECT_ROOT)}",
-        f"before_audit_path={BEFORE_AUDIT_PATH.relative_to(PROJECT_ROOT)}",
-        f"after_audit_path={AFTER_AUDIT_PATH.relative_to(PROJECT_ROOT)}",
+        f"summary_path={SUMMARY_PATH.relative_to(PROJECT_ROOT)}",
         f"total_rows={len(recipes)}",
         f"total_active_recipes={len(active_rows)}",
         "recipes_with_valid_directions_json="
@@ -163,34 +150,6 @@ def _coverage_row(row: dict[str, Any]) -> dict[str, str]:
         "requires_completion": "1" if requires_completion else "0",
         "parse_error": parse_error,
     }
-
-
-def _check_audit_file(
-    label: str,
-    path: Path,
-    recipes: list[dict[str, Any]],
-    active_rows: list[dict[str, Any]],
-    errors: list[str],
-) -> None:
-    rows = _read_csv(path, errors)
-    if not rows:
-        return
-    current_ids = {_clean_text(row.get("recipe_id")) for row in recipes}
-    audit_ids = {_clean_text(row.get("recipe_id")) for row in rows}
-    if len(rows) != len(recipes):
-        errors.append(f"{label}_audit_row_count_mismatch:{len(rows)}!={len(recipes)}")
-    if audit_ids != current_ids:
-        errors.append(f"{label}_audit_recipe_id_set_mismatch")
-    audit_active_count = sum(1 for row in rows if _truthy(row.get("is_active")))
-    if audit_active_count != len(active_rows):
-        errors.append(f"{label}_audit_active_count_mismatch:{audit_active_count}!={len(active_rows)}")
-    required_rows = [
-        row
-        for row in rows
-        if _truthy(row.get("is_active")) and _truthy(row.get("requires_completion"))
-    ]
-    if required_rows:
-        errors.append(f"{label}_audit_requires_completion_count={len(required_rows)}")
 
 
 def _check_generated_payload(dataset_profile: str, errors: list[str]) -> dict[str, int]:

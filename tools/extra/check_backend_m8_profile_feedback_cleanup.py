@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m8_profile_feedback_cleanup_summary.txt"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m8_profile_feedback_cleanup_summary.txt"
 API_EXAMPLES_DIR = PROJECT_ROOT / "docs/api_examples"
 
 HOUSEHOLD_ID = "household_backend_m8_smoke"

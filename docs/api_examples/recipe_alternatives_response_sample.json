@@ -12,7 +12,7 @@
     "effective_time_min": 5.0
   },
   "slot": "breakfast",
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "approval_mode": "include_review",
   "alternatives": [
     {

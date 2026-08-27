@@ -117,7 +117,7 @@ Metoda adoptata in v1:
 - formula Mifflin-St Jeor pentru BMR
 - aplicare activity multiplier
 - ajustare pentru obiectiv (`goal`) folosind delta in kcal
-- NOTA: nu se mediaza mai multe formule in v1 — doar Mifflin-St Jeor
+- NOTA: nu se mediaza mai multe formule in v1 â€” doar Mifflin-St Jeor
 
 Activity multipliers (v1):
 - `sedentary` = 1.20
@@ -379,8 +379,8 @@ Extensii viitoare: acumulare preferinte familie/ingredient
 ## 23.1. Dataset demo v1.2
 
 Datasetul demo curent este:
-- `dataset_profile=v1_2_demo_final`
-- path: `data/recipesdb/draft/v1_2_demo_final/`
+- `dataset_profile=current`
+- path: `data/recipesdb/current/`
 - total recipes: `266`
 - active recipes: `261`
 - sursa: `v1_2_demo_candidate_round48_cleaned`
@@ -497,5 +497,4 @@ Exemplu validat:
 
 ## 31. Concluzie
 
-Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven si integrat prin backend/mobile MVP. Generarea individuala 1-5 zile, Household Generation v1 Lite, feedback explicit, grocery list, price/time coverage demo, KNN alternatives si meal-level replacement exista deja pe pachetul `v1_2_demo_final`. Urmatorii pasi tin de polish mobile, QA pe telefon, feedback explainability, varietate family-level si consolidarea Food_DB / Recipes_DB, nu de introducerea prematura a unui optimizer global sau a unui motor ML principal.
-
+Acest document stabileste contractul operational pentru Generator v1: recipe-based, deterministic, scoring-driven si integrat prin backend/mobile MVP. Generarea individuala 1-5 zile, Household Generation v1 Lite, feedback explicit, grocery list, price/time coverage demo, KNN alternatives si meal-level replacement exista deja pe pachetul `current`. Urmatorii pasi tin de polish mobile, QA pe telefon, feedback explainability, varietate family-level si consolidarea Food_DB / Recipes_DB, nu de introducerea prematura a unui optimizer global sau a unui motor ML principal.

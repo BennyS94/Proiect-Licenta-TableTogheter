@@ -11,10 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m5_persistence_generation_summary.txt"
-INDIVIDUAL_SAMPLE_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m5_individual_response_sample.json"
-HOUSEHOLD_SAMPLE_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m5_household_response_sample.json"
-FEEDBACK_CONTEXT_SAMPLE_PATH = PROJECT_ROOT / "data/recipesdb/audit/backend_m5_feedback_context_used_sample.json"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m5_persistence_generation_summary.txt"
+INDIVIDUAL_SAMPLE_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m5_individual_response_sample.json"
+HOUSEHOLD_SAMPLE_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m5_household_response_sample.json"
+FEEDBACK_CONTEXT_SAMPLE_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/backend_m5_feedback_context_used_sample.json"
 
 HOUSEHOLD_ID = "household_backend_m5_smoke"
 MEMBER_PROFILE_ID = "member_backend_m5_smoke_001"
@@ -86,7 +86,7 @@ def _individual_generation_request(
     include_grocery_list: bool,
 ) -> dict[str, Any]:
     return {
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "days": 1,
         "household_id": HOUSEHOLD_ID,
         "member_profile_id": MEMBER_PROFILE_ID,
@@ -107,7 +107,7 @@ def _individual_generation_request(
 
 def _household_generation_request() -> dict[str, Any]:
     return {
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "days": 1,
         "household_id": HOUSEHOLD_ID,
         "selected_member_ids": [

@@ -3,13 +3,13 @@
 ## Ce exista acum (real)
 
 ### Repo layout (relevant)
-- `src/legacy/` – pipeline ML/inference vechi (generator + core scoring/pools/daily_rules), pastrat pentru referinta
-- `src/generator_v1/` – lucrul activ pentru Generator v1
-- `profiles/` – input user profile (ex: `user_profile_sample.json`)
-- `configs/` – reguli YAML (scoring, priors, daily rules, enrich)
-- `templates/` – sabloane YAML pentru mese (slots/portion ranges)
-- `data/` – dataset enrichuit + substitutii (parquet/csv.gz)
-- `outputs/` – rezultate inference (CSV + summary + readable)
+- `src/legacy/` â€“ pipeline ML/inference vechi (generator + core scoring/pools/daily_rules), pastrat pentru referinta
+- `src/generator_v1/` â€“ lucrul activ pentru Generator v1
+- `profiles/` â€“ input user profile (ex: `user_profile_sample.json`)
+- `configs/` â€“ reguli YAML (scoring, priors, daily rules, enrich)
+- `templates/` â€“ sabloane YAML pentru mese (slots/portion ranges)
+- `data/` â€“ dataset enrichuit + substitutii (parquet/csv.gz)
+- `outputs/` â€“ rezultate inference (CSV + summary + readable)
 
 ### Fluxul actual (CLI / pipeline local)
 1. `profiles/<user>.json` + `configs/*.yaml` + `templates/*.yaml` + `data/foods_enriched.parquet`
@@ -18,7 +18,7 @@
    - `outputs/plan_v2_summary.txt` (tinte + totaluri)
    - `outputs/plan_v2_readable.txt` (render text pentru inspectie umana)
 
-Nota: exemplul actual de readable arata formatul “Ps/Sc/Ve + Alt_* + totaluri” si totaluri zilnice. fileciteturn14file3
+Nota: exemplul actual de readable arata formatul â€œPs/Sc/Ve + Alt_* + totaluriâ€ si totaluri zilnice. îˆ€fileciteîˆ‚turn14file3îˆ
 
 ## Componenta API (planned)
 

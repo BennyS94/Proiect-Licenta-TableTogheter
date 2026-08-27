@@ -17,7 +17,7 @@ from src.generator_v1.candidate_filter import (
     filter_recipe_candidates,
 )
 from src.generator_v1.data_loader import (
-    V1_2_DEMO_FINAL_PROFILE,
+    CURRENT_DATASET_PROFILE,
     load_fooddb_current,
     load_recipe_candidate_pool,
 )
@@ -611,7 +611,7 @@ def build_grocery_list_for_plan(
     request = {
         "dataset_profile": options_data.get("dataset_profile")
         or _nested_get(plan, ("pool_summary", "dataset_profile"))
-        or V1_2_DEMO_FINAL_PROFILE,
+        or CURRENT_DATASET_PROFILE,
         "days": options_data.get("days") or _plan_day_count(plan),
         "generation_options": options_data,
     }
@@ -653,7 +653,7 @@ def build_feedback_context_from_request(request: dict[str, Any]) -> dict[str, An
         events=events,
         household_id=_clean_text(request.get("household_id")),
         member_profile_id=_clean_text(request.get("member_profile_id")),
-        dataset_profile=_clean_text(request.get("dataset_profile")) or V1_2_DEMO_FINAL_PROFILE,
+        dataset_profile=_clean_text(request.get("dataset_profile")) or CURRENT_DATASET_PROFILE,
     )
     return to_json_safe(
         {
@@ -670,7 +670,7 @@ def submit_feedback_event_from_request(request: dict[str, Any]) -> dict[str, Any
         created_at=request.get("created_at"),
         household_id=request.get("household_id"),
         member_profile_id=request.get("member_profile_id"),
-        dataset_profile=request.get("dataset_profile") or V1_2_DEMO_FINAL_PROFILE,
+        dataset_profile=request.get("dataset_profile") or CURRENT_DATASET_PROFILE,
         recipe_id=request.get("recipe_id"),
         recipe_family_name=request.get("recipe_family_name"),
         display_name=request.get("display_name"),
@@ -1280,7 +1280,7 @@ def build_default_generation_options(request: Mapping[str, Any]) -> dict[str, An
 
 def normalize_dataset_profile(request: Mapping[str, Any]) -> str:
     value = _clean_text(request.get("dataset_profile"))
-    return value or V1_2_DEMO_FINAL_PROFILE
+    return value or CURRENT_DATASET_PROFILE
 
 
 def normalize_days(request: Mapping[str, Any]) -> int:

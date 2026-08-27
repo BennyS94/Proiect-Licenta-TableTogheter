@@ -11,7 +11,7 @@ class FlexibleBaseModel(BaseModel):
 
 
 class IndividualPlanGenerateRequest(FlexibleBaseModel):
-    dataset_profile: str = "v1_2_demo_final"
+    dataset_profile: str = "current"
     days: int = Field(default=3, ge=1, le=5)
     household_id: str | None = None
     member_profile_id: str | None = None
@@ -25,7 +25,7 @@ class IndividualPlanGenerateRequest(FlexibleBaseModel):
 
 
 class HouseholdPlanGenerateRequest(FlexibleBaseModel):
-    dataset_profile: str = "v1_2_demo_final"
+    dataset_profile: str = "current"
     days: int = Field(default=3, ge=1, le=5)
     household_id: str | None = None
     household_profile: dict[str, Any] | None = None

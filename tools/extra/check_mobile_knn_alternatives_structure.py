@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/mobile_knn_alternatives_structure_summary.txt"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/mobile_knn_alternatives_structure_summary.txt"
 
 MOBILE_SRC = PROJECT_ROOT / "mobile/src"
 API_CLIENT_PATH = MOBILE_SRC / "services/apiClient.ts"

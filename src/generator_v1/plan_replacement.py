@@ -12,7 +12,7 @@ from src.generator_v1.candidate_filter import (
     filter_recipe_candidates,
 )
 from src.generator_v1.data_loader import (
-    V1_2_DEMO_FINAL_PROFILE,
+    CURRENT_DATASET_PROFILE,
     load_fooddb_current,
     load_recipe_candidate_pool,
 )
@@ -767,7 +767,7 @@ def _dataset_profile(
         _clean_text(request.get("dataset_profile"))
         or _clean_text(response.get("dataset_profile"))
         or _clean_text(_nested_get(generator_plan, ("pool_summary", "dataset_profile")))
-        or V1_2_DEMO_FINAL_PROFILE
+        or CURRENT_DATASET_PROFILE
     )
 
 

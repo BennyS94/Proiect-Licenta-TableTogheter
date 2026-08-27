@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-AUDIT_DIR = PROJECT_ROOT / "data/recipesdb/audit"
+AUDIT_DIR = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb"
 SUMMARY_PATH = AUDIT_DIR / "backend_knn_meal_replacement_summary.txt"
 PREVIEW_SAMPLE_PATH = AUDIT_DIR / "backend_knn_meal_replacement_preview_sample.json"
 APPLY_SAMPLE_PATH = AUDIT_DIR / "backend_knn_meal_replacement_apply_sample.json"
@@ -66,7 +66,7 @@ def _profile_request(member_profile_id: str, display_name: str, sex: str = "male
 
 def _individual_generation_request() -> dict[str, Any]:
     return {
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "days": 1,
         "household_id": HOUSEHOLD_ID,
         "member_profile_id": MEMBER_PROFILE_ID,
@@ -80,7 +80,7 @@ def _individual_generation_request() -> dict[str, Any]:
 
 def _household_generation_request() -> dict[str, Any]:
     return {
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "days": 1,
         "household_id": HOUSEHOLD_ID,
         "selected_member_ids": [MEMBER_PROFILE_ID, MEMBER_PROFILE_ID_2],
@@ -100,7 +100,7 @@ def _alternatives_request(meal: dict[str, Any], member_profile_id: str | None = 
         "slot": meal.get("slot"),
         "top_k": 5,
         "candidate_pool_k": 20,
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "household_id": HOUSEHOLD_ID,
         "member_profile_id": member_profile_id,
         "feedback_enabled": False,
@@ -126,7 +126,7 @@ def _replacement_request(
         "replace_scope": replace_scope,
         "member_id": member_id,
         "member_profile_id": member_id,
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "feedback_enabled": False,
         "generation_options": GENERATION_OPTIONS,
     }

@@ -137,7 +137,7 @@ Columns:
 | `household_id` | TEXT NOT NULL | Household relevant |
 | `member_profile_id` | TEXT NULL | Setat pentru plan individual, null pentru household |
 | `generation_type` | TEXT NOT NULL | `individual` sau `household` |
-| `dataset_profile` | TEXT NOT NULL | Ex: `v1_2_demo_final` |
+| `dataset_profile` | TEXT NOT NULL | Ex: `current` |
 | `days` | INTEGER NOT NULL | 1..5 |
 | `request_json` | TEXT NOT NULL | Request complet serializat JSON |
 | `response_json` | TEXT NOT NULL | Raspuns complet serializat JSON |

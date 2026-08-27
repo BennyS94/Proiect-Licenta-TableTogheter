@@ -14,7 +14,7 @@ Acest checklist pastreaza istoricul de readiness pentru backend/API/mobile. Init
 
 ## Generator demo foundation
 
-- [x] `v1_2_demo_final` dataset exists as demo draft.
+- [x] `current` dataset exists as current dataset.
 - [x] `profile_guard` works for demo safety.
 - [x] Individual generation works for 1-5 days.
 - [x] Household Generation v1 Lite works.

@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/diabetes_aware_profile_summary.txt"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/diabetes_aware_profile_summary.txt"
 HOUSEHOLD_ID = "diabetes_aware_check_household"
 
 
@@ -100,7 +100,7 @@ def _generation_check(profile_payload: dict[str, Any]) -> list[str]:
 
     response = generate_individual_plan_from_request(
         {
-            "dataset_profile": "v1_2_demo_final",
+            "dataset_profile": "current",
             "days": 1,
             "member_profile": profile_payload,
             "generation_options": {

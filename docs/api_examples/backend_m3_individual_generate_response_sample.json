@@ -2,7 +2,7 @@
   "status": "ok",
   "plan_id": "plan_individual_demo_m3",
   "generation_type": "individual",
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "member_profile_id": "member_demo_001",
   "days": 3,
   "daily_plan": [
@@ -69,7 +69,7 @@
   },
   "warnings": [],
   "diagnostics_summary": {
-    "dataset_profile": "v1_2_demo_final",
+    "dataset_profile": "current",
     "days": 3,
     "selection_mode": "balanced_day",
     "portion_policy": "target_aware",

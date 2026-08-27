@@ -32,7 +32,7 @@ type MealPlanAlternativesPrefetcherProps = {
 const MEAL_SLOT_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 
 export function MealPlanAlternativesPrefetcher({
-  datasetProfile = "v1_2_demo_final",
+  datasetProfile = "current",
   generationMode,
   householdId,
   householdMembers = [],

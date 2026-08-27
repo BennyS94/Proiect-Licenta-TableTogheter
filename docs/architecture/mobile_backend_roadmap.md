@@ -10,7 +10,7 @@ Scopul este sa clarifice arhitectura aleasa, responsabilitatile fiecarei compone
 
 Generator v1 are acum o fundatie demo solida:
 
-- dataset demo `v1_2_demo_final`
+- dataset demo `current`
 - generare configurabila 1-5 zile
 - `profile_guard`
 - Feedback v1 local/demo

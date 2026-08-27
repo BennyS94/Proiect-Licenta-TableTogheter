@@ -7,7 +7,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MOBILE_DIR = PROJECT_ROOT / "mobile"
 MOBILE_SRC = MOBILE_DIR / "src"
-SUMMARY_PATH = PROJECT_ROOT / "data/recipesdb/audit/mobile_profile_wizard_structure_summary.txt"
+SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/mobile_profile_wizard_structure_summary.txt"
 
 WIZARD_PATH = MOBILE_SRC / "components/AddMemberWizard.tsx"
 HOME_SCREEN_PATH = MOBILE_SRC / "screens/HomeScreen.tsx"

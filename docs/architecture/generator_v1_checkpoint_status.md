@@ -18,8 +18,8 @@ Ce exista acum:
 - persistenta SQLite pentru planuri, profile, feedback, grocery si auth local.
 
 Dataset app-facing/demo:
-- `dataset_profile=v1_2_demo_final`
-- path: `data/recipesdb/draft/v1_2_demo_final/`
+- `dataset_profile=current`
+- path: `data/recipesdb/current/`
 - total recipes: `266`
 - active recipes: `261`
 - sursa: `v1_2_demo_candidate_round48_cleaned`
@@ -72,7 +72,7 @@ Smoke istoric relevant:
 - accept = 3/3;
 - repeated recipes = 0;
 - `multi_day_loss=0.006322`;
-- `--days 1,2,3,4,5` functioneaza pe `v1_2_demo_final`;
+- `--days 1,2,3,4,5` functioneaza pe `current`;
 - `--days 6` este respins clar.
 
 ## Feedback v1
@@ -82,7 +82,7 @@ Status: implementat.
 Rol:
 - semnal explicit, interpretabil, folosit la generari viitoare;
 - nu schimba formulele de nutritie;
-- nu promoveaza datasetul `v1_2_demo_final` in `current`;
+- nu promoveaza datasetul `current` in `current`;
 - nu este ML/KNN.
 
 Storage:
@@ -236,7 +236,7 @@ Limitari:
 - email verification / password reset / change email / change password functional.
 - ingredient-level substitution.
 - productie QA completa.
-- `v1_2_demo_final` promovat automat in `current`.
+- `current` promovat automat in `current`.
 
 ## Limitari cunoscute
 

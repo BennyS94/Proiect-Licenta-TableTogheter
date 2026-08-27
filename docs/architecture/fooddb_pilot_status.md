@@ -4,7 +4,7 @@
 - Food_DB v1 draft is accepted as the current working baseline.
 - Triage, audit, cleanup, and calibration rounds were completed for the current baseline.
 - The current core master draft is good enough to support the Recipes_DB pilot work.
-- The current active baseline file is `data/fooddb/current/fooddb_v1_core_master_draft.csv`.
+- The current active baseline file is `data/fooddb/current/fooddb_current.csv`.
 
 ## Not Final Yet
 - Food_DB is not yet fully production-quality.

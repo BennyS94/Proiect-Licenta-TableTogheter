@@ -121,7 +121,7 @@
     }
   ],
   "diagnostics_summary": {
-    "dataset_profile": "v1_2_demo_final",
+    "dataset_profile": "current",
     "household_mode": "individual_breakfast_shared_main",
     "household_allocation_mode": "macro_aware_simple",
     "household_quality_status": "accept",

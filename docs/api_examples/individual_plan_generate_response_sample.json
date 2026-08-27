@@ -82,7 +82,7 @@
   },
   "warnings": [],
   "diagnostics_summary": {
-    "dataset_profile": "v1_2_demo_final",
+    "dataset_profile": "current",
     "profile_guard_status": "normal_demo_safe",
     "valid_days": 3,
     "accept_days": 3,

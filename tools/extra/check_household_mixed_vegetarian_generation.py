@@ -142,7 +142,7 @@ def _mixed_household_request() -> dict[str, Any]:
         },
     ]
     return {
-        "dataset_profile": "v1_2_demo_final",
+        "dataset_profile": "current",
         "days": 1,
         "household_mode": "individual_breakfast_shared_main",
         "household_allocation_mode": "macro_aware_simple",

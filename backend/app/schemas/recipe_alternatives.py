@@ -19,7 +19,7 @@ class RecipeAlternativesRequest(FlexibleBaseModel):
     slot: str | None = None
     top_k: int = Field(default=5, ge=1, le=25)
     candidate_pool_k: int = Field(default=20, ge=1, le=75)
-    dataset_profile: str = "v1_2_demo_final"
+    dataset_profile: str = "current"
     household_id: str | None = None
     member_profile_id: str | None = None
     member_profile: dict[str, Any] | None = None
@@ -48,7 +48,7 @@ class RecipeAlternativesResponse(FlexibleBaseModel):
     recipe_id: str
     source_recipe: dict[str, Any] = Field(default_factory=dict)
     slot: str | None = None
-    dataset_profile: str = "v1_2_demo_final"
+    dataset_profile: str = "current"
     approval_mode: str = "include_review"
     alternatives: list[RecipeAlternativeItem] = Field(default_factory=list)
     summary: dict[str, Any] = Field(default_factory=dict)

@@ -2,7 +2,7 @@
   "status": "ok",
   "plan_id": "plan_individual_example",
   "generation_type": "individual",
-  "dataset_profile": "v1_2_demo_final",
+  "dataset_profile": "current",
   "household_id": "household_backend_m5_smoke",
   "member_profile_id": "member_backend_m5_smoke_001",
   "days": 1,
@@ -14,7 +14,7 @@
     "explicit_avoid_count": 1
   },
   "diagnostics_summary": {
-    "dataset_profile": "v1_2_demo_final",
+    "dataset_profile": "current",
     "days": 1,
     "selection_mode": "balanced_day",
     "portion_policy": "target_aware",

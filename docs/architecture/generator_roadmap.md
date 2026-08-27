@@ -41,8 +41,8 @@ Checkpoint-uri de produs/API/mobile:
 ## Dataset si configuratie demo
 
 Datasetul principal pentru fluxurile app-facing/demo este:
-- `dataset_profile=v1_2_demo_final`
-- path: `data/recipesdb/draft/v1_2_demo_final/`
+- `dataset_profile=current`
+- path: `data/recipesdb/current/`
 - total recipes: `266`
 - active recipes: `261`
 - status: demo-final draft, nu productie/current

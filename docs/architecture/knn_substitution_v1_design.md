@@ -120,7 +120,7 @@ Statusurile de audit sunt:
 
 Dataset folosit:
 
-`data/recipesdb/draft/v1_2_demo_final/`
+`data/recipesdb/current/`
 
 Feature coverage:
 
