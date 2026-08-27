@@ -278,3 +278,9 @@ Current limitations:
 ## Further Documentation
 
 The repository contains more detailed subsystem notes in `docs/`, plus focused README files for backend, mobile and active data folders. Start with [docs/README.md](docs/README.md) if you want the longer technical trail.
+
+## License
+
+Copyright © 2026 Șerban Beniamin. All rights reserved.
+
+This project is publicly available for portfolio and educational review purposes. See [LICENSE](LICENSE) for details.
