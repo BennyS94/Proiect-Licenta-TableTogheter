@@ -10,9 +10,10 @@ The project was built as a bachelor thesis / portfolio system, with emphasis on 
 
 ## Demo
 
-A short product demo video is planned for this section.
+Project showcase and demo video:
 
-<!-- TODO: Add the final demo video link or portfolio site link here. Do not commit a large MP4 file to the repository. -->
+- [TableTogether showcase site](https://bennys94.github.io/tabletogether/)
+- [Demo section](https://bennys94.github.io/tabletogether/#demo)
 
 ## Overview
 

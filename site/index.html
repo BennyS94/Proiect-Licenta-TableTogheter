@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TableTogether - Household Meal Planning</title>
+    <meta
+      name="description"
+      content="TableTogether is a household meal-planning thesis project with profiles, recipe-based generation, grocery aggregation, feedback and progress insights."
+    >
+    <meta name="theme-color" content="#7dba43">
+    <meta property="og:title" content="TableTogether - Household Meal Planning">
+    <meta
+      property="og:description"
+      content="A React Native, FastAPI and Python generator project for planning meals at household level."
+    >
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="./assets/screenshots/home-overview.jpeg">
+    <link rel="icon" href="./assets/brand/tabletogether-icon.png" type="image/png">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="TableTogether home">
+        <img class="brand-mark" src="./assets/brand/tabletogether-icon.png" alt="" aria-hidden="true">
+        <span>Table<span>Together</span></span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#story">Story</a>
+        <a href="#flow">Flow</a>
+        <a href="#demo">Demo</a>
+        <a href="#architecture">Tech</a>
+        <a class="nav-cta" href="https://github.com/BennyS94/tabletogether">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero section-shell">
+        <div class="hero-copy">
+          <p class="eyebrow">Bachelor thesis project</p>
+          <h1>Household meal planning around everyone at the table.</h1>
+          <p class="hero-lede">
+            TableTogether plans multi-day meals for a household, connects member profiles
+            to a recipe-based generator, and turns the result into recipes, grocery lists,
+            feedback and progress insights.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#demo">Watch demo</a>
+            <a class="button button-secondary" href="https://github.com/BennyS94/tabletogether">View on GitHub</a>
+          </div>
+          <dl class="hero-stats" aria-label="Current app-facing data">
+            <div>
+              <dt>326</dt>
+              <dd>recipes</dd>
+            </div>
+            <div>
+              <dt>1,537</dt>
+              <dd>canonical foods</dd>
+            </div>
+            <div>
+              <dt>2,498</dt>
+              <dd>ingredient rows</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="hero-visual" aria-label="TableTogether mobile interface screenshots">
+          <div class="phone-frame phone-main">
+            <img src="./assets/screenshots/home-overview.jpeg" alt="TableTogether home screen">
+          </div>
+          <div class="floating-card card-plan">
+            <strong>Meal plan</strong>
+            <span>Profiles, recipes, portions</span>
+          </div>
+          <div class="floating-card card-grocery">
+            <strong>Grocery list</strong>
+            <span>Aggregated for the household</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="story" class="section-shell story-grid">
+        <div>
+          <p class="eyebrow">Product story</p>
+          <h2>Built for a shared household, not a single isolated diet.</h2>
+        </div>
+        <div class="story-copy">
+          <p>
+            Most meal planning starts from one person's needs. TableTogether starts from
+            a household: several member profiles, different goals, dietary restrictions,
+            preferences, cooking time constraints and one shared grocery reality.
+          </p>
+          <p>
+            The project focuses on a practical baseline: deterministic recipe selection,
+            clear backend orchestration, curated data, and feedback that can be reused
+            by later generations.
+          </p>
+        </div>
+      </section>
+
+      <section id="flow" class="section-shell">
+        <div class="section-heading">
+          <p class="eyebrow">Application flow</p>
+          <h2>From household profiles to meals, groceries and insights.</h2>
+        </div>
+        <div class="flow-grid">
+          <article class="flow-card">
+            <span>01</span>
+            <h3>Set up household</h3>
+            <p>Create local accounts, household settings and member profiles with goals and preferences.</p>
+          </article>
+          <article class="flow-card">
+            <span>02</span>
+            <h3>Generate plan</h3>
+            <p>The backend sends profiles and targets to the Python generator for recipe selection.</p>
+          </article>
+          <article class="flow-card">
+            <span>03</span>
+            <h3>Inspect recipes</h3>
+            <p>Meals expose macros, cooking time, scaled ingredients and practical cooking steps.</p>
+          </article>
+          <article class="flow-card">
+            <span>04</span>
+            <h3>Adapt meals</h3>
+            <p>Alternatives use a KNN-lite helper, preview validation and replacement before applying changes.</p>
+          </article>
+          <article class="flow-card">
+            <span>05</span>
+            <h3>Shop once</h3>
+            <p>The grocery list is aggregated from selected recipe ingredients and formatted for purchase.</p>
+          </article>
+          <article class="flow-card">
+            <span>06</span>
+            <h3>Track progress</h3>
+            <p>Saved daily snapshots feed the Insights page with target adherence and macro trends.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-shell screenshot-feature">
+        <div class="feature-copy">
+          <p class="eyebrow">Profiles and planning</p>
+          <h2>A household can contain several internal member profiles.</h2>
+          <p>
+            The mobile app lets the user move between members, inspect each profile's plan,
+            and keep shared household behavior visible without turning the product into
+            separate one-person planners.
+          </p>
+        </div>
+        <div class="screenshot-row">
+          <figure class="phone-frame">
+            <img src="./assets/screenshots/household-profiles.jpeg" alt="Household profile management screen">
+          </figure>
+          <figure class="phone-frame">
+            <img src="./assets/screenshots/meal-plan.jpeg" alt="Generated meal plan screen">
+          </figure>
+        </div>
+      </section>
+
+      <section id="demo" class="section-shell demo-section">
+        <div class="section-heading">
+          <p class="eyebrow">Product demo</p>
+          <h2>A short walkthrough of the mobile experience.</h2>
+          <p>
+            The demo shows the Android app flow across household setup, generated meals,
+            recipe details, grocery list, alternatives and insights.
+          </p>
+        </div>
+        <div class="video-card">
+          <video controls preload="metadata" playsinline poster="./assets/screenshots/home-overview.jpeg">
+            <source src="./assets/video/tabletogether-demo.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </section>
+
+      <section class="section-shell split-section">
+        <div class="split-copy">
+          <p class="eyebrow">Cooking steps and alternatives</p>
+          <h2>Recipe details stay practical, while replacements are validated before use.</h2>
+          <p>
+            Cooking sheets show ingredient amounts scaled to the generated portion.
+            The Alternatives flow previews impact first, then applies replacements through
+            the backend rather than directly mutating the visible card.
+          </p>
+        </div>
+        <div class="screenshot-row">
+          <figure class="phone-frame">
+            <img src="./assets/screenshots/recipe-steps.jpeg" alt="Recipe steps and scaled ingredients">
+          </figure>
+          <figure class="phone-frame">
+            <img src="./assets/screenshots/alternatives-preview.jpeg" alt="Alternative recipe preview">
+          </figure>
+        </div>
+      </section>
+
+      <section class="section-shell split-section split-section-reverse">
+        <div class="split-copy">
+          <p class="eyebrow">Groceries and progress</p>
+          <h2>The generated plan becomes a shopping list and saved progress history.</h2>
+          <p>
+            Grocery output groups ingredients into readable categories with purchase suggestions
+            and estimated prices. Insights use saved daily progress snapshots to show consumed
+            totals, meal contribution and trends.
+          </p>
+        </div>
+        <div class="screenshot-row">
+          <figure class="phone-frame">
+            <img src="./assets/screenshots/grocery-list.jpeg" alt="Aggregated grocery list screen">
+          </figure>
+          <figure class="phone-frame">
+            <img src="./assets/screenshots/insights-trends.jpeg" alt="Insights and progress trends screen">
+          </figure>
+        </div>
+      </section>
+
+      <section id="architecture" class="section-shell tech-section">
+        <div class="section-heading">
+          <p class="eyebrow">Technical architecture</p>
+          <h2>Mobile interface, backend orchestration and recipe-based generation.</h2>
+        </div>
+        <div class="architecture-map" aria-label="Architecture flow">
+          <div class="arch-card">React Native + Expo<br><span>mobile UI</span></div>
+          <div class="arch-arrow" aria-hidden="true">&rarr;</div>
+          <div class="arch-card">FastAPI backend<br><span>routes, validation, persistence</span></div>
+          <div class="arch-arrow" aria-hidden="true">&rarr;</div>
+          <div class="arch-card">Python generator<br><span>filters, scoring, portions</span></div>
+          <div class="arch-arrow" aria-hidden="true">&rarr;</div>
+          <div class="arch-card">Food_DB + Recipes_DB<br><span>curated app-facing data</span></div>
+        </div>
+        <div class="tech-grid">
+          <article>
+            <h3>Mobile</h3>
+            <p>TypeScript, React Native, Expo SDK 56, react-native-svg and local image assets.</p>
+          </article>
+          <article>
+            <h3>Backend</h3>
+            <p>Python, FastAPI, Uvicorn and SQLite for local accounts, sessions, plans and progress.</p>
+          </article>
+          <article>
+            <h3>Generator</h3>
+            <p>Deterministic recipe-based planning with slot filters, profile guards, scoring and groceries.</p>
+          </article>
+          <article>
+            <h3>Data</h3>
+            <p>Curated CSV and JSON layers for canonical foods, recipes, ingredients and grocery references.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-shell context-section">
+        <div>
+          <p class="eyebrow">Project context</p>
+          <h2>A thesis project designed as a clean, inspectable product baseline.</h2>
+        </div>
+        <div class="context-list">
+          <p>
+            The project intentionally avoids inflated product claims: it is local-first,
+            uses estimated prices rather than live store prices, and treats health-aware
+            settings as non-clinical preferences.
+          </p>
+          <p>
+            Its main contribution is the end-to-end system shape: household profiles,
+            backend-owned persistence, recipe-centered generation, grocery aggregation,
+            feedback, alternatives and progress insights working together.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>TableTogether - household meal planning thesis project.</p>
+      <a href="https://github.com/BennyS94/tabletogether">GitHub repository</a>
+    </footer>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
