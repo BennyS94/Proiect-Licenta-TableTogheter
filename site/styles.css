@@ -367,6 +367,10 @@ h3 {
   color: var(--muted);
 }
 
+.tech-grid article:last-child {
+  grid-column: 1 / -1;
+}
+
 .screenshot-feature,
 .split-section {
   display: grid;
@@ -395,27 +399,175 @@ h3 {
 }
 
 .demo-section {
-  text-align: center;
+  text-align: left;
+}
+
+.demo-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 370px) minmax(0, 1fr);
+  gap: clamp(1.8rem, 5vw, 4rem);
+  align-items: start;
 }
 
 .demo-section .section-heading {
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 620px;
+  margin: clamp(0.8rem, 4vw, 2.2rem) 0 0;
 }
 
 .video-card {
-  width: min(920px, 100%);
-  margin: 0 auto;
-  padding: clamp(0.75rem, 2vw, 1.1rem);
+  width: min(360px, 100%);
+  margin: 0;
+  padding: clamp(0.3rem, 1vw, 0.5rem);
   background: linear-gradient(180deg, #ffffff 0%, var(--surface-warm) 100%);
 }
 
 .video-card video {
   width: 100%;
-  max-height: 78vh;
+  aspect-ratio: 384 / 848;
+  max-height: 72vh;
   margin: 0 auto;
-  border-radius: var(--radius-lg);
+  border-radius: 1.25rem;
   background: #101827;
+  object-fit: contain;
+}
+
+.demo-household-card {
+  margin-top: 1.45rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow-soft);
+}
+
+.demo-household-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.demo-household-heading span {
+  color: var(--accent-dark);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.demo-household-heading strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.demo-profile-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.demo-profile-list article {
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  min-width: 0;
+  padding: 0.68rem 0.72rem;
+  border: 1px solid rgba(221, 234, 211, 0.86);
+  border-radius: 1rem;
+  background: rgba(247, 250, 241, 0.72);
+}
+
+.demo-avatar {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.demo-profile-list h3 {
+  margin: 0 0 0.1rem;
+  font-size: 1rem;
+}
+
+.demo-profile-list p,
+.demo-household-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.demo-household-note {
+  margin-top: 0.85rem;
+  color: var(--accent-dark);
+  font-weight: 850;
+}
+
+.demo-feature-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.35rem 0 1.2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.demo-feature-list li {
+  position: relative;
+  padding-left: 1.55rem;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.demo-feature-list li::before {
+  position: absolute;
+  top: 0.22rem;
+  left: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  content: "";
+}
+
+.demo-feature-list li::after {
+  position: absolute;
+  top: 0.47rem;
+  left: 0.27rem;
+  width: 0.32rem;
+  height: 0.18rem;
+  border-left: 2px solid var(--accent-dark);
+  border-bottom: 2px solid var(--accent-dark);
+  content: "";
+  transform: rotate(-45deg);
+}
+
+.demo-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.demo-meta-chips span {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-dark);
+  background: rgba(234, 245, 227, 0.82);
+  font-size: 0.84rem;
+  font-weight: 850;
 }
 
 .architecture-map {
@@ -485,6 +637,7 @@ h3 {
   .hero,
   .story-grid,
   .context-section,
+  .demo-layout,
   .screenshot-feature,
   .split-section,
   .split-section-reverse {
@@ -501,6 +654,16 @@ h3 {
 
   .split-section-reverse .split-copy {
     order: 0;
+  }
+
+  .demo-copy {
+    order: -1;
+    text-align: center;
+    margin: 0 auto;
+  }
+
+  .video-card {
+    margin: 0 auto;
   }
 
   .flow-grid,
