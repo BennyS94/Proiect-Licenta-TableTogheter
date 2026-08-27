@@ -276,11 +276,6 @@ Current limitations:
 - recipe-level alternatives and replacement, not ingredient-level substitution;
 - current Food_DB / Recipes_DB are curated app-facing datasets, not complete public nutrition or recipe databases.
 
-## License
-
-This repository is published for portfolio, educational review and demonstration
-purposes only. It is not open source. See [LICENSE](LICENSE) for details.
-
 ## Further Documentation
 
 The repository contains more detailed subsystem notes in `docs/`, plus focused README files for backend, mobile and active data folders. Start with [docs/README.md](docs/README.md) if you want the longer technical trail.
