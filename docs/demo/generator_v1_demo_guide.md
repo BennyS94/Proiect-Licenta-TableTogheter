@@ -1,278 +1,76 @@
-# Generator v1 demo guide
+# Generator v1 Demo Guide
 
-## Purpose
+This guide describes safe local ways to exercise Generator v1 from the current public repository.
 
-Acest ghid descrie rularea demo pentru Generator v1 folosind datasetul `current`.
+The current recommended demo path is the mobile app plus FastAPI backend. Direct generator commands remain useful for technical validation, but they are not the main product flow.
 
-Demo-ul arata:
-- generare pentru 1 zi
-- generare multi-day configurabila 1-5 zile pentru demo/debug
-- filtrare demo-safe prin `profile_guard`
-- integrarea datasetului Recipes_DB v1.2 demo-final draft
-- Feedback v1 ca functie locala/demo
+## Current Runtime Path
 
-Demo-ul nu trebuie prezentat ca productie, weekly planning complet sau arhitectura finala.
-
-Nota produs:
-- Streamlit este in prezent dashboard de debug/demo.
-- Aplicatia mobila viitoare trebuie sa consume un backend FastAPI si nu trebuie sa ruleze generatorul direct.
-
-## Dataset si config recomandat
-
-Dataset:
-- `dataset_profile=current`
-- path: `data/recipesdb/current/`
-- total recipes: `266`
-- active recipes: `261`
-- sursa: `v1_2_demo_candidate_round48_cleaned`
-- status: demo-final draft, nu productie/current
-
-Config recomandat:
-- `selection_mode=balanced_day`
-- `portion_policy=target_aware`
-- `meal_realism_mode=practical`
-- `quality_gate=demo_safe`
-- `days=3`
-- `multi_day_mode=global_alternatives_3_day`
-- `multi_day_no_repeat_policy=hard`
-- `day_candidate_builder=direct_from_slots`
-- `profile_guard=demo`
-
-Nota Round54:
-- `--days` suporta valori `1..5`
-- pentru 4/5 zile, `multi_day_no_repeat_policy=hard` poate face fallback la `main_only` sau `prefer` daca no-repeat exact nu este fezabil
-- 5 zile ramane demo/debug planning, nu weekly planning complet
-- price/store logic si grocery optimization raman in afara scopului
-
-Datele `data/recipesdb/current` si `data/fooddb/current` raman neatinse.
-
-## Streamlit
-
-Pornire dashboard:
-
-```powershell
-streamlit run streamlit_app/generator_v1_dashboard.py
+```text
+React Native / Expo mobile app
+  -> FastAPI backend
+  -> src/generator_v1/service.py
+  -> data/fooddb/current
+  -> data/recipesdb/current
 ```
 
-In dashboard:
-- selecteaza `Recipes_DB v1.2 demo-final draft`
-- verifica `Profile guard = demo`
-- foloseste selectorul `Days` si butonul `Generate`
-- pentru demo rapid, foloseste `3` zile cu presetul recomandat
-- dupa generare, foloseste expanderul `Grocery list draft` pentru lista de cumparaturi draft si sugestii de achizitie
-- pentru demo household, foloseste expanderul `Household preview (draft)`
+The mobile app does not read CSV files and does not import the generator.
 
-Pentru dataseturile v1.2 demo, Streamlit seteaza implicit `profile_guard=demo`.
+## Recommended Backend/Mobile Demo
 
-## Feedback v1 demo
-
-Pornire Streamlit:
+Start the backend from the repository root:
 
 ```powershell
-streamlit run streamlit_app/generator_v1_dashboard.py
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Config recomandat pentru demonstratia de feedback:
-- `dataset_profile=current`
-- `selection_mode=balanced_day`
-- `portion_policy=target_aware`
-- `meal_realism_mode=practical`
-- `quality_gate=demo_safe`
-- `profile_guard=demo`
-
-Flux recomandat:
-- genereaza 1 zi
-- apasa `Like` pe o reteta
-- apasa `Dislike` pe alta reteta
-- apasa `Too long` pe o reteta
-- apasa `Avoid this recipe` pe o reteta
-- genereaza din nou
-
-Explicatie pentru demo:
-- `Avoid this recipe` elimina reteta la generatiile urmatoare prin hard filter
-- `Dislike` scade scorul prin `feedback_fit`
-- `Like` creste `feedback_fit`
-- `Too long` scade `time_fit` prin `time_feedback_penalty`
-- feedback-ul se aplica la urmatoarea generatie, nu modifica meniul deja afisat
-
-Storage local:
-- `data/runtime/generator_v1_feedback_events.jsonl`
-
-Reset pentru demo:
-- foloseste `Clear feedback events` in panoul de feedback
-- curata istoricul de meniuri generate din dashboard daca vrei o demonstratie pornita de la zero
-
-Ce sa nu pretinzi despre Feedback v1:
-- nu este ML
-- nu este backend real de personalizare
-- nu este sistem de conturi utilizator
-- nu este recommendation engine de productie
-- nu propaga inca feedback la nivel de ingrediente sau familii de retete
-
-## CLI 1-day
+Start the mobile app:
 
 ```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 1 --profile_guard demo
+cd mobile
+npx expo start --go --host lan
 ```
 
-Output asteptat:
-- dataset profile: `current`
-- profile guard: `normal_demo_safe`
-- plan de o zi valid/accept pentru profilul demo
-- output files in `outputs/` daca nu este folosit `--no_write_outputs`
+Useful mobile flow:
 
-## CLI multi-day 1-5 zile
+1. Create an account or log in.
+2. Add one or more member profiles.
+3. Generate a meal plan.
+4. Open Cook / Steps for a recipe.
+5. Open Alternatives and preview a replacement.
+6. Open Grocery List.
+7. Open Insights and save daily progress.
 
-Exemplu recomandat pentru 3 zile:
+## CLI Smoke Example
+
+Run from the repository root:
 
 ```powershell
 python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --profile_guard demo
 ```
 
-Output asteptat conform smoke Round54 pentru `--days 3`:
-- valid days: `3/3`
-- accept days: `3/3`
-- repeated recipes: `0`
-- `multi_day_loss=0.006322`
-- output files in `outputs/generator_v1_multiday_*`
+Expected high-level result:
 
-Pentru `--days 5`, outputul validat Round54 este `valid=5/5`, `accept=5/5`, fallback la `main_only`, `repeated=2`, `multi_day_review`, `multi_day_loss=0.071414`.
+- a valid generated plan using `data/recipesdb/current`;
+- no direct mobile dependency;
+- no live price fetching;
+- no cloud persistence.
 
-## Grocery List / Purchase Suggestions
-
-Generator v1 poate construi o lista de grocery draft din meniul generat. Lista foloseste retetele selectate, ingredientele lor si `portion_multiplier`, apoi grupeaza cantitatile in grame. Round57 adauga reguli demo pentru sugestii simple de cumparare peste lista curatata.
-
-CLI basic grocery list:
+## Useful Checks
 
 ```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list
+python tools/extra/check_generator_service_m2.py
+python tools/extra/check_backend_m3_generation_endpoints.py
+python tools/extra/check_backend_m5_persistence_aware_generation.py
+python tools/extra/check_backend_knn_recipe_alternatives.py
+python tools/extra/check_backend_knn_meal_replacement.py
+python tools/extra/check_data_qa_price_time_no_missing.py
 ```
 
-CLI grocery list cu purchase suggestions:
+## What Not To Claim
 
-```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions
-```
-
-CLI grocery list cu purchase suggestions si estimari cooked-to-raw:
-
-```powershell
-python -m src.generator_v1_cli --profile profiles/member_profile_demo_v1.json --dataset_profile current --selection_mode balanced_day --portion_policy target_aware --meal_realism_mode practical --quality_gate demo_safe --profile_guard demo --days 3 --multi_day_mode global_alternatives_3_day --multi_day_no_repeat_policy hard --day_candidate_builder direct_from_slots --write_grocery_list --grocery_purchase_suggestions --grocery_cooked_to_raw
-```
-
-Output:
-- `outputs/generator_v1_grocery_list.csv`
-- `outputs/generator_v1_grocery_list.txt`
-
-Regulile implicite sunt in `data/grocery/reference/grocery_purchase_rules_v1.csv`; pentru teste punctuale pot fi suprascrise cu `--grocery_purchase_rules_path`.
-Regulile cooked-to-raw sunt in `data/grocery/reference/grocery_cooked_to_raw_rules_v1.csv`; pentru teste punctuale pot fi suprascrise cu `--grocery_cooked_to_raw_rules_path`.
-
-Exemple de sugestii:
-- `Eggs: need ~264g; buy 6 eggs`
-- `Onions: need ~522g; buy 6 medium onions / about 600g`
-- `Pasta (dry): need ~846g; buy 2 x 500g packs`
-- `Rice (raw): need ~444g; buy 1 x 1kg bag`
-- `Greek yogurt: need ~270g; buy 1 x 500g tub`
-- `Olive oil: check pantry; need about 89.6g`
-- `Rice (cooked): need ~228g cooked; buy about 80g raw rice`
-
-In Streamlit, dupa generarea unui meniu, deschide `Grocery list draft`. Checkbox-ul `Show purchase suggestions` afiseaza coloana de sugestie de cumparare si actualizeaza textul copy-friendly. Checkbox-ul `Convert cooked rice/pasta/beans to raw purchase estimate` afiseaza echivalentul raw/dry aproximativ pentru cazurile acoperite.
-
-Nota Round73:
-- purchase suggestions au reguli corectate pentru plain yogurt ca tub, canned tomato puree ca produs conservat si cooked lentils ca dry lentils;
-- itemii neclari, de exemplu `Pressed`, raman review/warning si nu sunt ghiciti automat.
-
-Nota cooked-to-raw:
-- acopera conservator cooked rice, cooked pasta si cooked beans/lentils/chickpeas
-- nu modifica nutrition calculation sau gramele exacte din detail/CSV
-- adauga warnings de tip `cooked_to_raw_estimate`
-- cooked/boiled vegetables raman cu warning, nu se convertesc automat
-
-Limitari:
-- nu exista preturi
-- nu exista selectie de magazin, brand sau produs
-- nu exista pantry inventory real
-- nu exista optimizare avansata de pachete
-- cooked-to-raw este demo-level si acopera doar cazurile explicite de mai sus
-- sugestiile sunt reguli aproximative pentru demo/readability
-
-## Household Preview v1
-
-Household Preview v1 este un preview demo/audit pentru directia household/family. Nu este inca household-native generation.
-
-In Streamlit:
-- genereaza mai intai un plan de 3 zile;
-- deschide `Household preview (draft)`;
-- verifica targeturile membrilor din `profiles/household_profile_demo_v1.json`;
-- apasa `Build household preview from latest generated plan`;
-- verifica portiile pe membru pentru mesele shared;
-- verifica totalurile macro per membru;
-- verifica `household quantity factor` pentru grocery scaling;
-- foloseste `Copy-ready household preview` pentru text demonstrabil.
-
-Ce sa spui in demo:
-- TableTogether este orientat pe gospodarie/familie, nu doar pe un profil individual.
-- Preview-ul arata cum aceeasi masa shared poate avea portii diferite pentru fiecare membru.
-- Grocery quantities pot fi scalate de la profil unic la nevoi household.
-- Household Generation Lite include un guard pentru oua directe excesive; este o penalizare/warning de realism, nu o interdictie generala pentru oua.
-- Este primul pas spre family generation.
-
-Ce sa nu pretinzi:
-- nu este full household-native optimization;
-- nu selecteaza retete optimizand toti membrii simultan;
-- nu genereaza meniuri complet separate per membru;
-- nu foloseste OR-Tools/MILP/CP-SAT;
-- nu este household planning de productie;
-- nu include backend, mobile app sau household account system real.
-
-## Profile guard
-
-`profile_guard` este un strat de protectie pentru demo. Nu modifica profilul si nu modifica formulele din `target_builder`.
-
-Moduri:
-- `off`: comportament fara guard
-- `demo`: blocheaza profiluri unsupported pentru demo
-- `permissive`: avertizeaza, dar continua
-
-Reguli principale:
-- `target_kcal < 1300` => `unsupported_for_demo`
-- `target_kcal < 1400` si snack activ => `edge_needs_warning` sau mai sever
-- `goal=lose`, `goal_speed=fast`, `activity_level=sedentary` => avertizare
-
-Exemplu demonstrabil:
-- `sedentary_lose_fast_with_snack`, `target_kcal=1227.8`, este blocat in `profile_guard=demo`
-- in `profile_guard=permissive`, acelasi profil avertizeaza si continua
-
-## Ce sa arati in prezentare
-
-- Selectia datasetului `current`
-- Generare 1 zi cu profilul demo
-- Generare multi-day 1-5 zile; pentru demo rapid, 3 zile cu no-repeat hard
-- Statusurile de validare si quality gate
-- `profile_guard` ca protectie pentru profiluri extreme
-- Feedback v1: Like, Dislike, Too long, Avoid this recipe
-- Grocery list draft si purchase suggestions v1 ca helper demo determinist
-- Household Preview v1: mese shared cu portii diferite per membru si grocery scaling
-- Faptul ca datasetul demo-final este draft/demo si nu modifica `current`
-
-## Ce sa nu pretinzi
-
-- Nu pretinde ca este productie.
-- Nu pretinde ca exista household-native multi-member optimization.
-- Nu pretinde ca Household Preview v1 selecteaza retete optimizand toti membrii simultan.
-- Nu pretinde ca exista preturi, magazine, branduri sau grocery optimization.
-- Nu pretinde ca purchase suggestions sunt o lista realista finala cu inventar/pachete optimizate.
-- Nu pretinde ca 5 zile este weekly planning complet.
-- Nu pretinde ca exista OR-Tools/KNN/MILP ca motor de selectie.
-- Nu pretinde ca Feedback v1 este ML, backend real sau personalizare de productie.
-- Nu pretinde ca family-level variety este complet rezolvata.
-- Nu pretinde ca toate outlier risks sunt eliminate.
-
-## Roadmap dupa demo
-
-- feedback explainability + UI polish
-- family-level variety polish
-- Food_DB/source verification batch3
-- grocery purchase-unit polish
-- household-native candidate scoring/audit
-- household grocery list pe baza portiilor alocate
+- Do not present the system as a clinical nutrition tool.
+- Do not claim live supermarket prices or pantry inventory.
+- Do not describe KNN-lite as the main generator.
+- Do not describe the current generator as ML-first.
+- Do not claim cloud sync or production authentication.

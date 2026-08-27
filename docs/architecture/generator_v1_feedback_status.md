@@ -10,7 +10,7 @@ Mecanismul ramane simplu si interpretabil. Nu este ML, nu este KNN si nu invata 
 
 Feedback v1 exista in doua contexte:
 
-1. CLI / Streamlit / generator local
+1. CLI / generator local
    - foloseste JSONL local;
    - este util pentru audit, smoke si debug.
 
@@ -27,7 +27,7 @@ Generator:
 
 - `src/generator_v1/feedback_store.py`
   - append/load/clear pentru evenimente JSONL locale;
-  - folosit in CLI/Streamlit si smoke-uri locale.
+  - folosit in CLI si smoke-uri locale.
 - `src/generator_v1/feedback_adapter.py`
   - agrega evenimentele in `household_preference_context`;
   - filtreaza optional pe `household_id`, `member_profile_id`, `dataset_profile`.
@@ -61,7 +61,7 @@ Mobile:
 
 ## Storage
 
-CLI/Streamlit default:
+CLI/generator-local default:
 
 ```text
 data/runtime/generator_v1_feedback_events.jsonl
@@ -170,16 +170,9 @@ Comportament:
 - `--show_feedback_context` afiseaza sumarul contextului agregat;
 - `--clear_feedback` sterge evenimentele locale si se opreste.
 
-## Streamlit support
+## Legacy dashboard note
 
-Dashboard-ul `streamlit_app/generator_v1_dashboard.py` include controale pe fiecare masa generata:
-
-- `Like`
-- `Dislike`
-- `Too long`
-- `Avoid this recipe`
-
-Feedback-ul salvat se aplica la urmatoarea generatie. Meniul deja afisat nu este mutat retroactiv.
+Earlier local experiments used a Streamlit dashboard for manual feedback testing. That dashboard is not part of the current public runtime path. The supported app-facing feedback flow is mobile -> FastAPI -> SQLite -> generator context.
 
 ## Backend/mobile support
 

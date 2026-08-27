@@ -1,49 +1,59 @@
-# Mobile asset guide
+# Mobile Assets
 
-This folder is the canonical place for mobile UI assets.
+This folder contains checked-in assets used by the TableTogether mobile app.
 
-## Naming
+The app must never depend on Desktop paths or temporary local files at runtime. Any image, SVG, Lottie animation or other visual asset used by React Native should live under `mobile/assets/`.
 
-- Use lowercase snake_case names.
-- Avoid spaces, uppercase-only names and Romanian diacritics.
-- Keep names descriptive and stable.
-- Prefer paths that describe the UI area and usage.
+## Folder Map
 
-Examples:
-- `cooking_lottie.json`
-- `cooking_loop.gif`
+- `brand/` - app icon and splash-related assets.
+- `common/` - shared backgrounds, patterns and placeholders.
+- `home/` - Home hero, Daily Food Tip illustrations and resource thumbnails.
+- `navigation/` - custom bottom navigation icons.
+- `meal_plan/` - meal-plan visuals, action icons and recipe-detail assets.
+- `grocery/` - grocery category icons and grocery/package visuals.
+- `insights/` - macro, chart and insights visuals.
+- `household/` - account, household and profile-related visuals.
+
+## Naming Rules
+
+- Use lowercase snake_case file names.
+- Keep names stable and descriptive.
+- Avoid spaces, machine-specific names and temporary labels.
+- Prefer names based on UI purpose, not on source location.
+
+Good examples:
+
 - `tip_fruit_choice.png`
-- `tip_arranged_plate.png`
-- `highlight_meal_prep.png`
-- `kids_vegetables.png`
-- `habit_grocery_planning.png`
-- `grocery_scale.png`
-- `grocery_bag.png`
-- `nav_home.png`
+- `highlight_practical_cooking.png`
+- `grocery_vegetables.png`
+- `nav_home.svg`
+- `cooking_lottie.json`
 
-## Formats
+## Format Rules
 
-- Prefer PNG or WebP for raster UI images.
-- Prefer Lottie JSON for small looped UI animations.
-- GIF is acceptable as a fallback for small simple loops.
-- Avoid MP4 unless the UI needs video playback.
-- Avoid animated SVG unless the rendering approach is explicitly approved.
+- Use PNG or WebP for illustrations and thumbnails.
+- Use SVG/TSX components for simple single-color icons when they need theme colors.
+- Use Lottie JSON only for intentional small animations.
+- `lottie-react-native` is used for checked-in Lottie assets.
+- Keep raster assets compressed and reasonably sized.
+- Transparent backgrounds are preferred for icons and standalone illustrations.
 
-## Size rules
+## Runtime Rules
 
-- Do not add large binary assets without a clear reason.
-- Compress images before committing them.
-- Transparent backgrounds are preferred for icons, hero loops and illustrations.
-- Keep source assets larger than display size, but not excessive.
+- Add the asset file before importing it in TypeScript.
+- Do not import missing assets.
+- Do not import optional files that are not checked in.
+- Keep placeholders in code when a future asset is optional.
+- Do not store source prompts, Desktop notes or temporary generation files here.
 
-## Runtime rules
+## Current Active Assets
 
-- Do not import missing assets in React Native code.
-- Add assets first, then wire them into components.
-- If an optional asset is missing, the UI must keep rendering a placeholder.
-- `lottie-react-native` is now installed for the Home hero animation.
-- Keep Lottie usage limited to real checked-in assets.
+- Home hero: `home/welcome/cooking_lottie.json`
+- Daily Food Tips: `home/tips/tip_*.png`
+- Page 1 resource thumbnails: `home/highlights/`, `home/family_kids/`, `home/healthy_habits/`
+- Grocery category icons: `grocery/categories/`
+- Bottom navigation icons: `navigation/`
+- Additional brand or package assets should be added only when they are wired into the app.
 
-## Current state
-
-UI-ASSETS-1 created the folder structure and documentation. The Home hero now has a real Lottie asset wired in through `mobile/assets/home/welcome/cooking_lottie.json`, and Daily Food Tip uses four local PNG illustrations from `mobile/assets/home/tips/`.
+The detailed per-folder placeholder README files were intentionally removed to keep this asset area easier to scan.

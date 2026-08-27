@@ -210,9 +210,9 @@ Max observed household quantity factor fata de portia single-profile in audit:
 
 Acest lucru inseamna ca grocery list household este fezabila ca pas urmator, dar trebuie pastrata ca scaling explicit, nu ca optimizare de cumparaturi.
 
-## Streamlit Preview Recommendation
+## Legacy Preview Recommendation
 
-Urmatorul round ar trebui sa adauge un panel de preview household, nu generator complet.
+Urmatorul round istoric propunea un panel local de preview household, nu generator complet.
 
 Panel recomandat:
 
@@ -224,7 +224,7 @@ Panel recomandat:
 - grocery scaling factor per reteta shared;
 - warnings pentru `household_portion_fit_review`.
 
-Nu este recomandat sa ascundem debug-ul. Streamlit ramane dashboard de test.
+Aceasta sectiune este pastrata ca nota istorica de design. Nu descrie runtime-ul public curent.
 
 ## Round66 Household Preview Implementation Status
 
@@ -233,11 +233,10 @@ Status: implementat ca preview demo/audit, nu ca generator household-native.
 Module si fisiere:
 
 - `src/generator_v1/household_preview.py`
-- `streamlit_app/generator_v1_dashboard.py`
 - `profiles/household_profile_demo_v1.json`
 - `tools/extra/evaluate_generator_v1_round66_household_preview.py`
 
-Streamlit behavior:
+Legacy dashboard behavior:
 
 - panel collapsed: `Household preview (draft)`;
 - incarca profilul household demo;
@@ -291,7 +290,6 @@ Module si fisiere:
 
 - `src/generator_v1/household_generator.py`
 - `src/generator_v1_cli.py`
-- `streamlit_app/generator_v1_dashboard.py`
 - `tools/extra/evaluate_generator_v1_round68_household_generation.py`
 
 Diferenta fata de Household Preview:
@@ -373,7 +371,7 @@ Comportament:
 - guard-ul distinge intre oua directe si oua embedded in retete;
 - exemple de oua directe: boiled eggs, egg toast, creamed eggs, omelet/scrambled/frittata/quiche;
 - exemple de oua embedded: waffles, pancakes, baked oatmeal, batter/dough sau binder;
-- cand ouale directe sunt excesive, selectia primeste o penalizare soft si Streamlit afiseaza warning/diagnostic;
+- cand ouale directe sunt excesive, selectia primeste o penalizare soft si flow-urile de debug pot afisa warning/diagnostic;
 - nu este un egg ban global: retetele cu ou pot ramane daca sunt rezonabile sau daca nu exista alternativa mai buna.
 
 Rezultat Round73 pe household demo:
@@ -395,7 +393,7 @@ Rezultat Round73 pe household demo:
 
 ## Next Implementation Steps
 
-1. Adauga un preview Streamlit household, fara sa schimbi generator selection logic.
+1. Pastreaza preview-urile household ca debug/audit local, fara sa schimbi generator selection logic.
 2. Creeaza un contract intern pentru `household_plan`:
    - shared meals;
    - member portions;

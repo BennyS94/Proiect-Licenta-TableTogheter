@@ -2,20 +2,20 @@
 
 ## 1. Scope and current status
 
-TableTogether este un proiect de licenta pentru planificarea meniurilor pe mai multe zile, orientat spre gospodarie / familie. Sistemul foloseste profile interne de membri, obiective nutritionale, restrictii, preferinte, feedback explicit si o lista de cumparaturi agregata.
+TableTogether is a bachelor thesis project for multi-day household meal planning. The system uses internal member profiles, nutrition goals, restrictions, preferences, explicit feedback and an aggregated grocery list.
 
 Starea curenta nu mai este doar un pipeline de generator izolat. Exista un MVP local functional cu:
 
-- aplicatie mobila Android-first in React Native + Expo;
-- backend FastAPI;
-- SQLite local/demo pentru conturi, sesiuni, household-uri, profile, feedback, planuri, grocery lists si saved daily progress snapshots;
-- Generator v1 Python expus prin service wrapper;
-- Food_DB si Recipes_DB ca fisiere CSV pilot/draft;
-- flux real mobile -> backend -> generator -> persistenta.
+- Android-first mobile app in React Native + Expo;
+- FastAPI backend;
+- local SQLite for accounts, sessions, households, profiles, feedback, generated plans, grocery lists and saved daily progress snapshots;
+- Python Generator v1 exposed through a service wrapper;
+- Food_DB and Recipes_DB as curated CSV datasets;
+- real mobile -> backend -> generator -> persistence flow.
 
-Expo este folosit pentru viteza de dezvoltare si testare. Directia produsului ramane o aplicatie mobila finalizabila incremental, nu un demo separat de codul real.
+Expo is used for fast development and testing. The product direction remains an incrementally shippable mobile app, not a separate demo disconnected from the real code.
 
-Arhitectura nu este finala. Proiectul ramane in faza de consolidare, dar directia curenta este clara: Android mobile + FastAPI backend + generator Python deterministic, cu date curate Food_DB / Recipes_DB.
+The architecture is still evolving, but the current direction is clear: Android mobile app + FastAPI backend + deterministic Python generator + curated Food_DB / Recipes_DB data.
 
 ## 2. Current system shape
 
@@ -65,9 +65,9 @@ Dataset app-facing/demo:
 
 - `dataset_profile=current`
 - path: `data/recipesdb/current/`
-- total recipes: `266`
-- active recipes: `261`
-- status: demo-final draft, nu productie/current
+- total recipes: `326`
+- active recipes: `326`
+- status: curated app-facing dataset, not a complete production-scale recipe database
 
 Config demo recomandat:
 
@@ -228,16 +228,14 @@ Food_DB:
 
 Recipes_DB current:
 
-- `data/recipesdb/current/recipes.csv` - 106 retete pilot;
-- `data/recipesdb/current/recipe_ingredients.csv` - 947 ingrediente;
-- `data/recipesdb/current/recipe_nutrition_cache.csv` - 106 randuri cache;
-- `data/recipesdb/current/recipe_components.csv` - placeholder gol.
+- `data/recipesdb/current/recipes.csv` - 326 app-facing recipes;
+- `data/recipesdb/current/recipe_ingredients.csv` - 2498 mapped ingredient rows;
+- `data/recipesdb/current/recipe_nutrition_cache.csv` - 326 nutrition cache rows.
 
 Recipes_DB app-facing:
 
 - `data/recipesdb/current/`;
-- folosit de Generator v1 in MVP;
-- nu este promovat automat in `current`.
+- used by Generator v1 in the current app flow.
 
 Directia ramane separarea curata:
 

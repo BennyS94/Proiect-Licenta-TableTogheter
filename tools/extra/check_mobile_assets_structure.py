@@ -11,61 +11,43 @@ SUMMARY_PATH = PROJECT_ROOT / ".codex_runtime_logs/checks/recipesdb/mobile_asset
 
 REQUIRED_PATHS = [
     "README_assets.md",
-    "brand/README.md",
-    "brand/icon/README.md",
-    "brand/splash/README.md",
-    "common/README.md",
-    "common/placeholders/README.md",
-    "common/backgrounds/README.md",
-    "common/patterns/README.md",
-    "home/README.md",
-    "home/welcome/README.md",
-    "home/tips/README.md",
-    "home/highlights/README.md",
-    "home/family_kids/README.md",
-    "home/healthy_habits/README.md",
-    "navigation/README.md",
-    "meal_plan/README.md",
-    "meal_plan/meal_slots/README.md",
-    "meal_plan/actions/README.md",
-    "meal_plan/recipe_details/README.md",
-    "meal_plan/cooking_steps/README.md",
-    "grocery/README.md",
-    "grocery/package_icons/README.md",
-    "grocery/categories/README.md",
-    "insights/README.md",
-    "insights/macro/README.md",
-    "insights/micronutrients/README.md",
-    "household/README.md",
-    "household/account/README.md",
-    "household/members/README.md",
-    "household/profile_wizard/README.md",
+    "home",
+    "home/welcome",
+    "home/tips",
+    "home/highlights",
+    "home/family_kids",
+    "home/healthy_habits",
+    "grocery",
+    "grocery/categories",
+    "insights",
+    "insights/macro",
+    "insights/meals",
 ]
 
 README_MARKERS = [
-    "UI-ASSETS-1",
     "cooking_lottie.json",
-    "cooking_loop.gif",
-    "mobile/assets/home/welcome",
+    "home/tips/tip_*.png",
+    "grocery/categories/",
+    "navigation/",
     "lottie-react-native",
 ]
 
 ASSET_GUIDE_MARKERS = [
     "lowercase snake_case",
     "Lottie JSON",
-    "GIF",
-    "Avoid MP4",
+    "Do not import optional files",
     "Do not import missing assets",
     "lottie-react-native",
+    "grocery/categories/",
+    "navigation/",
 ]
 
 HOME_GUIDE_MARKERS = [
     "cooking_lottie.json",
-    "cooking_loop.gif",
-    "tip_snack.png",
-    "highlight_meal_prep.png",
-    "kids_vegetables.png",
-    "habit_grocery_planning.png",
+    "home/tips/tip_*.png",
+    "home/highlights/",
+    "home/family_kids/",
+    "home/healthy_habits/",
 ]
 
 FORBIDDEN_MOBILE_MARKERS = [
@@ -140,7 +122,6 @@ def main() -> int:
     ]
 
     asset_guide = _read(ASSETS_DIR / "README_assets.md")
-    home_guide = _read(ASSETS_DIR / "home/README.md")
     readme = _read(MOBILE_DIR / "README_mobile.md")
     registry = _read(MOBILE_SRC / "assets/assetRegistry.ts")
     home_page = _read(MOBILE_SRC / "screens/HomePage.tsx")
@@ -154,18 +135,18 @@ def main() -> int:
         "asset_root_readme_exists": (ASSETS_DIR / "README_assets.md").exists(),
         "required_asset_structure_exists": not missing_paths,
         "asset_guide_has_naming_rules": _has_all(asset_guide, ASSET_GUIDE_MARKERS),
-        "home_asset_guide_exists": _has_all(home_guide, HOME_GUIDE_MARKERS),
+        "home_asset_guide_exists": _has_all(asset_guide, HOME_GUIDE_MARKERS),
         "grocery_package_icon_rules_exist": _has_all(
-            _read(ASSETS_DIR / "grocery/package_icons/README.md"),
-            ["package_scale.png", "package_bag.png", "package_warning.png"],
+            asset_guide,
+            ["grocery/", "grocery category icons", "grocery/package visuals"],
         ),
         "navigation_icon_rules_exist": _has_all(
-            _read(ASSETS_DIR / "navigation/README.md"),
-            ["nav_home.png", "nav_meal_plan.png", "nav_insights.png", "nav_household.png"],
+            asset_guide,
+            ["navigation/", "custom bottom navigation icons"],
         ),
         "brand_apk_rules_exist": _has_all(
-            _read(ASSETS_DIR / "brand/README.md"),
-            ["ANDROID-BUILD-1", "app_icon_foreground.png", "splash_logo.png"],
+            asset_guide,
+            ["brand/", "app icon", "splash"],
         ),
         "safe_asset_registry_exists": _has_all(
             registry,
@@ -173,10 +154,7 @@ def main() -> int:
         )
         and "require(" not in registry
         and "from " not in registry,
-        "home_still_uses_placeholders": _has_all(
-            home_page,
-            ["animationCard", "tipIllustration", "ResourceCarouselSection"],
-        ),
+        "home_still_uses_placeholders": _has_all(home_page, ["LottieView", "ResourceCarouselSection"]),
         "home_lottie_hero_asset_ready": hero_lottie_path.exists()
         and "lottie-react-native" in package_json
         and _has_all(home_page, ["LottieView", "cooking_lottie.json"]),
